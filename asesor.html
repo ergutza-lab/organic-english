@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Asesor — Organic English</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f172a; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* LOGIN */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-box { background: #1e2a4a; border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.08); }
+  .login-box img { display: block; margin: 0 auto 10px; height: 45px; }
+  .login-box h1 { color: #fff; font-size: 22px; font-weight: 600; text-align: center; margin-bottom: 6px; }
+  .login-box p { color: #64748b; font-size: 13px; text-align: center; margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; color: #94a3b8; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .field input { width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px; color: #f1f5f9; font-size: 15px; outline: none; }
+  .field input:focus { border-color: #f97316; }
+  .btn-primary { width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-primary:hover { opacity: 0.9; }
+  .error-msg { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 16px; color: #f87171; font-size: 13px; margin-top: 14px; display: none; text-align: center; }
+
+  /* PANEL */
+  .panel-wrap { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .panel-header img { height: 36px; }
+  .btn-logout { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 8px 16px; font-size: 12px; cursor: pointer; }
+
+  .bienvenida { background: linear-gradient(135deg, #1c2b5e, #0f1a3d); border-radius: 16px; padding: 24px; margin-bottom: 20px; border-bottom: 3px solid #f97316; }
+  .bienvenida p { color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+  .bienvenida h2 { color: #fff; font-size: 22px; font-weight: 600; }
+
+  .comision-card { background: #1e2a4a; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; border: 1px solid rgba(249,115,22,0.2); display: flex; align-items: center; justify-content: space-between; }
+  .comision-card .label { color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+  .comision-card .monto { color: #fb923c; font-size: 28px; font-weight: 700; }
+  .comision-card .sub { color: #475569; font-size: 12px; margin-top: 2px; }
+  .comision-icon { width: 48px; height: 48px; background: rgba(249,115,22,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #f97316; font-size: 22px; font-weight: 700; }
+
+  .seccion-titulo { color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
+
+  .alumno-card { background: #1e2a4a; border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06); }
+  .alumno-card .nombre { color: #f1f5f9; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .alumno-card .detalle { color: #64748b; font-size: 12px; margin-bottom: 12px; }
+  .alumno-card .detalle span { color: #94a3b8; margin-right: 12px; }
+  .card-actions { display: flex; gap: 10px; }
+  .btn-validar { flex: 1; background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; border-radius: 100px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-validar:hover { opacity: 0.9; }
+  .btn-whatsapp { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 10px 16px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: #475569; }
+  .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  .loading { text-align: center; padding: 40px; color: #475569; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screenLogin" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
+      <h1>Panel de Asesor</h1>
+      <p>Ingresa con tu ID y clave personal</p>
+      <div class="field">
+        <label>ID de Asesor</label>
+        <input type="text" id="inputId" placeholder="ASE-01" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Clave</label>
+        <input type="password" id="inputClave" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" onclick="login()">Entrar</button>
+      <div class="error-msg" id="errorMsg">ID o clave incorrectos. Intenta de nuevo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="screenPanel" class="screen">
+  <div class="panel-wrap">
+    <div class="panel-header">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+
+    <div class="bienvenida">
+      <p>Bienvenido/a,</p>
+      <h2 id="asesorNombre">—</h2>
+    </div>
+
+    <div class="comision-card">
+      <div>
+        <div class="label">Comisiones esta semana</div>
+        <div class="monto" id="comisionSemana">$0 MXN</div>
+        <div class="sub">Alumnos validados del lunes a hoy</div>
+      </div>
+      <div class="comision-icon">$</div>
+    </div>
+
+    <div class="seccion-titulo">Alumnos pendientes de pago</div>
+    <div id="listaPendientes"><div class="loading">Cargando...</div></div>
+
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzvoeHRw704tloDqUKqVQqLld5lcLPcGZx9PHWxbHTygDvT1qd6mhUmlj-tIQ9f84f3/exec';
+
+  var asesorData = null;
+
+  function login() {
+    var id    = document.getElementById('inputId').value.trim().toUpperCase();
+    var clave = document.getElementById('inputClave').value.trim();
+    var err   = document.getElementById('errorMsg');
+
+    if (!id || !clave) { err.style.display = 'block'; err.textContent = 'Completa todos los campos.'; return; }
+
+    err.style.display = 'none';
+    var btn = document.querySelector('.btn-primary');
+    btn.textContent = 'Verificando...';
+    btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=loginAsesor&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Entrar';
+        btn.disabled = false;
+        if (data.success) {
+          asesorData = data.asesor;
+          mostrarPanel();
+        } else {
+          err.style.display = 'block';
+          err.textContent = 'ID o clave incorrectos. Intenta de nuevo.';
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Entrar';
+        btn.disabled = false;
+        err.style.display = 'block';
+        err.textContent = 'Error de conexión. Intenta más tarde.';
+      });
+  }
+
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+    document.getElementById('asesorNombre').textContent = asesorData.nombre;
+    document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+    renderPendientes(asesorData.alumnosPendientes);
+  }
+
+  function renderPendientes(pendientes) {
+    var lista = document.getElementById('listaPendientes');
+    if (!pendientes || pendientes.length === 0) {
+      lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
+      return;
+    }
+    lista.innerHTML = pendientes.map(function(a) {
+      var fecha = new Date(a.fecha);
+      var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
+      return '<div class="alumno-card">' +
+        '<div class="nombre">' + a.nombre + '</div>' +
+        '<div class="detalle">' +
+          '<span>' + a.idAlumno + '</span>' +
+          '<span>' + a.idGrupo + '</span>' +
+          '<span>Reserva: ' + fechaStr + '</span>' +
+        '</div>' +
+        '<div class="card-actions">' +
+          '<button class="btn-validar" onclick="validarPago(\'' + a.idAlumno + '\', this)">Validar pago</button>' +
+          '<a class="btn-whatsapp" href="https://wa.me/52' + a.whatsapp + '" target="_blank">WhatsApp</a>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function validarPago(idAlumno, btn) {
+    btn.textContent = 'Validando...';
+    btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          var card = btn.closest('.alumno-card');
+          card.style.opacity = '0.4';
+          card.style.pointerEvents = 'none';
+          btn.textContent = 'Validado';
+          // Actualizar comisión
+          asesorData.comisionSemana += 100;
+          document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+        } else {
+          btn.textContent = 'Validar pago';
+          btn.disabled = false;
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Validar pago';
+        btn.disabled = false;
+        alert('Error de conexión.');
+      });
+  }
+
+  function logout() {
+    asesorData = null;
+    document.getElementById('inputId').value = '';
+    document.getElementById('inputClave').value = '';
+    document.getElementById('screenPanel').classList.remove('active');
+    document.getElementById('screenLogin').classList.add('active');
+  }
+
+  // Enter en inputs
+  document.getElementById('inputClave').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') login();
+  });
+</script>
+
+</body>
+</html>
