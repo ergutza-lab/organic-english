@@ -509,8 +509,24 @@
 <script>
   // ── CONFIGURACIÓN ──────────────────────────────
   const SHEET_ID    = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
-  const WHATSAPP    = '5212722815321';
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzvoeHRw704tloDqUKqVQqLld5lcLPcGZx9PHWxbHTygDvT1qd6mhUmlj-tIQ9f84f3/exec';
+
+  // ── ASESORES ───────────────────────────────────
+  const ASESORES = {
+    'ASE-01': { nombre: 'Asesor Uno',    whatsapp: '5215512345678' },
+    'ASE-02': { nombre: 'Asesor Dos',    whatsapp: '5215612345679' },
+    'ASE-03': { nombre: 'Asesor Tres',   whatsapp: '5215712345680' },
+    'ASE-04': { nombre: 'Asesor Cuatro', whatsapp: '5215812345681' },
+    'ASE-05': { nombre: 'Asesor Cinco',  whatsapp: '5215912345682' },
+  };
+
+  // Leer asesor desde URL (?asesor=ASE-01) — si no hay, usa ASE-01 por defecto
+  const params   = new URLSearchParams(window.location.search);
+  const asesorId = params.get('asesor') && ASESORES[params.get('asesor')]
+                   ? params.get('asesor')
+                   : 'ASE-01';
+  const asesor   = ASESORES[asesorId];
+  const WHATSAPP = asesor.whatsapp;
 
   // Orden real de columnas en Google Sheets:
   // 0:ID_Grupo | 1:Nombre | 2:Horario | 3:Fecha_Inicio | 4:Nivel
@@ -711,7 +727,7 @@
       try {
         await fetch(APPS_SCRIPT, {
           method: 'POST',
-          body: JSON.stringify({ nombre, whatsapp, email, idGrupo: grupoSel.id, fecha: new Date().toISOString() })
+          body: JSON.stringify({ nombre, whatsapp, email, idGrupo: grupoSel.id, idAsesor: asesorId, fecha: new Date().toISOString() })
         });
       } catch(e) { /* continúa */ }
     }
