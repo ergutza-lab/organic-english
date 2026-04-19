@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Panel — Organic English</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f172a; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* LOGIN */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-box { background: #1e2a4a; border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.08); }
+  .login-box img { display: block; margin: 0 auto 10px; height: 45px; }
+  .login-box h1 { color: #fff; font-size: 22px; font-weight: 600; text-align: center; margin-bottom: 6px; }
+  .login-box p { color: #64748b; font-size: 13px; text-align: center; margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; color: #94a3b8; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .field input { width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px; color: #f1f5f9; font-size: 15px; outline: none; }
+  .field input:focus { border-color: #f97316; }
+  .btn-primary { width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-primary:hover { opacity: 0.9; }
+  .error-msg { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 16px; color: #f87171; font-size: 13px; margin-top: 14px; display: none; text-align: center; }
+
+  /* PANEL */
+  .panel-wrap { max-width: 600px; margin: 0 auto; padding: 24px 16px 40px; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .panel-header img { height: 36px; }
+  .btn-logout { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 8px 16px; font-size: 12px; cursor: pointer; }
+
+  /* RECORDATORIO */
+  .recordatorio { background: linear-gradient(135deg, #7c2d12, #9a3412); border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; border: 1px solid rgba(249,115,22,0.4); display: none; }
+  .recordatorio .rec-titulo { color: #fb923c; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .recordatorio .rec-texto { color: #fed7aa; font-size: 14px; line-height: 1.6; }
+
+  /* TARJETAS */
+  .card { background: #1e2a4a; border-radius: 16px; padding: 22px 24px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.06); }
+  .card-titulo { color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 16px; }
+  .dato-fila { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .dato-fila:last-child { border-bottom: none; }
+  .dato-label { color: #64748b; font-size: 13px; }
+  .dato-valor { color: #f1f5f9; font-size: 13px; font-weight: 500; text-align: right; max-width: 60%; }
+  .badge-id { background: #f97316; color: #fff; font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 100px; }
+  .badge-nivel { background: rgba(249,115,22,0.15); color: #fb923c; font-size: 12px; padding: 3px 10px; border-radius: 100px; }
+
+  /* ZOOM */
+  .btn-zoom { display: block; width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; text-decoration: none; text-align: center; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; margin-top: 16px; box-shadow: 0 8px 20px rgba(249,115,22,0.3); }
+
+  /* ASISTENTE */
+  .asistente-wrap { display: flex; align-items: center; gap: 16px; }
+  .asistente-foto { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid #4ade80; flex-shrink: 0; }
+  .asistente-info { flex: 1; }
+  .asistente-nombre { color: #f1f5f9; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .asistente-rol { color: #64748b; font-size: 12px; margin-bottom: 10px; }
+  .btn-wa { display: inline-block; background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; text-decoration: none; border-radius: 100px; padding: 8px 18px; font-size: 13px; font-weight: 700; }
+
+  /* PAGOS */
+  .pago-periodo { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 12px; padding: 14px 18px; margin-top: 14px; }
+  .pago-periodo .per-label { color: #64748b; font-size:11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .pago-periodo .per-valor { color: #4ade80; font-size: 13px; font-weight: 600; }
+  .pago-limite { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); border-radius: 12px; padding: 14px 18px; margin-top: 10px; }
+  .pago-limite .per-label { color: #64748b; font-size:11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .pago-limite .per-valor { color: #fb923c; font-size: 13px; font-weight: 600; }
+
+  /* PROXIMAMENTE */
+  .proximamente { text-align: center; padding: 24px; color: #334155; font-size: 13px; }
+
+  .loading { text-align: center; padding: 40px; color: #475569; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screenLogin" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
+      <h1>Mi Panel</h1>
+      <p>Ingresa con tu ID de alumno y correo</p>
+      <div class="field">
+        <label>ID de Alumno</label>
+        <input type="text" id="inputId" placeholder="Ej: OE-001" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Correo electrónico</label>
+        <input type="text" id="inputEmail" placeholder="tu@correo.com" autocomplete="off" />
+      </div>
+      <button class="btn-primary" onclick="login()">Entrar</button>
+      <div class="error-msg" id="errorMsg">ID o correo incorrectos. Intenta de nuevo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="screenPanel" class="screen">
+  <div class="panel-wrap">
+
+    <div class="panel-header">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+
+    <!-- RECORDATORIO -->
+    <div class="recordatorio" id="recordatorio">
+      <div class="rec-titulo">Recordatorio de colegiatura</div>
+      <div class="rec-texto">Esta semana vence tu pago. Envía tu comprobante a tu asistente de Control Escolar para mantener tu acceso activo.</div>
+    </div>
+
+    <!-- MI INFORMACIÓN -->
+    <div class="card">
+      <div class="card-titulo">Mi información</div>
+      <div class="dato-fila">
+        <span class="dato-label">ID de Alumno</span>
+        <span class="badge-id" id="aluId">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Nombre</span>
+        <span class="dato-valor" id="aluNombre">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Correo</span>
+        <span class="dato-valor" id="aluEmail">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">WhatsApp</span>
+        <span class="dato-valor" id="aluWhatsapp">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Estatus</span>
+        <span class="dato-valor" id="aluEstatus">—</span>
+      </div>
+    </div>
+
+    <!-- MI GRUPO -->
+    <div class="card">
+      <div class="card-titulo">Mi grupo</div>
+      <div class="dato-fila">
+        <span class="dato-label">Grupo</span>
+        <span class="dato-valor" id="grupoId">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Nivel</span>
+        <span id="grupoNivel" class="badge-nivel">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Horario</span>
+        <span class="dato-valor" id="grupoHorario">—</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Días</span>
+        <span class="dato-valor">Lunes a Jueves</span>
+      </div>
+      <div class="dato-fila">
+        <span class="dato-label">Inicio de clases</span>
+        <span class="dato-valor" id="grupoFecha">—</span>
+      </div>
+      <a id="btnZoom" href="#" target="_blank" class="btn-zoom">Unirme a mis clases por Zoom</a>
+    </div>
+
+    <!-- MI ASISTENTE CE -->
+    <div class="card">
+      <div class="card-titulo">Mi asistente de Control Escolar</div>
+      <div class="asistente-wrap">
+        <img id="asisFoto" class="asistente-foto" src="" alt="Asistente" />
+        <div class="asistente-info">
+          <div class="asistente-nombre" id="asisNombre">—</div>
+          <div class="asistente-rol">Asistente de Control Escolar</div>
+          <a id="asisWa" href="#" target="_blank" class="btn-wa">Enviar mensaje</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIS PAGOS -->
+    <div class="card">
+      <div class="card-titulo">Mis pagos</div>
+      <div id="pagosContenido">
+        <div class="proximamente">Cargando información de pagos...</div>
+      </div>
+    </div>
+
+    <!-- MIS CALIFICACIONES -->
+    <div class="card">
+      <div class="card-titulo">Mis calificaciones</div>
+      <div class="proximamente">Próximamente disponible</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzvoeHRw704tloDqUKqVQqLld5lcLPcGZx9PHWxbHTygDvT1qd6mhUmlj-tIQ9f84f3/exec';
+
+  var alumnoData = null;
+
+  function login() {
+    var id    = document.getElementById('inputId').value.trim().toUpperCase();
+    var email = document.getElementById('inputEmail').value.trim();
+    var err   = document.getElementById('errorMsg');
+
+    if (!id || !email) { err.style.display = 'block'; err.textContent = 'Completa todos los campos.'; return; }
+
+    err.style.display = 'none';
+    var btn = document.querySelector('.btn-primary');
+    btn.textContent = 'Verificando...';
+    btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email))
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Entrar';
+        btn.disabled = false;
+        if (data.success) {
+          alumnoData = data;
+          mostrarPanel();
+        } else {
+          err.style.display = 'block';
+          err.textContent = 'ID o correo incorrectos. Intenta de nuevo.';
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Entrar';
+        btn.disabled = false;
+        err.style.display = 'block';
+        err.textContent = 'Error de conexión. Intenta más tarde.';
+      });
+  }
+
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+
+    var a = alumnoData.alumno;
+    var g = alumnoData.grupo;
+    var s = alumnoData.asistente;
+    var p = alumnoData.pago;
+
+    // Recordatorio jueves(4), viernes(5), sábado(6)
+    var hoy = new Date().getDay();
+    if (hoy === 4 || hoy === 5 || hoy === 6) {
+      document.getElementById('recordatorio').style.display = 'block';
+    }
+
+    // Alumno
+    document.getElementById('aluId').textContent      = a.id;
+    document.getElementById('aluNombre').textContent  = a.nombre;
+    document.getElementById('aluEmail').textContent   = a.email;
+    document.getElementById('aluWhatsapp').textContent = a.whatsapp;
+    document.getElementById('aluEstatus').textContent = a.estatus;
+
+    // Grupo
+    if (g) {
+      document.getElementById('grupoId').textContent     = g.id;
+      document.getElementById('grupoNivel').textContent  = g.nombre + ' · ' + g.nivel;
+      document.getElementById('grupoHorario').textContent = g.horario + ' (hora CDMX)';
+      document.getElementById('grupoFecha').textContent  = formatFecha(g.fechaInicio);
+      document.getElementById('btnZoom').href            = g.linkZoom || '#';
+    }
+
+    // Asistente
+    if (s) {
+      document.getElementById('asisFoto').src    = s.foto || '';
+      document.getElementById('asisNombre').textContent = s.nombre;
+      document.getElementById('asisWa').href     = 'https://wa.me/52' + s.whatsapp;
+    }
+
+    // Pagos
+    var pagosDiv = document.getElementById('pagosContenido');
+    if (p) {
+      var fechaPago    = formatFecha(p.fecha);
+      var fechaFin     = formatFecha(p.periodoFin);
+      var fechaLimite  = formatFecha(p.limiteSiguiente);
+      pagosDiv.innerHTML =
+        '<div class="dato-fila"><span class="dato-label">Último pago</span><span class="dato-valor">' + fechaPago + ' — $' + p.monto + ' MXN (' + p.tipo + ')</span></div>' +
+        '<div class="pago-periodo"><div class="per-label">Periodo cubierto</div><div class="per-valor">Hasta el ' + fechaFin + '</div></div>' +
+        '<div class="pago-limite"><div class="per-label">Límite siguiente pago</div><div class="per-valor">Sábado ' + fechaLimite + '</div></div>';
+    } else {
+      pagosDiv.innerHTML = '<div class="proximamente">No se encontraron pagos registrados.</div>';
+    }
+  }
+
+  function formatFecha(f) {
+    if (!f) return '—';
+    var d = new Date(f);
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+  }
+
+  function logout() {
+    alumnoData = null;
+    document.getElementById('inputId').value = '';
+    document.getElementById('inputEmail').value = '';
+    document.getElementById('screenPanel').classList.remove('active');
+    document.getElementById('screenLogin').classList.add('active');
+  }
+
+  document.getElementById('inputEmail').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') login();
+  });
+</script>
+
+</body>
+</html>
