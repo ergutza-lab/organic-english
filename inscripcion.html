@@ -510,7 +510,7 @@
   // ── CONFIGURACIÓN ──────────────────────────────
   const SHEET_ID    = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
   const WHATSAPP    = '5212722815321';
-  const APPS_SCRIPT = ''; // Se llenará cuando Apps Script esté desplegado
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzvoeHRw704tloDqUKqVQqLld5lcLPcGZx9PHWxbHTygDvT1qd6mhUmlj-tIQ9f84f3/exec';
 
   // Orden real de columnas en Google Sheets:
   // 0:ID_Grupo | 1:Nombre | 2:Horario | 3:Fecha_Inicio | 4:Nivel
@@ -628,7 +628,7 @@
 
         html += `<div class="grupo-card${agotado?' agotado':''}" ${!agotado?`onclick="elegirGrupo('${g.id}')"`:''}>
           <div class="grupo-header">
-            <div class="grupo-horario">${g.horario}</div>
+            <div class="grupo-horario">${g.horario} <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);font-family:'DM Sans',sans-serif">hora CDMX</span></div>
             <div class="grupo-estado ${agotado?'estado-agotado':'estado-disponible'}">${agotado?'Agotado':'Disponible'}</div>
           </div>
           <div class="grupo-info">
@@ -673,7 +673,7 @@
     grupoSel.fechaObj = parseFecha(grupoSel.fechaCell);
 
     document.getElementById('grupo-sel-horario').textContent =
-      `${grupoSel.horario} — ${grupoSel.nombre}`;
+      `${grupoSel.horario} (hora CDMX) — ${grupoSel.nombre}`;
     document.getElementById('grupo-sel-detalle').textContent =
       `Grupo ${grupoSel.id} · Inicio: ${formatLarga(grupoSel.fechaObj)} · ${grupoSel.libres} lugar${grupoSel.libres!==1?'es':''} disponible${grupoSel.libres!==1?'s':''}`;
 
@@ -719,13 +719,14 @@
     document.getElementById('confirm-resumen').innerHTML = `
       <div class="confirm-row"><span class="confirm-row-label">Nombre</span><span class="confirm-row-value">${nombre}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Grupo</span><span class="confirm-row-value">${grupoSel.id}</span></div>
-      <div class="confirm-row"><span class="confirm-row-label">Horario</span><span class="confirm-row-value">${grupoSel.horario} · Lunes a Jueves</span></div>
+      <div class="confirm-row"><span class="confirm-row-label">Horario</span><span class="confirm-row-value">${grupoSel.horario} (hora CDMX) · Lunes a Jueves</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Nivel</span><span class="confirm-row-value">${grupoSel.nombre}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Inicio de curso</span><span class="confirm-row-value">${formatLarga(grupoSel.fechaObj)}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Correo</span><span class="confirm-row-value">${email}</span></div>`;
 
+    const mensajeWA = `Hola, acabo de reservar mi lugar en Organic English.\n\nMi nombre es ${nombre}, grupo ${grupoSel.id}, horario ${grupoSel.horario} (hora CDMX).\n\nQuisiera recibir las instrucciones de pago para completar mi inscripción.`;
     document.getElementById('btn-whatsapp').href =
-      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, mándame las instrucciones de pago por favor.')}`;
+      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensajeWA)}`;
 
     goToPanel(3);
   }
