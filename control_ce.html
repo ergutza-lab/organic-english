@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Control CE — Organic English</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+
+/* ══════════════════════════════════════════════════
+   VARIABLES Y RESET
+══════════════════════════════════════════════════ */
+:root {
+  --azul:       #1c2b5e;
+  --azul-med:   #243578;
+  --azul-claro: #e8ecf8;
+  --naranja:    #f97316;
+  --naranja-cl: #fff7ed;
+  --rojo:       #dc2626;
+  --rojo-cl:    #fef2f2;
+  --verde:      #16a34a;
+  --verde-cl:   #f0fdf4;
+  --gris:       #64748b;
+  --gris-cl:    #f8fafc;
+  --borde:      #e2e8f0;
+  --texto:      #1e293b;
+  --blanco:     #ffffff;
+  --sombra:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --sombra-md:  0 4px 12px rgba(0,0,0,.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--gris-cl);
+  color: var(--texto);
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════════════ */
+#pantalla-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-med) 100%);
+  padding: 1.5rem;
+}
+
+.login-card {
+  background: var(--blanco);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--sombra-md);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.login-logo img {
+  height: 52px;
+  object-fit: contain;
+}
+
+.login-titulo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--azul);
+  text-align: center;
+  margin-bottom: .25rem;
+}
+
+.login-sub {
+  font-size: .85rem;
+  color: var(--gris);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.campo label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--gris);
+  margin-bottom: .35rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.campo input {
+  width: 100%;
+  padding: .65rem .9rem;
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .95rem;
+  color: var(--texto);
+  background: var(--gris-cl);
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 1rem;
+}
+
+.campo input:focus { border-color: var(--azul); background: var(--blanco); }
+
+.btn-login {
+  width: 100%;
+  padding: .75rem;
+  background: var(--azul);
+  color: var(--blanco);
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+.btn-login:hover { background: var(--azul-med); }
+
+#login-error {
+  display: none;
+  margin-top: .9rem;
+  background: var(--rojo-cl);
+  color: var(--rojo);
+  border-radius: 8px;
+  padding: .6rem .9rem;
+  font-size: .85rem;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════════
+   LAYOUT PRINCIPAL
+══════════════════════════════════════════════════ */
+#pantalla-panel { display: none; }
+
+.topbar {
+  background: var(--azul);
+  color: var(--blanco);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--sombra-md);
+}
+
+.topbar-izq {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.topbar img { height: 34px; object-fit: contain; }
+
+.topbar-titulo {
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+.topbar-sub {
+  font-size: .75rem;
+  opacity: .7;
+}
+
+.topbar-der {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.badge-ce {
+  background: rgba(255,255,255,.15);
+  padding: .25rem .7rem;
+  border-radius: 99px;
+  font-size: .78rem;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}
+
+.btn-cerrar {
+  background: rgba(255,255,255,.15);
+  color: var(--blanco);
+  border: none;
+  border-radius: 8px;
+  padding: .35rem .8rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .8rem;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+.btn-cerrar:hover { background: rgba(255,255,255,.25); }
+
+/* ── Tabs ── */
+.tabs-bar {
+  background: var(--blanco);
+  border-bottom: 1.5px solid var(--borde);
+  display: flex;
+  overflow-x: auto;
+  padding: 0 1.5rem;
+  gap: .25rem;
+}
+
+.tab {
+  padding: .75rem 1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--gris);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  white-space: nowrap;
+  transition: all .2s;
+}
+
+.tab:hover { color: var(--azul); }
+.tab.activo { color: var(--azul); border-bottom-color: var(--azul); }
+
+/* ── Contenido ── */
+.contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.seccion { display: none; }
+.seccion.activa { display: block; }
+
+/* ══════════════════════════════════════════════════
+   TARJETAS RESUMEN
+══════════════════════════════════════════════════ */
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.resumen-card {
+  background: var(--blanco);
+  border-radius: 12px;
+  padding: 1.1rem 1rem;
+  box-shadow: var(--sombra);
+  border-left: 4px solid var(--azul);
+}
+
+.resumen-card.alerta { border-left-color: var(--naranja); }
+.resumen-card.peligro { border-left-color: var(--rojo); }
+.resumen-card.ok { border-left-color: var(--verde); }
+
+.resumen-num {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--azul);
+  line-height: 1;
+  margin-bottom: .25rem;
+}
+
+.resumen-card.alerta .resumen-num { color: var(--naranja); }
+.resumen-card.peligro .resumen-num { color: var(--rojo); }
+.resumen-card.ok .resumen-num { color: var(--verde); }
+
+.resumen-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--gris);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ══════════════════════════════════════════════════
+   ALERTAS BANNER
+══════════════════════════════════════════════════ */
+.alerta-banner {
+  background: var(--naranja-cl);
+  border: 1.5px solid #fed7aa;
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: .88rem;
+  color: #92400e;
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+}
+
+.alerta-banner .icono { font-size: 1.1rem; flex-shrink: 0; margin-top: .05rem; }
+.alerta-banner strong { display: block; margin-bottom: .2rem; }
+
+/* ══════════════════════════════════════════════════
+   TABLAS
+══════════════════════════════════════════════════ */
+.card {
+  background: var(--blanco);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1.5px solid var(--borde);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.card-titulo {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--azul);
+}
+
+.card-sub {
+  font-size: .78rem;
+  color: var(--gris);
+  margin-top: .1rem;
+}
+
+.tabla-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+
+thead th {
+  background: var(--gris-cl);
+  padding: .65rem 1rem;
+  text-align: left;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--gris);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+
+tbody tr { border-bottom: 1px solid var(--borde); transition: background .15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--gris-cl); }
+tbody td { padding: .7rem 1rem; vertical-align: middle; }
+
+/* ══════════════════════════════════════════════════
+   BADGES / CHIPS
+══════════════════════════════════════════════════ */
+.chip {
+  display: inline-block;
+  padding: .2rem .6rem;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+}
+
+.chip-azul    { background: var(--azul-claro); color: var(--azul); }
+.chip-naranja { background: var(--naranja-cl); color: #92400e; }
+.chip-rojo    { background: var(--rojo-cl);    color: var(--rojo); }
+.chip-verde   { background: var(--verde-cl);   color: var(--verde); }
+.chip-gris    { background: #f1f5f9;           color: var(--gris); }
+
+/* ══════════════════════════════════════════════════
+   BOTONES DE ACCIÓN
+══════════════════════════════════════════════════ */
+.btn {
+  padding: .4rem .85rem;
+  border-radius: 7px;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+
+.btn-primario  { background: var(--azul);    color: var(--blanco); }
+.btn-primario:hover { background: var(--azul-med); }
+.btn-naranja   { background: var(--naranja); color: var(--blanco); }
+.btn-naranja:hover { opacity: .9; }
+.btn-outline   { background: transparent; color: var(--azul); border: 1.5px solid var(--azul); }
+.btn-outline:hover { background: var(--azul-claro); }
+.btn-sm { padding: .3rem .65rem; font-size: .75rem; }
+
+/* ══════════════════════════════════════════════════
+   BÚSQUEDA / FILTRO
+══════════════════════════════════════════════════ */
+.filtro-input {
+  padding: .45rem .85rem;
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem;
+  outline: none;
+  width: 220px;
+  transition: border-color .2s;
+}
+
+.filtro-input:focus { border-color: var(--azul); }
+
+/* ══════════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay.abierto { display: flex; }
+
+.modal {
+  background: var(--blanco);
+  border-radius: 14px;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.2);
+}
+
+.modal-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--azul);
+  margin-bottom: .35rem;
+}
+
+.modal-sub {
+  font-size: .85rem;
+  color: var(--gris);
+  margin-bottom: 1.25rem;
+}
+
+.modal-campo label {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--gris);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: .35rem;
+}
+
+.modal-campo select,
+.modal-campo input {
+  width: 100%;
+  padding: .6rem .9rem;
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .9rem;
+  color: var(--texto);
+  outline: none;
+  margin-bottom: 1rem;
+  transition: border-color .2s;
+}
+
+.modal-campo select:focus,
+.modal-campo input:focus { border-color: var(--azul); }
+
+.modal-acciones {
+  display: flex;
+  gap: .75rem;
+  justify-content: flex-end;
+  margin-top: .5rem;
+}
+
+.modal-msg {
+  display: none;
+  margin-top: .75rem;
+  padding: .6rem .9rem;
+  border-radius: 8px;
+  font-size: .85rem;
+  text-align: center;
+}
+
+.modal-msg.ok    { background: var(--verde-cl); color: var(--verde); display: block; }
+.modal-msg.error { background: var(--rojo-cl);  color: var(--rojo);  display: block; }
+
+/* ══════════════════════════════════════════════════
+   ESTADO DE CARGA
+══════════════════════════════════════════════════ */
+.cargando {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gris);
+  font-size: .9rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--borde);
+  border-top-color: var(--azul);
+  border-radius: 50%;
+  animation: girar .7s linear infinite;
+  margin-bottom: .75rem;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* Vacío */
+.vacio {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--gris);
+  font-size: .88rem;
+}
+
+/* ══════════════════════════════════════════════════
+   BARRA DE ASISTENTES
+══════════════════════════════════════════════════ */
+.asistentes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.asistente-card {
+  border: 1.5px solid var(--borde);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.asistente-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--azul-claro);
+  flex-shrink: 0;
+}
+
+.asistente-info { flex: 1; min-width: 0; }
+.asistente-nombre { font-weight: 700; font-size: .88rem; color: var(--texto); }
+.asistente-id { font-size: .75rem; color: var(--gris); font-family: 'DM Mono', monospace; }
+.asistente-grupos { font-size: .78rem; color: var(--azul); font-weight: 600; margin-top: .15rem; }
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .topbar { padding: .65rem 1rem; }
+  .contenido { padding: 1rem; }
+  .resumen-grid { grid-template-columns: repeat(2, 1fr); }
+  .filtro-input { width: 100%; }
+  .card-header { flex-direction: column; align-items: flex-start; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     PANTALLA DE LOGIN
+══════════════════════════════════════════════ -->
+<div id="pantalla-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
+    </div>
+    <div class="login-titulo">Control CE</div>
+    <div class="login-sub">Acceso exclusivo para Control Escolar</div>
+
+    <div class="campo">
+      <label>ID de Control CE</label>
+      <input type="text" id="login-id" placeholder="CE-01" autocomplete="off" />
+    </div>
+    <div class="campo">
+      <label>Clave de acceso</label>
+      <input type="password" id="login-clave" placeholder="••••••" />
+    </div>
+    <button class="btn-login" onclick="iniciarLogin()">Entrar</button>
+    <div id="login-error">ID o clave incorrectos. Intenta de nuevo.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     PANEL PRINCIPAL
+══════════════════════════════════════════════ -->
+<div id="pantalla-panel">
+
+  <!-- TopBar -->
+  <div class="topbar">
+    <div class="topbar-izq">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="OE" />
+      <div>
+        <div class="topbar-titulo">Control CE</div>
+        <div class="topbar-sub">Organic English</div>
+      </div>
+    </div>
+    <div class="topbar-der">
+      <span class="badge-ce" id="badge-id-ce">CE-01</span>
+      <button class="btn-cerrar" onclick="cerrarSesion()">Cerrar sesion</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    <button class="tab activo" onclick="cambiarTab('resumen',this)">Resumen</button>
+    <button class="tab" onclick="cambiarTab('grupos',this)">Grupos</button>
+    <button class="tab" onclick="cambiarTab('asistentes',this)">Asistentes CE</button>
+    <button class="tab" onclick="cambiarTab('sin-pago',this)">Sin pago</button>
+    <button class="tab" onclick="cambiarTab('alertas',this)">Alertas</button>
+  </div>
+
+  <div class="contenido">
+
+    <!-- ── TAB: RESUMEN ──────────────────────────────────── -->
+    <div id="sec-resumen" class="seccion activa">
+      <div id="resumen-cargando" class="cargando">
+        <div class="spinner"></div><br>Cargando datos...
+      </div>
+      <div id="resumen-contenido" style="display:none">
+        <div class="resumen-grid">
+          <div class="resumen-card">
+            <div class="resumen-num" id="r-grupos-total">—</div>
+            <div class="resumen-label">Grupos totales</div>
+          </div>
+          <div class="resumen-card ok">
+            <div class="resumen-num" id="r-grupos-con-asi">—</div>
+            <div class="resumen-label">Con asistente</div>
+          </div>
+          <div class="resumen-card alerta">
+            <div class="resumen-num" id="r-grupos-sin-asi">—</div>
+            <div class="resumen-label">Sin asistente</div>
+          </div>
+          <div class="resumen-card peligro">
+            <div class="resumen-num" id="r-sin-pago">—</div>
+            <div class="resumen-label">Alumnos sin pago</div>
+          </div>
+          <div class="resumen-card alerta">
+            <div class="resumen-num" id="r-fusion">—</div>
+            <div class="resumen-label">Candidatos a fusion</div>
+          </div>
+          <div class="resumen-card">
+            <div class="resumen-num" id="r-asistentes">—</div>
+            <div class="resumen-label">Asistentes CE</div>
+          </div>
+        </div>
+
+        <!-- Banner alertas rápidas -->
+        <div id="banner-sin-asistente" class="alerta-banner" style="display:none">
+          <span class="icono">⚠️</span>
+          <div>
+            <strong>Grupos sin asistente CE asignado</strong>
+            <span id="banner-sin-asistente-texto"></span>
+          </div>
+        </div>
+
+        <div id="banner-fusion" class="alerta-banner" style="display:none">
+          <span class="icono">🔔</span>
+          <div>
+            <strong>Grupos con 3 alumnos o menos — candidatos a fusion</strong>
+            <span id="banner-fusion-texto"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: GRUPOS ───────────────────────────────────── -->
+    <div id="sec-grupos" class="seccion">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">Todos los grupos</div>
+            <div class="card-sub">Asignacion de asistentes CE</div>
+          </div>
+          <input class="filtro-input" type="text" placeholder="Buscar grupo..." id="filtro-grupos" oninput="filtrarGrupos()" />
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Nivel</th>
+                <th>Horario</th>
+                <th>Inicio</th>
+                <th>Inscritos</th>
+                <th>Estado</th>
+                <th>Asistente CE</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-grupos">
+              <tr><td colspan="8" class="cargando">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: ASISTENTES ───────────────────────────────── -->
+    <div id="sec-asistentes" class="seccion">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">Asistentes CE</div>
+            <div class="card-sub">Carga de grupos por asistente</div>
+          </div>
+        </div>
+        <div id="asistentes-grid" class="asistentes-grid">
+          <div class="cargando">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: SIN PAGO ─────────────────────────────────── -->
+    <div id="sec-sin-pago" class="seccion">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">Alumnos sin pago vigente</div>
+            <div class="card-sub">Estatus Validado con periodo vencido</div>
+          </div>
+          <input class="filtro-input" type="text" placeholder="Buscar alumno..." id="filtro-sinpago" oninput="filtrarSinPago()" />
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Alumno</th>
+                <th>Nombre</th>
+                <th>Grupo</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-sinpago">
+              <tr><td colspan="4" class="cargando">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: ALERTAS ──────────────────────────────────── -->
+    <div id="sec-alertas" class="seccion">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">Grupos candidatos a fusion</div>
+            <div class="card-sub">3 alumnos o menos inscritos</div>
+          </div>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Nivel</th>
+                <th>Horario</th>
+                <th>Inscritos</th>
+                <th>Asistente</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-alertas">
+              <tr><td colspan="5" class="cargando">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.25rem">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">Grupos sin asistente CE</div>
+            <div class="card-sub">Requieren asignacion inmediata</div>
+          </div>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Nivel</th>
+                <th>Horario</th>
+                <th>Inicio</th>
+                <th>Inscritos</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-sin-asistente">
+              <tr><td colspan="6" class="cargando">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /contenido -->
+</div><!-- /panel -->
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL: ASIGNAR ASISTENTE CE
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-asignar">
+  <div class="modal">
+    <div class="modal-titulo">Asignar Asistente CE</div>
+    <div class="modal-sub" id="modal-asignar-sub">Grupo: —</div>
+
+    <div class="modal-campo">
+      <label>Selecciona asistente CE</label>
+      <select id="modal-select-asistente">
+        <option value="">-- Elige asistente --</option>
+      </select>
+    </div>
+
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-asignar')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarAsignacion()">Asignar</button>
+    </div>
+    <div class="modal-msg" id="modal-asignar-msg"></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL: CAMBIAR GRUPO (CE global)
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-cambio-grupo">
+  <div class="modal">
+    <div class="modal-titulo">Cambiar grupo de alumno</div>
+    <div class="modal-sub" id="modal-cambio-sub">Alumno: —</div>
+
+    <div class="modal-campo">
+      <label>Nuevo grupo</label>
+      <select id="modal-select-grupo-destino">
+        <option value="">-- Elige grupo --</option>
+      </select>
+    </div>
+
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-cambio-grupo')">Cancelar</button>
+      <button class="btn btn-naranja" onclick="confirmarCambioGrupo()">Cambiar grupo</button>
+    </div>
+    <div class="modal-msg" id="modal-cambio-msg"></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+
+// ── CONFIGURACIÓN ──────────────────────────────────────────────────────
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNh2bE9xL6P6fcj0isN2feQKxcVAsmyqZ2uUFFFPfantp1c7TsJ96T48AaVXlMTKG6/exec';
+
+// ── ESTADO GLOBAL ──────────────────────────────────────────────────────
+var estado = {
+  idCE:          '',
+  nombreCE:      '',
+  grupos:        [],
+  asistentes:    [],
+  sinAsistente:  [],
+  sinPago:       [],
+  alertasFusion: [],
+  grupoEnModal:  '',
+  alumnoEnModal: ''
+};
+
+// ── UTILIDADES ─────────────────────────────────────────────────────────
+function api(params) {
+  var url = APPS_SCRIPT_URL + '?' + Object.keys(params).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&');
+  return fetch(url).then(function(r) { return r.json(); });
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────────────
+function iniciarLogin() {
+  var id    = document.getElementById('login-id').value.trim().toUpperCase();
+  var clave = document.getElementById('login-clave').value.trim();
+  var errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!id || !clave) {
+    errEl.textContent = 'Ingresa tu ID y clave.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  api({ action: 'loginCE', id: id, clave: clave }).then(function(res) {
+    if (res.ok) {
+      estado.idCE     = id;
+      estado.nombreCE = res.nombre;
+      document.getElementById('badge-id-ce').textContent = id;
+      document.getElementById('pantalla-login').style.display = 'none';
+      document.getElementById('pantalla-panel').style.display = 'block';
+      cargarDatos();
+    } else {
+      errEl.textContent = res.error || 'ID o clave incorrectos.';
+      errEl.style.display = 'block';
+    }
+  }).catch(function() {
+    errEl.textContent = 'Error de conexion. Intenta de nuevo.';
+    errEl.style.display = 'block';
+  });
+}
+
+// Enter en los campos de login
+document.getElementById('login-id').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') iniciarLogin();
+});
+document.getElementById('login-clave').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') iniciarLogin();
+});
+
+// ── CARGAR DATOS ──────────────────────────────────────────────────────
+function cargarDatos() {
+  api({ action: 'getDatosCE', id: estado.idCE }).then(function(res) {
+    if (!res.ok) return;
+
+    estado.grupos        = res.grupos        || [];
+    estado.asistentes    = res.asistentes    || [];
+    estado.sinAsistente  = res.sinAsistente  || [];
+    estado.sinPago       = res.sinPago       || [];
+    estado.alertasFusion = res.alertasFusion || [];
+
+    renderResumen();
+    renderGrupos();
+    renderAsistentes();
+    renderSinPago();
+    renderAlertas();
+    poblarSelectAsistentes();
+    poblarSelectGruposDestino();
+
+    document.getElementById('resumen-cargando').style.display = 'none';
+    document.getElementById('resumen-contenido').style.display = 'block';
+  });
+}
+
+// ── RENDER: RESUMEN ───────────────────────────────────────────────────
+function renderResumen() {
+  var total   = estado.grupos.length;
+  var conAsi  = estado.grupos.filter(function(g) { return g.idAsistente && g.idAsistente !== ''; }).length;
+  var sinAsi  = total - conAsi;
+
+  document.getElementById('r-grupos-total').textContent = total;
+  document.getElementById('r-grupos-con-asi').textContent = conAsi;
+  document.getElementById('r-grupos-sin-asi').textContent = sinAsi;
+  document.getElementById('r-sin-pago').textContent = estado.sinPago.length;
+  document.getElementById('r-fusion').textContent = estado.alertasFusion.length;
+  document.getElementById('r-asistentes').textContent = estado.asistentes.length;
+
+  // Banner sin asistente
+  if (sinAsi > 0) {
+    document.getElementById('banner-sin-asistente').style.display = 'flex';
+    document.getElementById('banner-sin-asistente-texto').textContent =
+      sinAsi + ' grupo(s) no tienen asistente CE asignado.';
+  }
+
+  // Banner fusión
+  if (estado.alertasFusion.length > 0) {
+    document.getElementById('banner-fusion').style.display = 'flex';
+    var ids = estado.alertasFusion.map(function(g) { return g.id; }).join(', ');
+    document.getElementById('banner-fusion-texto').textContent = ids;
+  }
+}
+
+// ── RENDER: GRUPOS ────────────────────────────────────────────────────
+function renderGrupos(filtro) {
+  var lista = estado.grupos;
+  if (filtro) {
+    var f = filtro.toLowerCase();
+    lista = lista.filter(function(g) {
+      return g.id.toLowerCase().includes(f) ||
+             g.nombre.toLowerCase().includes(f) ||
+             g.horario.toLowerCase().includes(f) ||
+             g.nivel.toLowerCase().includes(f);
+    });
+  }
+
+  var tbody = document.getElementById('tbody-grupos');
+  if (lista.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="vacio">Sin resultados</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(function(g) {
+    var chipEstado = g.estado === 'LLENO'
+      ? '<span class="chip chip-rojo">LLENO</span>'
+      : '<span class="chip chip-verde">DISPONIBLE</span>';
+
+    var chipAsi = g.idAsistente
+      ? '<span class="chip chip-azul">' + g.idAsistente + '</span>'
+      : '<span class="chip chip-naranja">Sin asignar</span>';
+
+    return '<tr>' +
+      '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.id + '</strong></td>' +
+      '<td>' + g.nombre + '</td>' +
+      '<td>' + g.horario + '</td>' +
+      '<td style="font-size:.8rem">' + formatFecha(g.fechaInicio) + '</td>' +
+      '<td><strong>' + g.inscritos + '</strong> / ' + g.cupoMax + '</td>' +
+      '<td>' + chipEstado + '</td>' +
+      '<td>' + chipAsi + '</td>' +
+      '<td><button class="btn btn-outline btn-sm" onclick="abrirModalAsignar(\'' + g.id + '\')">Asignar</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function filtrarGrupos() {
+  renderGrupos(document.getElementById('filtro-grupos').value);
+}
+
+// ── RENDER: ASISTENTES ────────────────────────────────────────────────
+function renderAsistentes() {
+  var grid = document.getElementById('asistentes-grid');
+  if (estado.asistentes.length === 0) {
+    grid.innerHTML = '<div class="vacio">Sin asistentes registrados</div>';
+    return;
+  }
+
+  grid.innerHTML = estado.asistentes.map(function(a) {
+    var foto = a.fotoUrl
+      ? '<img src="' + a.fotoUrl + '" class="asistente-foto" alt="' + a.nombre + '" onerror="this.style.background=\'#e8ecf8\'" />'
+      : '<div class="asistente-foto" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#1c2b5e;font-size:1.1rem">' + (a.nombre[0] || '?') + '</div>';
+
+    return '<div class="asistente-card">' +
+      foto +
+      '<div class="asistente-info">' +
+        '<div class="asistente-nombre">' + a.nombre + '</div>' +
+        '<div class="asistente-id">' + a.id + '</div>' +
+        '<div class="asistente-grupos">' + (a.grupos || 0) + ' grupos</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── RENDER: SIN PAGO ─────────────────────────────────────────────────
+function renderSinPago(filtro) {
+  var lista = estado.sinPago;
+  if (filtro) {
+    var f = filtro.toLowerCase();
+    lista = lista.filter(function(a) {
+      return a.idAlumno.toLowerCase().includes(f) ||
+             a.nombre.toLowerCase().includes(f) ||
+             a.idGrupo.toLowerCase().includes(f);
+    });
+  }
+
+  var tbody = document.getElementById('tbody-sinpago');
+  if (lista.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="vacio">Sin alumnos con pago vencido</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(function(a) {
+    return '<tr>' +
+      '<td><span class="chip chip-azul">' + a.idAlumno + '</span></td>' +
+      '<td>' + a.nombre + '</td>' +
+      '<td><span class="chip chip-gris">' + a.idGrupo + '</span></td>' +
+      '<td><button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\'' + a.idAlumno + '\',\'' + a.nombre + '\')">Cambiar grupo</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function filtrarSinPago() {
+  renderSinPago(document.getElementById('filtro-sinpago').value);
+}
+
+// ── RENDER: ALERTAS ───────────────────────────────────────────────────
+function renderAlertas() {
+  // Candidatos a fusión
+  var tbodyFusion = document.getElementById('tbody-alertas');
+  if (estado.alertasFusion.length === 0) {
+    tbodyFusion.innerHTML = '<tr><td colspan="5" class="vacio">Sin grupos candidatos a fusion</td></tr>';
+  } else {
+    tbodyFusion.innerHTML = estado.alertasFusion.map(function(g) {
+      return '<tr>' +
+        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.id + '</strong></td>' +
+        '<td>' + g.nombre + '</td>' +
+        '<td>' + g.horario + '</td>' +
+        '<td><span class="chip chip-rojo">' + g.inscritos + ' alumnos</span></td>' +
+        '<td>' + (g.idAsistente ? '<span class="chip chip-azul">' + g.idAsistente + '</span>' : '<span class="chip chip-gris">—</span>') + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // Sin asistente
+  var tbodySinAsi = document.getElementById('tbody-sin-asistente');
+  if (estado.sinAsistente.length === 0) {
+    tbodySinAsi.innerHTML = '<tr><td colspan="6" class="vacio">Todos los grupos tienen asistente asignado</td></tr>';
+  } else {
+    tbodySinAsi.innerHTML = estado.sinAsistente.map(function(g) {
+      return '<tr>' +
+        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.id + '</strong></td>' +
+        '<td>' + g.nombre + '</td>' +
+        '<td>' + g.horario + '</td>' +
+        '<td style="font-size:.8rem">' + formatFecha(g.fechaInicio) + '</td>' +
+        '<td><strong>' + g.inscritos + '</strong> / ' + g.cupoMax + '</td>' +
+        '<td><button class="btn btn-naranja btn-sm" onclick="abrirModalAsignar(\'' + g.id + '\')">Asignar ahora</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+}
+
+// ── MODAL: ASIGNAR ASISTENTE ──────────────────────────────────────────
+function abrirModalAsignar(idGrupo) {
+  estado.grupoEnModal = idGrupo;
+  document.getElementById('modal-asignar-sub').textContent = 'Grupo: ' + idGrupo;
+  document.getElementById('modal-asignar-msg').className = 'modal-msg';
+  document.getElementById('modal-asignar-msg').textContent = '';
+
+  // Pre-seleccionar asistente actual si ya tiene
+  var grupo = estado.grupos.find(function(g) { return g.id === idGrupo; });
+  var sel   = document.getElementById('modal-select-asistente');
+  if (grupo && grupo.idAsistente) {
+    sel.value = grupo.idAsistente;
+  } else {
+    sel.value = '';
+  }
+
+  document.getElementById('modal-asignar').classList.add('abierto');
+}
+
+function confirmarAsignacion() {
+  var idAsistente = document.getElementById('modal-select-asistente').value;
+  var msgEl       = document.getElementById('modal-asignar-msg');
+
+  if (!idAsistente) {
+    msgEl.textContent = 'Selecciona un asistente.';
+    msgEl.className = 'modal-msg error';
+    return;
+  }
+
+  api({
+    action:      'asignarAsistente',
+    idGrupo:     estado.grupoEnModal,
+    idAsistente: idAsistente,
+    idCE:        estado.idCE
+  }).then(function(res) {
+    if (res.ok) {
+      msgEl.textContent = 'Asistente asignado correctamente.';
+      msgEl.className = 'modal-msg ok';
+
+      // Actualizar estado local
+      var grupo = estado.grupos.find(function(g) { return g.id === estado.grupoEnModal; });
+      if (grupo) grupo.idAsistente = idAsistente;
+
+      renderGrupos(document.getElementById('filtro-grupos').value);
+      renderAlertas();
+      renderResumen();
+
+      setTimeout(function() { cerrarModal('modal-asignar'); }, 1500);
+    } else {
+      msgEl.textContent = res.error || 'Error al asignar.';
+      msgEl.className = 'modal-msg error';
+    }
+  });
+}
+
+// ── MODAL: CAMBIAR GRUPO ─────────────────────────────────────────────
+function abrirModalCambioGrupo(idAlumno, nombreAlumno) {
+  estado.alumnoEnModal = idAlumno;
+  document.getElementById('modal-cambio-sub').textContent = 'Alumno: ' + nombreAlumno + ' (' + idAlumno + ')';
+  document.getElementById('modal-cambio-msg').className = 'modal-msg';
+  document.getElementById('modal-cambio-msg').textContent = '';
+  document.getElementById('modal-select-grupo-destino').value = '';
+  document.getElementById('modal-cambio-grupo').classList.add('abierto');
+}
+
+function confirmarCambioGrupo() {
+  var grupoDestino = document.getElementById('modal-select-grupo-destino').value;
+  var msgEl        = document.getElementById('modal-cambio-msg');
+
+  if (!grupoDestino) {
+    msgEl.textContent = 'Selecciona el grupo destino.';
+    msgEl.className = 'modal-msg error';
+    return;
+  }
+
+  api({
+    action:       'cambiarGrupoCE',
+    idAlumno:     estado.alumnoEnModal,
+    grupoDestino: grupoDestino,
+    idCE:         estado.idCE
+  }).then(function(res) {
+    if (res.ok) {
+      msgEl.textContent = 'Grupo cambiado correctamente.';
+      msgEl.className = 'modal-msg ok';
+      setTimeout(function() { cerrarModal('modal-cambio-grupo'); cargarDatos(); }, 1500);
+    } else {
+      msgEl.textContent = res.error || 'Error al cambiar grupo.';
+      msgEl.className = 'modal-msg error';
+    }
+  });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function poblarSelectAsistentes() {
+  var sel = document.getElementById('modal-select-asistente');
+  sel.innerHTML = '<option value="">-- Elige asistente --</option>';
+  estado.asistentes.forEach(function(a) {
+    var opt = document.createElement('option');
+    opt.value       = a.id;
+    opt.textContent = a.id + ' — ' + a.nombre + ' (' + (a.grupos || 0) + ' grupos)';
+    sel.appendChild(opt);
+  });
+}
+
+function poblarSelectGruposDestino() {
+  var sel = document.getElementById('modal-select-grupo-destino');
+  sel.innerHTML = '<option value="">-- Elige grupo --</option>';
+  var disponibles = estado.grupos.filter(function(g) { return g.estado !== 'LLENO'; });
+  disponibles.forEach(function(g) {
+    var opt = document.createElement('option');
+    opt.value       = g.id;
+    opt.textContent = g.id + ' — ' + g.nombre + ' ' + g.horario + ' (' + g.inscritos + '/' + g.cupoMax + ')';
+    sel.appendChild(opt);
+  });
+}
+
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('abierto');
+}
+
+// Cerrar modal al hacer clic fuera
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.classList.remove('abierto');
+  });
+});
+
+function cambiarTab(seccion, boton) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('activo'); });
+  document.querySelectorAll('.seccion').forEach(function(s) { s.classList.remove('activa'); });
+  boton.classList.add('activo');
+  document.getElementById('sec-' + seccion).classList.add('activa');
+}
+
+function cerrarSesion() {
+  estado = { idCE:'', nombreCE:'', grupos:[], asistentes:[], sinAsistente:[], sinPago:[], alertasFusion:[], grupoEnModal:'', alumnoEnModal:'' };
+  document.getElementById('login-id').value    = '';
+  document.getElementById('login-clave').value = '';
+  document.getElementById('pantalla-panel').style.display = 'none';
+  document.getElementById('pantalla-login').style.display = 'flex';
+}
+
+function formatFecha(str) {
+  if (!str) return '—';
+  var d = new Date(str);
+  if (isNaN(d)) return str;
+  return d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+</script>
+</body>
+</html>
