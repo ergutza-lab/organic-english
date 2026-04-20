@@ -296,16 +296,14 @@
           <div class="card-icon icon-califs">📊</div>
           <span class="card-title">Mis calificaciones</span>
         </div>
-        <div class="califs-empty">
-          <div class="califs-text">Próximamente disponible</div>
-        </div>
+        <div id="progresoCurso"></div>
         <div class="field-row">
           <span class="field-label">Nivel actual</span>
           <span class="field-val" id="nivelActual">—</span>
         </div>
         <div class="field-row">
           <span class="field-label">Duración del nivel</span>
-          <span class="field-val">4 meses</span>
+          <span class="field-val">16 semanas</span>
         </div>
       </div>
 
@@ -483,6 +481,12 @@
     // Pagos
     renderPagos(p);
 
+    // Historial
+    renderHistorial(alumnoData.historialPagos);
+
+    // Calificaciones / progreso
+    renderCalificaciones(g);
+
     // Verificar si debe aparecer el modal de recordatorio
     verificarRecordatorio(p);
   }
@@ -617,6 +621,128 @@
       '<div class="progreso-bar"><div class="progreso-fill" style="width:' + pct + '%"></div></div>' +
       '<div class="progreso-labels"><span>' + formatFechaMini(p.fecha) + '</span><span>' + formatFechaMini(p.periodoFin) + '</span></div>' +
       '<div class="alerta-pago">⏰ Límite siguiente pago: sáb ' + fechaLimite + '</div>';
+  }
+
+  // ── RENDER HISTORIAL ─────────────────────────────────────────────
+  // Muestra todos los pagos de más reciente a más antiguo.
+  // El más antiguo (último en el arreglo) se etiqueta como "Inscripción",
+  // los demás como "Colegiatura".
+  function renderHistorial(historial) {
+    var div = document.getElementById('historialContenido');
+    if (!historial || historial.length === 0) {
+      div.innerHTML = '<div class="califs-empty"><div class="califs-text">Sin registros</div></div>';
+      return;
+    }
+
+    var filas = historial.map(function(pago, idx) {
+      var esInscripcion = (idx === historial.length - 1); // el más antiguo
+      var etiqueta      = esInscripcion ? 'Inscripción' : 'Colegiatura';
+      var esReciente    = (idx === 0);
+      var montoClass    = esReciente ? 'hist-monto' : 'hist-monto anterior';
+      var validado      = pago.validadoPor
+        ? '<span class="badge badge-validado">Validado</span>'
+        : '<span class="badge badge-pendiente">Pendiente</span>';
+
+      return '<tr>' +
+        '<td><span class="' + montoClass + '">$' + pago.monto + ' MXN</span></td>' +
+        '<td>' + formatFechaCorta(pago.fecha) + '</td>' +
+        '<td><span style="font-size:12px;color:#64748b;">' + etiqueta + ' · ' + pago.tipo + '</span></td>' +
+        '<td style="text-align:right;">' + validado + '</td>' +
+      '</tr>';
+    }).join('');
+
+    div.innerHTML =
+      '<table class="hist-tabla">' +
+        '<thead><tr>' +
+          '<th>Monto</th>' +
+          '<th>Fecha</th>' +
+          '<th>Concepto</th>' +
+          '<th style="text-align:right;">Estado</th>' +
+        '</tr></thead>' +
+        '<tbody>' + filas + '</tbody>' +
+      '</table>';
+  }
+
+  // ── RENDER CALIFICACIONES / PROGRESO DEL NIVEL ───────────────────
+  // Calcula semana y unidad actual a partir de la fecha de inicio del grupo.
+  // Estructura: 16 semanas → U1 (1-5), U2 (6-10), U3 (11-15), Evaluación (16)
+  function renderCalificaciones(g) {
+    var div = document.getElementById('progresoCurso');
+    if (!g || !g.fechaInicio) { div.innerHTML = ''; return; }
+
+    var hoy          = new Date();
+    var inicio       = new Date(g.fechaInicio);
+    var diffDias     = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
+    var semanaActual = Math.max(1, Math.min(16, Math.ceil((diffDias + 1) / 7)));
+
+    // Determinar unidad actual
+    var unidad, unidadLabel, unidadColor;
+    if      (semanaActual <= 5)  { unidad = 1; unidadLabel = 'Unidad 1'; unidadColor = '#3b82f6'; }
+    else if (semanaActual <= 10) { unidad = 2; unidadLabel = 'Unidad 2'; unidadColor = '#8b5cf6'; }
+    else if (semanaActual <= 15) { unidad = 3; unidadLabel = 'Unidad 3'; unidadColor = '#f97316'; }
+    else                         { unidad = 4; unidadLabel = 'Evaluación Final'; unidadColor = '#f59e0b'; }
+
+    // Semana dentro de la unidad
+    var semanaEnUnidad = unidad < 4 ? semanaActual - (unidad - 1) * 5 : 1;
+    var totalEnUnidad  = unidad < 4 ? 5 : 1;
+
+    // Porcentaje global del nivel
+    var pctGlobal = Math.round((semanaActual / 16) * 100);
+
+    // Definición de las 4 unidades para los indicadores
+    var unidades = [
+      { label: 'U1', semanas: '1 – 5',   color: '#3b82f6', num: 1 },
+      { label: 'U2', semanas: '6 – 10',  color: '#8b5cf6', num: 2 },
+      { label: 'U3', semanas: '11 – 15', color: '#f97316', num: 3 },
+      { label: 'Ev', semanas: 'Sem 16',  color: '#f59e0b', num: 4 }
+    ];
+
+    var indicadores = unidades.map(function(u) {
+      var activa   = unidad >= u.num;
+      var esActual = unidad === u.num;
+      var rgb      = hexToRgb(u.color);
+      var bg = activa
+        ? 'background:rgba(' + rgb + ',0.15);border:1px solid rgba(' + rgb + ',0.4);'
+        : 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);';
+      return '<div style="' + bg + 'border-radius:8px;padding:8px 4px;text-align:center;">' +
+        '<div style="font-size:12px;font-weight:700;color:' + (activa ? u.color : '#334155') + ';">' +
+          u.label + (esActual ? ' ◀' : '') +
+        '</div>' +
+        '<div style="font-size:10px;color:' + (activa ? '#64748b' : '#1e293b') + ';margin-top:2px;">' + u.semanas + '</div>' +
+      '</div>';
+    }).join('');
+
+    div.innerHTML =
+      // Bloque semana + unidad actual
+      '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px;margin-bottom:12px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<span style="font-size:13px;color:#94a3b8;">Semana actual</span>' +
+          '<span style="font-size:20px;font-weight:700;color:#f1f5f9;">' + semanaActual +
+            '<span style="font-size:13px;color:#475569;font-weight:400;"> / 16</span></span>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span style="font-size:13px;font-weight:700;color:' + unidadColor + ';">' + unidadLabel + '</span>' +
+          '<span style="font-size:12px;color:#475569;">Semana ' + semanaEnUnidad + ' de ' + totalEnUnidad + '</span>' +
+        '</div>' +
+      '</div>' +
+      // Barra de progreso global
+      '<div style="margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;margin-bottom:5px;">' +
+          '<span>Progreso del nivel</span><span>' + pctGlobal + '%</span>' +
+        '</div>' +
+        '<div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;">' +
+          '<div style="background:linear-gradient(90deg,#1c2b5e,' + unidadColor + ');height:6px;border-radius:4px;width:' + pctGlobal + '%;"></div>' +
+        '</div>' +
+      '</div>' +
+      // Indicadores de unidades
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">' +
+        indicadores +
+      '</div>';
+  }
+
+  // Convierte hex (#3b82f6) a "r,g,b" para usar en rgba()
+  function hexToRgb(hex) {
+    return parseInt(hex.slice(1,3),16) + ',' + parseInt(hex.slice(3,5),16) + ',' + parseInt(hex.slice(5,7),16);
   }
 
   // ── FORMATO DE FECHAS ────────────────────────────────────────────
