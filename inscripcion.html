@@ -91,7 +91,6 @@
 
     .hero p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.7; max-width: 500px; }
 
-    /* Nivel card */
     .nivel-card {
       background: rgba(249,115,22,0.08);
       border: 1px solid rgba(249,115,22,0.25);
@@ -152,7 +151,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── FILTRO FECHA (SELECT) ── */
+    /* ── FILTRO FECHA ── */
     .filtro-wrap {
       display: flex; align-items: center; gap: 1rem;
       margin-bottom: 2rem; flex-wrap: wrap;
@@ -182,11 +181,6 @@
     }
 
     .filtro-select:focus { border-color: var(--orange); }
-
-    .filtro-count {
-      font-size: 0.78rem; color: var(--text-subtle);
-      margin-left: auto;
-    }
 
     /* ── SECTION TITLE ── */
     .section-title {
@@ -221,9 +215,9 @@
       opacity: 0; transition: opacity 0.22s;
     }
 
-    .grupo-card:hover:not(.agotado) { border-color: var(--orange); transform: translateY(-3px); box-shadow: 0 10px 28px rgba(249,115,22,0.15); }
-    .grupo-card:hover:not(.agotado)::before { opacity: 1; }
-    .grupo-card.agotado { opacity: 0.45; cursor: not-allowed; }
+    .grupo-card:hover:not(.no-disponible) { border-color: var(--orange); transform: translateY(-3px); box-shadow: 0 10px 28px rgba(249,115,22,0.15); }
+    .grupo-card:hover:not(.no-disponible)::before { opacity: 1; }
+    .grupo-card.no-disponible { opacity: 0.4; cursor: not-allowed; }
 
     .grupo-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.85rem; }
 
@@ -234,17 +228,18 @@
       border-radius: 100px; text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0;
     }
 
-    .estado-disponible { background: rgba(249,115,22,0.15); color: var(--orange2); border: 1px solid rgba(249,115,22,0.35); }
-    .estado-agotado    { background: rgba(239,68,68,0.1);   color: #f87171;        border: 1px solid rgba(239,68,68,0.3); }
+    .estado-disponible { background: rgba(249,115,22,0.15); color: var(--orange2);  border: 1px solid rgba(249,115,22,0.35); }
+    .estado-agotado    { background: rgba(239,68,68,0.1);   color: #f87171;         border: 1px solid rgba(239,68,68,0.3); }
+    .estado-en-curso   { background: rgba(100,116,139,0.15); color: #94a3b8;        border: 1px solid rgba(100,116,139,0.3); }
 
     .grupo-info { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
-
     .grupo-info-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); }
 
     .grupo-footer { display: flex; align-items: flex-end; justify-content: space-between; }
 
-    .plazas-num { font-weight: 700; color: var(--orange2); }
+    .plazas-num     { font-weight: 700; color: var(--orange2); }
     .plazas-agotado { color: #f87171; font-weight: 600; font-size: 0.8rem; }
+    .plazas-curso   { color: #94a3b8; font-size: 0.78rem; }
 
     .plazas-bar { display: flex; gap: 3px; margin-top: 0.35rem; }
     .plaza-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
@@ -441,7 +436,7 @@
     </div>
     <div id="grupos-content" style="display:none"></div>
     <div id="grupos-error" class="error-msg" style="display:none">
-      <p>⚠️ No se pudieron cargar los grupos. Intenta de nuevo más tarde.</p>
+      <p>No se pudieron cargar los grupos. Intenta de nuevo más tarde.</p>
     </div>
   </div>
 
@@ -480,7 +475,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         Reservar mi lugar
       </button>
-      <p class="privacy-note">🔒 Tus datos están protegidos. No los compartimos.</p>
+      <p class="privacy-note">Tus datos están protegidos. No los compartimos.</p>
     </div>
   </div>
 
@@ -494,7 +489,7 @@
       <p>Tu lugar ha sido apartado. Para completar tu inscripción envía tu comprobante de pago a tiempo.</p>
       <div class="confirm-card" id="confirm-resumen"></div>
       <div class="alerta-pago">
-        ⏱ <strong>Tienes un plazo limitado</strong> para completar tu pago. Toca el botón de abajo para recibir las instrucciones por WhatsApp. Tu reserva se cancelará si no completas el trámite a tiempo.
+        <strong>Tienes un plazo limitado</strong> para completar tu pago. Toca el botón de abajo para recibir las instrucciones por WhatsApp. Tu reserva se cancelará si no completas el trámite a tiempo.
       </div>
       <a class="btn-whatsapp" id="btn-whatsapp" href="#" target="_blank">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -507,11 +502,9 @@
 </div>
 
 <script>
-  // ── CONFIGURACIÓN ──────────────────────────────
   const SHEET_ID    = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
-  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzvoeHRw704tloDqUKqVQqLld5lcLPcGZx9PHWxbHTygDvT1qd6mhUmlj-tIQ9f84f3/exec';
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbxNh2bE9xL6P6fcj0isN2feQKxcVAsmyqZ2uUFFFPfantp1c7TsJ96T48AaVXlMTKG6/exec';
 
-  // ── ASESORES ───────────────────────────────────
   const ASESORES = {
     'ASE-01': { nombre: 'Asesor Uno',    whatsapp: '5215512345678' },
     'ASE-02': { nombre: 'Asesor Dos',    whatsapp: '5215612345679' },
@@ -520,22 +513,16 @@
     'ASE-05': { nombre: 'Asesor Cinco',  whatsapp: '5215912345682' },
   };
 
-  // Leer asesor desde URL (?asesor=ASE-01) — si no hay, usa ASE-01 por defecto
   const params   = new URLSearchParams(window.location.search);
   const asesorId = params.get('asesor') && ASESORES[params.get('asesor')]
-                   ? params.get('asesor')
-                   : 'ASE-01';
+                   ? params.get('asesor') : 'ASE-01';
   const asesor   = ASESORES[asesorId];
   const WHATSAPP = asesor.whatsapp;
-
-  // Orden real de columnas en Google Sheets:
-  // 0:ID_Grupo | 1:Nombre | 2:Horario | 3:Fecha_Inicio | 4:Nivel
-  // 5:Cupo_Max | 6:Inscritos | 7:Lugares_Libres | 8:Estado | 9:Link_Zoom
 
   let grupos = [];
   let grupoSel = null;
 
-  // ── CARGAR GRUPOS ──────────────────────────────
+  // ── CARGAR GRUPOS ──
   async function cargarGrupos() {
     try {
       const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=GRUPOS`;
@@ -562,7 +549,7 @@
     }
   }
 
-  // ── FECHAS ─────────────────────────────────────
+  // ── FECHAS ──
   function parseFecha(cell) {
     if (!cell) return null;
     const v = typeof cell === 'object' ? cell.v : cell;
@@ -582,13 +569,14 @@
     return `${D[f.getDay()]} ${f.getDate()} de ${M[f.getMonth()]} del ${f.getFullYear()}`;
   }
 
-  // ── RENDER ─────────────────────────────────────
+  // ── RENDER ──
   function renderGrupos() {
     document.getElementById('grupos-loading').style.display = 'none';
     const content = document.getElementById('grupos-content');
     content.style.display = 'block';
 
-    // Parsear y ordenar por fecha
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
     const conFecha = grupos.map(g => ({ ...g, fechaObj: parseFecha(g.fechaCell) }))
       .sort((a,b) => {
         if (!a.fechaObj) return 1;
@@ -596,7 +584,7 @@
         return a.fechaObj - b.fechaObj;
       });
 
-    // Agrupar por fecha
+    // Solo mostrar fechas futuras en el dropdown (grupos que aún no inician)
     const porFecha = {};
     conFecha.forEach(g => {
       const key = g.fechaObj ? g.fechaObj.toISOString().split('T')[0] : 'sin-fecha';
@@ -605,14 +593,18 @@
     });
 
     const claves = Object.keys(porFecha);
-    const totalDisp = conFecha.filter(g => g.libres > 0).length;
 
-    // ── Dropdown de fechas ──
-    let opcionesFecha = `<option value="">Todas las fechas (${totalDisp} grupos disponibles)</option>`;
+    // Contar solo grupos con fecha futura y plazas disponibles
+    const totalDisp = conFecha.filter(g => g.libres > 0 && g.fechaObj && g.fechaObj > hoy).length;
+
+    let opcionesFecha = `<option value="">Todas las fechas (${totalDisp} grupo${totalDisp!==1?'s':''} disponible${totalDisp!==1?'s':''})</option>`;
     claves.forEach(k => {
       const { fecha, grupos: gs } = porFecha[k];
-      const disp = gs.filter(g => g.libres > 0).length;
-      opcionesFecha += `<option value="${k}">Inicio: ${formatLarga(fecha)} · ${disp} disponible${disp!==1?'s':''}</option>`;
+      const esFutura = fecha && fecha > hoy;
+      const disp = gs.filter(g => g.libres > 0 && esFutura).length;
+      if (esFutura || gs.some(g => g.libres > 0)) {
+        opcionesFecha += `<option value="${k}">Inicio: ${formatLarga(fecha)} · ${disp} disponible${disp!==1?'s':''}</option>`;
+      }
     });
 
     let html = `
@@ -624,28 +616,57 @@
       </div>
       <div id="grupos-sections">`;
 
-    // ── Secciones por fecha ──
     claves.forEach(k => {
       const { fecha, grupos: gs } = porFecha[k];
-      const disp = gs.filter(g => g.libres > 0).length;
+      const esFutura = fecha && fecha > hoy;
+      const disp = gs.filter(g => g.libres > 0 && esFutura).length;
 
       html += `<div class="fecha-section" data-key="${k}" style="margin-bottom:2.5rem">
         <div class="section-title">
           Inicio: ${formatLarga(fecha)}
-          <span class="section-badge">${disp} disponible${disp!==1?'s':''}</span>
+          <span class="section-badge">${esFutura ? disp + ' disponible' + (disp!==1?'s':'') : 'Curso en curso'}</span>
         </div>
         <div class="grupos-grid">`;
 
       gs.forEach(g => {
-        const agotado   = g.libres <= 0;
+        // ── LÓGICA DE DISPONIBILIDAD ──────────────────────────────────
+        // 1. Grupo ya inició y tiene plazas: solo via colocación, no elegible
+        // 2. Grupo ya inició y está lleno: agotado
+        // 3. Grupo futuro y lleno: agotado
+        // 4. Grupo futuro con plazas: disponible y elegible
+        const yaInicio = g.fechaObj && g.fechaObj <= hoy;
+        const sinPlazas = g.libres <= 0;
+        const noDisponible = yaInicio || sinPlazas; // no se puede elegir
+        const enCurso = yaInicio && !sinPlazas;     // inició pero tiene plazas (solo colocación)
+
         const inscritos = Math.max(0, Math.min(g.cupoMax, g.inscritos));
         const dots = Array.from({length: g.cupoMax}, (_,i) =>
           `<div class="plaza-dot${i < inscritos ? ' ocupada' : ''}"></div>`).join('');
 
-        html += `<div class="grupo-card${agotado?' agotado':''}" ${!agotado?`onclick="elegirGrupo('${g.id}')"`:''}>
+        // Chip de estado
+        let chipClase, chipTexto;
+        if (enCurso) {
+          chipClase = 'estado-en-curso'; chipTexto = 'En curso';
+        } else if (sinPlazas) {
+          chipClase = 'estado-agotado';  chipTexto = 'Agotado';
+        } else {
+          chipClase = 'estado-disponible'; chipTexto = 'Disponible';
+        }
+
+        // Texto de plazas
+        let plazasHtml;
+        if (enCurso) {
+          plazasHtml = `<div class="plazas-curso">Solo via colocación</div>`;
+        } else if (sinPlazas) {
+          plazasHtml = `<div class="plazas-agotado">Sin lugares disponibles</div>`;
+        } else {
+          plazasHtml = `<div style="font-size:0.78rem;color:var(--text-muted)"><span class="plazas-num">${g.libres}</span> lugar${g.libres!==1?'es':''} disponible${g.libres!==1?'s':''}</div>`;
+        }
+
+        html += `<div class="grupo-card${noDisponible?' no-disponible':''}" ${!noDisponible?`onclick="elegirGrupo('${g.id}')"`:''}>
           <div class="grupo-header">
             <div class="grupo-horario">${g.horario} <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);font-family:'DM Sans',sans-serif">hora CDMX</span></div>
-            <div class="grupo-estado ${agotado?'estado-agotado':'estado-disponible'}">${agotado?'Agotado':'Disponible'}</div>
+            <div class="grupo-estado ${chipClase}">${chipTexto}</div>
           </div>
           <div class="grupo-info">
             <div class="grupo-info-row">
@@ -659,13 +680,10 @@
           </div>
           <div class="grupo-footer">
             <div>
-              ${agotado
-                ? `<div class="plazas-agotado">Sin lugares disponibles</div>`
-                : `<div style="font-size:0.78rem;color:var(--text-muted)"><span class="plazas-num">${g.libres}</span> lugar${g.libres!==1?'es':''} disponible${g.libres!==1?'s':''}</div>`
-              }
+              ${plazasHtml}
               <div class="plazas-bar">${dots}</div>
             </div>
-            ${!agotado?`<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>`:''}
+            ${!noDisponible?`<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>`:''}
           </div>
         </div>`;
       });
@@ -696,7 +714,7 @@
     goToPanel(2);
   }
 
-  // ── FORMULARIO ─────────────────────────────────
+  // ── FORMULARIO ──
   function showError(f, show) {
     document.getElementById(f).classList.toggle('error', show);
     document.getElementById('error-'+f).classList.toggle('visible', show);
@@ -747,7 +765,7 @@
     goToPanel(3);
   }
 
-  // ── NAVEGACIÓN ─────────────────────────────────
+  // ── NAVEGACIÓN ──
   function goToPanel(n) {
     document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i+1===n));
     for (let i=1; i<=3; i++) {
@@ -759,7 +777,6 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── INIT ───────────────────────────────────────
   cargarGrupos();
 </script>
 </body>
