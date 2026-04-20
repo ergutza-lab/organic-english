@@ -215,13 +215,25 @@
       opacity: 0; transition: opacity 0.22s;
     }
 
-    .grupo-card:hover:not(.no-disponible) { border-color: var(--orange); transform: translateY(-3px); box-shadow: 0 10px 28px rgba(249,115,22,0.15); }
-    .grupo-card:hover:not(.no-disponible)::before { opacity: 1; }
+    .grupo-card:hover:not(.no-disponible):not(.en-curso) { border-color: var(--orange); transform: translateY(-3px); box-shadow: 0 10px 28px rgba(249,115,22,0.15); }
+    .grupo-card:hover:not(.no-disponible):not(.en-curso)::before { opacity: 1; }
     .grupo-card.no-disponible { opacity: 0.4; cursor: not-allowed; }
+
+    /* En curso con plazas: tono beige cálido */
+    .grupo-card.en-curso {
+      background: #231e14;
+      border: 1px solid rgba(210,170,100,0.4);
+      cursor: default;
+    }
+    .grupo-card.en-curso::before {
+      background: linear-gradient(90deg, #c4922a, #e8b96a);
+      opacity: 1;
+    }
 
     .grupo-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.85rem; }
 
     .grupo-horario { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; }
+    .grupo-card.en-curso .grupo-horario { color: #e8d5a0; }
 
     .grupo-estado {
       font-size: 0.65rem; font-weight: 600; padding: 0.25rem 0.6rem;
@@ -230,20 +242,38 @@
 
     .estado-disponible { background: rgba(249,115,22,0.15); color: var(--orange2);  border: 1px solid rgba(249,115,22,0.35); }
     .estado-agotado    { background: rgba(239,68,68,0.1);   color: #f87171;         border: 1px solid rgba(239,68,68,0.3); }
-    .estado-en-curso   { background: rgba(100,116,139,0.15); color: #94a3b8;        border: 1px solid rgba(100,116,139,0.3); }
+    .estado-en-curso   { background: rgba(196,146,42,0.2);  color: #e8b96a;         border: 1px solid rgba(196,146,42,0.45); }
 
     .grupo-info { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
     .grupo-info-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); }
+    .grupo-card.en-curso .grupo-info-row { color: #a08858; }
 
     .grupo-footer { display: flex; align-items: flex-end; justify-content: space-between; }
 
     .plazas-num     { font-weight: 700; color: var(--orange2); }
     .plazas-agotado { color: #f87171; font-weight: 600; font-size: 0.8rem; }
-    .plazas-curso   { color: #94a3b8; font-size: 0.78rem; }
+
+    /* Bloque destacado colocación */
+    .plazas-colocacion {
+      background: rgba(196,146,42,0.1);
+      border: 1px solid rgba(196,146,42,0.35);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      margin-top: 0.1rem;
+    }
+    .plazas-colocacion-titulo {
+      font-size: 0.75rem; font-weight: 700; color: #e8b96a;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .plazas-colocacion-desc {
+      font-size: 0.71rem; color: #9a7840; margin-top: 0.25rem; line-height: 1.45;
+    }
 
     .plazas-bar { display: flex; gap: 3px; margin-top: 0.35rem; }
     .plaza-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
     .plaza-dot.ocupada { background: var(--surface2); border: 1px solid var(--border); }
+    .grupo-card.en-curso .plaza-dot { background: #c4922a; }
+    .grupo-card.en-curso .plaza-dot.ocupada { background: #2e2410; border-color: rgba(196,146,42,0.2); }
 
     .btn-elegir {
       background: var(--orange); color: #fff; border: none;
@@ -624,7 +654,7 @@
       html += `<div class="fecha-section" data-key="${k}" style="margin-bottom:2.5rem">
         <div class="section-title">
           Inicio: ${formatLarga(fecha)}
-          <span class="section-badge">${esFutura ? disp + ' disponible' + (disp!==1?'s':'') : 'Curso YA INICIADO'}</span>
+          <span class="section-badge">${esFutura ? disp + ' disponible' + (disp!==1?'s':'') : 'Curso en curso'}</span>
         </div>
         <div class="grupos-grid">`;
 
@@ -636,8 +666,9 @@
         // 4. Grupo futuro con plazas: disponible y elegible
         const yaInicio = g.fechaObj && g.fechaObj <= hoy;
         const sinPlazas = g.libres <= 0;
-        const noDisponible = yaInicio || sinPlazas; // no se puede elegir
-        const enCurso = yaInicio && !sinPlazas;     // inició pero tiene plazas (solo colocación)
+        const noDisponible = sinPlazas && !yaInicio; // solo agotados sin iniciar
+        const enCurso = yaInicio && !sinPlazas;       // inició pero tiene plazas
+        const agotado = sinPlazas;                    // sin plazas (cualquier fecha)
 
         const inscritos = Math.max(0, Math.min(g.cupoMax, g.inscritos));
         const dots = Array.from({length: g.cupoMax}, (_,i) =>
@@ -656,14 +687,20 @@
         // Texto de plazas
         let plazasHtml;
         if (enCurso) {
-          plazasHtml = `<div class="plazas-curso">Solo via colocación</div>`;
+          plazasHtml = `<div class="plazas-colocacion">
+            <div class="plazas-colocacion-titulo">Solo via colocacion</div>
+            <div class="plazas-colocacion-desc">Este grupo ya inicio. Para unirte necesitas pasar por un examen de colocacion.</div>
+          </div>`;
         } else if (sinPlazas) {
           plazasHtml = `<div class="plazas-agotado">Sin lugares disponibles</div>`;
         } else {
           plazasHtml = `<div style="font-size:0.78rem;color:var(--text-muted)"><span class="plazas-num">${g.libres}</span> lugar${g.libres!==1?'es':''} disponible${g.libres!==1?'s':''}</div>`;
         }
 
-        html += `<div class="grupo-card${noDisponible?' no-disponible':''}" ${!noDisponible?`onclick="elegirGrupo('${g.id}')"`:''}>
+        const cardClase = enCurso ? 'en-curso' : agotado ? 'no-disponible' : '';
+        const cardClick = (!enCurso && !agotado) ? `onclick="elegirGrupo('${g.id}')"` : '';
+
+        html += `<div class="grupo-card ${cardClase}" ${cardClick}>
           <div class="grupo-header">
             <div class="grupo-horario">${g.horario} <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);font-family:'DM Sans',sans-serif">hora CDMX</span></div>
             <div class="grupo-estado ${chipClase}">${chipTexto}</div>
@@ -683,7 +720,7 @@
               ${plazasHtml}
               <div class="plazas-bar">${dots}</div>
             </div>
-            ${!noDisponible?`<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>`:''}
+            ${(!enCurso && !agotado) ? `<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>` : ''}
           </div>
         </div>`;
       });
