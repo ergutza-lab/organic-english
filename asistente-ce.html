@@ -1090,37 +1090,43 @@ document.getElementById('input-clave').addEventListener('keydown', e => {
   if (e.key === 'Enter') iniciarLogin();
 });
 
-async function iniciarLogin() {
+function iniciarLogin() {
   const id = document.getElementById('input-id').value.trim().toUpperCase();
   const clave = document.getElementById('input-clave').value.trim();
   const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
 
-  if (!id || !clave) { errEl.textContent = 'Ingresa tu ID y clave.'; errEl.style.display = 'block'; return; }
+  if (!id || !clave) {
+    errEl.textContent = 'Ingresa tu ID y clave.';
+    errEl.style.display = 'block';
+    return;
+  }
 
   const btn = document.querySelector('.btn-login');
   btn.textContent = 'Verificando…';
   btn.disabled = true;
 
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=loginAsistente&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+  const url = APPS_SCRIPT_URL + '?action=loginAsistente&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave);
 
-    if (data.status === 'ok') {
-      asistente = data.asistente;
-      mostrarPanel();
-    } else {
-      errEl.textContent = data.mensaje || 'ID o clave incorrectos.';
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.textContent = 'Entrar al panel';
+      btn.disabled = false;
+      if (data.status === 'ok') {
+        asistente = data.asistente;
+        mostrarPanel();
+      } else {
+        errEl.textContent = data.mensaje || 'ID o clave incorrectos.';
+        errEl.style.display = 'block';
+      }
+    })
+    .catch(function() {
+      btn.textContent = 'Entrar al panel';
+      btn.disabled = false;
+      errEl.textContent = 'Error de conexión. Intenta más tarde.';
       errEl.style.display = 'block';
-    }
-  } catch(e) {
-    errEl.textContent = 'Error de conexión. Intenta de nuevo.';
-    errEl.style.display = 'block';
-  }
-
-  btn.textContent = 'Entrar al panel';
-  btn.disabled = false;
+    });
 }
 
 function mostrarPanel() {
