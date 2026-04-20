@@ -337,6 +337,12 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           </div>
           <input class="filtro-input" type="text" placeholder="Buscar grupo..." id="filtro-grupos" oninput="filtrarGrupos()" />
         </div>
+        <div class="leyenda">
+  <div class="leyenda-item"><span class="chip" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5">Agotado</span> 10 alumnos</div>
+  <div class="leyenda-item"><span class="chip" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74">Disponible</span> 8 – 9 alumnos</div>
+  <div class="leyenda-item"><span class="chip" style="background:#f0fdf4;color:#15803d;border:1px solid #86efac">Disponible</span> 4 – 7 alumnos</div>
+  <div class="leyenda-item"><span class="chip" style="background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd">Para fusión</span> 1 – 3 alumnos</div>
+</div>
         <div class="tabla-wrap">
           <table>
             <thead>
@@ -691,9 +697,19 @@ function renderGrupos(filtro) {
   var tbody = document.getElementById('tbody-grupos');
   if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="vacio">Sin resultados</td></tr>'; return; }
   tbody.innerHTML = lista.map(function(g) {
-    var chipEstado = g.estado === 'LLENO'
-      ? '<span class="chip chip-rojo">LLENO</span>'
-      : '<span class="chip chip-verde">DISPONIBLE</span>';
+    var inscritos = Number(g.inscritos);
+var chipEstado;
+if (inscritos >= 10) {
+  chipEstado = '<span class="chip" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5">Agotado</span>';
+} else if (inscritos >= 8) {
+  chipEstado = '<span class="chip" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74">Disponible</span>';
+} else if (inscritos >= 4) {
+  chipEstado = '<span class="chip" style="background:#f0fdf4;color:#15803d;border:1px solid #86efac">Disponible</span>';
+} else if (inscritos >= 1) {
+  chipEstado = '<span class="chip" style="background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd">Para fusión</span>';
+} else {
+  chipEstado = '<span class="chip chip-gris">Sin alumnos</span>';
+}
     var chipAsi = g.idAsistente
       ? '<span class="chip chip-azul">' + g.idAsistente + '</span>'
       : '<span class="chip chip-naranja">Sin asignar</span>';
