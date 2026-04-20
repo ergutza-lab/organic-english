@@ -20,6 +20,8 @@
   --rojo-cl:    #fef2f2;
   --verde:      #16a34a;
   --verde-cl:   #f0fdf4;
+  --amarillo:   #d97706;
+  --amarillo-cl:#fffbeb;
   --gris:       #64748b;
   --gris-cl:    #f8fafc;
   --borde:      #e2e8f0;
@@ -370,11 +372,12 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   font-family: 'DM Mono', monospace;
 }
 
-.chip-azul    { background: var(--azul-claro); color: var(--azul); }
-.chip-naranja { background: var(--naranja-cl); color: #92400e; }
-.chip-rojo    { background: var(--rojo-cl);    color: var(--rojo); }
-.chip-verde   { background: var(--verde-cl);   color: var(--verde); }
-.chip-gris    { background: #f1f5f9;           color: var(--gris); }
+.chip-azul      { background: var(--azul-claro);  color: var(--azul); }
+.chip-naranja   { background: var(--naranja-cl);   color: #92400e; }
+.chip-rojo      { background: var(--rojo-cl);      color: var(--rojo); }
+.chip-verde     { background: var(--verde-cl);     color: var(--verde); }
+.chip-amarillo  { background: var(--amarillo-cl);  color: var(--amarillo); }
+.chip-gris      { background: #f1f5f9;             color: var(--gris); }
 
 /* ══════════════════════════════════════════════════
    BOTONES DE ACCIÓN
@@ -395,13 +398,22 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .btn-primario:hover { background: var(--azul-med); }
 .btn-naranja   { background: var(--naranja); color: var(--blanco); }
 .btn-naranja:hover { opacity: .9; }
+.btn-verde     { background: var(--verde);   color: var(--blanco); }
+.btn-verde:hover { opacity: .9; }
 .btn-outline   { background: transparent; color: var(--azul); border: 1.5px solid var(--azul); }
 .btn-outline:hover { background: var(--azul-claro); }
 .btn-sm { padding: .3rem .65rem; font-size: .75rem; }
 
 /* ══════════════════════════════════════════════════
-   BÚSQUEDA / FILTRO
+   FILTROS / BÚSQUEDA
 ══════════════════════════════════════════════════ */
+.filtros-bar {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .filtro-input {
   padding: .45rem .85rem;
   border: 1.5px solid var(--borde);
@@ -414,6 +426,21 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 }
 
 .filtro-input:focus { border-color: var(--azul); }
+
+.filtro-select {
+  padding: .45rem .85rem;
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem;
+  outline: none;
+  background: var(--blanco);
+  color: var(--texto);
+  cursor: pointer;
+  transition: border-color .2s;
+}
+
+.filtro-select:focus { border-color: var(--azul); }
 
 /* ══════════════════════════════════════════════════
    MODAL
@@ -522,7 +549,6 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 
 @keyframes girar { to { transform: rotate(360deg); } }
 
-/* Vacío */
 .vacio {
   text-align: center;
   padding: 2.5rem 1rem;
@@ -564,6 +590,26 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .asistente-grupos { font-size: .78rem; color: var(--azul); font-weight: 600; margin-top: .15rem; }
 
 /* ══════════════════════════════════════════════════
+   LEYENDA DE SITUACIÓN
+══════════════════════════════════════════════════ */
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .75rem 1.25rem;
+  border-bottom: 1px solid var(--borde);
+  background: var(--gris-cl);
+}
+
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .75rem;
+  color: var(--gris);
+}
+
+/* ══════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════ */
 @media (max-width: 640px) {
@@ -572,6 +618,8 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   .resumen-grid { grid-template-columns: repeat(2, 1fr); }
   .filtro-input { width: 100%; }
   .card-header { flex-direction: column; align-items: flex-start; }
+  .filtros-bar { width: 100%; }
+  .filtro-select { flex: 1; }
 }
 
 </style>
@@ -628,7 +676,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <button class="tab activo" onclick="cambiarTab('resumen',this)">Resumen</button>
     <button class="tab" onclick="cambiarTab('grupos',this)">Grupos</button>
     <button class="tab" onclick="cambiarTab('asistentes',this)">Asistentes CE</button>
-    <button class="tab" onclick="cambiarTab('sin-pago',this)">Sin pago</button>
+    <button class="tab" onclick="cambiarTab('seguimiento',this)">Seguimiento de alumnos</button>
     <button class="tab" onclick="cambiarTab('alertas',this)">Alertas</button>
   </div>
 
@@ -655,11 +703,15 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           </div>
           <div class="resumen-card peligro">
             <div class="resumen-num" id="r-sin-pago">—</div>
-            <div class="resumen-label">Alumnos sin pago</div>
+            <div class="resumen-label">Pago vencido</div>
+          </div>
+          <div class="resumen-card alerta">
+            <div class="resumen-num" id="r-proximos">—</div>
+            <div class="resumen-label">Proximos a vencer</div>
           </div>
           <div class="resumen-card alerta">
             <div class="resumen-num" id="r-fusion">—</div>
-            <div class="resumen-label">Candidatos a fusion</div>
+            <div class="resumen-label">Candidatos fusion</div>
           </div>
           <div class="resumen-card">
             <div class="resumen-num" id="r-asistentes">—</div>
@@ -733,15 +785,33 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
       </div>
     </div>
 
-    <!-- ── TAB: SIN PAGO ─────────────────────────────────── -->
-    <div id="sec-sin-pago" class="seccion">
+    <!-- ── TAB: SEGUIMIENTO DE ALUMNOS ──────────────────── -->
+    <div id="sec-seguimiento" class="seccion">
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-titulo">Alumnos sin pago vigente</div>
-            <div class="card-sub">Estatus Validado con periodo vencido</div>
+            <div class="card-titulo">Seguimiento de alumnos</div>
+            <div class="card-sub">Estado de pago y situacion de todos los alumnos activos</div>
           </div>
-          <input class="filtro-input" type="text" placeholder="Buscar alumno..." id="filtro-sinpago" oninput="filtrarSinPago()" />
+          <div class="filtros-bar">
+            <input class="filtro-input" type="text" placeholder="Buscar alumno..." id="filtro-seguimiento" oninput="filtrarSeguimiento()" />
+            <select class="filtro-select" id="filtro-situacion" onchange="filtrarSeguimiento()">
+              <option value="">Todas las situaciones</option>
+              <option value="vigente">Vigente</option>
+              <option value="proximo">Proximo a vencer</option>
+              <option value="vencido">Pago vencido</option>
+              <option value="pendiente">Pendiente inscripcion</option>
+              <option value="baja">Baja reciente</option>
+            </select>
+          </div>
+        </div>
+        <!-- Leyenda -->
+        <div class="leyenda">
+          <div class="leyenda-item"><span class="chip chip-verde">Vigente</span> Pago al corriente</div>
+          <div class="leyenda-item"><span class="chip chip-amarillo">Proximo</span> Vence en 1 dia</div>
+          <div class="leyenda-item"><span class="chip chip-rojo">Vencido</span> Sin pago vigente</div>
+          <div class="leyenda-item"><span class="chip chip-naranja">Pendiente</span> Sin pago de inscripcion</div>
+          <div class="leyenda-item"><span class="chip chip-gris">Baja</span> Baja ultimos 14 dias</div>
         </div>
         <div class="tabla-wrap">
           <table>
@@ -750,11 +820,14 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
                 <th>ID Alumno</th>
                 <th>Nombre</th>
                 <th>Grupo</th>
+                <th>Estatus</th>
+                <th>Pago hasta</th>
+                <th>Situacion</th>
                 <th>Accion</th>
               </tr>
             </thead>
-            <tbody id="tbody-sinpago">
-              <tr><td colspan="4" class="cargando">Cargando...</td></tr>
+            <tbody id="tbody-seguimiento">
+              <tr><td colspan="7" class="cargando">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -882,7 +955,7 @@ var estado = {
   grupos:        [],
   asistentes:    [],
   sinAsistente:  [],
-  sinPago:       [],
+  todosAlumnos:  [],   // lista completa para seguimiento
   alertasFusion: [],
   grupoEnModal:  '',
   alumnoEnModal: ''
@@ -927,7 +1000,6 @@ function iniciarLogin() {
   });
 }
 
-// Enter en los campos de login
 document.getElementById('login-id').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') iniciarLogin();
 });
@@ -943,13 +1015,13 @@ function cargarDatos() {
     estado.grupos        = res.grupos        || [];
     estado.asistentes    = res.asistentes    || [];
     estado.sinAsistente  = res.sinAsistente  || [];
-    estado.sinPago       = res.sinPago       || [];
+    estado.todosAlumnos  = res.todosAlumnos  || [];
     estado.alertasFusion = res.alertasFusion || [];
 
     renderResumen();
     renderGrupos();
     renderAsistentes();
-    renderSinPago();
+    renderSeguimiento();
     renderAlertas();
     poblarSelectAsistentes();
     poblarSelectGruposDestino();
@@ -959,27 +1031,67 @@ function cargarDatos() {
   });
 }
 
+// ── HELPERS DE SITUACIÓN ──────────────────────────────────────────────
+// Calcula la situación de un alumno y regresa { clave, etiqueta, chipClass }
+function calcularSituacion(alumno) {
+  var hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  if (alumno.estatus === 'Baja') {
+    return { clave: 'baja', etiqueta: 'Baja', chipClass: 'chip-gris' };
+  }
+  if (alumno.estatus === 'Pendiente') {
+    return { clave: 'pendiente', etiqueta: 'Pendiente inscripcion', chipClass: 'chip-naranja' };
+  }
+  if (alumno.estatus === 'Validado') {
+    if (!alumno.periodoFin) {
+      return { clave: 'vencido', etiqueta: 'Sin pago registrado', chipClass: 'chip-rojo' };
+    }
+    var fin = new Date(alumno.periodoFin);
+    fin.setHours(0,0,0,0);
+    var diffMs   = fin - hoy;
+    var diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDias < 0) {
+      return { clave: 'vencido', etiqueta: 'Pago vencido', chipClass: 'chip-rojo' };
+    } else if (diffDias <= 1) {
+      return { clave: 'proximo', etiqueta: 'Vence en ' + diffDias + ' dia(s)', chipClass: 'chip-amarillo' };
+    } else {
+      return { clave: 'vigente', etiqueta: 'Vigente', chipClass: 'chip-verde' };
+    }
+  }
+  return { clave: 'otro', etiqueta: alumno.estatus, chipClass: 'chip-gris' };
+}
+
 // ── RENDER: RESUMEN ───────────────────────────────────────────────────
 function renderResumen() {
   var total   = estado.grupos.length;
   var conAsi  = estado.grupos.filter(function(g) { return g.idAsistente && g.idAsistente !== ''; }).length;
   var sinAsi  = total - conAsi;
 
-  document.getElementById('r-grupos-total').textContent = total;
+  // Conteos de situación
+  var vencidos  = 0;
+  var proximos  = 0;
+  estado.todosAlumnos.forEach(function(a) {
+    var sit = calcularSituacion(a);
+    if (sit.clave === 'vencido')  vencidos++;
+    if (sit.clave === 'proximo')  proximos++;
+  });
+
+  document.getElementById('r-grupos-total').textContent   = total;
   document.getElementById('r-grupos-con-asi').textContent = conAsi;
   document.getElementById('r-grupos-sin-asi').textContent = sinAsi;
-  document.getElementById('r-sin-pago').textContent = estado.sinPago.length;
-  document.getElementById('r-fusion').textContent = estado.alertasFusion.length;
-  document.getElementById('r-asistentes').textContent = estado.asistentes.length;
+  document.getElementById('r-sin-pago').textContent       = vencidos;
+  document.getElementById('r-proximos').textContent       = proximos;
+  document.getElementById('r-fusion').textContent         = estado.alertasFusion.length;
+  document.getElementById('r-asistentes').textContent     = estado.asistentes.length;
 
-  // Banner sin asistente
   if (sinAsi > 0) {
     document.getElementById('banner-sin-asistente').style.display = 'flex';
     document.getElementById('banner-sin-asistente-texto').textContent =
       sinAsi + ' grupo(s) no tienen asistente CE asignado.';
   }
 
-  // Banner fusión
   if (estado.alertasFusion.length > 0) {
     document.getElementById('banner-fusion').style.display = 'flex';
     var ids = estado.alertasFusion.map(function(g) { return g.id; }).join(', ');
@@ -1056,11 +1168,12 @@ function renderAsistentes() {
   }).join('');
 }
 
-// ── RENDER: SIN PAGO ─────────────────────────────────────────────────
-function renderSinPago(filtro) {
-  var lista = estado.sinPago;
-  if (filtro) {
-    var f = filtro.toLowerCase();
+// ── RENDER: SEGUIMIENTO DE ALUMNOS ────────────────────────────────────
+function renderSeguimiento(filtroTexto, filtroSituacion) {
+  var lista = estado.todosAlumnos;
+
+  if (filtroTexto) {
+    var f = filtroTexto.toLowerCase();
     lista = lista.filter(function(a) {
       return a.idAlumno.toLowerCase().includes(f) ||
              a.nombre.toLowerCase().includes(f) ||
@@ -1068,29 +1181,71 @@ function renderSinPago(filtro) {
     });
   }
 
-  var tbody = document.getElementById('tbody-sinpago');
+  if (filtroSituacion) {
+    lista = lista.filter(function(a) {
+      return calcularSituacion(a).clave === filtroSituacion;
+    });
+  }
+
+  var tbody = document.getElementById('tbody-seguimiento');
   if (lista.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="vacio">Sin alumnos con pago vencido</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="vacio">Sin alumnos con ese criterio</td></tr>';
     return;
   }
 
   tbody.innerHTML = lista.map(function(a) {
+    var sit = calcularSituacion(a);
+
+    // Chip de estatus del alumno
+    var chipEstatus = '';
+    if (a.estatus === 'Validado')  chipEstatus = '<span class="chip chip-azul">Validado</span>';
+    else if (a.estatus === 'Pendiente') chipEstatus = '<span class="chip chip-naranja">Pendiente</span>';
+    else if (a.estatus === 'Baja')      chipEstatus = '<span class="chip chip-gris">Baja</span>';
+    else chipEstatus = '<span class="chip chip-gris">' + a.estatus + '</span>';
+
+    // Fecha de vencimiento
+    var pagoHasta = '—';
+    if (a.periodoFin) {
+      pagoHasta = formatFecha(a.periodoFin);
+    }
+
+    // Chip de situación
+    var chipSit = '<span class="chip ' + sit.chipClass + '">' + sit.etiqueta + '</span>';
+
+    // Botón de acción: solo para casos que requieren atención
+    var accion = '';
+    if (sit.clave === 'vencido' || sit.clave === 'proximo' || sit.clave === 'pendiente') {
+      var whatsapp = (a.whatsappCE || '').replace(/\D/g,'');
+      var msg = encodeURIComponent('Hola, te contacto sobre el alumno ' + a.nombre + ' (' + a.idAlumno + ') del grupo ' + a.idGrupo + '. Su situacion de pago requiere atencion.');
+      if (whatsapp) {
+        accion = '<a href="https://wa.me/52' + whatsapp + '?text=' + msg + '" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
+      } else {
+        accion = '<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\'' + a.idAlumno + '\',\'' + a.nombre + '\')">Cambiar grupo</button>';
+      }
+    } else if (sit.clave === 'vigente') {
+      accion = '<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\'' + a.idAlumno + '\',\'' + a.nombre + '\')">Cambiar grupo</button>';
+    }
+
     return '<tr>' +
       '<td><span class="chip chip-azul">' + a.idAlumno + '</span></td>' +
-      '<td>' + a.nombre + '</td>' +
+      '<td><strong>' + a.nombre + '</strong></td>' +
       '<td><span class="chip chip-gris">' + a.idGrupo + '</span></td>' +
-      '<td><button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\'' + a.idAlumno + '\',\'' + a.nombre + '\')">Cambiar grupo</button></td>' +
+      '<td>' + chipEstatus + '</td>' +
+      '<td style="font-size:.82rem;color:var(--gris)">' + pagoHasta + '</td>' +
+      '<td>' + chipSit + '</td>' +
+      '<td>' + accion + '</td>' +
     '</tr>';
   }).join('');
 }
 
-function filtrarSinPago() {
-  renderSinPago(document.getElementById('filtro-sinpago').value);
+function filtrarSeguimiento() {
+  var texto     = document.getElementById('filtro-seguimiento').value;
+  var situacion = document.getElementById('filtro-situacion').value;
+  renderSeguimiento(texto, situacion);
 }
 
 // ── RENDER: ALERTAS ───────────────────────────────────────────────────
 function renderAlertas() {
-  // Candidatos a fusión
   var tbodyFusion = document.getElementById('tbody-alertas');
   if (estado.alertasFusion.length === 0) {
     tbodyFusion.innerHTML = '<tr><td colspan="5" class="vacio">Sin grupos candidatos a fusion</td></tr>';
@@ -1106,7 +1261,6 @@ function renderAlertas() {
     }).join('');
   }
 
-  // Sin asistente
   var tbodySinAsi = document.getElementById('tbody-sin-asistente');
   if (estado.sinAsistente.length === 0) {
     tbodySinAsi.innerHTML = '<tr><td colspan="6" class="vacio">Todos los grupos tienen asistente asignado</td></tr>';
@@ -1131,14 +1285,9 @@ function abrirModalAsignar(idGrupo) {
   document.getElementById('modal-asignar-msg').className = 'modal-msg';
   document.getElementById('modal-asignar-msg').textContent = '';
 
-  // Pre-seleccionar asistente actual si ya tiene
   var grupo = estado.grupos.find(function(g) { return g.id === idGrupo; });
   var sel   = document.getElementById('modal-select-asistente');
-  if (grupo && grupo.idAsistente) {
-    sel.value = grupo.idAsistente;
-  } else {
-    sel.value = '';
-  }
+  sel.value = (grupo && grupo.idAsistente) ? grupo.idAsistente : '';
 
   document.getElementById('modal-asignar').classList.add('abierto');
 }
@@ -1163,7 +1312,6 @@ function confirmarAsignacion() {
       msgEl.textContent = 'Asistente asignado correctamente.';
       msgEl.className = 'modal-msg ok';
 
-      // Actualizar estado local
       var grupo = estado.grupos.find(function(g) { return g.id === estado.grupoEnModal; });
       if (grupo) grupo.idAsistente = idAsistente;
 
@@ -1244,7 +1392,6 @@ function cerrarModal(id) {
   document.getElementById(id).classList.remove('abierto');
 }
 
-// Cerrar modal al hacer clic fuera
 document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
   overlay.addEventListener('click', function(e) {
     if (e.target === overlay) overlay.classList.remove('abierto');
@@ -1259,7 +1406,7 @@ function cambiarTab(seccion, boton) {
 }
 
 function cerrarSesion() {
-  estado = { idCE:'', nombreCE:'', grupos:[], asistentes:[], sinAsistente:[], sinPago:[], alertasFusion:[], grupoEnModal:'', alumnoEnModal:'' };
+  estado = { idCE:'', nombreCE:'', grupos:[], asistentes:[], sinAsistente:[], todosAlumnos:[], alertasFusion:[], grupoEnModal:'', alumnoEnModal:'' };
   document.getElementById('login-id').value    = '';
   document.getElementById('login-clave').value = '';
   document.getElementById('pantalla-panel').style.display = 'none';
