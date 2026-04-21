@@ -797,11 +797,33 @@ function filtrarSeguimiento() {
 // ── RENDER ALERTAS ──
 function renderAlertas() {
   // Fusión
-  var tbodyF = document.getElementById('tbody-alertas');
+var tbodyF = document.getElementById('tbody-alertas');
   if (!estado.alertasFusion.length) {
-    tbodyF.innerHTML = '<tr><td colspan="7" class="vacio">✅ Sin grupos candidatos a fusión</td></tr>';
+    tbodyF.innerHTML = '<tr><td colspan="7" class="vacio">Sin grupos candidatos a fusion</td></tr>';
   } else {
     tbodyF.innerHTML = estado.alertasFusion.map(function(g) {
+
+      // Buscar datos de la asistente CE del grupo
+      var asistente = estado.asistentes.find(function(a) { return a.id === g.idAsistente; });
+      var whatsapp  = asistente ? asistente.whatsapp : '';
+
+      // Buscar alumnos de este grupo en la lista de todos los grupos
+      var alumnosGrupo = estado.todosAlumnos
+        ? estado.todosAlumnos.filter(function(a) { return a.idGrupo === g.id; })
+        : [];
+
+      // Armar lista de alumnos para el mensaje
+      var listaAlumnos = alumnosGrupo.length
+        ? alumnosGrupo.map(function(a) { return a.idAlumno + ' ' + a.nombre; }).join(', ')
+        : 'ver panel';
+
+      // Botón WhatsApp — solo si hay número de asistente
+      var btnWhats = whatsapp
+        ? '<button class="btn btn-verde btn-sm" onclick="avisarFusionWhats(\'' +
+            g.id + '\',\'' + whatsapp + '\',\'' + g.inscritos + '\',\'' +
+            listaAlumnos.replace(/'/g, '') + '\')">Avisar por WhatsApp</button>'
+        : '<span class="chip chip-gris">Sin CE asignada</span>';
+
       return '<tr>' +
         '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.id + '</strong></td>' +
         '<td>' + g.nombre + '</td>' +
@@ -809,7 +831,7 @@ function renderAlertas() {
         '<td style="font-size:.8rem">' + formatFecha(g.fechaInicio) + '</td>' +
         '<td><span class="chip chip-rojo">' + g.inscritos + ' alumno(s)</span></td>' +
         '<td>' + (g.idAsistente ? '<span class="chip chip-azul">' + g.idAsistente + '</span>' : '<span class="chip chip-gris">—</span>') + '</td>' +
-        '<td><button class="btn btn-outline btn-sm" onclick="irATabFiltrado(\'seguimiento\',\'\',\''+g.id+'\')">Ver alumnos</button></td>' +
+        '<td>' + btnWhats + '</td>' +
       '</tr>';
     }).join('');
   }
@@ -879,6 +901,23 @@ function confirmarCambioGrupo() {
 }
 
 // ── HELPERS ──
+  // ── HELPERS ──
+
+// Abre WhatsApp con mensaje predefinido para avisar fusion a asistente CE
+function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
+  var mensaje =
+    'Hola, te informo que el grupo ' + idGrupo +
+    ' tiene ' + inscritos + ' alumno(s) activo(s) y sera fusionado con otro grupo.' +
+    ' Por favor gestiona el cambio de grupo de los siguientes alumnos como si fuera' +
+    ' un cambio solicitado: ' + listaAlumnos;
+
+  var url = 'https://wa.me/52' + whatsapp +
+            '?text=' + encodeURIComponent(mensaje);
+  window.open(url, '_blank');
+}
+
+function poblarSelectAsistentes() {
+// ... resto del código que ya tienes
 function poblarSelectAsistentes() {
   var sel = document.getElementById('modal-select-asistente');
   sel.innerHTML = '<option value="">-- Elige asistente --</option>';
@@ -952,6 +991,18 @@ function formatFecha(str) {
   var d = new Date(str);
   if (isNaN(d)) return str;
   return d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+}
+  // ── WHATSAPP: AVISAR FUSION A ASISTENTE CE ────────────────────────────
+function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
+  var mensaje =
+    'Hola, te informo que el grupo ' + idGrupo +
+    ' tiene ' + inscritos + ' alumno(s) activo(s) y sera fusionado con otro grupo.' +
+    ' Por favor gestiona el cambio de grupo de los siguientes alumnos como si fuera' +
+    ' un cambio solicitado: ' + listaAlumnos;
+
+  var url = 'https://wa.me/52' + whatsapp +
+            '?text=' + encodeURIComponent(mensaje);
+  window.open(url, '_blank');
 }
 </script>
 </body>
