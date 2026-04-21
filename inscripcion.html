@@ -535,19 +535,30 @@
   const SHEET_ID    = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbxNh2bE9xL6P6fcj0isN2feQKxcVAsmyqZ2uUFFFPfantp1c7TsJ96T48AaVXlMTKG6/exec';
 
-  const ASESORES = {
-    'ASE-01': { nombre: 'Asesor Uno',    whatsapp: '5215512345678' },
-    'ASE-02': { nombre: 'Asesor Dos',    whatsapp: '5215612345679' },
-    'ASE-03': { nombre: 'Asesor Tres',   whatsapp: '5215712345680' },
-    'ASE-04': { nombre: 'Asesor Cuatro', whatsapp: '5215812345681' },
-    'ASE-05': { nombre: 'Asesor Cinco',  whatsapp: '5215912345682' },
-  };
+ const params   = new URLSearchParams(window.location.search);
+  const asesorId = params.get('asesor') || 'ASE-01';
+  let WHATSAPP   = '';  // se llena al cargar asesores desde Sheets
 
-  const params   = new URLSearchParams(window.location.search);
-  const asesorId = params.get('asesor') && ASESORES[params.get('asesor')]
-                   ? params.get('asesor') : 'ASE-01';
-  const asesor   = ASESORES[asesorId];
-  const WHATSAPP = asesor.whatsapp;
+  // Carga el WhatsApp real del asesor desde la hoja ASESORES col C
+  async function cargarAsesor() {
+    try {
+      const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=ASESORES`;
+      const res  = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.substring(47, text.length - 2));
+
+      json.table.rows.forEach(r => {
+        const id = r.c[0]?.v || '';
+        if (id === asesorId) {
+          // col C (índice 2) = WhatsApp, agregar 52 si no lo tiene
+          var wa = String(r.c[2]?.v || '').replace(/\s+/g, '');
+          WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
+        }
+      });
+    } catch(e) {
+      WHATSAPP = ''; // si falla, el botón no tendrá número pero no rompe nada
+    }
+  }
 
   let grupos = [];
   let grupoSel = null;
@@ -814,6 +825,7 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  cargarAsesor();
   cargarGrupos();
 </script>
 </body>
