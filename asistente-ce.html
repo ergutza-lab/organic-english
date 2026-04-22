@@ -710,7 +710,10 @@ function renderCambios(){
   const select=document.getElementById('select-alumno-cambio');
   const alumnos=[];
   (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel}));});
-  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}">${a.nombre} (${a.id}) — ${a.grupo_actual}</option>`).join('');
+  // Ordenar por ID_Alumno (OE-001, OE-002...)
+  alumnos.sort((a,b)=>a.id.localeCompare(b.id));
+  // Formato: ID_ALUMNO — GRUPO — Nombre
+  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
 }
 
 // --- FUNCIONES DE CAMBIO DE GRUPO (CORREGIDAS) ---
@@ -748,17 +751,25 @@ function seleccionarAlumnoCambio() {
     return;
   }
 
-  document.getElementById('grupos-disponibles-cambio').innerHTML = grupos.map(g => {
+  const contenedor = document.getElementById('grupos-disponibles-cambio');
+  contenedor.innerHTML = grupos.map(g => {
     const libres = g.cupo_max - g.inscritos;
     const cls = libres <= 0 ? 'lleno' : libres <= 2 ? 'pocas' : '';
+    const bloqueado = libres <= 0;
     return `
-      <div class="grupo-opcion ${libres <= 0 ? 'go-lleno' : ''}" onclick="elegirGrupoCambio('${g.id}', this)">
+      <div class="grupo-opcion ${bloqueado ? 'go-lleno' : ''}" data-grupo-id="${g.id}" style="${bloqueado ? 'opacity:.5;pointer-events:none' : 'cursor:pointer'}">
         <div class="go-id">${g.id}</div>
         <div class="go-nombre">${g.nombre}</div>
         <div class="go-horario">${g.horario}</div>
         <div class="go-plazas ${cls}">${libres > 0 ? `${libres} lugares libres` : 'Sin lugares'}</div>
       </div>`;
   }).join('');
+  // Agregar eventos click de forma segura (sin problemas con caracteres especiales)
+  contenedor.querySelectorAll('.grupo-opcion:not(.go-lleno)').forEach(el => {
+    el.addEventListener('click', function() {
+      elegirGrupoCambio(this.dataset.grupoId, this);
+    });
+  });
 }
 
 function elegirGrupoCambio(id, el) {
