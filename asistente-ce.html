@@ -772,33 +772,47 @@ function elegirGrupoCambio(id, el) {
 }
 
 async function confirmarCambioGrupo() {
+  // Verificación de seguridad
   if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) {
-    alert("Debes seleccionar un alumno y un grupo.");
+    alert("Error: No se ha detectado el alumno o el grupo destino.");
     return;
   }
-
+  
   const btn = document.getElementById('btn-confirmar-cambio');
+  const textoOriginal = btn.textContent;
+  
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
-  // IMPORTANTE: Aquí usamos 'grupoDestino' para que coincida con tu Google Script
+  // Construcción de la URL de envío
   const url = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
+  
+  console.log("Enviando petición a:", url); // Esto aparecerá en tu consola
 
   try {
     const resp = await fetch(url);
     const data = await resp.json();
     
     if (data.status === 'ok') {
-      alert("✓ ¡Cambio de grupo realizado con éxito!");
-      // Recargamos la página para que se vean los cambios en las listas
-      location.reload(); 
+      alert("✓ ¡Cambio realizado correctamente!");
+      // Limpiamos la selección
+      document.getElementById('select-alumno-cambio').value = '';
+      if (typeof seleccionarAlumnoCambio === 'function') seleccionarAlumnoCambio();
+      
+      // Intentamos recargar los datos del panel
+      if (typeof cargarDatos === 'function') {
+        await cargarDatos();
+      } else {
+        location.reload(); // Si no encuentra la función, recarga la página
+      }
     } else {
-      alert("Error en el sistema: " + (data.mensaje || "Intenta de nuevo"));
+      alert("El servidor respondió con un error: " + (data.mensaje || "Error desconocido"));
     }
   } catch (e) {
-    alert("Error de conexión. Revisa que pegaste bien la nueva URL en GitHub.");
+    console.error("Error detallado:", e);
+    alert("Error de conexión: No se pudo contactar con Google Apps Script. Revisa que la URL sea la correcta.");
   } finally {
-    btn.textContent = 'Confirmar Cambio';
+    btn.textContent = textoOriginal;
     btn.disabled = false;
   }
 }
