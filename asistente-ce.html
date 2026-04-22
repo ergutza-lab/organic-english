@@ -781,7 +781,16 @@ function seleccionarAlumnoCambio() {
   infoBox.style.display = 'block';
 
   // Filtrar grupos
-  const grupos = (datosPanel?.todos_grupos || []).filter(g => g.nivel === nivel && g.id !== grupoActual);
+ // Buscar fecha de inicio del grupo actual del alumno
+const grupoActualObj = (datosPanel?.grupos || []).find(g => g.id === grupoActual);
+const fechaInicioActual = grupoActualObj ? grupoActualObj.fecha_inicio : null;
+
+// Filtrar por mismo nivel, misma fecha de inicio y con lugares disponibles
+const grupos = (datosPanel?.todos_grupos || []).filter(g =>
+  g.nivel === nivel &&
+  g.id !== grupoActual &&
+  (!fechaInicioActual || g.fecha_inicio === fechaInicioActual)
+);
   
   if (!grupos.length) {
     document.getElementById('grupos-disponibles-cambio').innerHTML = '<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos en este nivel.</p>';
