@@ -241,7 +241,7 @@
     }
 
     .estado-disponible { background: rgba(249,115,22,0.15); color: var(--orange2);  border: 1px solid rgba(249,115,22,0.35); }
-    .estado-agotado    { background: rgba(239,68,68,0.1);   color: #f87171;         border: 1px solid rgba(239,68,68,0.3); }
+    .estado-LLENO    { background: rgba(239,68,68,0.1);   color: #f87171;         border: 1px solid rgba(239,68,68,0.3); }
     .estado-en-curso   { background: rgba(196,146,42,0.2);  color: #e8b96a;         border: 1px solid rgba(196,146,42,0.45); }
 
     .grupo-info { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
@@ -251,7 +251,7 @@
     .grupo-footer { display: flex; align-items: flex-end; justify-content: space-between; }
 
     .plazas-num     { font-weight: 700; color: var(--orange2); }
-    .plazas-agotado { color: #f87171; font-weight: 600; font-size: 0.8rem; }
+    .plazas-LLENO { color: #f87171; font-weight: 600; font-size: 0.8rem; }
 
     /* Bloque destacado colocación */
     .plazas-colocacion {
@@ -672,14 +672,14 @@
       gs.forEach(g => {
         // ── LÓGICA DE DISPONIBILIDAD ──────────────────────────────────
         // 1. Grupo ya inició y tiene plazas: solo via colocación, no elegible
-        // 2. Grupo ya inició y está lleno: agotado
-        // 3. Grupo futuro y lleno: agotado
+        // 2. Grupo ya inició y está lleno: LLENO
+        // 3. Grupo futuro y lleno: LLENO
         // 4. Grupo futuro con plazas: disponible y elegible
         const yaInicio = g.fechaObj && g.fechaObj <= hoy;
         const sinPlazas = g.libres <= 0;
-        const noDisponible = sinPlazas && !yaInicio; // solo agotados sin iniciar
+        const noDisponible = sinPlazas && !yaInicio; // solo LLENOS sin iniciar
         const enCurso = yaInicio && !sinPlazas;       // inició pero tiene plazas
-        const agotado = sinPlazas;                    // sin plazas (cualquier fecha)
+        const LLENO = sinPlazas;                    // sin plazas (cualquier fecha)
 
         const inscritos = Math.max(0, Math.min(g.cupoMax, g.inscritos));
         const dots = Array.from({length: g.cupoMax}, (_,i) =>
@@ -690,7 +690,7 @@
         if (enCurso) {
           chipClase = 'estado-en-curso'; chipTexto = 'En curso';
         } else if (sinPlazas) {
-          chipClase = 'estado-agotado';  chipTexto = 'Agotado';
+          chipClase = 'estado-LLENO';  chipTexto = 'LLENO';
         } else {
           chipClase = 'estado-disponible'; chipTexto = 'Disponible';
         }
@@ -703,13 +703,13 @@
             <div class="plazas-colocacion-desc">Este grupo ya inicio. Para unirte necesitas pasar por un examen de colocacion.</div>
           </div>`;
         } else if (sinPlazas) {
-          plazasHtml = `<div class="plazas-agotado">Sin lugares disponibles</div>`;
+          plazasHtml = `<div class="plazas-LLENO">Sin lugares disponibles</div>`;
         } else {
           plazasHtml = `<div style="font-size:0.78rem;color:var(--text-muted)"><span class="plazas-num">${g.libres}</span> lugar${g.libres!==1?'es':''} disponible${g.libres!==1?'s':''}</div>`;
         }
 
-        const cardClase = enCurso ? 'en-curso' : agotado ? 'no-disponible' : '';
-        const cardClick = (!enCurso && !agotado) ? `onclick="elegirGrupo('${g.id}')"` : '';
+        const cardClase = enCurso ? 'en-curso' : LLENO ? 'no-disponible' : '';
+        const cardClick = (!enCurso && !LLENO) ? `onclick="elegirGrupo('${g.id}')"` : '';
 
         html += `<div class="grupo-card ${cardClase}" ${cardClick}>
           <div class="grupo-header">
@@ -731,7 +731,7 @@
               ${plazasHtml}
               <div class="plazas-bar">${dots}</div>
             </div>
-            ${(!enCurso && !agotado) ? `<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>` : ''}
+            ${(!enCurso && !LLENO) ? `<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>` : ''}
           </div>
         </div>`;
       });
