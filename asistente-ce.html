@@ -222,9 +222,27 @@
     .go-plazas{font-size:11px;font-weight:700;color:var(--verde);margin-top:5px}
     .go-plazas.pocas{color:var(--amarillo)}
     .go-plazas.lleno{color:var(--rojo)}
+    .grupo-opcion.go-lleno{opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)}
     .btn-confirmar{width:100%;padding:11px;background:var(--azul);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;transition:opacity .18s}
     .btn-confirmar:hover{opacity:.88}
     .btn-confirmar:disabled{opacity:.35;cursor:not-allowed}
+
+    /* MODAL CONFIRMACION CAMBIO */
+    .modal-confirm-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+    .modal-confirm-overlay.open{display:flex}
+    .modal-confirm-box{background:#fff;border-radius:var(--r-xl);padding:26px 24px;width:100%;max-width:420px;animation:fadeIn .2s ease}
+    .modal-confirm-titulo{font-size:16px;font-weight:700;color:var(--azul);margin-bottom:4px}
+    .modal-confirm-sub{font-size:12px;color:var(--gris-400);margin-bottom:18px}
+    .modal-confirm-data{background:var(--gris-50);border:1px solid var(--gris-100);border-radius:var(--r-md);padding:14px 16px;margin-bottom:18px}
+    .modal-confirm-data .row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--gris-100)}
+    .modal-confirm-data .row:last-child{border-bottom:none;padding-bottom:0}
+    .modal-confirm-data .row span:first-child{color:var(--gris-400);font-weight:500}
+    .modal-confirm-data .row span:last-child{color:var(--gris-800);font-weight:700}
+    .modal-confirm-acciones{display:flex;gap:8px}
+    .btn-confirm-ok{flex:1;padding:11px;background:var(--azul);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .18s}
+    .btn-confirm-ok:hover{opacity:.88}
+    .btn-confirm-cancel{padding:11px 18px;background:#fff;color:var(--gris-600);border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .18s}
+    .btn-confirm-cancel:hover{background:var(--gris-50)}
 
     /* MODAL COMPROBANTE */
     .modal-comp-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
@@ -399,6 +417,25 @@
     <div class="modal-actions">
       <button class="btn-validar" style="flex:1" onclick="validarDesdeModal()">✓ Validar pago</button>
       <button class="btn-rechazar" onclick="rechazarDesdeModal()">✗ Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACION CAMBIO DE GRUPO -->
+<div class="modal-confirm-overlay" id="modal-confirm-cambio">
+  <div class="modal-confirm-box">
+    <div class="modal-confirm-titulo">Confirmar cambio de grupo</div>
+    <div class="modal-confirm-sub">Revisa los datos antes de confirmar</div>
+    <div class="modal-confirm-data">
+      <div class="row"><span>Alumno</span><span id="confirm-alumno-nombre">—</span></div>
+      <div class="row"><span>ID</span><span id="confirm-alumno-id">—</span></div>
+      <div class="row"><span>Grupo actual</span><span id="confirm-grupo-origen">—</span></div>
+      <div class="row"><span>Nuevo grupo</span><span id="confirm-grupo-destino">—</span></div>
+      <div class="row"><span>Horario nuevo</span><span id="confirm-horario-destino">—</span></div>
+    </div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-cancel" onclick="cerrarModalConfirm()">Cancelar</button>
+      <button class="btn-confirm-ok" onclick="ejecutarCambioGrupo()">Confirmar cambio</button>
     </div>
   </div>
 </div>
@@ -779,53 +816,59 @@ function elegirGrupoCambio(id, el) {
   el.classList.add('selected');
   grupoSeleccionadoCambio = id;
   document.getElementById('btn-confirmar-cambio').disabled = false;
-  console.log("Grupo seleccionado:", id); // Esto saldrá en consola
+
+  // Buscar datos del grupo destino para mostrar en el modal
+  const grupoDestino = (datosPanel?.todos_grupos || []).find(g => g.id === id);
+
+  // Llenar modal de confirmacion
+  document.getElementById('confirm-alumno-nombre').textContent = alumnoSeleccionadoCambio.nombre;
+  document.getElementById('confirm-alumno-id').textContent = alumnoSeleccionadoCambio.id;
+  document.getElementById('confirm-grupo-origen').textContent = alumnoSeleccionadoCambio.grupo_actual;
+  document.getElementById('confirm-grupo-destino').textContent = id;
+  document.getElementById('confirm-horario-destino').textContent = grupoDestino ? grupoDestino.horario : '—';
+
+  // Abrir modal de confirmacion
+  document.getElementById('modal-confirm-cambio').classList.add('open');
 }
 
-async function confirmarCambioGrupo() {
-  // Verificación técnica: ¿Hay datos para enviar?
-  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) {
-    alert("Error: No has seleccionado un alumno o un grupo destino.");
-    return;
-  }
-  
+function cerrarModalConfirm() {
+  document.getElementById('modal-confirm-cambio').classList.remove('open');
+  // Quitar seleccion visual del grupo
+  document.querySelectorAll('.grupo-opcion').forEach(g => g.classList.remove('selected'));
+  grupoSeleccionadoCambio = null;
+  document.getElementById('btn-confirmar-cambio').disabled = true;
+}
+
+async function ejecutarCambioGrupo() {
+  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) return;
+
+  // Cerrar modal de confirmacion y bloquear boton
+  document.getElementById('modal-confirm-cambio').classList.remove('open');
   const btn = document.getElementById('btn-confirmar-cambio');
-  const textoOriginal = btn.textContent;
-  
-  // Bloqueo visual del botón
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
-  // Construcción de la URL (Aseguramos que los nombres coincidan con tu Codigo.gs)
   const url = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
-  
-  console.log("Intentando enviar a Google:", url);
 
   try {
     const resp = await fetch(url);
     const data = await resp.json();
-    
+
     if (data.status === 'ok') {
-      alert("✓ ¡Cambio de grupo realizado con éxito en la base de datos!");
-      // Limpiamos la pantalla y recargamos
+      mostrarToast('Cambio de grupo realizado correctamente', 'success');
+      // Limpiar seleccion
       document.getElementById('select-alumno-cambio').value = '';
-      if (typeof seleccionarAlumnoCambio === 'function') seleccionarAlumnoCambio();
-      
-      // Intentamos refrescar los datos sin recargar la página
-      if (typeof cargarDatos === 'function') {
-        await cargarDatos();
-      } else {
-        location.reload(); 
-      }
+      seleccionarAlumnoCambio();
+      // Recargar datos
+      if (typeof cargarDatos === 'function') await cargarDatos();
+      else location.reload();
     } else {
-      alert("El servidor de Google dice: " + (data.mensaje || "Error desconocido"));
+      mostrarToast(data.mensaje || 'Error al realizar el cambio.', 'error');
     }
   } catch (e) {
-    console.error("Error detectado:", e);
-    alert("Fallo de conexión: No se pudo contactar con el servidor. Revisa que tu URL de Apps Script en GitHub sea la correcta.");
+    mostrarToast('Error de conexion. Intenta de nuevo.', 'error');
   } finally {
-    // Devolvemos el botón a su estado original
-    btn.textContent = textoOriginal;
+    btn.textContent = 'Confirmar Cambio';
     btn.disabled = false;
   }
 }
