@@ -699,37 +699,44 @@ function elegirGrupoCambio(id,el){
 }
 
 async function confirmarCambioGrupo() {
-  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) return;
-  
+  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) {
+    mostrarToast('Por favor, selecciona un alumno y el grupo destino.', 'error');
+    return;
+  }
+
   const btn = document.getElementById('btn-confirmar-cambio');
+  const originalText = btn.textContent;
+  
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
-  // Construcción manual de la URL para asegurar compatibilidad total
-  const url = APPS_SCRIPT_URL + 
-              "?action=cambiarGrupo" +
-              "&idAlumno=" + encodeURIComponent(alumnoSeleccionadoCambio.id) +
-              "&grupoDestino=" + encodeURIComponent(grupoSeleccionadoCambio) + 
-              "&idAsistente=" + encodeURIComponent(asistente.id);
-
   try {
+    // Construimos la dirección con los nombres exactos que espera tu servidor (doGet)
+    const url = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
+
     const resp = await fetch(url);
     const data = await resp.json();
-    
+
     if (data.status === 'ok') {
-      mostrarToast('✓ Cambio de grupo realizado', 'success');
-      // En lugar de recargar todo, limpiamos y refrescamos datos
+      mostrarToast('✓ Cambio de grupo realizado con éxito', 'success');
+      
+      // Limpiamos la interfaz tras el éxito
       document.getElementById('select-alumno-cambio').value = '';
-      seleccionarAlumnoCambio();
+      document.getElementById('alumno-cambio-info').style.display = 'none';
+      
+      // Actualizamos los datos del panel para reflejar el cambio
       await cargarDatos(); 
+      
+      alumnoSeleccionadoCambio = null;
+      grupoSeleccionadoCambio = null;
     } else {
       mostrarToast(data.mensaje || 'Error al realizar el cambio.', 'error');
     }
   } catch (e) {
-    console.error("Error:", e);
-    mostrarToast('Error de conexión con el servidor.', 'error');
+    console.error("Error en la conexión:", e);
+    mostrarToast('Error de conexión con el sistema. Intenta de nuevo.', 'error');
   } finally {
-    btn.textContent = 'Confirmar Cambio';
+    btn.textContent = originalText;
     btn.disabled = false;
   }
 }
