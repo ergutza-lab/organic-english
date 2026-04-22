@@ -406,45 +406,91 @@
 <div class="toast" id="toast"></div>
 
 <script>
-https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+// CORRECCIÓN: Se añadió 'const APPS_SCRIPT_URL =' al inicio para corregir el SyntaxError
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
 let asistente = null, datosPanel = null;
 let pagoActivoId = null, pagoActivoFecha = null;
 let grupoSeleccionadoCambio = null, alumnoSeleccionadoCambio = null;
 
-// LOGIN
-document.getElementById('input-clave').addEventListener('keydown', e => { if(e.key==='Enter') iniciarLogin(); });
+// LOGIN - Escuchar la tecla Enter
+// Se usa un pequeño retraso para asegurar que los elementos existan en pantalla
+setTimeout(() => {
+  const inputClave = document.getElementById('input-clave');
+  if(inputClave) {
+    inputClave.addEventListener('keydown', e => { if(e.key==='Enter') iniciarLogin(); });
+  }
+}, 500);
 
 function iniciarLogin() {
-  const id = document.getElementById('input-id').value.trim().toUpperCase();
-  const clave = document.getElementById('input-clave').value.trim();
+  const idInput = document.getElementById('input-id');
+  const claveInput = document.getElementById('input-clave');
   const errEl = document.getElementById('login-error');
+
+  const id = idInput.value.trim().toUpperCase();
+  const clave = claveInput.value.trim();
+  
   errEl.style.display = 'none';
-  if (!id || !clave) { errEl.textContent='Ingresa tu ID y clave.'; errEl.style.display='block'; return; }
+  
+  if (!id || !clave) { 
+    errEl.textContent = 'Ingresa tu ID y clave.'; 
+    errEl.style.display = 'block'; 
+    return; 
+  }
+  
   const btn = document.querySelector('.btn-login');
-  btn.textContent='Verificando…'; btn.disabled=true;
+  btn.textContent = 'Verificando…'; 
+  btn.disabled = true;
+
+  // Llamada al servidor usando la URL corregida arriba
   fetch(`${APPS_SCRIPT_URL}?action=loginAsistente&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`)
-    .then(r=>r.json()).then(data=>{
-      btn.textContent='Entrar al panel'; btn.disabled=false;
-      if(data.status==='ok'){asistente=data.asistente;mostrarPanel();}
-      else{errEl.textContent=data.mensaje||'ID o clave incorrectos.';errEl.style.display='block';}
-    }).catch(()=>{btn.textContent='Entrar al panel';btn.disabled=false;errEl.textContent='Error de conexión.';errEl.style.display='block';});
+    .then(r => r.json())
+    .then(data => {
+      btn.textContent = 'Entrar al panel'; 
+      btn.disabled = false;
+      if(data.status === 'ok'){
+        asistente = data.asistente;
+        mostrarPanel();
+      } else {
+        errEl.textContent = data.mensaje || 'ID o clave incorrectos.';
+        errEl.style.display = 'block';
+      }
+    })
+    .catch(err => {
+      console.error("Error de conexión:", err);
+      btn.textContent = 'Entrar al panel';
+      btn.disabled = false;
+      errEl.textContent = 'Error de conexión con el servidor.';
+      errEl.style.display = 'block';
+    });
 }
 
 function mostrarPanel() {
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('panel-screen').style.display='block';
-  document.getElementById('header-name').textContent=asistente.nombre||'';
-  if(asistente.foto_url){const av=document.getElementById('header-avatar');av.src=asistente.foto_url;av.style.display='block';}
-  cargarDatos();
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('panel-screen').style.display = 'block';
+  document.getElementById('header-name').textContent = asistente.nombre || '';
+  
+  const av = document.getElementById('header-avatar');
+  if(asistente.foto_url){
+    av.src = asistente.foto_url;
+    av.style.display = 'block';
+  } else {
+    av.style.display = 'none';
+  }
+  
+  // Llamamos a la función de carga de datos que debe estar más abajo en tu código
+  if (typeof cargarDatos === 'function') {
+    cargarDatos();
+  }
 }
 
 function cerrarSesion(){
-  asistente=null;datosPanel=null;
-  document.getElementById('panel-screen').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('input-id').value='';
-  document.getElementById('input-clave').value='';
+  asistente = null;
+  datosPanel = null;
+  document.getElementById('panel-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('input-id').value = '';
+  document.getElementById('input-clave').value = '';
 }
 
 // DATOS
