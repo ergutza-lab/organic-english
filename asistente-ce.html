@@ -771,21 +771,20 @@ function seleccionarAlumnoCambio() {
 
   const grupoActual = opt.dataset.grupo;
   const nivel = opt.dataset.nivel;
-  
-  alumnoSeleccionadoCambio = { id, nombre: opt.text.split('(')[0].trim(), grupo_actual: grupoActual, nivel };
+
+  alumnoSeleccionadoCambio = { id, nombre: opt.text.split('—')[2]?.trim() || opt.text, grupo_actual: grupoActual, nivel };
   grupoSeleccionadoCambio = null;
-  
+
   document.getElementById('btn-confirmar-cambio').disabled = true;
   document.getElementById('cambio-alumno-nombre').textContent = alumnoSeleccionadoCambio.nombre;
   document.getElementById('cambio-alumno-grupo').textContent = `Grupo actual: ${grupoActual}`;
   infoBox.style.display = 'block';
 
-  // Filtrar grupos
- // Buscar fecha de inicio del grupo actual del alumno
+  // Buscar fecha de inicio del grupo actual del alumno
   const grupoActualObj = (datosPanel?.grupos || []).find(g => g.id === grupoActual);
   const fechaInicioActual = grupoActualObj ? grupoActualObj.fecha_inicio : null;
 
-  // Separar grupos compatibles e incompatibles
+  // Todos los grupos excepto el actual
   const todosGruposFiltrados = (datosPanel?.todos_grupos || []).filter(g => g.id !== grupoActual);
 
   if (!todosGruposFiltrados.length) {
@@ -801,7 +800,6 @@ function seleccionarAlumnoCambio() {
     const bloqueado = sinLugares || !mismaFecha;
     const cls = sinLugares ? 'lleno' : libres <= 2 ? 'pocas' : '';
 
-    // Etiqueta inferior según motivo de bloqueo
     let etiquetaBloqueo = '';
     if (!mismaFecha) {
       etiquetaBloqueo = '<div style="margin-top:6px;font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;padding:2px 7px;display:inline-block">Requiere examen de colocacion</div>';
@@ -821,35 +819,33 @@ function seleccionarAlumnoCambio() {
       </div>`;
   }).join('');
 
-  // Eventos click solo en grupos disponibles y compatibles
+  // Eventos click solo en grupos seleccionables
   contenedor.querySelectorAll('.grupo-opcion:not(.go-lleno)').forEach(el => {
     el.addEventListener('click', function() {
       elegirGrupoCambio(this.dataset.grupoId, this);
     });
   });
 
+} // fin seleccionarAlumnoCambio
+
+
 function elegirGrupoCambio(id, el) {
-  // Quitar seleccion previa
   document.querySelectorAll('.grupo-opcion').forEach(g => g.classList.remove('selected'));
-  // Agregar seleccion actual
   el.classList.add('selected');
   grupoSeleccionadoCambio = id;
   document.getElementById('btn-confirmar-cambio').disabled = false;
 
-  // Buscar datos del grupo destino para mostrar en el modal
   const grupoDestino = (datosPanel?.todos_grupos || []).find(g => g.id === id);
 
-  // Llenar modal de confirmacion
   document.getElementById('confirm-alumno-nombre').textContent = alumnoSeleccionadoCambio.nombre;
   document.getElementById('confirm-alumno-id').textContent = alumnoSeleccionadoCambio.id;
   document.getElementById('confirm-grupo-origen').textContent = alumnoSeleccionadoCambio.grupo_actual;
   document.getElementById('confirm-grupo-destino').textContent = id;
   document.getElementById('confirm-horario-destino').textContent = grupoDestino ? grupoDestino.horario : '—';
 
-  // Abrir modal de confirmacion
   document.getElementById('modal-confirm-cambio').classList.add('open');
-}
 
+} // fin elegirGrupoCambio
 function cerrarModalConfirm() {
   document.getElementById('modal-confirm-cambio').classList.remove('open');
   // Quitar seleccion visual del grupo
