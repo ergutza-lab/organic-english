@@ -726,38 +726,35 @@ function elegirGrupoCambio(id, el) {
 }
 
 async function confirmarCambioGrupo() {
-  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) {
-    alert("Falta seleccionar alumno o grupo");
-    return;
-  }
+  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) return;
   
   const btn = document.getElementById('btn-confirmar-cambio');
+  const textoOriginal = btn.textContent;
+  
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
-  // IMPORTANTE: Verifica que los nombres coincidan con tu doGet
-  const finalUrl = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
-  
-  console.log("Enviando petición a:", finalUrl);
+  // Construimos la URL con los nombres exactos que espera tu script de Google
+  const url = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
 
   try {
-    const resp = await fetch(finalUrl);
+    const resp = await fetch(url);
     const data = await resp.json();
     
     if (data.status === 'ok') {
-      alert("¡Cambio realizado con éxito!");
-      // Limpiar y recargar
+      alert("✓ Cambio de grupo realizado con éxito");
+      // Limpiamos y refrescamos para ver el cambio
       document.getElementById('select-alumno-cambio').value = '';
-      seleccionarAlumnoCambio();
-      await cargarDatos();
+      if (typeof seleccionarAlumnoCambio === 'function') seleccionarAlumnoCambio();
+      await cargarDatos(); 
     } else {
-      alert("Error del servidor: " + (data.mensaje || "Desconocido"));
+      alert("Error del sistema: " + (data.mensaje || "No se pudo completar el cambio"));
     }
   } catch (e) {
-    console.error("Error completo:", e);
-    alert("Error de conexión. Revisa que la URL de Apps Script sea la correcta.");
+    console.error("Error:", e);
+    alert("Error de conexión. Verifica que el Apps Script esté publicado correctamente.");
   } finally {
-    btn.textContent = 'Confirmar Cambio';
+    btn.textContent = textoOriginal;
     btn.disabled = false;
   }
 }
