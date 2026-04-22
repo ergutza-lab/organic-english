@@ -702,32 +702,36 @@ async function confirmarCambioGrupo() {
   if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) return;
   
   const btn = document.getElementById('btn-confirmar-cambio');
-  const originalText = btn.textContent;
-  
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
-  // Usamos google.script.run en lugar de fetch para evitar bloqueos de CORS
-  google.script.run
-    .withSuccessHandler(function(data) {
-      if (data.status === 'ok') {
-        mostrarToast('✓ Cambio de grupo realizado', 'success');
-        // Limpiamos la selección y recargamos datos
-        document.getElementById('select-alumno-cambio').value = '';
-        seleccionarAlumnoCambio();
-        cargarDatos(); // Asumiendo que esta función refresca tu panel
-      } else {
-        mostrarToast(data.mensaje || 'Error al realizar el cambio.', 'error');
-      }
-      btn.textContent = originalText;
-      btn.disabled = false;
-    })
-    .withFailureHandler(function(err) {
-      mostrarToast('Error crítico de conexión: ' + err, 'error');
-      btn.textContent = originalText;
-      btn.disabled = false;
-    })
-    .cambiarGrupo(alumnoSeleccionadoCambio.id, grupoSeleccionadoCambio, asistente.id); 
+  // Construcción manual de la URL para asegurar compatibilidad total
+  const url = APPS_SCRIPT_URL + 
+              "?action=cambiarGrupo" +
+              "&idAlumno=" + encodeURIComponent(alumnoSeleccionadoCambio.id) +
+              "&grupoDestino=" + encodeURIComponent(grupoSeleccionadoCambio) + 
+              "&idAsistente=" + encodeURIComponent(asistente.id);
+
+  try {
+    const resp = await fetch(url);
+    const data = await resp.json();
+    
+    if (data.status === 'ok') {
+      mostrarToast('✓ Cambio de grupo realizado', 'success');
+      // En lugar de recargar todo, limpiamos y refrescamos datos
+      document.getElementById('select-alumno-cambio').value = '';
+      seleccionarAlumnoCambio();
+      await cargarDatos(); 
+    } else {
+      mostrarToast(data.mensaje || 'Error al realizar el cambio.', 'error');
+    }
+  } catch (e) {
+    console.error("Error:", e);
+    mostrarToast('Error de conexión con el servidor.', 'error');
+  } finally {
+    btn.textContent = 'Confirmar Cambio';
+    btn.disabled = false;
+  }
 }
 
 // MODAL COMPROBANTE
