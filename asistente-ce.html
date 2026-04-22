@@ -667,80 +667,100 @@ function renderCambios(){
   select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}">${a.nombre} (${a.id}) — ${a.grupo_actual}</option>`).join('');
 }
 
-function seleccionarAlumnoCambio(){
-  const select=document.getElementById('select-alumno-cambio');
-  const opt=select.options[select.selectedIndex],id=select.value;
-  const infoBox=document.getElementById('alumno-cambio-info');
-  if(!id){infoBox.style.display='none';document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';document.getElementById('btn-confirmar-cambio').disabled=true;alumnoSeleccionadoCambio=null;return;}
-  const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel;
-  alumnoSeleccionadoCambio={id,nombre:opt.text.split('(')[0].trim(),grupo_actual:grupoActual,nivel};
-  grupoSeleccionadoCambio=null;
-  document.getElementById('btn-confirmar-cambio').disabled=true;
-  document.getElementById('cambio-alumno-nombre').textContent=alumnoSeleccionadoCambio.nombre;
-  document.getElementById('cambio-alumno-grupo').textContent=`Grupo actual: ${grupoActual}`;
-  infoBox.style.display='block';
-  const grupos=(datosPanel?.todos_grupos||[]).filter(g=>g.nivel===nivel&&g.id!==grupoActual);
-  if(!grupos.length){document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos en este nivel.</p>';return;}
-  document.getElementById('grupos-disponibles-cambio').innerHTML=grupos.map(g=>{
-    const libres=g.cupo_max-g.inscritos;
-    const cls=libres<=0?'lleno':libres<=2?'pocas':'';
-    return `<div class="grupo-opcion${libres<=0?' go-lleno':''}" onclick="elegirGrupoCambio('${g.id}',this)" ${libres<=0?'style="opacity:.5;pointer-events:none"':''}>
-      <div class="go-id">${g.id}</div><div class="go-nombre">${g.nombre}</div>
-      <div class="go-horario">${g.horario} · Inicio: ${g.fecha_inicio}</div>
-      <div class="go-plazas ${cls}">${libres>0?`${libres} lugares libres`:'Sin lugares'}</div>
-    </div>`;
+// --- FUNCIONES DE CAMBIO DE GRUPO (CORREGIDAS) ---
+
+function seleccionarAlumnoCambio() {
+  const select = document.getElementById('select-alumno-cambio');
+  const opt = select.options[select.selectedIndex];
+  const id = select.value;
+  const infoBox = document.getElementById('alumno-cambio-info');
+
+  if (!id) {
+    infoBox.style.display = 'none';
+    document.getElementById('grupos-disponibles-cambio').innerHTML = '<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';
+    document.getElementById('btn-confirmar-cambio').disabled = true;
+    alumnoSeleccionadoCambio = null;
+    return;
+  }
+
+  const grupoActual = opt.dataset.grupo;
+  const nivel = opt.dataset.nivel;
+  
+  alumnoSeleccionadoCambio = { id, nombre: opt.text.split('(')[0].trim(), grupo_actual: grupoActual, nivel };
+  grupoSeleccionadoCambio = null;
+  
+  document.getElementById('btn-confirmar-cambio').disabled = true;
+  document.getElementById('cambio-alumno-nombre').textContent = alumnoSeleccionadoCambio.nombre;
+  document.getElementById('cambio-alumno-grupo').textContent = `Grupo actual: ${grupoActual}`;
+  infoBox.style.display = 'block';
+
+  // Filtrar grupos
+  const grupos = (datosPanel?.todos_grupos || []).filter(g => g.nivel === nivel && g.id !== grupoActual);
+  
+  if (!grupos.length) {
+    document.getElementById('grupos-disponibles-cambio').innerHTML = '<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos en este nivel.</p>';
+    return;
+  }
+
+  document.getElementById('grupos-disponibles-cambio').innerHTML = grupos.map(g => {
+    const libres = g.cupo_max - g.inscritos;
+    const cls = libres <= 0 ? 'lleno' : libres <= 2 ? 'pocas' : '';
+    return `
+      <div class="grupo-opcion ${libres <= 0 ? 'go-lleno' : ''}" onclick="elegirGrupoCambio('${g.id}', this)">
+        <div class="go-id">${g.id}</div>
+        <div class="go-nombre">${g.nombre}</div>
+        <div class="go-horario">${g.horario}</div>
+        <div class="go-plazas ${cls}">${libres > 0 ? `${libres} lugares libres` : 'Sin lugares'}</div>
+      </div>`;
   }).join('');
 }
 
-function elegirGrupoCambio(id,el){
-  document.querySelectorAll('.grupo-opcion').forEach(g=>g.classList.remove('selected'));
-  el.classList.add('selected');grupoSeleccionadoCambio=id;
-  document.getElementById('btn-confirmar-cambio').disabled=false;
+function elegirGrupoCambio(id, el) {
+  // Quitar seleccion previa
+  document.querySelectorAll('.grupo-opcion').forEach(g => g.classList.remove('selected'));
+  // Agregar seleccion actual
+  el.classList.add('selected');
+  grupoSeleccionadoCambio = id;
+  document.getElementById('btn-confirmar-cambio').disabled = false;
+  console.log("Grupo seleccionado:", id); // Esto saldrá en consola
 }
 
 async function confirmarCambioGrupo() {
   if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) {
-    mostrarToast('Por favor, selecciona un alumno y el grupo destino.', 'error');
+    alert("Falta seleccionar alumno o grupo");
     return;
   }
-
-  const btn = document.getElementById('btn-confirmar-cambio');
-  const originalText = btn.textContent;
   
+  const btn = document.getElementById('btn-confirmar-cambio');
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
+  // IMPORTANTE: Verifica que los nombres coincidan con tu doGet
+  const finalUrl = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
+  
+  console.log("Enviando petición a:", finalUrl);
+
   try {
-    // Construimos la dirección con los nombres exactos que espera tu servidor (doGet)
-    const url = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
-
-    const resp = await fetch(url);
+    const resp = await fetch(finalUrl);
     const data = await resp.json();
-
+    
     if (data.status === 'ok') {
-      mostrarToast('✓ Cambio de grupo realizado con éxito', 'success');
-      
-      // Limpiamos la interfaz tras el éxito
+      alert("¡Cambio realizado con éxito!");
+      // Limpiar y recargar
       document.getElementById('select-alumno-cambio').value = '';
-      document.getElementById('alumno-cambio-info').style.display = 'none';
-      
-      // Actualizamos los datos del panel para reflejar el cambio
-      await cargarDatos(); 
-      
-      alumnoSeleccionadoCambio = null;
-      grupoSeleccionadoCambio = null;
+      seleccionarAlumnoCambio();
+      await cargarDatos();
     } else {
-      mostrarToast(data.mensaje || 'Error al realizar el cambio.', 'error');
+      alert("Error del servidor: " + (data.mensaje || "Desconocido"));
     }
   } catch (e) {
-    console.error("Error en la conexión:", e);
-    mostrarToast('Error de conexión con el sistema. Intenta de nuevo.', 'error');
+    console.error("Error completo:", e);
+    alert("Error de conexión. Revisa que la URL de Apps Script sea la correcta.");
   } finally {
-    btn.textContent = originalText;
+    btn.textContent = 'Confirmar Cambio';
     btn.disabled = false;
   }
 }
-
 // MODAL COMPROBANTE
 function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
   pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;
