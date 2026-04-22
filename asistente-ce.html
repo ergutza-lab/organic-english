@@ -786,37 +786,52 @@ const grupoActualObj = (datosPanel?.grupos || []).find(g => g.id === grupoActual
 const fechaInicioActual = grupoActualObj ? grupoActualObj.fecha_inicio : null;
 
 // Filtrar por mismo nivel, misma fecha de inicio y con lugares disponibles
-const grupos = (datosPanel?.todos_grupos || []).filter(g =>
-  g.nivel === nivel &&
-  g.id !== grupoActual &&
-  (!fechaInicioActual || g.fecha_inicio === fechaInicioActual)
-);
-  
-  if (!grupos.length) {
-    document.getElementById('grupos-disponibles-cambio').innerHTML = '<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos en este nivel.</p>';
+// Buscar fecha de inicio del grupo actual del alumno
+  const grupoActualObj = (datosPanel?.grupos || []).find(g => g.id === grupoActual);
+  const fechaInicioActual = grupoActualObj ? grupoActualObj.fecha_inicio : null;
+
+  // Separar grupos compatibles e incompatibles
+  const todosGruposFiltrados = (datosPanel?.todos_grupos || []).filter(g => g.id !== grupoActual);
+
+  if (!todosGruposFiltrados.length) {
+    document.getElementById('grupos-disponibles-cambio').innerHTML = '<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos disponibles.</p>';
     return;
   }
 
   const contenedor = document.getElementById('grupos-disponibles-cambio');
-  contenedor.innerHTML = grupos.map(g => {
+  contenedor.innerHTML = todosGruposFiltrados.map(g => {
     const libres = g.cupo_max - g.inscritos;
-    const cls = libres <= 0 ? 'lleno' : libres <= 2 ? 'pocas' : '';
-    const bloqueado = libres <= 0;
+    const sinLugares = libres <= 0;
+    const mismaFecha = !fechaInicioActual || g.fecha_inicio === fechaInicioActual;
+    const bloqueado = sinLugares || !mismaFecha;
+    const cls = sinLugares ? 'lleno' : libres <= 2 ? 'pocas' : '';
+
+    // Etiqueta inferior según motivo de bloqueo
+    let etiquetaBloqueo = '';
+    if (!mismaFecha) {
+      etiquetaBloqueo = '<div style="margin-top:6px;font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;padding:2px 7px;display:inline-block">Requiere examen de colocacion</div>';
+    } else if (sinLugares) {
+      etiquetaBloqueo = '<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
+    }
+
     return `
-      <div class="grupo-opcion ${bloqueado ? 'go-lleno' : ''}" data-grupo-id="${g.id}" style="${bloqueado ? 'opacity:.5;pointer-events:none' : 'cursor:pointer'}">
+      <div class="grupo-opcion ${bloqueado ? 'go-lleno' : ''}"
+           data-grupo-id="${g.id}"
+           style="${bloqueado ? 'opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)' : 'cursor:pointer'}">
         <div class="go-id">${g.id}</div>
         <div class="go-nombre">${g.nombre}</div>
         <div class="go-horario">${g.horario}</div>
         <div class="go-plazas ${cls}">${libres > 0 ? `${libres} lugares libres` : 'Sin lugares'}</div>
+        ${etiquetaBloqueo}
       </div>`;
   }).join('');
-  // Agregar eventos click de forma segura (sin problemas con caracteres especiales)
+
+  // Eventos click solo en grupos disponibles y compatibles
   contenedor.querySelectorAll('.grupo-opcion:not(.go-lleno)').forEach(el => {
     el.addEventListener('click', function() {
       elegirGrupoCambio(this.dataset.grupoId, this);
     });
   });
-}
 
 function elegirGrupoCambio(id, el) {
   // Quitar seleccion previa
