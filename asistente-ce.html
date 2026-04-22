@@ -698,17 +698,36 @@ function elegirGrupoCambio(id,el){
   document.getElementById('btn-confirmar-cambio').disabled=false;
 }
 
-async function confirmarCambioGrupo(){
-  if(!alumnoSeleccionadoCambio||!grupoSeleccionadoCambio)return;
-  const btn=document.getElementById('btn-confirmar-cambio');
-  btn.textContent='Procesando…';btn.disabled=true;
-  try{
-    const resp=await fetch(`${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${alumnoSeleccionadoCambio.id}&grupoDestino=${grupoSeleccionadoCambio}&idAsistente=${asistente.id}`);
-    const data=await resp.json();
-    if(data.status==='ok'){mostrarToast('✓ Cambio de grupo realizado','success');await cargarDatos();document.getElementById('select-alumno-cambio').value='';seleccionarAlumnoCambio();}
-    else mostrarToast(data.mensaje||'Error al realizar el cambio.','error');
-  }catch(e){mostrarToast('Error de conexión.','error');}
-  btn.textContent='Confirmar Cambio';btn.disabled=false;
+async function confirmarCambioGrupo() {
+  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) return;
+  
+  const btn = document.getElementById('btn-confirmar-cambio');
+  const originalText = btn.textContent;
+  
+  btn.textContent = 'Procesando…';
+  btn.disabled = true;
+
+  // Usamos google.script.run en lugar de fetch para evitar bloqueos de CORS
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (data.status === 'ok') {
+        mostrarToast('✓ Cambio de grupo realizado', 'success');
+        // Limpiamos la selección y recargamos datos
+        document.getElementById('select-alumno-cambio').value = '';
+        seleccionarAlumnoCambio();
+        cargarDatos(); // Asumiendo que esta función refresca tu panel
+      } else {
+        mostrarToast(data.mensaje || 'Error al realizar el cambio.', 'error');
+      }
+      btn.textContent = originalText;
+      btn.disabled = false;
+    })
+    .withFailureHandler(function(err) {
+      mostrarToast('Error crítico de conexión: ' + err, 'error');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    })
+    .cambiarGrupo(alumnoSeleccionadoCambio.id, grupoSeleccionadoCambio, asistente.id); 
 }
 
 // MODAL COMPROBANTE
