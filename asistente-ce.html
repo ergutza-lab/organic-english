@@ -726,15 +726,16 @@ function elegirGrupoCambio(id, el) {
 }
 
 async function confirmarCambioGrupo() {
-  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) return;
-  
+  if (!alumnoSeleccionadoCambio || !grupoSeleccionadoCambio) {
+    alert("Debes seleccionar un alumno y un grupo.");
+    return;
+  }
+
   const btn = document.getElementById('btn-confirmar-cambio');
-  const textoOriginal = btn.textContent;
-  
   btn.textContent = 'Procesando…';
   btn.disabled = true;
 
-  // Construimos la URL con los nombres exactos que espera tu script de Google
+  // IMPORTANTE: Aquí usamos 'grupoDestino' para que coincida con tu Google Script
   const url = `${APPS_SCRIPT_URL}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`;
 
   try {
@@ -742,19 +743,16 @@ async function confirmarCambioGrupo() {
     const data = await resp.json();
     
     if (data.status === 'ok') {
-      alert("✓ Cambio de grupo realizado con éxito");
-      // Limpiamos y refrescamos para ver el cambio
-      document.getElementById('select-alumno-cambio').value = '';
-      if (typeof seleccionarAlumnoCambio === 'function') seleccionarAlumnoCambio();
-      await cargarDatos(); 
+      alert("✓ ¡Cambio de grupo realizado con éxito!");
+      // Recargamos la página para que se vean los cambios en las listas
+      location.reload(); 
     } else {
-      alert("Error del sistema: " + (data.mensaje || "No se pudo completar el cambio"));
+      alert("Error en el sistema: " + (data.mensaje || "Intenta de nuevo"));
     }
   } catch (e) {
-    console.error("Error:", e);
-    alert("Error de conexión. Verifica que el Apps Script esté publicado correctamente.");
+    alert("Error de conexión. Revisa que pegaste bien la nueva URL en GitHub.");
   } finally {
-    btn.textContent = textoOriginal;
+    btn.textContent = 'Confirmar Cambio';
     btn.disabled = false;
   }
 }
