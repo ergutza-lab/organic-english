@@ -360,7 +360,16 @@
       .then(data => {
         btn.textContent = 'Entrar'; btn.disabled = false;
         if (data.success) { alumnoData = data; mostrarPanel(); }
-        else { err.style.display = 'block'; err.textContent = data.error || 'ID o correo incorrectos.'; }
+        else {
+  err.style.display = 'block';
+  if (data.error === 'BAJA') {
+    err.innerHTML = 'Tu acceso ha sido dado de baja por falta de pago. Revisa tu correo, ahí encontrarás las instrucciones para reinscribirte.' +
+      (data.asisNombre ? ' También puedes contactar directamente a tu asistente CE: ' +
+      '<a href="https://wa.me/52' + data.asisWhatsapp + '" target="_blank" style="color:#fb923c;font-weight:700">' + data.asisNombre + '</a>.' : '');
+  } else {
+    err.textContent = data.error || 'ID o correo incorrectos.';
+  }
+}
       })
       .catch(() => { btn.textContent = 'Entrar'; btn.disabled = false; err.style.display = 'block'; err.textContent = 'Error de conexion. Intenta mas tarde.'; });
   }
@@ -483,8 +492,8 @@
     document.getElementById('cambioStatus').textContent = '';
     document.getElementById('cambioStatus').className = 'cambio-status';
 
-   // var dia = new Date().getDay(); // 0=dom, 5=vie, 6=sab
-    var dia = 5; // forzar viernes para pruebas
+    var dia = new Date().getDay(); // 0=dom, 5=vie, 6=sab
+   // var dia = 5; // forzar viernes para pruebas
     var permitido = (dia === 0 || dia === 5 || dia === 6);
 
     if (!permitido) {
