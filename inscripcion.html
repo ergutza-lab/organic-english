@@ -458,6 +458,27 @@
 <!-- CONTENIDO -->
 <div class="container">
 
+<!-- LEYENDA DE ESTADOS -->
+<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+  <p style="color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 10px;">Guia de disponibilidad</p>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0;"></span>
+      <span style="color:#94a3b8;font-size:13px;"><strong style="color:#f1f5f9;">Disponible</strong> — Grupo que aun no ha iniciado, con lugares libres.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>
+      <span style="color:#94a3b8;font-size:13px;"><strong style="color:#f1f5f9;">En curso</strong> — Ya inicio pero tiene lugares. Puedes unirte via evaluacion de colocacion gratuita.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
+      <span style="color:#94a3b8;font-size:13px;"><strong style="color:#f1f5f9;">Lleno</strong> — Sin lugares disponibles.</span>
+    </div>
+  </div>
+</div>
+
+<div id="grupos-content" style="display:none"></div>
+  
   <!-- PANEL 1: GRUPOS -->
   <div class="panel active" id="panel1">
     <div id="grupos-loading" class="loading">
@@ -852,10 +873,67 @@ function cerrarModalColocacion() {
   document.getElementById('col-whatsapp').value = '';
   document.getElementById('col-email').value = '';
   document.getElementById('col-error').style.display = 'none';
+  document.getElementById('modal-col-vista-confirm').style.display = 'none';
 }
 
 function enviarRegistroColocacion() {
-  // lo construimos en el siguiente paso
+  var nombre   = document.getElementById('col-nombre').value.trim();
+  var whatsapp = document.getElementById('col-whatsapp').value.trim();
+  var email    = document.getElementById('col-email').value.trim();
+  var errDiv   = document.getElementById('col-error');
+  var errMsg   = document.getElementById('col-error-msg');
+
+  // Validaciones
+  if (!nombre || !whatsapp || !email) {
+    errMsg.textContent = 'Por favor completa todos los campos.';
+    errDiv.style.display = 'block';
+    return;
+  }
+  if (!/^\d{10}$/.test(whatsapp)) {
+    errMsg.textContent = 'El WhatsApp debe tener exactamente 10 digitos.';
+    errDiv.style.display = 'block';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errMsg.textContent = 'Por favor ingresa un correo valido.';
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  errDiv.style.display = 'none';
+  var btn = document.getElementById('col-btn-enviar');
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+
+  fetch(APPS_SCRIPT, {
+    method: 'POST',
+    body: JSON.stringify({
+      nombre:   nombre,
+      whatsapp: whatsapp,
+      email:    email,
+      asesor:   asesorId,
+      tipo:     'colocacion'
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.textContent = 'Reservar mi lugar →';
+    btn.disabled = false;
+    if (data.ok) {
+      // Mostrar pantalla de confirmación
+      document.getElementById('modal-col-vista-form').style.display = 'none';
+      document.getElementById('modal-col-vista-confirm').style.display = 'block';
+    } else {
+      errMsg.textContent = data.error || 'Error al enviar. Intenta de nuevo.';
+      errDiv.style.display = 'block';
+    }
+  })
+  .catch(() => {
+    btn.textContent = 'Reservar mi lugar →';
+    btn.disabled = false;
+    errMsg.textContent = 'Error de conexion. Intenta de nuevo.';
+    errDiv.style.display = 'block';
+  });
 }
   
   cargarAsesor();
@@ -894,6 +972,14 @@ function enviarRegistroColocacion() {
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">Un asesor te contactara para darte los datos de pago y coordinar tu evaluacion.</p>
       </div>
 
+<!-- Vista Confirmacion -->
+<div id="modal-col-vista-confirm" style="display:none;text-align:center;">
+  <div style="font-size:48px;margin-bottom:16px;">✅</div>
+  <h2 style="color:#f1f5f9;font-size:22px;font-weight:700;margin:0 0 12px;">Registro completado</h2>
+  <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0 0 24px;">Tu registro fue exitoso. En breve un asesor se pondra en contacto contigo por WhatsApp para darte los datos de pago y coordinar tu evaluacion de colocacion.</p>
+  <button onclick="cerrarModalColocacion()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;">Entendido, cerrar</button>
+</div>
+      
       <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">
         <div>
           <label style="color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Nombre completo</label>
