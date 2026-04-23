@@ -177,32 +177,54 @@
   }
 
   function validarPago(idAlumno, btn) {
-    btn.textContent = 'Validando...';
-    btn.disabled = true;
+  btn.textContent = 'Validando...';
+  btn.disabled = true;
 
-    fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          var card = btn.closest('.alumno-card');
-          card.style.opacity = '0.4';
-          card.style.pointerEvents = 'none';
-          btn.textContent = 'Validado';
-          // Actualizar comisión
-          asesorData.comisionSemana += 100;
-          document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
-        } else {
-          btn.textContent = 'Validar pago';
-          btn.disabled = false;
-          alert('Error: ' + data.error);
+  fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        var card = btn.closest('.alumno-card');
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+        btn.textContent = 'Validado';
+
+        // Actualizar comisión
+        asesorData.comisionSemana += 100;
+        document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+
+        if (data.esColocacion) {
+          // Abrir WhatsApp al alumno
+          var msgAlumno = encodeURIComponent(
+            'Hola ' + data.nombreAlumno + ', tu pago ha sido validado en Organic English. ' +
+            'En breve el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion. ¡Bienvenido/a!'
+          );
+          window.open('https://wa.me/52' + data.whatsappAlumno + '?text=' + msgAlumno, '_blank');
+
+          // Abrir WhatsApp al encargado de colocación (con pequeño delay para que no bloquee)
+          if (data.colocadorWA) {
+            setTimeout(function() {
+              var msgColocador = encodeURIComponent(
+                'Hola ' + data.colocadorNombre + ', hay un nuevo alumno por colocacion: ' +
+                data.nombreAlumno + '. Su pago ya fue validado. Por favor contactalo para agendar su evaluacion.'
+              );
+              window.open('https://wa.me/52' + data.colocadorWA + '?text=' + msgColocador, '_blank');
+            }, 800);
+          }
         }
-      })
-      .catch(() => {
+
+      } else {
         btn.textContent = 'Validar pago';
         btn.disabled = false;
-        alert('Error de conexión.');
-      });
-  }
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(() => {
+      btn.textContent = 'Validar pago';
+      btn.disabled = false;
+      alert('Error de conexión.');
+    });
+}
 
   function logout() {
     asesorData = null;
