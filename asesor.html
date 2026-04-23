@@ -57,6 +57,18 @@
   .empty-state p { font-size: 14px; }
 
   .loading { text-align: center; padding: 40px; color: #475569; font-size: 14px; }
+
+/* MODAL DE NOTIFICACIÓN */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.active { display:flex; }
+  .modal-box { background:#1e2a4a; border-radius:20px; padding:32px 24px; width:100%; max-width:380px; border:1px solid rgba(255,255,255,0.08); text-align:center; }
+  .modal-box .modal-icon { font-size:40px; margin-bottom:12px; }
+  .modal-box h3 { color:#f1f5f9; font-size:17px; font-weight:600; margin-bottom:8px; }
+  .modal-box p { color:#64748b; font-size:13px; margin-bottom:24px; line-height:1.5; }
+  .modal-actions { display:flex; flex-direction:column; gap:10px; }
+  .btn-notificar { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:100px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-cerrar-modal { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:100px; padding:13px; font-size:14px; cursor:pointer; }
+ 
 </style>
 </head>
 <body>
@@ -103,6 +115,19 @@
       <span id="comisionSemana" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
     </div>
 
+  </div>
+</div>
+
+<!-- MODAL NOTIFICACIÓN -->
+<div class="modal-overlay" id="modalNotificacion">
+  <div class="modal-box">
+    <div class="modal-icon">✅</div>
+    <h3 id="modalTitulo">Plaza validada</h3>
+    <p id="modalMensaje"></p>
+    <div class="modal-actions">
+      <button class="btn-notificar" id="btnNotificar">Notificar</button>
+      <button class="btn-cerrar-modal" onclick="cerrarModal()">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -176,56 +201,101 @@
     }).join('');
   }
 
+ var modalData = null;
+
   function validarPago(idAlumno, btn) {
-  btn.textContent = 'Validando...';
-  btn.disabled = true;
+    btn.textContent = 'Validando...';
+    btn.disabled = true;
 
-  fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        var card = btn.closest('.alumno-card');
-        card.style.opacity = '0.4';
-        card.style.pointerEvents = 'none';
-        btn.textContent = 'Validado';
+    fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          // Deshabilitar card
+          var card = btn.closest('.alumno-card');
+          card.style.opacity = '0.4';
+          card.style.pointerEvents = 'none';
+          btn.textContent = 'Validado';
 
-        // Actualizar comisión
-        asesorData.comisionSemana += 100;
-        document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+          // Actualizar comisión
+          asesorData.comisionSemana += 100;
+          document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
 
-        if (data.esColocacion) {
-          // Abrir WhatsApp al alumno
-          var msgAlumno = encodeURIComponent(
-            'Hola ' + data.nombreAlumno + ', tu pago ha sido validado en Organic English. ' +
-            'En breve el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion. ¡Bienvenido/a!'
-          );
-          window.open('https://wa.me/52' + data.whatsappAlumno + '?text=' + msgAlumno, '_blank');
-
-          // Abrir WhatsApp al encargado de colocación (con pequeño delay para que no bloquee)
-          if (data.colocadorWA) {
-            setTimeout(function() {
-              var msgColocador = encodeURIComponent(
-                'Hola ' + data.colocadorNombre + ', hay un nuevo alumno por colocacion: ' +
-                data.nombreAlumno + '. Su pago ya fue validado. Por favor contactalo para agendar su evaluacion.'
-              );
-              window.open('https://wa.me/52' + data.colocadorWA + '?text=' + msgColocador, '_blank');
-            }, 800);
+          // Mostrar modal según tipo
+          if (data.esColocacion) {
+            modalData = { tipo: 'colocacion', data: data };
+            document.getElementById('modalTitulo').textContent = 'Pago validado';
+            document.getElementById('modalMensaje').textContent =
+              'El pago de ' + data.nombreAlumno + ' ha sido registrado. ¿Deseas notificar al alumno y al encargado de colocación?';
+          } else {
+            modalData = { tipo: 'normal', data: data };
+            document.getElementById('modalTitulo').textContent = 'Plaza validada';
+            document.getElementById('modalMensaje').textContent =
+              'El pago de ' + data.nombreAlumno + ' fue validado y se envió el correo de bienvenida. ¿Deseas notificar al Asistente CE y al Maestro?';
           }
-        }
+          document.getElementById('modalNotificacion').classList.add('active');
 
-      } else {
+        } else {
+          btn.textContent = 'Validar pago';
+          btn.disabled = false;
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(() => {
         btn.textContent = 'Validar pago';
         btn.disabled = false;
-        alert('Error: ' + data.error);
-      }
-    })
-    .catch(() => {
-      btn.textContent = 'Validar pago';
-      btn.disabled = false;
-      alert('Error de conexión.');
-    });
-}
+        alert('Error de conexión.');
+      });
+  }
 
+  function cerrarModal() {
+    document.getElementById('modalNotificacion').classList.remove('active');
+    modalData = null;
+  }
+
+  document.getElementById('btnNotificar').addEventListener('click', function() {
+    if (!modalData) return;
+    var d = modalData.data;
+
+    if (modalData.tipo === 'colocacion') {
+      var msgAlumno = encodeURIComponent(
+        'Hola ' + d.nombreAlumno + ', tu pago ha sido validado en Organic English. ' +
+        'En breve el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion. Bienvenido/a!'
+      );
+      window.open('https://wa.me/52' + d.whatsappAlumno + '?text=' + msgAlumno, '_blank');
+
+      if (d.colocadorWA) {
+        setTimeout(function() {
+          var msgColocador = encodeURIComponent(
+            'Hola ' + d.colocadorNombre + ', hay un nuevo alumno por colocacion: ' +
+            d.nombreAlumno + '. Su pago ya fue validado. Por favor contactalo para agendar su evaluacion.'
+          );
+          window.open('https://wa.me/52' + d.colocadorWA + '?text=' + msgColocador, '_blank');
+        }, 800);
+      }
+
+    } else {
+      if (d.asisWA) {
+        var msgCE = encodeURIComponent(
+          'Hola ' + d.asisNombre + ', se ha inscrito un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
+          d.nombreAlumno + '. Por favor presentate con el por WhatsApp para darle la bienvenida.'
+        );
+        window.open('https://wa.me/52' + d.asisWA + '?text=' + msgCE, '_blank');
+      }
+
+      if (d.maestroWA) {
+        setTimeout(function() {
+          var msgMaestro = encodeURIComponent(
+            'Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
+            d.nombreAlumno + '. Ya cuenta con acceso al grupo.'
+          );
+          window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
+        }, 800);
+      }
+    }
+
+    cerrarModal();
+  });
   function logout() {
     asesorData = null;
     document.getElementById('inputId').value = '';
