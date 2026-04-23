@@ -258,21 +258,25 @@
     var d = modalData.data;
 
     if (modalData.tipo === 'colocacion') {
+      // Paso 1: WhatsApp alumno
       var msgAlumno = encodeURIComponent(
         'Hola ' + d.nombreAlumno + ', tu pago ha sido validado en Organic English. ' +
         'En breve el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion. Bienvenido/a!'
       );
-     window.open('https://wa.me/52' + d.whatsappAlumno + '?text=' + msgAlumno, '_blank');
+      window.open('https://wa.me/52' + d.whatsappAlumno + '?text=' + msgAlumno, '_blank');
 
+      // Paso 2: modal colocador
       if (d.colocadorWA) {
-        var msgColocador = encodeURIComponent(
-          'Hola ' + d.colocadorNombre + ', hay un nuevo alumno por colocacion: ' +
-          d.nombreAlumno + '. Su pago ya fue validado. Por favor contactalo para agendar su evaluacion.'
-        );
-        window.open('https://wa.me/52' + d.colocadorWA + '?text=' + msgColocador, '_blank');
+        document.getElementById('modalTitulo').textContent = 'Notificar al Colocador';
+        document.getElementById('modalMensaje').textContent =
+          '¿Deseas notificar al encargado de colocación sobre ' + d.nombreAlumno + '?';
+        modalData = { tipo: 'colocador', data: d };
+      } else {
+        cerrarModal();
       }
 
-    } else {
+    } else if (modalData.tipo === 'normal') {
+      // Paso 1: WhatsApp CE
       if (d.asisWA) {
         var msgCE = encodeURIComponent(
           'Hola ' + d.asisNombre + ', se ha inscrito un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
@@ -281,16 +285,34 @@
         window.open('https://wa.me/52' + d.asisWA + '?text=' + msgCE, '_blank');
       }
 
-     if (d.maestroWA) {
-        var msgMaestro = encodeURIComponent(
-          'Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
-          d.nombreAlumno + '. Ya cuenta con acceso al grupo.'
-        );
-        window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
+      // Paso 2: modal maestro
+      if (d.maestroWA) {
+        document.getElementById('modalTitulo').textContent = 'Notificar al Maestro';
+        document.getElementById('modalMensaje').textContent =
+          '¿Deseas notificar al maestro sobre la inscripción de ' + d.nombreAlumno + ' en el grupo ' + d.idGrupo + '?';
+        modalData = { tipo: 'maestro', data: d };
+      } else {
+        cerrarModal();
       }
-    }
 
-    cerrarModal();
+    } else if (modalData.tipo === 'maestro') {
+      // Paso 2: WhatsApp maestro
+      var msgMaestro = encodeURIComponent(
+        'Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
+        d.nombreAlumno + '. Ya cuenta con acceso al grupo.'
+      );
+      window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
+      cerrarModal();
+
+    } else if (modalData.tipo === 'colocador') {
+      // Paso 2: WhatsApp colocador
+      var msgColocador = encodeURIComponent(
+        'Hola ' + d.colocadorNombre + ', hay un nuevo alumno por colocacion: ' +
+        d.nombreAlumno + '. Su pago ya fue validado. Por favor contactalo para agendar su evaluacion.'
+      );
+      window.open('https://wa.me/52' + d.colocadorWA + '?text=' + msgColocador, '_blank');
+      cerrarModal();
+    }
   });
   function logout() {
     asesorData = null;
