@@ -10,13 +10,11 @@
 <style>
   :root {
     --navy: #0f1c3f;
-    --navy-mid: #162244;
     --orange: #f97316;
     --orange-light: #fb923c;
     --orange-glow: rgba(249,115,22,0.18);
     --white: #f8fafc;
     --muted: #94a3b8;
-    --card-bg: rgba(255,255,255,0.04);
     --border: rgba(255,255,255,0.09);
   }
 
@@ -24,88 +22,80 @@
 
   body {
     font-family: 'DM Sans', sans-serif;
-    background: var(--navy);
     color: var(--white);
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  /* ── HERO ── */
-  .hero {
+  /* ── PANTALLA COMPLETA: hero + form en columnas ── */
+  .page {
     position: relative;
-    height: 100vh;
-    min-height: 620px;
+    min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  /* ── LADO IZQUIERDO: HERO ── */
+  .hero-side {
+    position: relative;
+    flex: 1.1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
+    padding: 60px 56px;
+    overflow: hidden;
   }
 
-  .hero-img {
+  .hero-bg {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     object-fit: cover;
-    object-position: center top;
-    opacity: 0.22;
-    filter: saturate(0.7);
+    object-position: center;
+    opacity: 0.9;
   }
 
-  .hero-overlay {
+  /* overlay muy suave solo en los bordes */
+  .hero-side::after {
+    content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(15,28,63,0.45) 0%,
-      rgba(15,28,63,0.6) 50%,
-      rgba(15,28,63,0.97) 100%
-    );
+    background:
+      linear-gradient(to right, rgba(15,28,63,0.15) 0%, transparent 60%),
+      linear-gradient(to bottom, rgba(15,28,63,0.3) 0%, transparent 30%, transparent 70%, rgba(15,28,63,0.5) 100%);
+    pointer-events: none;
   }
 
-  .hero-content {
+  .hero-inner {
     position: relative;
     z-index: 2;
-    text-align: center;
-    padding: 0 24px;
     animation: fadeUp 0.9s cubic-bezier(.22,1,.36,1) both;
   }
 
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(28px); }
+    from { opacity: 0; transform: translateY(24px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
   .hero-logo {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 32px;
+    gap: 14px;
+    margin-bottom: 48px;
   }
 
   .hero-logo img {
-    width: 44px;
-    height: 44px;
+    height: 52px;
     object-fit: contain;
-    border-radius: 10px;
-  }
-
-  .hero-logo-text {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--white);
-    opacity: 0.9;
+    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
   }
 
   .hero-badge {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    background: var(--orange-glow);
-    border: 1px solid rgba(249,115,22,0.35);
+    background: rgba(15,28,63,0.55);
+    border: 1px solid rgba(249,115,22,0.4);
     border-radius: 100px;
     padding: 6px 16px;
     font-size: 11px;
@@ -114,6 +104,7 @@
     text-transform: uppercase;
     color: var(--orange-light);
     margin-bottom: 20px;
+    backdrop-filter: blur(8px);
   }
 
   .badge-dot {
@@ -125,16 +116,17 @@
 
   @keyframes pulse {
     0%,100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.5; transform: scale(1.4); }
+    50%      { opacity: 0.5; transform: scale(1.5); }
   }
 
   .hero-title {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(36px, 6vw, 64px);
+    font-size: clamp(32px, 3.5vw, 52px);
     font-weight: 700;
     line-height: 1.1;
-    margin-bottom: 16px;
     color: var(--white);
+    text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+    margin-bottom: 16px;
   }
 
   .hero-title em {
@@ -143,106 +135,83 @@
   }
 
   .hero-subtitle {
-    font-size: 15px;
-    color: var(--muted);
-    font-weight: 400;
-    margin-bottom: 40px;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
+    font-size: 14px;
+    color: rgba(248,250,252,0.75);
+    line-height: 1.7;
+    max-width: 340px;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
   }
 
-  /* ── SCROLL INDICATOR ── */
-  .scroll-cue {
-    position: absolute;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
+  /* ── LADO DERECHO: FORMULARIO ── */
+  .form-side {
+    flex: 0 0 420px;
+    background: #0c1730;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    animation: scrollBounce 2s infinite;
-    cursor: pointer;
-  }
-
-  @keyframes scrollBounce {
-    0%,100% { transform: translateX(-50%) translateY(0); }
-    50%      { transform: translateX(-50%) translateY(6px); }
-  }
-
-  .scroll-cue svg { opacity: 0.5; }
-
-  /* ── FORM SECTION ── */
-  .form-section {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    padding: 80px 24px;
-    background: linear-gradient(180deg, var(--navy) 0%, #0a1428 100%);
+    padding: 60px 48px;
     position: relative;
+    border-left: 1px solid rgba(255,255,255,0.06);
   }
 
-  .form-section::before {
+  .form-side::before {
     content: '';
     position: absolute;
-    top: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 600px; height: 600px;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  }
+
+  /* glow sutil detrás del form */
+  .form-side::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px; height: 320px;
     background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%);
     pointer-events: none;
   }
 
-  .form-card {
+  .form-wrap {
     position: relative;
-    background: rgba(255,255,255,0.035);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 48px 44px;
+    z-index: 2;
     width: 100%;
-    max-width: 440px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
-    animation: fadeUp 0.9s 0.2s cubic-bezier(.22,1,.36,1) both;
+    animation: fadeUp 0.9s 0.15s cubic-bezier(.22,1,.36,1) both;
   }
 
-  .form-card-header {
-    text-align: center;
-    margin-bottom: 36px;
+  .form-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
   }
 
-  .form-card-icon {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, var(--orange), #ea580c);
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px;
-    box-shadow: 0 8px 24px rgba(249,115,22,0.35);
+  .form-logo img {
+    height: 56px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 12px rgba(249,115,22,0.2));
   }
 
-  .form-card-title {
+  .form-title {
     font-family: 'Playfair Display', serif;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--white);
-    margin-bottom: 8px;
+    text-align: center;
+    margin-bottom: 6px;
   }
 
-  .form-card-sub {
+  .form-sub {
     font-size: 13px;
     color: var(--muted);
+    text-align: center;
+    margin-bottom: 32px;
     line-height: 1.6;
   }
 
   .form-group {
-    margin-bottom: 18px;
+    margin-bottom: 16px;
   }
 
   .form-label {
@@ -268,7 +237,7 @@
     outline: none;
   }
 
-  .form-input::placeholder { color: rgba(148,163,184,0.5); }
+  .form-input::placeholder { color: rgba(148,163,184,0.45); }
 
   .form-input:focus {
     border-color: rgba(249,115,22,0.5);
@@ -282,7 +251,7 @@
     color: #fff;
     border: none;
     border-radius: 100px;
-    padding: 16px;
+    padding: 15px;
     font-size: 15px;
     font-weight: 700;
     font-family: 'DM Sans', sans-serif;
@@ -292,29 +261,32 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    transition: transform 0.15s, box-shadow 0.15s;
     box-shadow: 0 8px 24px rgba(249,115,22,0.3);
   }
 
-  .btn-submit:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 32px rgba(249,115,22,0.4);
-  }
-
+  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(249,115,22,0.4); }
   .btn-submit:active { transform: translateY(0); }
   .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-  /* ── ERROR / MENSAJE ── */
   .msg-error {
     display: none;
     background: rgba(239,68,68,0.1);
     border: 1px solid rgba(239,68,68,0.3);
     border-radius: 10px;
     padding: 12px 16px;
-    margin-top: 16px;
+    margin-top: 14px;
     color: #f87171;
     font-size: 13px;
     text-align: center;
+    line-height: 1.5;
+  }
+
+  .form-footer {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(148,163,184,0.4);
   }
 
   /* ── SPINNER ── */
@@ -324,169 +296,101 @@
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── ROLES INFO ── */
-  .roles-hint {
-    margin-top: 28px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-    text-align: center;
-  }
-
-  .roles-hint-title {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
-
-  .roles-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-  }
-
-  .role-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 100px;
-    padding: 5px 12px;
-    font-size: 11px;
-    color: var(--muted);
-    font-weight: 500;
-  }
-
-  .role-chip span {
-    font-weight: 700;
-    color: var(--orange-light);
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-  }
-
-  /* ── DECORATIVE LINE ── */
-  .deco-line {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--orange), transparent);
-    border-radius: 24px 24px 0 0;
-  }
-
-  /* ── FOOTER ── */
-  .footer {
-    text-align: center;
-    padding: 32px 24px;
-    font-size: 12px;
-    color: rgba(148,163,184,0.4);
-    background: #0a1428;
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 480px) {
-    .form-card { padding: 36px 24px; }
-    .hero-title { font-size: 32px; }
+  /* ── RESPONSIVE: mobile = vertical ── */
+  @media (max-width: 768px) {
+    .page { flex-direction: column; }
+    .hero-side {
+      min-height: 42vh;
+      padding: 40px 28px;
+      flex: none;
+    }
+    .form-side {
+      flex: none;
+      width: 100%;
+      padding: 48px 28px;
+      border-left: none;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
   }
 </style>
 </head>
 <body>
 
-<!-- ── HERO ── -->
-<section class="hero" id="hero">
-  <img class="hero-img" src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.png" alt="Organic English" />
-  <div class="hero-overlay"></div>
+<div class="page">
 
-  <div class="hero-content">
-    <div class="hero-logo">
-      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Logo" />
-      <span class="hero-logo-text">Organic English</span>
-    </div>
-    <div class="hero-badge">
-      <span class="badge-dot"></span>
-      Portal de Personal
-    </div>
-    <h1 class="hero-title">Bienvenido al<br/><em>equipo OE</em></h1>
-    <p class="hero-subtitle">Acceso exclusivo para asesores, maestros y personal administrativo de Organic English.</p>
-  </div>
+  <!-- ── LADO IZQUIERDO: HERO ── -->
+  <div class="hero-side">
+    <img class="hero-bg" src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.png" alt="Organic English hero" />
 
-  <div class="scroll-cue" onclick="document.getElementById('login').scrollIntoView({behavior:'smooth'})">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-    Iniciar sesión
-  </div>
-</section>
-
-<!-- ── LOGIN SECTION ── -->
-<section class="form-section" id="login">
-  <div class="form-card">
-    <div class="deco-line"></div>
-
-    <div class="form-card-header">
-      <div class="form-card-icon">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <div class="hero-inner">
+      <div class="hero-logo">
+        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logotransparente.png" alt="Organic English" />
       </div>
-      <h2 class="form-card-title">Iniciar sesión</h2>
-      <p class="form-card-sub">Ingresa tu ID de personal y tu clave de acceso.</p>
-    </div>
 
-    <div class="form-group">
-      <label class="form-label" for="input-id">ID de personal</label>
-      <input class="form-input" id="input-id" type="text" placeholder="Ej. ASE-01, ASI-02, MAE-03" autocomplete="off" spellcheck="false" />
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="input-clave">Clave de acceso</label>
-      <input class="form-input" id="input-clave" type="password" placeholder="••••••••" autocomplete="current-password" />
-    </div>
-
-    <button class="btn-submit" id="btn-login" onclick="handleLogin()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-      Entrar a mi panel
-    </button>
-
-    <div class="msg-error" id="msg-error"></div>
-
-    <div class="roles-hint">
-      <p class="roles-hint-title">Formatos de ID reconocidos</p>
-      <div class="roles-grid">
-        <div class="role-chip"><span>ASE-</span>Asesor</div>
-        <div class="role-chip"><span>ASI-</span>Asistente CE</div>
-        <div class="role-chip"><span>CE-</span>Control CE</div>
-        <div class="role-chip"><span>MAE-</span>Maestro</div>
-        <div class="role-chip"><span>CA-</span>Control Académico</div>
-        <div class="role-chip"><span>DIR-</span>Dirección</div>
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Portal de Personal
       </div>
+
+      <h1 class="hero-title">Bienvenido al<br/><em>equipo OE</em></h1>
+      <p class="hero-subtitle">Acceso exclusivo para asesores, maestros y personal administrativo de Organic English.</p>
     </div>
   </div>
-</section>
 
-<!-- ── FOOTER ── -->
-<footer class="footer">
-  © 2025 Organic English · Todos los derechos reservados
-</footer>
+  <!-- ── LADO DERECHO: FORMULARIO ── -->
+  <div class="form-side">
+    <div class="form-wrap">
+
+      <div class="form-logo">
+        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logotransparente.png" alt="Organic English" />
+      </div>
+
+      <h2 class="form-title">Iniciar sesión</h2>
+      <p class="form-sub">Ingresa tu ID de personal y tu clave de acceso.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="input-id">ID de personal</label>
+        <input class="form-input" id="input-id" type="text" placeholder="Ej. ASE-01, ASI-02, CE-01" autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-clave">Clave de acceso</label>
+        <input class="form-input" id="input-clave" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <button class="btn-submit" id="btn-login" onclick="handleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Entrar a mi panel
+      </button>
+
+      <div class="msg-error" id="msg-error"></div>
+
+      <div class="form-footer">© 2025 Organic English · Uso exclusivo del personal</div>
+    </div>
+  </div>
+
+</div>
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
-  // Mapa de prefijo → acción de login + panel destino
   const ROLES = [
-    { prefix: 'ASE-', accion: 'loginAsesor',     panel: 'asesor.html' },
-    { prefix: 'ASI-', accion: 'loginAsistente',  panel: 'asistente-ce.html' },
-    { prefix: 'CE-',  accion: 'loginCE',          panel: 'control-ce.html' },
-    { prefix: 'MAE-', accion: 'loginColocador',   panel: 'maestro.html' },      // provisional hasta maestro.html
-    { prefix: 'CA-',  accion: 'loginCE',           panel: 'control-academico.html' }, // provisional
-    { prefix: 'DIR-', accion: 'loginCE',           panel: 'director.html' },         // provisional
+    { prefix: 'ASE-', accion: 'loginAsesor',    panel: 'asesor.html' },
+    { prefix: 'ASI-', accion: 'loginAsistente', panel: 'asistente-ce.html' },
+    { prefix: 'CE-',  accion: 'loginCE',         panel: 'control-ce.html' },
+    { prefix: 'MAE-', accion: 'loginMaestro',    panel: 'maestro.html' },
+    { prefix: 'CA-',  accion: 'loginCA',          panel: 'control-academico.html' },
+    { prefix: 'DIR-', accion: 'loginDir',         panel: 'director.html' },
   ];
 
+  const PENDIENTES = ['maestro.html', 'control-academico.html', 'director.html'];
+
   function detectarRol(id) {
-    const upper = id.toUpperCase();
-    return ROLES.find(r => upper.startsWith(r.prefix)) || null;
+    return ROLES.find(r => id.toUpperCase().startsWith(r.prefix)) || null;
   }
 
   function mostrarError(msg) {
@@ -499,7 +403,12 @@
     document.getElementById('msg-error').style.display = 'none';
   }
 
-  // Enter en cualquier campo dispara login
+  function resetBtn() {
+    const btn = document.getElementById('btn-login');
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Entrar a mi panel`;
+  }
+
   ['input-id','input-clave'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
       if (e.key === 'Enter') handleLogin();
@@ -520,13 +429,11 @@
 
     const rol = detectarRol(id);
     if (!rol) {
-      mostrarError('ID no reconocido. Verifica el formato (ej. ASE-01, ASI-02, MAE-03).');
+      mostrarError('ID no reconocido. Verifica el formato (ej. ASE-01, ASI-02, CE-01).');
       return;
     }
 
-    // Paneles aún no disponibles
-    const pendientes = ['control-academico.html', 'director.html', 'maestro.html'];
-    if (pendientes.includes(rol.panel)) {
+    if (PENDIENTES.includes(rol.panel)) {
       mostrarError('Este panel está en construcción. Estará disponible próximamente.');
       return;
     }
@@ -535,29 +442,22 @@
     btn.innerHTML = '<div class="spinner"></div>&nbsp;Verificando...';
 
     try {
-      const url = `${APPS_SCRIPT}?accion=${rol.accion}&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`;
+      const url  = `${APPS_SCRIPT}?accion=${rol.accion}&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`;
       const res  = await fetch(url);
       const data = await res.json();
 
       if (data.ok) {
-        // Guardar sesión mínima para el panel destino
         sessionStorage.setItem('oe_id',    id);
         sessionStorage.setItem('oe_clave', clave);
         sessionStorage.setItem('oe_rol',   rol.prefix.replace('-',''));
         window.location.href = rol.panel;
       } else {
         mostrarError(data.error || 'ID o clave incorrectos. Intenta de nuevo.');
-        btn.disabled = false;
-        btn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-          Entrar a mi panel`;
+        resetBtn();
       }
     } catch(e) {
-      mostrarError('Error de conexión. Intenta de nuevo.');
-      btn.disabled = false;
-      btn.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-        Entrar a mi panel`;
+      mostrarError('Error de conexión. Revisa tu internet e intenta de nuevo.');
+      resetBtn();
     }
   }
 </script>
