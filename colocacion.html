@@ -227,7 +227,7 @@ var notifData     = null;
       .then(data => {
         if (data.success) {
           todosGrupos = data.grupos;
-          renderPendientes(data.pendientes);
+          (data.pendientes);
           renderGrupos(data.grupos);
         }
       });
@@ -246,7 +246,7 @@ var notifData     = null;
           '<div class="detalle">' + a.idAlumno + ' · Solicitud: ' + new Date(a.fecha).toLocaleDateString('es-MX') + '</div>' +
         '</div>' +
         '<div style="display:flex;gap:8px;">' +
-  '<a class="btn-whatsapp-verde" href="https://wa.me/52' + a.whatsapp + '" target="_blank">WhatsApp</a>' +
+  '<a class="btn-whatsapp-verde" href="https://wa.me/52' + a.whatsapp + '?text=' + encodeURIComponent('Hola ' + a.nombre + ', soy el encargado de colocacion de Organic English. Me comunico contigo para coordinar tu examen de colocacion. Cuando tengas un momento disponible con gusto te explico los siguientes pasos.') + '" target="_blank">WhatsApp</a>' +
   '<button class="btn-asignar" onclick="abrirModalAsignacion(\'' + a.idAlumno + '\')">Asignar grupo</button>' +
 '</div>' +
       '</div>';
@@ -294,13 +294,20 @@ var notifData     = null;
   }
 
   function abrirModalAsignacion(idAlumno) {
-    alumnoActual = todosAlumnos.find(function(a) { return a.idAlumno === idAlumno; });
-  //  grupoSeleccionado = null;
-  //  document.getElementById('modalAlumnoNombre').textContent = alumno.nombre;
-  //  document.getElementById('modalAlumnoId').textContent = alumno.idAlumno;
-  //  document.getElementById('btnConfirmar').disabled = true;
+    alumnoActual = null;
+    for (var i = 0; i < todosAlumnos.length; i++) {
+      if (todosAlumnos[i].idAlumno === idAlumno) {
+        alumnoActual = todosAlumnos[i];
+        break;
+      }
+    }
+    if (!alumnoActual) { alert('No se encontró el alumno.'); return; }
 
-    // Llenar lista de grupos
+    grupoSeleccionado = null;
+    document.getElementById('modalAlumnoNombre').textContent = alumnoActual.nombre;
+    document.getElementById('modalAlumnoId').textContent = alumnoActual.idAlumno;
+    document.getElementById('btnConfirmar').disabled = true;
+
     var html = '';
     todosGrupos.forEach(function(g) {
       var pocas = g.lugares <= 3;
