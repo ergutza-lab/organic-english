@@ -85,7 +85,7 @@
   }
 
   .hero-logo img {
-    height: 52px;
+    height: 104px;
     object-fit: contain;
     filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
   }
@@ -188,7 +188,7 @@
   }
 
   .form-logo img {
-    height: 56px;
+    height: 112px;
     object-fit: contain;
     filter: drop-shadow(0 2px 12px rgba(249,115,22,0.2));
   }
@@ -349,22 +349,17 @@
         <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logotransparente.png" alt="Organic English" />
       </div>
 
-      <h2 class="form-title">Iniciar sesión</h2>
-      <p class="form-sub">Ingresa tu ID de personal y tu clave de acceso.</p>
+      <h2 class="form-title">¿A dónde vas hoy?</h2>
+      <p class="form-sub">Ingresa tu ID de personal y te llevamos directo a tu panel.</p>
 
       <div class="form-group">
         <label class="form-label" for="input-id">ID de personal</label>
         <input class="form-input" id="input-id" type="text" placeholder="Ej. ASE-01, ASI-02, CE-01" autocomplete="off" spellcheck="false" />
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="input-clave">Clave de acceso</label>
-        <input class="form-input" id="input-clave" type="password" placeholder="••••••••" autocomplete="current-password" />
-      </div>
-
       <button class="btn-submit" id="btn-login" onclick="handleLogin()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-        Entrar a mi panel
+        Ir a mi panel
       </button>
 
       <div class="msg-error" id="msg-error"></div>
@@ -376,15 +371,13 @@
 </div>
 
 <script>
-  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-
   const ROLES = [
-    { prefix: 'ASE-', accion: 'loginAsesor',    panel: 'asesor.html' },
-    { prefix: 'ASI-', accion: 'loginAsistente', panel: 'asistente-ce.html' },
-    { prefix: 'CE-',  accion: 'loginCE',         panel: 'control-ce.html' },
-    { prefix: 'MAE-', accion: 'loginMaestro',    panel: 'maestro.html' },
-    { prefix: 'CA-',  accion: 'loginCA',          panel: 'control-academico.html' },
-    { prefix: 'DIR-', accion: 'loginDir',         panel: 'director.html' },
+    { prefix: 'ASE-', panel: 'asesor.html' },
+    { prefix: 'ASI-', panel: 'asistente-ce.html' },
+    { prefix: 'CE-',  panel: 'control-ce.html' },
+    { prefix: 'MAE-', panel: 'maestro.html' },
+    { prefix: 'CA-',  panel: 'control-academico.html' },
+    { prefix: 'DIR-', panel: 'director.html' },
   ];
 
   const PENDIENTES = ['maestro.html', 'control-academico.html', 'director.html'];
@@ -403,27 +396,18 @@
     document.getElementById('msg-error').style.display = 'none';
   }
 
-  function resetBtn() {
-    const btn = document.getElementById('btn-login');
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Entrar a mi panel`;
-  }
-
-  ['input-id','input-clave'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => {
-      if (e.key === 'Enter') handleLogin();
-    });
+  document.getElementById('input-id').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
   });
 
-  async function handleLogin() {
-    const id    = document.getElementById('input-id').value.trim().toUpperCase();
-    const clave = document.getElementById('input-clave').value.trim();
-    const btn   = document.getElementById('btn-login');
+  function handleLogin() {
+    const id  = document.getElementById('input-id').value.trim().toUpperCase();
+    const btn = document.getElementById('btn-login');
 
     ocultarError();
 
-    if (!id || !clave) {
-      mostrarError('Por favor ingresa tu ID y tu clave de acceso.');
+    if (!id) {
+      mostrarError('Por favor ingresa tu ID de personal.');
       return;
     }
 
@@ -439,26 +423,12 @@
     }
 
     btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div>&nbsp;Verificando...';
+    btn.innerHTML = '<div class="spinner"></div>&nbsp;Redirigiendo...';
 
-    try {
-      const url  = `${APPS_SCRIPT}?accion=${rol.accion}&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`;
-      const res  = await fetch(url);
-      const data = await res.json();
-
-      if (data.ok) {
-        sessionStorage.setItem('oe_id',    id);
-        sessionStorage.setItem('oe_clave', clave);
-        sessionStorage.setItem('oe_rol',   rol.prefix.replace('-',''));
-        window.location.href = rol.panel;
-      } else {
-        mostrarError(data.error || 'ID o clave incorrectos. Intenta de nuevo.');
-        resetBtn();
-      }
-    } catch(e) {
-      mostrarError('Error de conexión. Revisa tu internet e intenta de nuevo.');
-      resetBtn();
-    }
+    // Pequeña pausa para feedback visual antes de redirigir
+    setTimeout(() => {
+      window.location.href = rol.panel;
+    }, 600);
   }
 </script>
 </body>
