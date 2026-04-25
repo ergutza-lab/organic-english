@@ -7,18 +7,22 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { 
-  background: #0f172a; 
-  font-family: 'Segoe UI', Arial, sans-serif; 
-  min-height: 100vh;
-  background-image: url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
-.screen { position: relative; z-index: 1; }
-
-  .screen { display: none; }
+    background-color: #0f172a; 
+    font-family: 'Segoe UI', Arial, sans-serif; 
+    min-height: 100vh;
+    background-image: url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    z-index: -1;
+  }
+  .screen { position: relative; z-index: 1; display: none; }
   .screen.active { display: block; }
 
   /* LOGIN */
@@ -45,12 +49,6 @@
   .bienvenida p { color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
   .bienvenida h2 { color: #fff; font-size: 22px; font-weight: 600; }
 
-  .comision-card { background: #1e2a4a; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; border: 1px solid rgba(249,115,22,0.2); display: flex; align-items: center; justify-content: space-between; }
-  .comision-card .label { color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
-  .comision-card .monto { color: #fb923c; font-size: 28px; font-weight: 700; }
-  .comision-card .sub { color: #475569; font-size: 12px; margin-top: 2px; }
-  .comision-icon { width: 48px; height: 48px; background: rgba(249,115,22,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #f97316; font-size: 22px; font-weight: 700; }
-
   .seccion-titulo { color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
 
   .alumno-card { background: #1e2a4a; border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06); }
@@ -65,10 +63,9 @@
   .empty-state { text-align: center; padding: 40px 20px; color: #475569; }
   .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; }
-
   .loading { text-align: center; padding: 40px; color: #475569; font-size: 14px; }
 
-/* MODAL DE NOTIFICACIÓN */
+  /* MODAL */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; padding:20px; }
   .modal-overlay.active { display:flex; }
   .modal-box { background:#1e2a4a; border-radius:20px; padding:32px 24px; width:100%; max-width:380px; border:1px solid rgba(255,255,255,0.08); text-align:center; }
@@ -78,7 +75,6 @@
   .modal-actions { display:flex; flex-direction:column; gap:10px; }
   .btn-notificar { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:100px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; }
   .btn-cerrar-modal { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:100px; padding:13px; font-size:14px; cursor:pointer; }
- 
 </style>
 </head>
 <body>
@@ -111,20 +107,16 @@
       <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
       <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
     </div>
-
-   <div class="bienvenida">
+    <div class="bienvenida">
       <p>Bienvenido/a,</p>
       <h2 id="asesorNombre">—</h2>
     </div>
-
     <div class="seccion-titulo">Alumnos pendientes de validación de pago</div>
     <div id="listaPendientes"><div class="loading">Cargando...</div></div>
-
     <div style="margin-top:28px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between">
       <span style="color:#64748b;font-size:12px">Comisiones esta semana</span>
       <span id="comisionSemana" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
     </div>
-
   </div>
 </div>
 
@@ -145,19 +137,17 @@
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
   var asesorData = null;
+  var modalData = null;
 
   function login() {
     var id    = document.getElementById('inputId').value.trim().toUpperCase();
     var clave = document.getElementById('inputClave').value.trim();
     var err   = document.getElementById('errorMsg');
-
     if (!id || !clave) { err.style.display = 'block'; err.textContent = 'Completa todos los campos.'; return; }
-
     err.style.display = 'none';
     var btn = document.querySelector('.btn-primary');
     btn.textContent = 'Verificando...';
     btn.disabled = true;
-
     fetch(APPS_SCRIPT + '?action=loginAsesor&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
       .then(r => r.json())
       .then(data => {
@@ -188,76 +178,115 @@
   }
 
   function calcularVencimiento(fechaRegistro) {
-  var fecha = new Date(fechaRegistro);
-  var dia = fecha.getDay();
-  var diasSumar = 1;
-  if (dia === 5) diasSumar = 3; // viernes → lunes
-  if (dia === 6) diasSumar = 2; // sábado → lunes
-  if (dia === 0) diasSumar = 1; // domingo → lunes
-  fecha.setDate(fecha.getDate() + diasSumar);
-  var dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' de ' + meses[fecha.getMonth()] + ' a las 4:00 PM';
-}
-
-function renderPendientes(pendientes) {
-  var lista = document.getElementById('listaPendientes');
-  if (!pendientes || pendientes.length === 0) {
-    lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
-    return;
+    var fecha = new Date(fechaRegistro);
+    var dia = fecha.getDay();
+    var diasSumar = 1;
+    if (dia === 5) diasSumar = 3; // viernes → lunes
+    if (dia === 6) diasSumar = 2; // sábado → lunes
+    if (dia === 0) diasSumar = 1; // domingo → lunes
+    fecha.setDate(fecha.getDate() + diasSumar);
+    var dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' de ' + meses[fecha.getMonth()] + ' a las 4:00 PM';
   }
-  lista.innerHTML = pendientes.map(function(a) {
-    var fecha = new Date(a.fecha);
-    var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
-    var vencimiento = calcularVencimiento(a.fecha);
-    var msg;
-    if (!a.idGrupo || a.idGrupo === 'undefined') {
-      msg = 'Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
-        'IMPORTANTE: Tu registro vence el ' + vencimiento + '. Despues de esa fecha el sistema cancela automaticamente todos los registros sin pago validado.\n\n' +
-        'Para conservar tu lugar realiza tu pago a la brevedad:\n\n' +
-        '• $150 MXN — pago semanal (lunes a jueves)\n' +
-        '• $570 MXN — pago por 4 semanas (ahorra $30)\n\n' +
-        'DATOS BANCARIOS:\n' +
-        'Banco: BBVA\n' +
-        'Cuenta: 1234 5678 9012 3456\n' +
-        'CLABE: 012 345 678 901 234 567\n' +
-        'Titular: Organic English S.A. de C.V.\n\n' +
-        'Una vez realizado el pago enviame tu comprobante por este medio (PDF o foto). ' +
-        'Asegurate de que se vean claramente: fecha, monto, numero de referencia y tu nombre.\n\n' +
-        'Cuando tu pago quede validado, el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion y asignarte al grupo ideal segun tu nivel.\n\n' +
-        'Una vez validado tu pago, tu Asistente de Control Escolar sera tu contacto directo para cualquier duda. Sus datos llegaran en el correo de bienvenida.';
-    } else {
-      msg = 'Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
-        'IMPORTANTE: Tu reserva vence el ' + vencimiento + '. Despues de esa fecha el sistema cancela automaticamente todas las reservas sin pago validado.\n\n' +
-        'Para conservar tu lugar realiza tu pago a la brevedad:\n\n' +
-        '• $150 MXN — pago semanal (lunes a jueves)\n' +
-        '• $570 MXN — pago por 4 semanas (ahorra $30)\n\n' +
-        'DATOS BANCARIOS:\n' +
-        'Banco: BBVA\n' +
-        'Cuenta: 1234 5678 9012 3456\n' +
-        'CLABE: 012 345 678 901 234 567\n' +
-        'Titular: Organic English S.A. de C.V.\n\n' +
-        'Una vez realizado el pago enviame tu comprobante por este medio (PDF o foto). ' +
-        'Asegurate de que se vean claramente: fecha, monto, numero de referencia y tu nombre.\n\n' +
-        'Cuando tu pago quede validado recibiras un correo con toda la informacion para tu inicio de clases.\n\n' +
-        'A partir de tu segundo mes podras asistir al Club de Conversacion de tu nivel de forma GRATUITA todos los viernes a las 8:00 PM.\n\n' +
-        'Una vez validado tu pago, tu Asistente de Control Escolar sera tu contacto directo para cualquier duda sobre tu cuenta, pagos o grupo. Sus datos llegaran en el correo de bienvenida.';
+
+  function renderPendientes(pendientes) {
+    var lista = document.getElementById('listaPendientes');
+    if (!pendientes || pendientes.length === 0) {
+      lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
+      return;
     }
-    var waUrl = 'https://wa.me/52' + a.whatsapp + '?text=' + encodeURIComponent(msg);
-    return '<div class="alumno-card">' +
-      '<div class="nombre">' + a.nombre + ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' + (a.idGrupo ? a.idGrupo : 'Por colocacion') + '</span></div>' +
-      '<div class="detalle">' +
-        '<span>' + a.idAlumno + '</span>' +
-        '<span>' + (a.idGrupo || '') + '</span>' +
-        '<span>Reserva: ' + fechaStr + '</span>' +
-      '</div>' +
-      '<div class="card-actions">' +
-        '<button class="btn-validar" onclick="validarPago(\'' + a.idAlumno + '\', this)">Validar pago</button>' +
-        '<a class="btn-whatsapp" href="' + waUrl + '" target="_blank">WhatsApp</a>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
+    lista.innerHTML = pendientes.map(function(a) {
+      var fecha = new Date(a.fecha);
+      var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
+      var vencimiento = calcularVencimiento(a.fecha);
+      var msg;
+      if (!a.idGrupo || a.idGrupo === 'undefined') {
+        msg = 'Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
+          'IMPORTANTE: Tu registro vence el ' + vencimiento + '. Despues de esa fecha el sistema cancela automaticamente todos los registros sin pago validado.\n\n' +
+          'Para conservar tu lugar realiza tu pago a la brevedad:\n\n' +
+          '• $150 MXN — pago semanal (lunes a jueves)\n' +
+          '• $570 MXN — pago por 4 semanas (ahorra $30)\n\n' +
+          'DATOS BANCARIOS:\n' +
+          'Banco: BBVA\n' +
+          'Cuenta: 1234 5678 9012 3456\n' +
+          'CLABE: 012 345 678 901 234 567\n' +
+          'Titular: Organic English S.A. de C.V.\n\n' +
+          'Una vez realizado el pago enviame tu comprobante por este medio (PDF o foto). ' +
+          'Asegurate de que se vean claramente: fecha, monto, numero de referencia y tu nombre.\n\n' +
+          'Cuando tu pago quede validado, el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion y asignarte al grupo ideal segun tu nivel.\n\n' +
+          'Una vez validado tu pago, tu Asistente de Control Escolar sera tu contacto directo para cualquier duda. Sus datos llegaran en el correo de bienvenida.';
+      } else {
+        msg = 'Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
+          'IMPORTANTE: Tu reserva vence el ' + vencimiento + '. Despues de esa fecha el sistema cancela automaticamente todas las reservas sin pago validado.\n\n' +
+          'Para conservar tu lugar realiza tu pago a la brevedad:\n\n' +
+          '• $150 MXN — pago semanal (lunes a jueves)\n' +
+          '• $570 MXN — pago por 4 semanas (ahorra $30)\n\n' +
+          'DATOS BANCARIOS:\n' +
+          'Banco: BBVA\n' +
+          'Cuenta: 1234 5678 9012 3456\n' +
+          'CLABE: 012 345 678 901 234 567\n' +
+          'Titular: Organic English S.A. de C.V.\n\n' +
+          'Una vez realizado el pago enviame tu comprobante por este medio (PDF o foto). ' +
+          'Asegurate de que se vean claramente: fecha, monto, numero de referencia y tu nombre.\n\n' +
+          'Cuando tu pago quede validado recibiras un correo con toda la informacion para tu inicio de clases.\n\n' +
+          'A partir de tu segundo mes podras asistir al Club de Conversacion de tu nivel de forma GRATUITA todos los viernes a las 8:00 PM.\n\n' +
+          'Una vez validado tu pago, tu Asistente de Control Escolar sera tu contacto directo para cualquier duda sobre tu cuenta, pagos o grupo. Sus datos llegaran en el correo de bienvenida.';
+      }
+      var waUrl = 'https://wa.me/52' + a.whatsapp + '?text=' + encodeURIComponent(msg);
+      return '<div class="alumno-card">' +
+        '<div class="nombre">' + a.nombre + ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' + (a.idGrupo ? a.idGrupo : 'Por colocacion') + '</span></div>' +
+        '<div class="detalle">' +
+          '<span>' + a.idAlumno + '</span>' +
+          '<span>' + (a.idGrupo || '') + '</span>' +
+          '<span>Reserva: ' + fechaStr + '</span>' +
+        '</div>' +
+        '<div class="card-actions">' +
+          '<button class="btn-validar" onclick="validarPago(\'' + a.idAlumno + '\', this)">Validar pago</button>' +
+          '<a class="btn-whatsapp" href="' + waUrl + '" target="_blank">WhatsApp</a>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function validarPago(idAlumno, btn) {
+    btn.textContent = 'Validando...';
+    btn.disabled = true;
+    fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          var card = btn.closest('.alumno-card');
+          card.style.opacity = '0.4';
+          card.style.pointerEvents = 'none';
+          btn.textContent = 'Validado';
+          asesorData.comisionSemana += 100;
+          document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+          if (data.esColocacion) {
+            modalData = { tipo: 'colocacion', data: data };
+            document.getElementById('modalTitulo').textContent = 'Pago validado';
+            document.getElementById('modalMensaje').textContent =
+              'El pago de ' + data.nombreAlumno + ' ha sido registrado. ¿Deseas notificar al alumno y al encargado de colocación?';
+          } else {
+            modalData = { tipo: 'normal', data: data };
+            document.getElementById('modalTitulo').textContent = 'Plaza validada';
+            document.getElementById('modalMensaje').textContent =
+              'El pago de ' + data.nombreAlumno + ' fue validado y se envió el correo de bienvenida. ¿Deseas notificar al Asistente CE y al Maestro?';
+          }
+          document.getElementById('modalNotificacion').classList.add('active');
+        } else {
+          btn.textContent = 'Validar pago';
+          btn.disabled = false;
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Validar pago';
+        btn.disabled = false;
+        alert('Error de conexión.');
+      });
+  }
+
   function cerrarModal() {
     document.getElementById('modalNotificacion').classList.remove('active');
     modalData = null;
@@ -266,16 +295,12 @@ function renderPendientes(pendientes) {
   document.getElementById('btnNotificar').addEventListener('click', function() {
     if (!modalData) return;
     var d = modalData.data;
-
     if (modalData.tipo === 'colocacion') {
-      // Paso 1: WhatsApp alumno
       var msgAlumno = encodeURIComponent(
         'Hola ' + d.nombreAlumno + ', tu pago ha sido validado en Organic English. ' +
         'En breve el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion. Bienvenido/a!'
       );
       window.open('https://wa.me/52' + d.whatsappAlumno + '?text=' + msgAlumno, '_blank');
-
-      // Paso 2: modal colocador
       if (d.colocadorWA) {
         document.getElementById('modalTitulo').textContent = 'Notificar al Colocador';
         document.getElementById('modalMensaje').textContent =
@@ -284,9 +309,7 @@ function renderPendientes(pendientes) {
       } else {
         cerrarModal();
       }
-
     } else if (modalData.tipo === 'normal') {
-      // Paso 1: WhatsApp CE
       if (d.asisWA) {
         var msgCE = encodeURIComponent(
           'Hola ' + d.asisNombre + ', se ha inscrito un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
@@ -294,8 +317,6 @@ function renderPendientes(pendientes) {
         );
         window.open('https://wa.me/52' + d.asisWA + '?text=' + msgCE, '_blank');
       }
-
-      // Paso 2: modal maestro
       if (d.maestroWA) {
         document.getElementById('modalTitulo').textContent = 'Notificar al Maestro';
         document.getElementById('modalMensaje').textContent =
@@ -304,18 +325,14 @@ function renderPendientes(pendientes) {
       } else {
         cerrarModal();
       }
-
     } else if (modalData.tipo === 'maestro') {
-      // Paso 2: WhatsApp maestro
       var msgMaestro = encodeURIComponent(
         'Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
-        d.nombreAlumno + '. Ya cuenta con acceso a su panel personal'
+        d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.'
       );
       window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
       cerrarModal();
-
     } else if (modalData.tipo === 'colocador') {
-      // Paso 2: WhatsApp colocador
       var msgColocador = encodeURIComponent(
         'Hola ' + d.colocadorNombre + ', hay un nuevo alumno por colocacion: ' +
         d.nombreAlumno + '. Su pago ya fue validado. Por favor contactalo para agendar su evaluacion.'
@@ -324,6 +341,7 @@ function renderPendientes(pendientes) {
       cerrarModal();
     }
   });
+
   function logout() {
     asesorData = null;
     document.getElementById('inputId').value = '';
@@ -332,7 +350,6 @@ function renderPendientes(pendientes) {
     document.getElementById('screenLogin').classList.add('active');
   }
 
-  // Enter en inputs
   document.getElementById('inputClave').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') login();
   });
