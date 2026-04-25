@@ -112,6 +112,8 @@
   .btn-club:hover { opacity: 0.9; }
  #modalClubOverlay { display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; padding: 20px; }
   #modalClubOverlay.visible { display: flex; }
+ #modalClubAvisoOverlay { display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; padding: 20px; }
+  #modalClubAvisoOverlay.visible { display: flex; }
   .zoom-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; opacity: 0.85; }
   .btn-cambiar-grupo { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.12); border-radius: 100px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .btn-cambiar-grupo:hover { border-color: #f97316; color: #f97316; background: rgba(249,115,22,0.06); }
@@ -320,7 +322,7 @@
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:1.2rem;">
          <a id="btnZoom" href="#" target="_blank" class="zoom-btn"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
           <button class="btn-cambiar-grupo" onclick="abrirModalCambioGrupo()">⇄ Cambiar grupo</button>
-          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Club de Conversación</button>
+          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Club de Conversación de los Viernes 8:00 PM</button>
         </div>
       </div>
     </div>
@@ -762,25 +764,37 @@
   function formatFechaMini(f) { if(!f) return '—'; var d=new Date(f), m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return d.getDate()+' '+m[d.getMonth()]; }
 
 // ── CLUB DE CONVERSACIÓN ─────────────────────────────────────────
+  // ── CLUB DE CONVERSACIÓN ─────────────────────────────────────────
   function abrirClub() {
     var g = alumnoData.grupo;
     if (!g) return;
 
-    // Temporal para prototipo: elegibles son grupos que iniciaron el 13 abril 2025 o antes
-    // Cuando haya datos reales, cambiar fechaCorte por: new Date(Date.now() - 30*24*60*60*1000)
-   var fechaInicio = g.fechaInicio.substring(0, 10); // "2026-04-13"
+    var fechaInicio = g.fechaInicio.substring(0, 10);
     var fechaCorte  = '2026-04-13';
     var esElegible  = fechaInicio <= fechaCorte;
     var estaVigente = alumnoData.alumno.estatus === 'Validado';
-    console.log('esElegible:', esElegible, '| estaVigente:', estaVigente, '| linkClub:', g.linkClub);
 
     if (esElegible && estaVigente && g.linkClub) {
-      window.open(g.linkClub, '_blank');
-    } else if (!esElegible || !estaVigente) {
-      document.getElementById('modalClubOverlay').classList.add('visible');
+      // Mostrar aviso previo antes de abrir Zoom
+      document.getElementById('modalClubAvisoOverlay').classList.add('visible');
     } else {
-      alert('El link del club no está disponible aún. Contacta a tu asistente CE.');
+      // Mostrar modal de requisitos
+      document.getElementById('modalClubOverlay').classList.add('visible');
     }
+  }
+
+  function entrarAlClub() {
+    var g = alumnoData.grupo;
+    document.getElementById('modalClubAvisoOverlay').classList.remove('visible');
+    window.open(g.linkClub, '_blank');
+  }
+
+  function cerrarModalClub() {
+    document.getElementById('modalClubOverlay').classList.remove('visible');
+  }
+
+  function cerrarModalClubAviso() {
+    document.getElementById('modalClubAvisoOverlay').classList.remove('visible');
   }
 
   function cerrarModalClub() {
@@ -809,7 +823,7 @@
     padding:32px 28px;width:100%;max-width:420px;
     box-shadow:0 0 50px rgba(124,58,237,0.15);text-align:center;">
     <div style="font-size:40px;margin-bottom:14px;">💬</div>
-    <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Club de Conversación</div>
+    <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Club de Conversación de los Viernes 8:00 PM</div>
     <div style="font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:24px;">
       Para acceder al Club de Conversación necesitas cumplir los siguientes requisitos:
     </div>
@@ -831,6 +845,42 @@
       color:#fff;border:none;border-radius:100px;
       padding:13px;font-size:15px;font-weight:700;cursor:pointer;">
       Entendido
+    </button>
+  </div>
+</div>
+ <!-- ── MODAL AVISO CLUB (alumnos elegibles) ── -->
+<div id="modalClubAvisoOverlay" onclick="if(event.target===this)cerrarModalClubAviso()">
+  <div style="
+    background:#1a2540;border-radius:22px;
+    border:1px solid rgba(124,58,237,0.4);
+    padding:32px 28px;width:100%;max-width:420px;
+    box-shadow:0 0 50px rgba(124,58,237,0.15);text-align:center;">
+    <div style="font-size:40px;margin-bottom:14px;">💬</div>
+    <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Club de Conversación de los Viernes 8:00 PM</div>
+    <div style="font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:20px;">
+      Estás a punto de unirte al Club de Conversación. Recuerda que las sesiones son en vivo.
+    </div>
+    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:18px;">📅</span>
+        <span style="font-size:14px;color:#c4b5fd;">Solo activo los <strong>viernes</strong></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">🕗</span>
+        <span style="font-size:14px;color:#c4b5fd;">Horario: <strong>8:00 PM hora CDMX</strong></span>
+      </div>
+    </div>
+    <button onclick="entrarAlClub()" style="
+      width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);
+      color:#fff;border:none;border-radius:100px;
+      padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;">
+      Entrar al Club ahora
+    </button>
+    <button onclick="cerrarModalClubAviso()" style="
+      width:100%;background:transparent;color:#475569;
+      border:1px solid rgba(255,255,255,0.07);border-radius:100px;
+      padding:12px;font-size:14px;cursor:pointer;">
+      Cerrar
     </button>
   </div>
 </div>
