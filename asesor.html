@@ -187,17 +187,48 @@
     renderPendientes(asesorData.alumnosPendientes);
   }
 
-  function renderPendientes(pendientes) {
-    var lista = document.getElementById('listaPendientes');
-    if (!pendientes || pendientes.length === 0) {
-      lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
-      return;
-    }
-    lista.innerHTML = pendientes.map(function(a) {
-      var fecha = new Date(a.fecha);
-      var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
-      var msg = 'Hola ' + a.nombre + ', Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
-        'IMPORTANTE: Tu reserva tiene vigencia hasta las 4:00 PM del siguiente dia habil. El sistema cancela automaticamente todas las reservas sin pago validado.\n\n' +
+  function calcularVencimiento(fechaRegistro) {
+  var fecha = new Date(fechaRegistro);
+  var dia = fecha.getDay();
+  var diasSumar = 1;
+  if (dia === 5) diasSumar = 3; // viernes → lunes
+  if (dia === 6) diasSumar = 2; // sábado → lunes
+  if (dia === 0) diasSumar = 1; // domingo → lunes
+  fecha.setDate(fecha.getDate() + diasSumar);
+  var dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' de ' + meses[fecha.getMonth()] + ' a las 4:00 PM';
+}
+
+function renderPendientes(pendientes) {
+  var lista = document.getElementById('listaPendientes');
+  if (!pendientes || pendientes.length === 0) {
+    lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
+    return;
+  }
+  lista.innerHTML = pendientes.map(function(a) {
+    var fecha = new Date(a.fecha);
+    var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
+    var vencimiento = calcularVencimiento(a.fecha);
+    var msg;
+    if (!a.idGrupo || a.idGrupo === 'undefined') {
+      msg = 'Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
+        'IMPORTANTE: Tu registro vence el ' + vencimiento + '. Despues de esa fecha el sistema cancela automaticamente todos los registros sin pago validado.\n\n' +
+        'Para conservar tu lugar realiza tu pago a la brevedad:\n\n' +
+        '• $150 MXN — pago semanal (lunes a jueves)\n' +
+        '• $570 MXN — pago por 4 semanas (ahorra $30)\n\n' +
+        'DATOS BANCARIOS:\n' +
+        'Banco: BBVA\n' +
+        'Cuenta: 1234 5678 9012 3456\n' +
+        'CLABE: 012 345 678 901 234 567\n' +
+        'Titular: Organic English S.A. de C.V.\n\n' +
+        'Una vez realizado el pago enviame tu comprobante por este medio (PDF o foto). ' +
+        'Asegurate de que se vean claramente: fecha, monto, numero de referencia y tu nombre.\n\n' +
+        'Cuando tu pago quede validado, el encargado de colocacion se pondra en contacto contigo para agendar tu evaluacion y asignarte al grupo ideal segun tu nivel.\n\n' +
+        'Una vez validado tu pago, tu Asistente de Control Escolar sera tu contacto directo para cualquier duda. Sus datos llegaran en el correo de bienvenida.';
+    } else {
+      msg = 'Con gusto te doy la informacion de pago para completar tu inscripcion en Organic English.\n\n' +
+        'IMPORTANTE: Tu reserva vence el ' + vencimiento + '. Despues de esa fecha el sistema cancela automaticamente todas las reservas sin pago validado.\n\n' +
         'Para conservar tu lugar realiza tu pago a la brevedad:\n\n' +
         '• $150 MXN — pago semanal (lunes a jueves)\n' +
         '• $570 MXN — pago por 4 semanas (ahorra $30)\n\n' +
@@ -211,68 +242,22 @@
         'Cuando tu pago quede validado recibiras un correo con toda la informacion para tu inicio de clases.\n\n' +
         'A partir de tu segundo mes podras asistir al Club de Conversacion de tu nivel de forma GRATUITA todos los viernes a las 8:00 PM.\n\n' +
         'Una vez validado tu pago, tu Asistente de Control Escolar sera tu contacto directo para cualquier duda sobre tu cuenta, pagos o grupo. Sus datos llegaran en el correo de bienvenida.';
-      var waUrl = 'https://wa.me/52' + a.whatsapp + '?text=' + encodeURIComponent(msg);
-      return '<div class="alumno-card">' +
-        '<div class="nombre">' + a.nombre + ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' + (a.idGrupo ? a.idGrupo : 'Por colocacion') + '</span></div>' +
-        '<div class="detalle">' +
-          '<span>' + a.idAlumno + '</span>' +
-          '<span>' + a.idGrupo + '</span>' +
-          '<span>Reserva: ' + fechaStr + '</span>' +
-        '</div>' +
-        '<div class="card-actions">' +
-          '<button class="btn-validar" onclick="validarPago(\'' + a.idAlumno + '\', this)">Validar pago</button>' +
-          '<a class="btn-whatsapp" href="' + waUrl + '" target="_blank">WhatsApp</a>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-  }
- var modalData = null;
-
-  function validarPago(idAlumno, btn) {
-    btn.textContent = 'Validando...';
-    btn.disabled = true;
-
-    fetch(APPS_SCRIPT + '?action=validarPago&idAlumno=' + encodeURIComponent(idAlumno))
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          // Deshabilitar card
-          var card = btn.closest('.alumno-card');
-          card.style.opacity = '0.4';
-          card.style.pointerEvents = 'none';
-          btn.textContent = 'Validado';
-
-          // Actualizar comisión
-          asesorData.comisionSemana += 100;
-          document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
-
-          // Mostrar modal según tipo
-          if (data.esColocacion) {
-            modalData = { tipo: 'colocacion', data: data };
-            document.getElementById('modalTitulo').textContent = 'Pago validado';
-            document.getElementById('modalMensaje').textContent =
-              'El pago de ' + data.nombreAlumno + ' ha sido registrado. ¿Deseas notificar al alumno y al encargado de colocación?';
-          } else {
-            modalData = { tipo: 'normal', data: data };
-            document.getElementById('modalTitulo').textContent = 'Plaza validada';
-            document.getElementById('modalMensaje').textContent =
-              'El pago de ' + data.nombreAlumno + ' fue validado y se envió el correo de bienvenida. ¿Deseas notificar al Asistente CE y al Maestro?';
-          }
-          document.getElementById('modalNotificacion').classList.add('active');
-
-        } else {
-          btn.textContent = 'Validar pago';
-          btn.disabled = false;
-          alert('Error: ' + data.error);
-        }
-      })
-      .catch(() => {
-        btn.textContent = 'Validar pago';
-        btn.disabled = false;
-        alert('Error de conexión.');
-      });
-  }
-
+    }
+    var waUrl = 'https://wa.me/52' + a.whatsapp + '?text=' + encodeURIComponent(msg);
+    return '<div class="alumno-card">' +
+      '<div class="nombre">' + a.nombre + ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' + (a.idGrupo ? a.idGrupo : 'Por colocacion') + '</span></div>' +
+      '<div class="detalle">' +
+        '<span>' + a.idAlumno + '</span>' +
+        '<span>' + (a.idGrupo || '') + '</span>' +
+        '<span>Reserva: ' + fechaStr + '</span>' +
+      '</div>' +
+      '<div class="card-actions">' +
+        '<button class="btn-validar" onclick="validarPago(\'' + a.idAlumno + '\', this)">Validar pago</button>' +
+        '<a class="btn-whatsapp" href="' + waUrl + '" target="_blank">WhatsApp</a>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
   function cerrarModal() {
     document.getElementById('modalNotificacion').classList.remove('active');
     modalData = null;
