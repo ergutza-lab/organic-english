@@ -86,7 +86,7 @@ nav{
   position:relative;min-height:100vh;
   display:flex;flex-direction:column;
   align-items:center;justify-content:flex-end;
-  padding-top:66px;overflow:hidden;
+  padding-top:66px;
 }
 .hero-bg{
   position:absolute;inset:0;z-index:0;
@@ -133,22 +133,24 @@ nav{
   right:28px;
   top:50%;
   transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:6px;
+  display:flex;flex-direction:column;gap:5px;
   z-index:3;
+  max-height:calc(100vh - 140px);
+  justify-content:center;
 }
 .trust-item{
-  background:rgba(17,28,64,.62);
+  background:rgba(17,28,64,.65);
   backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:12px;
-  padding:14px 18px;text-align:center;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:10px;
+  padding:10px 14px;text-align:center;
   transition:background .25s;cursor:default;
-  min-width:160px;
+  width:155px;
 }
 .trust-item:hover{background:rgba(249,115,22,.18)}
-.trust-svg{width:26px;height:26px;margin:0 auto 10px;display:block;stroke:var(--orange);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.trust-label{color:#fff;font-size:12.5px;font-weight:600;line-height:1.4}
-.trust-sub{color:rgba(255,255,255,.55);font-size:11px;margin-top:3px}
+.trust-svg{width:20px;height:20px;margin:0 auto 6px;display:block;stroke:var(--orange);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.trust-label{color:#fff;font-size:11.5px;font-weight:600;line-height:1.3}
+.trust-sub{color:rgba(255,255,255,.55);font-size:10px;margin-top:2px}
 
 /* ── TICKER BANNER ── */
 .ticker-wrap{
@@ -429,6 +431,23 @@ footer{
   .trust-bar{grid-template-columns:1fr}
   .trust-item:nth-child(n+3){display:none}
 }
+
+/* STAFF MODAL */
+.staff-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.staff-modal.open{display:flex}
+.staff-box{background:#fff;border-radius:20px;padding:40px 36px;max-width:380px;width:90%;text-align:center;box-shadow:0 24px 56px rgba(0,0,0,.25)}
+.staff-box h3{color:var(--navy);font-size:20px;font-weight:800;margin-bottom:8px}
+.staff-box p{color:var(--slate);font-size:13px;margin-bottom:24px}
+.staff-input{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-family:'DM Sans',sans-serif;text-align:center;letter-spacing:4px;outline:none;margin-bottom:12px;transition:border .2s}
+.staff-input:focus{border-color:var(--orange)}
+.staff-input.error{border-color:#ef4444;animation:shake .3s ease}
+.staff-error{color:#ef4444;font-size:12px;margin-bottom:12px;display:none}
+.staff-error.show{display:block}
+.staff-submit{width:100%;background:var(--orange);color:#fff;border:none;padding:14px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.staff-submit:hover{background:#ea580c}
+.staff-cancel{display:block;margin-top:12px;color:var(--slate);font-size:12px;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif}
+.staff-cancel:hover{color:var(--navy)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 </style>
 </head>
 <body>
@@ -455,7 +474,7 @@ footer{
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         Acceso Alumnos
       </a>
-      <a href="staff.html" class="btn-nav-staff">
+      <a href="#" onclick="checkStaff(event)" class="btn-nav-staff">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Staff
       </a>
@@ -821,6 +840,44 @@ document.querySelectorAll('.nivel-card,.funciona-card,.contacto-card').forEach(e
   el.style.transition='opacity .5s ease, transform .5s ease';
   observer.observe(el);
 });
+
+function checkStaff(e){
+  e.preventDefault();
+  document.getElementById('staffPass').value='';
+  document.getElementById('staffError').classList.remove('show');
+  document.getElementById('staffPass').classList.remove('error');
+  document.getElementById('staffModal').classList.add('open');
+  setTimeout(()=>document.getElementById('staffPass').focus(),100);
+}
+function verifyStaff(){
+  const pass = document.getElementById('staffPass').value;
+  if(pass === '369'){
+    document.getElementById('staffModal').classList.remove('open');
+    window.location.href='staff.html';
+  } else {
+    document.getElementById('staffPass').classList.add('error');
+    document.getElementById('staffError').classList.add('show');
+    document.getElementById('staffPass').value='';
+    setTimeout(()=>document.getElementById('staffPass').classList.remove('error'),400);
+  }
+}
+function closeStaffModal(e){
+  if(e.target===document.getElementById('staffModal'))
+    document.getElementById('staffModal').classList.remove('open');
+}
 </script>
+
+<!-- STAFF MODAL -->
+<div class="staff-modal" id="staffModal" onclick="closeStaffModal(event)">
+  <div class="staff-box">
+    <h3>🔒 Staff Portal</h3>
+    <p>Ingresa tu clave de acceso para continuar</p>
+    <input class="staff-input" id="staffPass" type="password" placeholder="••••••" maxlength="10"
+      onkeydown="if(event.key==='Enter')verifyStaff()">
+    <p class="staff-error" id="staffError">Clave incorrecta. Intenta de nuevo.</p>
+    <button class="staff-submit" onclick="verifyStaff()">Ingresar →</button>
+    <button class="staff-cancel" onclick="document.getElementById('staffModal').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
 </body>
 </html>
