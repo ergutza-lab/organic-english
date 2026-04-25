@@ -101,6 +101,17 @@
     white-space: nowrap;
   }
   .zoom-btn:hover { opacity: 0.9; }
+ .btn-club {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: #fff; border: none; border-radius: 100px;
+    padding: 13px 28px; font-size: 15px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    box-shadow: 0 4px 18px rgba(124,58,237,0.3);
+  }
+  .btn-club:hover { opacity: 0.9; }
+ #modalClubOverlay { display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; padding: 20px; }
+  #modalClubOverlay.visible { display: flex; }
   .zoom-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; opacity: 0.85; }
   .btn-cambiar-grupo { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.12); border-radius: 100px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .btn-cambiar-grupo:hover { border-color: #f97316; color: #f97316; background: rgba(249,115,22,0.06); }
@@ -307,8 +318,9 @@
           <div class="grupo-item"><div class="grupo-label">Inicio de clases</div><div class="grupo-val" id="grupoFecha">—</div><div class="grupo-sub" id="grupoDiasRestantes">—</div></div>
         </div>
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:1.2rem;">
-          <a id="btnZoom" href="#" target="_blank" class="zoom-btn"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
+         <a id="btnZoom" href="#" target="_blank" class="zoom-btn"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
           <button class="btn-cambiar-grupo" onclick="abrirModalCambioGrupo()">⇄ Cambiar grupo</button>
+          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Club de Conversación</button>
         </div>
       </div>
     </div>
@@ -749,6 +761,31 @@
   function formatFechaCorta(f) { if(!f) return '—'; var d=new Date(f), m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear(); }
   function formatFechaMini(f) { if(!f) return '—'; var d=new Date(f), m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return d.getDate()+' '+m[d.getMonth()]; }
 
+// ── CLUB DE CONVERSACIÓN ─────────────────────────────────────────
+  function abrirClub() {
+    var g = alumnoData.grupo;
+    if (!g) return;
+
+    // Temporal para prototipo: elegibles son grupos que iniciaron el 13 abril 2025 o antes
+    // Cuando haya datos reales, cambiar fechaCorte por: new Date(Date.now() - 30*24*60*60*1000)
+    var fechaInicio = new Date(g.fechaInicio);
+    var fechaCorte  = new Date('2025-04-14'); // 13 abril inclusive
+    var esElegible  = fechaInicio < fechaCorte;
+    var estaVigente = alumnoData.alumno.estatus === 'Validado';
+
+    if (esElegible && estaVigente && g.linkClub) {
+      window.open(g.linkClub, '_blank');
+    } else if (!esElegible || !estaVigente) {
+      document.getElementById('modalClubOverlay').classList.add('visible');
+    } else {
+      alert('El link del club no está disponible aún. Contacta a tu asistente CE.');
+    }
+  }
+
+  function cerrarModalClub() {
+    document.getElementById('modalClubOverlay').classList.remove('visible');
+  }
+ 
   function logout() {
     alumnoData = null; archivoSubida = null; grupoDestinoCambio = null;
     document.getElementById('inputId').value = '';
@@ -763,5 +800,38 @@
     document.getElementById('inputEmail').addEventListener('keypress', e => { if(e.key==='Enter') login(); });
   });
 </script>
+ <!-- ── MODAL CLUB DE CONVERSACIÓN ── -->
+<div id="modalClubOverlay" onclick="if(event.target===this)cerrarModalClub()">
+  <div style="
+    background:#1a2540;border-radius:22px;
+    border:1px solid rgba(124,58,237,0.4);
+    padding:32px 28px;width:100%;max-width:420px;
+    box-shadow:0 0 50px rgba(124,58,237,0.15);text-align:center;">
+    <div style="font-size:40px;margin-bottom:14px;">💬</div>
+    <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Club de Conversación</div>
+    <div style="font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:24px;">
+      Para acceder al Club de Conversación necesitas cumplir los siguientes requisitos:
+    </div>
+    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:18px;">📅</span>
+        <span style="font-size:14px;color:#c4b5fd;"><strong>Mínimo 1 mes</strong> en la academia</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">✅</span>
+        <span style="font-size:14px;color:#c4b5fd;"><strong>Membresía vigente</strong> al corriente de pago</span>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:20px;">
+      Sigue estudiando y pronto podrás unirte a nuestras sesiones de conversación en vivo.
+    </div>
+    <button onclick="cerrarModalClub()" style="
+      width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);
+      color:#fff;border:none;border-radius:100px;
+      padding:13px;font-size:15px;font-weight:700;cursor:pointer;">
+      Entendido
+    </button>
+  </div>
+</div>
 </body>
 </html>
