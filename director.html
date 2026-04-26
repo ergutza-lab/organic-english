@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Dirección — Organic English</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1c2b5e;
+    --navy-dark: #0f1a3d;
+    --navy-mid: #1e2a4a;
+    --navy-light: #243373;
+    --orange: #f97316;
+    --orange-light: #fb923c;
+    --orange-dim: rgba(249,115,22,0.12);
+    --orange-border: rgba(249,115,22,0.25);
+    --white: #f1f5f9;
+    --gray: #94a3b8;
+    --gray-dark: #64748b;
+    --gray-dim: rgba(255,255,255,0.06);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #080f1f;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(28,43,94,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(249,115,22,0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: block; }
+
+  /* ── LOGIN ── */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .login-box {
+    background: rgba(28,43,94,0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+
+  .login-logo {
+    width: 56px;
+    height: 56px;
+    background: var(--orange-dim);
+    border: 1px solid var(--orange-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 24px;
+  }
+
+  .login-box h1 {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .login-box p {
+    color: var(--gray);
+    font-size: 13px;
+    margin-bottom: 32px;
+  }
+
+  .field { margin-bottom: 16px; text-align: left; }
+  .field label {
+    display: block;
+    color: var(--gray);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: #fff;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: var(--orange); }
+
+  .btn-login {
+    width: 100%;
+    background: linear-gradient(135deg, var(--orange), #ea580c);
+    color: #fff;
+    border: none;
+    border-radius: 100px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .btn-login:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .error-msg {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 10px;
+    padding: 12px;
+    color: #f87171;
+    font-size: 13px;
+    margin-top: 14px;
+    display: none;
+    text-align: center;
+  }
+
+  /* ── PANEL ── */
+  .panel-wrap { max-width: 1300px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* HEADER */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-icon {
+    width: 44px; height: 44px;
+    background: var(--orange-dim);
+    border: 1px solid var(--orange-border);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .header-title { color: #fff; font-size: 20px; font-weight: 700; }
+  .header-sub { color: var(--gray); font-size: 12px; margin-top: 2px; }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .director-badge {
+    background: var(--orange-dim);
+    border: 1px solid var(--orange-border);
+    border-radius: 100px;
+    padding: 6px 14px;
+    color: var(--orange-light);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .btn-logout {
+    background: var(--gray-dim);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--gray);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+
+  /* SECCIÓN TÍTULO */
+  .sec-label {
+    color: var(--orange-light);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    margin-top: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sec-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* ── TARJETAS RESUMEN ── */
+  .resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .resumen-card {
+    background: rgba(28,43,94,0.3);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .resumen-card:hover { transform: translateY(-3px); border-color: var(--orange-border); }
+  .resumen-card .r-icon { font-size: 22px; margin-bottom: 10px; }
+  .resumen-card .r-val {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+  .resumen-card .r-label { color: var(--gray); font-size: 11px; }
+
+  /* ── FINANCIERO ── */
+  .financiero-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .fin-card {
+    background: rgba(28,43,94,0.3);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 22px 20px;
+  }
+  .fin-card.ingreso { border-color: rgba(34,197,94,0.2); }
+  .fin-card.gasto   { border-color: rgba(239,68,68,0.2); }
+  .fin-card.balance-pos { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06); }
+  .fin-card.balance-neg { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
+
+  .fin-label { color: var(--gray); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .fin-val {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .fin-val.green { color: var(--green); }
+  .fin-val.red   { color: var(--red); }
+  .fin-val.orange { color: var(--orange-light); }
+  .fin-val.white  { color: #fff; }
+  .fin-sub { color: var(--gray-dark); font-size: 12px; }
+
+  /* ── TABLAS ── */
+  .tabla-wrap {
+    background: rgba(28,43,94,0.25);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead tr {
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  thead th {
+    padding: 14px 18px;
+    color: var(--gray);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  tbody td {
+    padding: 14px 18px;
+    color: var(--white);
+    vertical-align: middle;
+  }
+
+  .td-gray { color: var(--gray-dark) !important; font-size: 12px; }
+  .td-orange { color: var(--orange-light) !important; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .td-green { color: var(--green) !important; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .td-red { color: var(--red) !important; font-weight: 600; font-family: 'DM Mono', monospace; }
+
+  /* CHIP ESTADO */
+  .chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .chip-green { background: var(--green-dim); color: var(--green); }
+  .chip-orange { background: var(--orange-dim); color: var(--orange-light); }
+  .chip-red { background: var(--red-dim); color: var(--red); }
+  .chip-blue { background: var(--blue-dim); color: var(--blue); }
+
+  /* BOTÓN WHATSAPP */
+  .btn-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(37,211,102,0.12);
+    border: 1px solid rgba(37,211,102,0.25);
+    color: #25d366;
+    border-radius: 100px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .btn-wa:hover { background: rgba(37,211,102,0.22); }
+
+  /* NOMBRE CON AVATAR */
+  .nombre-cell { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 32px; height: 32px;
+    background: var(--orange-dim);
+    border: 1px solid var(--orange-border);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--orange-light);
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .nombre-text { font-weight: 500; }
+  .nombre-id { color: var(--gray-dark); font-size: 11px; font-family: 'DM Mono', monospace; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+    width: fit-content;
+  }
+  .tab {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--gray);
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tab.active {
+    background: var(--navy-mid);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .loading { text-align: center; padding: 40px; color: var(--gray-dark); font-size: 14px; }
+
+  @media (max-width: 900px) {
+    .resumen-grid { grid-template-columns: repeat(3, 1fr); }
+    .financiero-grid { grid-template-columns: repeat(2, 1fr); }
+    .panel-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+  @media (max-width: 600px) {
+    .resumen-grid { grid-template-columns: repeat(2, 1fr); }
+    .financiero-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screenLogin" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">🏛️</div>
+      <h1>Panel de Dirección</h1>
+      <p>Acceso exclusivo para dirección general</p>
+      <div class="field">
+        <label>ID de Director</label>
+        <input type="text" id="inputId" placeholder="Ej: DIR-01" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Clave</label>
+        <input type="password" id="inputClave" placeholder="Tu clave de acceso" autocomplete="off" />
+      </div>
+      <button class="btn-login" onclick="login()">Acceder al panel</button>
+      <div class="error-msg" id="errorMsg">ID o clave incorrectos.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="screenPanel" class="screen">
+  <div class="panel-wrap">
+
+    <!-- HEADER -->
+    <div class="panel-header">
+      <div class="header-left">
+        <div class="header-icon">🏛️</div>
+        <div>
+          <div class="header-title">Panel de Dirección</div>
+          <div class="header-sub">Organic English · Vista general del sistema</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="director-badge" id="directorNombre">—</div>
+        <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="sec-label">Resumen general</div>
+    <div class="resumen-grid" id="resumenGrid">
+      <div class="loading" style="grid-column:1/-1">Cargando...</div>
+    </div>
+
+    <!-- FINANCIERO -->
+    <div class="sec-label">Financiero — semana en curso</div>
+    <div class="financiero-grid" id="financieroGrid">
+      <div class="loading" style="grid-column:1/-1">Cargando...</div>
+    </div>
+
+    <!-- TABS PERSONAL -->
+    <div class="sec-label">Personal</div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('maestros')">Maestros</button>
+      <button class="tab" onclick="switchTab('asistentes')">Asistentes CE</button>
+      <button class="tab" onclick="switchTab('asesores')">Asesores</button>
+      <button class="tab" onclick="switchTab('ce')">Control CE</button>
+      <button class="tab" onclick="switchTab('ca')">Control Académico</button>
+    </div>
+
+    <div id="tab-maestros" class="tab-content active">
+      <div class="tabla-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+    <div id="tab-asistentes" class="tab-content">
+      <div class="tabla-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+    <div id="tab-asesores" class="tab-content">
+      <div class="tabla-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+    <div id="tab-ce" class="tab-content">
+      <div class="tabla-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+    <div id="tab-ca" class="tab-content">
+      <div class="tabla-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <!-- GRUPOS -->
+    <div class="sec-label">Grupos activos</div>
+    <div class="tabla-wrap" id="tablaGrupos">
+      <div class="loading">Cargando...</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+  var directorData = null;
+
+  function login() {
+    var id    = document.getElementById('inputId').value.trim().toUpperCase();
+    var clave = document.getElementById('inputClave').value.trim();
+    var err   = document.getElementById('errorMsg');
+
+    if (!id || !clave) { err.style.display = 'block'; err.textContent = 'Completa todos los campos.'; return; }
+    err.style.display = 'none';
+
+    var btn = document.querySelector('.btn-login');
+    btn.textContent = 'Verificando...';
+    btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=loginDirector&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
+      .then(r => r.text())
+      .then(text => {
+        var data = JSON.parse(text);
+        btn.textContent = 'Acceder al panel';
+        btn.disabled = false;
+        if (data.success) {
+          directorData = data.director;
+          mostrarPanel();
+        } else {
+          err.style.display = 'block';
+          err.textContent = data.error || 'ID o clave incorrectos.';
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Acceder al panel';
+        btn.disabled = false;
+        err.style.display = 'block';
+        err.textContent = 'Error de conexión.';
+      });
+  }
+
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+    document.getElementById('directorNombre').textContent = directorData.nombre;
+    cargarDatos();
+  }
+
+  function cargarDatos() {
+    fetch(APPS_SCRIPT + '?action=getDatosDirector')
+      .then(r => r.text())
+      .then(text => {
+        var data = JSON.parse(text);
+        if (data.success) {
+          renderResumen(data.resumen);
+          renderFinanciero(data.financiero);
+          renderMaestros(data.maestros);
+          renderAsistentes(data.asistentes);
+          renderAsesores(data.asesores);
+          renderCE(data.ce);
+          renderCA(data.ca);
+          renderGrupos(data.grupos);
+        }
+      })
+      .catch(err => console.error('Error:', err));
+  }
+
+  function fmt(n) {
+    return '$' + Number(n).toLocaleString('es-MX') + ' MXN';
+  }
+
+  function waBtn(whatsapp, nombre) {
+    if (!whatsapp) return '—';
+    return '<a class="btn-wa" href="https://wa.me/52' + whatsapp + '" target="_blank">💬 WhatsApp</a>';
+  }
+
+  function avatar(nombre, id) {
+    var inicial = nombre ? nombre.charAt(0).toUpperCase() : '?';
+    return '<div class="nombre-cell">' +
+      '<div class="avatar">' + inicial + '</div>' +
+      '<div><div class="nombre-text">' + nombre + '</div><div class="nombre-id">' + id + '</div></div>' +
+    '</div>';
+  }
+
+  function renderResumen(r) {
+    var items = [
+      { icon: '👨‍🎓', val: r.alumnosActivos,   label: 'Alumnos activos' },
+      { icon: '📚', val: r.gruposActivos,    label: 'Grupos activos' },
+      { icon: '👨‍🏫', val: r.maestrosActivos,  label: 'Maestros' },
+      { icon: '🎓', val: r.asisActivos,      label: 'Asistentes CE' },
+      { icon: '📋', val: r.asesoresActivos,  label: 'Asesores' },
+      { icon: '📊', val: r.alumnosInscritos, label: 'Inscritos esta semana' }
+    ];
+
+    document.getElementById('resumenGrid').innerHTML = items.map(function(it) {
+      return '<div class="resumen-card">' +
+        '<div class="r-icon">' + it.icon + '</div>' +
+        '<div class="r-val">' + it.val + '</div>' +
+        '<div class="r-label">' + it.label + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderFinanciero(f) {
+    var balance    = f.balance;
+    var balClass   = balance >= 0 ? 'balance-pos' : 'balance-neg';
+    var balColor   = balance >= 0 ? 'green' : 'red';
+
+    document.getElementById('financieroGrid').innerHTML =
+      '<div class="fin-card ingreso">' +
+        '<div class="fin-label">Ingresos semana</div>' +
+        '<div class="fin-val green">' + fmt(f.ingresosSemana) + '</div>' +
+        '<div class="fin-sub">Pagos validados esta semana</div>' +
+      '</div>' +
+      '<div class="fin-card gasto">' +
+        '<div class="fin-label">Comisiones asesores</div>' +
+        '<div class="fin-val red">' + fmt(f.comisionesSemana) + '</div>' +
+        '<div class="fin-sub">Por alumnos inscritos esta semana</div>' +
+      '</div>' +
+      '<div class="fin-card gasto">' +
+        '<div class="fin-label">Nómina maestros</div>' +
+        '<div class="fin-val red">' + fmt(f.nominaMaestros) + '</div>' +
+        '<div class="fin-sub">Clases dadas × $200 por clase</div>' +
+      '</div>' +
+      '<div class="fin-card ' + balClass + '">' +
+        '<div class="fin-label">Balance neto</div>' +
+        '<div class="fin-val ' + balColor + '">' + fmt(balance) + '</div>' +
+        '<div class="fin-sub">Ingresos − comisiones − nómina</div>' +
+      '</div>';
+  }
+
+  function renderMaestros(maestros) {
+    if (!maestros || maestros.length === 0) {
+      document.getElementById('tab-maestros').innerHTML = '<div class="tabla-wrap"><div class="loading">Sin datos.</div></div>';
+      return;
+    }
+    var html = '<div class="tabla-wrap"><table>' +
+      '<thead><tr>' +
+        '<th>Maestro</th>' +
+        '<th>Grupos</th>' +
+        '<th>Clases esta semana</th>' +
+        '<th>Pago semana</th>' +
+        '<th>Contacto</th>' +
+      '</tr></thead><tbody>';
+
+    maestros.forEach(function(m) {
+      html += '<tr>' +
+        '<td>' + avatar(m.nombre, m.id) + '</td>' +
+        '<td>' + m.grupos + '</td>' +
+        '<td><span class="chip chip-blue">' + m.clases + ' clases</span></td>' +
+        '<td class="td-orange">' + fmt(m.pago) + '</td>' +
+        '<td>' + waBtn(m.whatsapp, m.nombre) + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('tab-maestros').innerHTML = html;
+  }
+
+  function renderAsistentes(asistentes) {
+    if (!asistentes || asistentes.length === 0) {
+      document.getElementById('tab-asistentes').innerHTML = '<div class="tabla-wrap"><div class="loading">Sin datos.</div></div>';
+      return;
+    }
+    var html = '<div class="tabla-wrap"><table>' +
+      '<thead><tr>' +
+        '<th>Asistente CE</th>' +
+        '<th>Grupos a cargo</th>' +
+        '<th>Alumnos totales</th>' +
+        '<th>Contacto</th>' +
+      '</tr></thead><tbody>';
+
+    asistentes.forEach(function(a) {
+      html += '<tr>' +
+        '<td>' + avatar(a.nombre, a.id) + '</td>' +
+        '<td>' + a.grupos + '</td>' +
+        '<td><span class="chip chip-green">' + a.alumnos + ' alumnos</span></td>' +
+        '<td>' + waBtn(a.whatsapp, a.nombre) + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('tab-asistentes').innerHTML = html;
+  }
+
+  function renderAsesores(asesores) {
+    if (!asesores || asesores.length === 0) {
+      document.getElementById('tab-asesores').innerHTML = '<div class="tabla-wrap"><div class="loading">Sin datos.</div></div>';
+      return;
+    }
+    var html = '<div class="tabla-wrap"><table>' +
+      '<thead><tr>' +
+        '<th>Asesor</th>' +
+        '<th>Inscritos esta semana</th>' +
+        '<th>Comisión semana</th>' +
+        '<th>Contacto</th>' +
+      '</tr></thead><tbody>';
+
+    asesores.forEach(function(a) {
+      html += '<tr>' +
+        '<td>' + avatar(a.nombre, a.id) + '</td>' +
+        '<td><span class="chip chip-orange">' + a.inscritos + ' alumnos</span></td>' +
+        '<td class="td-orange">' + fmt(a.comision) + '</td>' +
+        '<td>' + waBtn(a.whatsapp, a.nombre) + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('tab-asesores').innerHTML = html;
+  }
+
+  function renderCE(ce) {
+    if (!ce || ce.length === 0) {
+      document.getElementById('tab-ce').innerHTML = '<div class="tabla-wrap"><div class="loading">Sin datos.</div></div>';
+      return;
+    }
+    var html = '<div class="tabla-wrap"><table>' +
+      '<thead><tr><th>Coordinador CE</th><th>Contacto</th></tr></thead><tbody>';
+
+    ce.forEach(function(c) {
+      html += '<tr><td>' + avatar(c.nombre, c.id) + '</td><td>' + waBtn(c.whatsapp, c.nombre) + '</td></tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('tab-ce').innerHTML = html;
+  }
+
+  function renderCA(ca) {
+    if (!ca || ca.length === 0) {
+      document.getElementById('tab-ca').innerHTML = '<div class="tabla-wrap"><div class="loading">Sin datos registrados.</div></div>';
+      return;
+    }
+    var html = '<div class="tabla-wrap"><table>' +
+      '<thead><tr><th>Coordinador Académico</th><th>Contacto</th></tr></thead><tbody>';
+
+    ca.forEach(function(c) {
+      html += '<tr><td>' + avatar(c.nombre, c.id) + '</td><td>' + waBtn(c.whatsapp, c.nombre) + '</td></tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('tab-ca').innerHTML = html;
+  }
+
+  function renderGrupos(grupos) {
+    if (!grupos || grupos.length === 0) {
+      document.getElementById('tablaGrupos').innerHTML = '<div class="loading">Sin grupos.</div>';
+      return;
+    }
+
+    var html = '<table>' +
+      '<thead><tr>' +
+        '<th>Grupo</th>' +
+        '<th>Nivel</th>' +
+        '<th>Horario</th>' +
+        '<th>Maestro</th>' +
+        '<th>Asistente CE</th>' +
+        '<th>Inscritos</th>' +
+        '<th>Vacantes</th>' +
+        '<th>Estado</th>' +
+      '</tr></thead><tbody>';
+
+    grupos.forEach(function(g) {
+      var chipEstado = g.estado === 'LLENO'
+        ? '<span class="chip chip-red">Lleno</span>'
+        : '<span class="chip chip-green">Disponible</span>';
+
+      var vacColor = g.lugares <= 2 ? 'td-red' : (g.lugares <= 4 ? 'td-orange' : 'td-green');
+
+      html += '<tr>' +
+        '<td><span style="font-family:\'DM Mono\',monospace;font-weight:600;color:#fff">' + g.idGrupo + '</span></td>' +
+        '<td><span class="chip chip-blue">' + g.nivel.replace('NIVEL ','') + '</span></td>' +
+        '<td class="td-gray">' + g.horario + '</td>' +
+        '<td>' + (g.maestro || '<span class="td-gray">—</span>') + '</td>' +
+        '<td>' + (g.asistente || '<span class="td-gray">—</span>') + '</td>' +
+        '<td style="text-align:center">' + g.inscritos + '</td>' +
+        '<td style="text-align:center" class="' + vacColor + '">' + g.lugares + '</td>' +
+        '<td>' + chipEstado + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('tablaGrupos').innerHTML = html;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  function logout() {
+    directorData = null;
+    document.getElementById('inputId').value = '';
+    document.getElementById('inputClave').value = '';
+    document.getElementById('screenPanel').classList.remove('active');
+    document.getElementById('screenLogin').classList.add('active');
+  }
+
+  document.getElementById('inputClave').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') login();
+  });
+</script>
+</body>
+</html>
