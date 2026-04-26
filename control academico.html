@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Control Académico — Organic English</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0b1120;
+    --surface:  #1a2540;
+    --surface2: #1e2d4e;
+    --border:   rgba(255,255,255,0.07);
+    --orange:   #f97316;
+    --blue:     #3b82f6;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --purple:   #8b5cf6;
+    --text:     #f1f5f9;
+    --muted:    #64748b;
+    --subtle:   #334155;
+  }
+
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-box { background: var(--surface); border-radius: 20px; padding: 44px; width: 100%; max-width: 420px; border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+  .login-box img { display: block; margin: 0 auto 14px; height: 48px; }
+  .login-box h1 { color: var(--text); font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+  .login-box p { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 7px; }
+  .field input { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 13px 16px; color: var(--text); font-size: 15px; outline: none; transition: border-color 0.2s; }
+  .field input:focus { border-color: var(--orange); }
+  .btn-primary { width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 15px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-primary:hover { opacity: 0.9; }
+  .error-msg { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px; color: #f87171; font-size: 13px; margin-top: 12px; display: none; text-align: center; }
+
+  /* ── PANEL ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .panel-root { max-width: 1100px; margin: 0 auto; padding: 2rem 2rem 3rem; }
+
+  /* ── TOP BAR ── */
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--orange); }
+  .logo-text { font-size: 16px; font-weight: 600; color: var(--text); }
+  .top-right { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: #1c2b5e; border: 2px solid var(--orange); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .btn-logout { font-size: 13px; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; padding: 6px 13px; background: transparent; cursor: pointer; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab { padding: 9px 18px; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.2s; }
+  .tab.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .tab:hover:not(.active) { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+  /* ── CARDS ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+  .card-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* ── STATS ROW ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem 1.4rem; }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-card.orange { border-color: rgba(249,115,22,0.3); }
+  .stat-card.blue   { border-color: rgba(59,130,246,0.3); }
+  .stat-card.green  { border-color: rgba(34,197,94,0.3); }
+  .stat-card.purple { border-color: rgba(139,92,246,0.3); }
+
+  /* ── TABLA MAESTROS ── */
+  .tabla-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 12px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; color: #94a3b8; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .maestro-nombre { font-size: 14px; font-weight: 600; color: var(--text); }
+  .maestro-id { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .maestro-foto { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(249,115,22,0.4); }
+  .maestro-foto-fallback { width: 36px; height: 36px; border-radius: 50%; background: rgba(249,115,22,0.15); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--orange); border: 2px solid rgba(249,115,22,0.3); }
+
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; display: inline-block; }
+  .badge-activo   { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+  .badge-inactivo { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .badge-rol      { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); font-size: 10px; }
+
+  .btn-sm { font-size: 12px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .btn-sm:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .btn-sm.danger { border-color: rgba(239,68,68,0.3); color: #f87171; }
+  .btn-sm.danger:hover { background: rgba(239,68,68,0.1); }
+  .btn-sm.success { border-color: rgba(34,197,94,0.3); color: #4ade80; }
+  .btn-sm.success:hover { background: rgba(34,197,94,0.1); }
+
+  /* ── ASISTENCIA ── */
+  .asist-filtros { display: flex; gap: 10px; margin-bottom: 1.2rem; flex-wrap: wrap; align-items: center; }
+  .asist-filtros label { font-size: 12px; color: var(--muted); }
+  .asist-filtros input[type="date"],
+  .asist-filtros select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; }
+  .asist-filtros input[type="date"]:focus,
+  .asist-filtros select:focus { border-color: var(--orange); }
+  .btn-cargar { background: var(--orange); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-cargar:hover { opacity: 0.9; }
+
+  .asist-tabla-wrap { overflow-x: auto; }
+  .check-cell { display: flex; align-items: center; gap: 8px; }
+  .check-cell input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+
+  /* ── ALTA MAESTRO ── */
+  .form-alta { max-width: 560px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 7px; }
+  .form-group input, .form-group select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--orange); }
+  .form-group select option { background: #1a2540; }
+  .btn-alta { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 13px 32px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-alta:hover { opacity: 0.9; }
+  .alta-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); border-radius: 10px; padding: 14px 16px; color: #4ade80; font-size: 14px; margin-top: 14px; display: none; }
+  .alta-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 10px; padding: 14px 16px; color: #f87171; font-size: 14px; margin-top: 14px; display: none; }
+
+  /* ── SEMANA RESUMEN ── */
+  .semana-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .semana-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .semana-maestro { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .semana-id { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .semana-bar-wrap { background: rgba(255,255,255,0.07); border-radius: 4px; height: 6px; margin-bottom: 6px; }
+  .semana-bar { background: linear-gradient(90deg, #1c2b5e, #f97316); height: 6px; border-radius: 4px; }
+  .semana-nums { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .semana-nums span { color: var(--text); font-weight: 700; }
+
+  /* ── MODAL ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+  .modal-overlay.visible { display: flex; }
+  .modal-box { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 28px; width: 100%; max-width: 420px; }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .modal-body { font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px; }
+  .modal-body strong { color: #f87171; }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-modal-cancel { flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 100px; padding: 12px; color: var(--muted); font-size: 14px; cursor: pointer; }
+  .btn-modal-confirm { flex: 1; background: #ef4444; border: none; border-radius: 100px; padding: 12px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  /* ── PANEL TABS CONTENT ── */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .empty-state { text-align: center; padding: 3rem; color: var(--subtle); font-size: 14px; }
+
+  @media (max-width: 768px) {
+    .panel-root { padding: 1rem; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══════════════════════════════════════════════════════ -->
+<div id="screenLogin" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" alt="Organic English" />
+      <h1>Control Académico</h1>
+      <p>Accede con tu ID y clave</p>
+      <div class="field">
+        <label>ID de Coordinador</label>
+        <input type="text" id="inputId" placeholder="Ej: CA-01" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Clave</label>
+        <input type="password" id="inputClave" placeholder="••••••" />
+      </div>
+      <button class="btn-primary" onclick="login()">Entrar</button>
+      <div class="error-msg" id="errorMsg">ID o clave incorrectos.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL ══════════════════════════════════════════════════════ -->
+<div id="screenPanel" class="screen">
+  <div class="panel-root">
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="logo-area">
+        <div class="logo-dot"></div>
+        <span class="logo-text">Organic English · Control Académico</span>
+      </div>
+      <div class="top-right">
+        <div class="avatar" id="avatarInitials">CA</div>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card orange">
+        <div class="stat-num" id="statTotal">—</div>
+        <div class="stat-label">Maestros activos</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-num" id="statGrupos">—</div>
+        <div class="stat-label">Grupos cubiertos</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-num" id="statClasesHoy">—</div>
+        <div class="stat-label">Clases registradas hoy</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-num" id="statSemana">—</div>
+        <div class="stat-label">Clases esta semana</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('maestros')">👨‍🏫 Maestros</button>
+      <button class="tab" onclick="switchTab('asistencia')">📋 Registrar asistencia</button>
+      <button class="tab" onclick="switchTab('semana')">📊 Resumen semanal</button>
+      <button class="tab" onclick="switchTab('alta')">➕ Alta de maestro</button>
+    </div>
+
+    <!-- TAB: MAESTROS -->
+    <div id="tab-maestros" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Todos los maestros</span>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Maestro</th>
+                <th>Rol</th>
+                <th>Grupos</th>
+                <th>WhatsApp</th>
+                <th>Estatus</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tablaMaestros">
+              <tr><td colspan="6" class="empty-state">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ASISTENCIA -->
+    <div id="tab-asistencia" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Registrar asistencia de maestros</span>
+        </div>
+        <div class="asist-filtros">
+          <label>Fecha:</label>
+          <input type="date" id="asistFecha" />
+          <button class="btn-cargar" onclick="cargarAsistencia()">Cargar grupos</button>
+        </div>
+        <div class="asist-tabla-wrap">
+          <table id="tablaAsistencia">
+            <thead>
+              <tr>
+                <th>Maestro</th>
+                <th>Grupo</th>
+                <th>Horario</th>
+                <th>Nivel</th>
+                <th>¿Dio clase?</th>
+              </tr>
+            </thead>
+            <tbody id="asistBody">
+              <tr><td colspan="5" class="empty-state">Selecciona una fecha y da clic en "Cargar grupos"</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:1.2rem;display:flex;gap:10px;align-items:center;">
+          <button class="btn-cargar" onclick="guardarAsistencia()" id="btnGuardarAsist" style="display:none;">
+            Guardar asistencia
+          </button>
+          <span id="asistStatus" style="font-size:13px;color:var(--muted);"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: RESUMEN SEMANAL -->
+    <div id="tab-semana" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Clases por maestro — semana en curso</span>
+        </div>
+        <div class="semana-grid" id="semanaGrid">
+          <div class="empty-state">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ALTA DE MAESTRO -->
+    <div id="tab-alta" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Registrar nuevo maestro</span>
+        </div>
+        <div class="form-alta">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre completo <span style="color:var(--orange)">*</span></label>
+              <input type="text" id="altaNombre" placeholder="Nombre del maestro" />
+            </div>
+            <div class="form-group">
+              <label>WhatsApp <span style="color:var(--orange)">*</span></label>
+              <input type="tel" id="altaWhatsApp" placeholder="10 dígitos" maxlength="15" />
+            </div>
+            <div class="form-group">
+              <label>Email <span style="color:var(--orange)">*</span></label>
+              <input type="email" id="altaEmail" placeholder="correo@ejemplo.com" />
+            </div>
+            <div class="form-group">
+              <label>Rol <span style="color:var(--orange)">*</span></label>
+              <select id="altaRol">
+                <option value="">Selecciona...</option>
+                <option value="Maestro">Maestro</option>
+                <option value="Colocador">Colocador</option>
+                <option value="Ambos">Ambos</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Clave de acceso <span style="color:var(--orange)">*</span></label>
+              <input type="text" id="altaClave" placeholder="Clave para el panel" />
+            </div>
+          </div>
+          <button class="btn-alta" onclick="darDeAlta()">Registrar maestro</button>
+          <div class="alta-success" id="altaSuccess"></div>
+          <div class="alta-error" id="altaError"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL BAJA MAESTRO ════════════════════════════════════════ -->
+<div id="modalBaja" class="modal-overlay" onclick="if(event.target===this)cerrarModalBaja()">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Dar de baja al maestro</div>
+    <div class="modal-body" id="modalBajaBody">
+      Estás a punto de dar de baja a <strong id="modalBajaNombre"></strong>.<br><br>
+      Su estatus cambiará a <strong>Inactivo</strong>. Recuerda reasignar manualmente sus grupos en la pestaña GRUPOS del sistema.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarModalBaja()">Cancelar</button>
+      <button class="btn-modal-confirm" onclick="confirmarBaja()">Sí, dar de baja</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbxNh2bE9xL6P6fcj0isN2feQKxcVAsmyqZ2uUFFFPfantp1c7TsJ96T48AaVXlMTKG6/exec';
+
+  var caData       = null;
+  var maestrosData = [];
+  var asistenciaRows = [];
+  var maestroBajaId  = null;
+
+  // ── LOGIN ────────────────────────────────────────────────────────
+  function login() {
+    var id    = document.getElementById('inputId').value.trim().toUpperCase();
+    var clave = document.getElementById('inputClave').value.trim();
+    var err   = document.getElementById('errorMsg');
+    if (!id || !clave) { err.style.display = 'block'; err.textContent = 'Completa todos los campos.'; return; }
+    err.style.display = 'none';
+
+    var btn = document.querySelector('.btn-primary');
+    btn.textContent = 'Verificando...';
+    btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=loginCA&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Entrar';
+        btn.disabled = false;
+        if (data.status === 'ok') {
+          caData = data;
+          mostrarPanel();
+        } else {
+          err.style.display = 'block';
+          err.textContent = data.mensaje || 'ID o clave incorrectos.';
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Entrar';
+        btn.disabled = false;
+        err.style.display = 'block';
+        err.textContent = 'Error de conexión.';
+      });
+  }
+
+  // ── MOSTRAR PANEL ────────────────────────────────────────────────
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+
+    var iniciales = (caData.nombre || 'CA').split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    document.getElementById('avatarInitials').textContent = iniciales;
+
+    // Fecha de hoy por defecto en asistencia
+    document.getElementById('asistFecha').value = hoyISO();
+
+    cargarDatos();
+  }
+
+  // ── CARGAR DATOS MAESTROS ────────────────────────────────────────
+  function cargarDatos() {
+    fetch(APPS_SCRIPT + '?action=getDatosCA')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status !== 'ok') return;
+        maestrosData = data.maestros || [];
+        renderStats(data);
+        renderMaestros();
+        renderSemana(data.resumenSemana || []);
+      });
+  }
+
+  // ── STATS ────────────────────────────────────────────────────────
+  function renderStats(data) {
+    var activos = maestrosData.filter(m => m.activo).length;
+    var grupos  = maestrosData.reduce((s, m) => s + (m.grupos || 0), 0);
+    document.getElementById('statTotal').textContent    = activos;
+    document.getElementById('statGrupos').textContent   = grupos;
+    document.getElementById('statClasesHoy').textContent = data.clasesHoy  || 0;
+    document.getElementById('statSemana').textContent    = data.clasesSemana || 0;
+  }
+
+  // ── TABLA MAESTROS ───────────────────────────────────────────────
+  function renderMaestros() {
+    var tbody = document.getElementById('tablaMaestros');
+    if (!maestrosData.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin maestros registrados</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = maestrosData.map(function(m) {
+      var foto = m.foto
+        ? '<img src="' + m.foto + '" class="maestro-foto" onerror="this.style.display=\'none\'" />'
+        : '<div class="maestro-foto-fallback">' + (m.nombre[0] || 'M') + '</div>';
+
+      var badge = m.activo
+        ? '<span class="badge badge-activo">Activo</span>'
+        : '<span class="badge badge-inactivo">Inactivo</span>';
+
+      var btnBaja = m.activo
+        ? '<button class="btn-sm danger" onclick="abrirModalBaja(\'' + m.id + '\',\'' + m.nombre + '\')">Dar de baja</button>'
+        : '<button class="btn-sm success" onclick="reactivarMaestro(\'' + m.id + '\')">Reactivar</button>';
+
+      var waLink = m.whatsapp
+        ? '<a href="https://wa.me/52' + m.whatsapp + '" target="_blank" style="color:#4ade80;font-size:12px;">📱 WA</a>'
+        : '—';
+
+      return '<tr>' +
+        '<td><div style="display:flex;align-items:center;gap:10px;">' + foto +
+          '<div><div class="maestro-nombre">' + m.nombre + '</div><div class="maestro-id">' + m.id + '</div></div></div></td>' +
+        '<td><span class="badge badge-rol">' + (m.rol || '—') + '</span></td>' +
+        '<td style="font-weight:700;color:var(--text);">' + (m.grupos || 0) + '</td>' +
+        '<td>' + waLink + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td>' + btnBaja + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // ── ASISTENCIA ───────────────────────────────────────────────────
+  function cargarAsistencia() {
+    var fecha = document.getElementById('asistFecha').value;
+    if (!fecha) { alert('Selecciona una fecha.'); return; }
+
+    // Solo lunes a jueves
+    var d = new Date(fecha + 'T12:00:00');
+    var dia = d.getDay();
+    if (dia === 0 || dia === 5 || dia === 6) {
+      document.getElementById('asistBody').innerHTML =
+        '<tr><td colspan="5" class="empty-state">No hay clases los viernes, sábados ni domingos.</td></tr>';
+      document.getElementById('btnGuardarAsist').style.display = 'none';
+      return;
+    }
+
+    fetch(APPS_SCRIPT + '?action=getAsistenciaFecha&fecha=' + fecha)
+      .then(r => r.json())
+      .then(data => {
+        asistenciaRows = data.rows || [];
+        renderAsistencia(fecha);
+        document.getElementById('btnGuardarAsist').style.display = asistenciaRows.length ? 'inline-block' : 'none';
+      });
+  }
+
+  function renderAsistencia(fecha) {
+    var tbody = document.getElementById('asistBody');
+    if (!asistenciaRows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay grupos activos para esta fecha.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = asistenciaRows.map(function(r, idx) {
+      var checked = r.dioclase ? 'checked' : '';
+      return '<tr>' +
+        '<td><span style="font-weight:600;color:var(--text);">' + r.maestroNombre + '</span><br><span style="font-size:11px;color:var(--muted);">' + r.maestroId + '</span></td>' +
+        '<td style="font-weight:600;color:var(--text);">' + r.idGrupo + '</td>' +
+        '<td>' + r.horario + '</td>' +
+        '<td>' + r.nivel + '</td>' +
+        '<td><div class="check-cell"><input type="checkbox" id="chk_' + idx + '" ' + checked + ' /><label for="chk_' + idx + '" style="font-size:13px;color:var(--muted);">Sí, dio clase</label></div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function guardarAsistencia() {
+    var fecha   = document.getElementById('asistFecha').value;
+    var status  = document.getElementById('asistStatus');
+    var btn     = document.getElementById('btnGuardarAsist');
+
+    var registros = asistenciaRows.map(function(r, idx) {
+      return {
+        idMaestro: r.maestroId,
+        idGrupo:   r.idGrupo,
+        fecha:     fecha,
+        dioclase:  document.getElementById('chk_' + idx).checked,
+        idCA:      caData.id
+      };
+    });
+
+    btn.textContent = 'Guardando...';
+    btn.disabled    = true;
+    status.textContent = '';
+
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'guardarAsistencia', registros: registros })
+    })
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Guardar asistencia';
+        btn.disabled    = false;
+        if (data.status === 'ok') {
+          status.textContent = '✅ Asistencia guardada correctamente.';
+          status.style.color = '#4ade80';
+          cargarDatos(); // refrescar stats
+        } else {
+          status.textContent = '❌ Error: ' + (data.mensaje || 'Intenta de nuevo.');
+          status.style.color = '#f87171';
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Guardar asistencia';
+        btn.disabled    = false;
+        status.textContent = '❌ Error de conexión.';
+        status.style.color = '#f87171';
+      });
+  }
+
+  // ── RESUMEN SEMANAL ──────────────────────────────────────────────
+  function renderSemana(resumen) {
+    var grid = document.getElementById('semanaGrid');
+    if (!resumen.length) {
+      grid.innerHTML = '<div class="empty-state">Sin registros esta semana.</div>';
+      return;
+    }
+
+    grid.innerHTML = resumen.map(function(m) {
+      var pct = m.esperadas > 0 ? Math.round((m.dadas / m.esperadas) * 100) : 0;
+      return '<div class="semana-card">' +
+        '<div class="semana-maestro">' + m.nombre + '</div>' +
+        '<div class="semana-id">' + m.id + '</div>' +
+        '<div class="semana-bar-wrap"><div class="semana-bar" style="width:' + pct + '%;"></div></div>' +
+        '<div class="semana-nums"><span>' + m.dadas + '</span> de ' + m.esperadas + ' clases</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── ALTA DE MAESTRO ──────────────────────────────────────────────
+  function darDeAlta() {
+    var nombre   = document.getElementById('altaNombre').value.trim();
+    var whatsapp = document.getElementById('altaWhatsApp').value.trim();
+    var email    = document.getElementById('altaEmail').value.trim();
+    var rol      = document.getElementById('altaRol').value;
+    var clave    = document.getElementById('altaClave').value.trim();
+
+    var ok = document.getElementById('altaSuccess');
+    var er = document.getElementById('altaError');
+    ok.style.display = 'none';
+    er.style.display = 'none';
+
+    if (!nombre || !whatsapp || !email || !rol || !clave) {
+      er.style.display = 'block';
+      er.textContent   = 'Completa todos los campos obligatorios.';
+      return;
+    }
+    if (!/^\d{10,13}$/.test(whatsapp)) {
+      er.style.display = 'block';
+      er.textContent   = 'WhatsApp debe tener 10 dígitos.';
+      return;
+    }
+
+    var btn = document.querySelector('.btn-alta');
+    btn.textContent = 'Registrando...';
+    btn.disabled    = true;
+
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'altaMaestro', nombre, whatsapp, email, rol, clave, idCA: caData.id })
+    })
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Registrar maestro';
+        btn.disabled    = false;
+        if (data.status === 'ok') {
+          ok.style.display = 'block';
+          ok.textContent   = '✅ Maestro registrado correctamente. ID asignado: ' + data.idMaestro;
+          document.getElementById('altaNombre').value   = '';
+          document.getElementById('altaWhatsApp').value = '';
+          document.getElementById('altaEmail').value    = '';
+          document.getElementById('altaRol').value      = '';
+          document.getElementById('altaClave').value    = '';
+          cargarDatos();
+        } else {
+          er.style.display = 'block';
+          er.textContent   = '❌ ' + (data.mensaje || 'Error al registrar.');
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Registrar maestro';
+        btn.disabled    = false;
+        er.style.display = 'block';
+        er.textContent   = '❌ Error de conexión.';
+      });
+  }
+
+  // ── BAJA / REACTIVAR ─────────────────────────────────────────────
+  function abrirModalBaja(id, nombre) {
+    maestroBajaId = id;
+    document.getElementById('modalBajaNombre').textContent = nombre;
+    document.getElementById('modalBaja').classList.add('visible');
+  }
+
+  function cerrarModalBaja() {
+    document.getElementById('modalBaja').classList.remove('visible');
+    maestroBajaId = null;
+  }
+
+  function confirmarBaja() {
+    if (!maestroBajaId) return;
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'bajaMaestro', idMaestro: maestroBajaId, idCA: caData.id })
+    })
+      .then(r => r.json())
+      .then(data => {
+        cerrarModalBaja();
+        if (data.status === 'ok') cargarDatos();
+        else alert('Error: ' + (data.mensaje || 'Intenta de nuevo.'));
+      });
+  }
+
+  function reactivarMaestro(id) {
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'reactivarMaestro', idMaestro: id, idCA: caData.id })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') cargarDatos();
+        else alert('Error: ' + (data.mensaje || 'Intenta de nuevo.'));
+      });
+  }
+
+  // ── TABS ─────────────────────────────────────────────────────────
+  function switchTab(nombre) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      var nombres = ['maestros','asistencia','semana','alta'];
+      t.classList.toggle('active', nombres[i] === nombre);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + nombre).classList.add('active');
+  }
+
+  // ── UTILS ────────────────────────────────────────────────────────
+  function hoyISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+
+  function logout() {
+    caData = null;
+    maestrosData = [];
+    document.getElementById('inputId').value    = '';
+    document.getElementById('inputClave').value = '';
+    document.getElementById('screenPanel').classList.remove('active');
+    document.getElementById('screenLogin').classList.add('active');
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('inputClave').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') login();
+    });
+  });
+</script>
+</body>
+</html>
