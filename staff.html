@@ -20,7 +20,7 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
- body {
+  body {
     font-family: 'DM Sans', sans-serif;
     color: var(--white);
     min-height: 100vh;
@@ -31,49 +31,6 @@
     background-attachment: fixed;
   }
 
-  
-  /* ── PANTALLA COMPLETA: hero + form en columnas ── */
- .page {
-    position: relative;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-.form-side {
-    width: 100%;
-    max-width: 420px;
-    background: rgba(12,23,48,0.85);
-    backdrop-filter: blur(12px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 48px;
-    position: relative;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    z-index: 2;
-  }
-
-     @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-   .hero-logo img {
-    height: 104px;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
-  }
-
-   @keyframes pulse {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.5; transform: scale(1.5); }
-  }
-
-    /* ── LADO DERECHO: FORMULARIO ── */
   .page {
     position: relative;
     min-height: 100vh;
@@ -82,7 +39,7 @@
     justify-content: center;
   }
 
-.form-side {
+  .form-side {
     width: 100%;
     max-width: 420px;
     background: rgba(12,23,48,0.85);
@@ -104,9 +61,9 @@
     top: 0; left: 0; right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    border-radius: 20px 20px 0 0;
   }
 
-  /* glow sutil detrás del form */
   .form-side::after {
     content: '';
     position: absolute;
@@ -115,6 +72,11 @@
     width: 320px; height: 320px;
     background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%);
     pointer-events: none;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   .form-wrap {
@@ -232,7 +194,6 @@
     color: rgba(148,163,184,0.4);
   }
 
-  /* ── SPINNER ── */
   .spinner {
     width: 18px; height: 18px;
     border: 2px solid rgba(255,255,255,0.3);
@@ -243,20 +204,10 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── RESPONSIVE: mobile = vertical ── */
   @media (max-width: 768px) {
-    .page { flex-direction: column; }
-     {
-      min-height: 42vh;
-      padding: 40px 28px;
-      flex: none;
-    }
     .form-side {
-      flex: none;
-      width: 100%;
+      width: calc(100% - 48px);
       padding: 48px 28px;
-      border-left: none;
-      border-top: 1px solid rgba(255,255,255,0.06);
     }
   }
 </style>
@@ -264,8 +215,6 @@
 <body>
 
 <div class="page">
-
-    <!-- ── LADO DERECHO: FORMULARIO ── -->
   <div class="form-side">
     <div class="form-wrap">
 
@@ -278,7 +227,7 @@
 
       <div class="form-group">
         <label class="form-label" for="input-id">ID de personal</label>
-        <input class="form-input" id="input-id" type="text" placeholder="Ej. ASE-01, ASI-02, CE-01" autocomplete="off" spellcheck="false" />
+        <input class="form-input" id="input-id" type="text" placeholder="Ej. ASE-01, ASI-02, MAE-01, DIR-01" autocomplete="off" spellcheck="false" />
       </div>
 
       <button class="btn-submit" id="btn-login" onclick="handleLogin()">
@@ -288,14 +237,13 @@
 
       <div class="msg-error" id="msg-error"></div>
 
-      <div class="form-footer">© 2025 Organic English · Uso exclusivo del personal</div>
+      <div class="form-footer">© 2026 Organic English · Uso exclusivo del personal</div>
     </div>
   </div>
-
 </div>
 
 <script>
-   const ROLES = [
+  const ROLES = [
     { prefix: 'ASE-', panel: 'asesor.html' },
     { prefix: 'ASI-', panel: 'asistente-ce.html' },
     { prefix: 'COL-', panel: 'colocacion.html' },
@@ -304,8 +252,6 @@
     { prefix: 'CA-',  panel: 'control-academico.html' },
     { prefix: 'DIR-', panel: 'director.html' },
   ];
-
-  const PENDIENTES = ['maestro.html', 'control-academico.html', 'director.html'];
 
   function detectarRol(id) {
     return ROLES.find(r => id.toUpperCase().startsWith(r.prefix)) || null;
@@ -338,19 +284,13 @@
 
     const rol = detectarRol(id);
     if (!rol) {
-      mostrarError('ID no reconocido. Verifica el formato (ej. ASE-01, ASI-02, CE-01).');
-      return;
-    }
-
-    if (PENDIENTES.includes(rol.panel)) {
-      mostrarError('Este panel está en construcción. Estará disponible próximamente.');
+      mostrarError('ID no reconocido. Formatos válidos: ASE-, ASI-, COL-, CE-, MAE-, CA-, DIR-');
       return;
     }
 
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner"></div>&nbsp;Redirigiendo...';
 
-    // Pequeña pausa para feedback visual antes de redirigir
     setTimeout(() => {
       window.location.href = rol.panel;
     }, 600);
