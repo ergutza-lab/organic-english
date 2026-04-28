@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Control Académico — Organic English</title>
+<title>Coordinador Académico — Organic English</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -175,10 +175,29 @@
 
   .empty-state { text-align: center; padding: 3rem; color: var(--subtle); font-size: 14px; }
 
+  /* ── REASIGNACIÓN ── */
+  .reasig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .reasig-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; margin-bottom: 12px; }
+  .reasig-select:focus { border-color: var(--orange); }
+  .reasig-select option { background: #1a2540; }
+  .grupos-lista { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .grupo-item-reasig { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .grupo-item-reasig-info { font-size: 13px; color: var(--text); }
+  .grupo-item-reasig-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .btn-reasignar { font-size: 12px; padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.1); color: var(--orange); cursor: pointer; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
+  .btn-reasignar:hover { background: rgba(249,115,22,0.2); }
+  .reasig-confirm { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 12px; padding: 20px; margin-top: 16px; display: none; }
+  .reasig-confirm-title { font-size: 15px; font-weight: 700; color: #4ade80; margin-bottom: 14px; }
+  .reasig-wa-btns { display: flex; flex-direction: column; gap: 10px; }
+  .btn-wa-lg { display: flex; align-items: center; gap: 10px; background: #16a34a; color: #fff; border: none; border-radius: 100px; padding: 13px 22px; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; width: 100%; }
+  .btn-wa-lg.saliente { background: #64748b; }
+  .btn-wa-lg:hover { opacity: 0.9; }
+
   @media (max-width: 768px) {
     .panel-root { padding: 1rem; }
     .stats-row { grid-template-columns: 1fr 1fr; }
     .form-grid { grid-template-columns: 1fr; }
+    .reasig-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -213,7 +232,7 @@
     <div class="top-bar">
       <div class="logo-area">
         <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:28px;" />
-        <span class="logo-text">Control Académico</span>
+        <span class="logo-text">Coordinador Académico</span>
       </div>
       <div class="top-right">
         <div class="avatar" id="avatarInitials">CA</div>
@@ -222,7 +241,7 @@
     </div>
 
     <!-- STATS -->
-    <div class="stats-row">
+    <div class="stats-row" style="grid-template-columns:repeat(5,1fr);">
       <div class="stat-card orange">
         <div class="stat-num" id="statTotal">—</div>
         <div class="stat-label">Maestros activos</div>
@@ -230,6 +249,10 @@
       <div class="stat-card blue">
         <div class="stat-num" id="statGrupos">—</div>
         <div class="stat-label">Grupos cubiertos</div>
+      </div>
+      <div class="stat-card" style="border-color:rgba(239,68,68,0.4);">
+        <div class="stat-num" id="statSinMaestro" style="color:#f87171;">—</div>
+        <div class="stat-label">Grupos sin maestro</div>
       </div>
       <div class="stat-card green">
         <div class="stat-num" id="statClasesHoy">—</div>
@@ -246,6 +269,7 @@
       <button class="tab active" onclick="switchTab('maestros')">👨‍🏫 Maestros</button>
       <button class="tab" onclick="switchTab('asistencia')">📋 Registrar asistencia</button>
       <button class="tab" onclick="switchTab('semana')">📊 Resumen semanal</button>
+      <button class="tab" onclick="switchTab('reasignacion')">🔄 Reasignar grupos</button>
       <button class="tab" onclick="switchTab('alta')">➕ Alta de maestro</button>
     </div>
 
@@ -319,6 +343,72 @@
         </div>
         <div class="semana-grid" id="semanaGrid">
           <div class="empty-state">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: REASIGNAR GRUPOS -->
+    <div id="tab-reasignacion" class="tab-content">
+
+      <!-- Grupos sin maestro -->
+      <div class="card" style="margin-bottom:16px;border-color:rgba(239,68,68,0.3);">
+        <div class="card-header">
+          <span class="card-title" style="color:#f87171;">⚠️ Grupos sin maestro asignado</span>
+          <span id="badgeSinMaestro" style="font-size:11px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:3px 10px;border-radius:20px;font-weight:700;">0</span>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Horario</th>
+                <th>Nivel</th>
+                <th>Alumnos</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tablaSinMaestro">
+              <tr><td colspan="5" class="empty-state">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Reasignación entre maestros -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Reasignar grupos entre maestros</span>
+        </div>
+        <div class="reasig-grid">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Maestro actual</div>
+            <select class="reasig-select" id="reasigMaestroOrigen" onchange="cargarGruposMaestro()">
+              <option value="">Selecciona un maestro...</option>
+            </select>
+            <div class="grupos-lista" id="gruposMaestroOrigen">
+              <div class="empty-state" style="padding:1.5rem;">Selecciona un maestro para ver sus grupos</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Resultado del cambio</div>
+            <div id="reasigConfirm" class="reasig-confirm">
+              <div class="reasig-confirm-title">✅ Grupo reasignado correctamente</div>
+              <div id="reasigResumen" style="font-size:13px;color:#94a3b8;margin-bottom:16px;line-height:1.6;"></div>
+              <div class="reasig-wa-btns">
+                <a id="btnWaNuevo" href="#" target="_blank" class="btn-wa-lg">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+                  Notificar al maestro entrante
+                </a>
+                <a id="btnWaAnterior" href="#" target="_blank" class="btn-wa-lg saliente">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+                  Notificar al maestro saliente
+                </a>
+              </div>
+            </div>
+            <div id="reasigVacio" style="color:var(--subtle);font-size:13px;padding:2rem 0;">
+              Aquí aparecerán los botones para notificar a los maestros una vez que confirmes el cambio.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -454,10 +544,11 @@
   function renderStats(data) {
     var activos = maestrosData.filter(m => m.activo).length;
     var grupos  = maestrosData.reduce((s, m) => s + (m.grupos || 0), 0);
-    document.getElementById('statTotal').textContent    = activos;
-    document.getElementById('statGrupos').textContent   = grupos;
-    document.getElementById('statClasesHoy').textContent = data.clasesHoy  || 0;
-    document.getElementById('statSemana').textContent    = data.clasesSemana || 0;
+    document.getElementById('statTotal').textContent      = activos;
+    document.getElementById('statGrupos').textContent     = grupos;
+    document.getElementById('statSinMaestro').textContent = data.sinMaestro || 0;
+    document.getElementById('statClasesHoy').textContent  = data.clasesHoy  || 0;
+    document.getElementById('statSemana').textContent     = data.clasesSemana || 0;
   }
 
   // ── TABLA MAESTROS ───────────────────────────────────────────────
@@ -701,12 +792,13 @@
 
   // ── TABS ─────────────────────────────────────────────────────────
   function switchTab(nombre) {
+    var nombres = ['maestros','asistencia','semana','reasignacion','alta'];
     document.querySelectorAll('.tab').forEach((t, i) => {
-      var nombres = ['maestros','asistencia','semana','alta'];
       t.classList.toggle('active', nombres[i] === nombre);
     });
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById('tab-' + nombre).classList.add('active');
+    if (nombre === 'reasignacion') iniciarReasignacion();
   }
 
   // ── UTILS ────────────────────────────────────────────────────────
@@ -715,6 +807,217 @@
     return d.getFullYear() + '-' +
       String(d.getMonth()+1).padStart(2,'0') + '-' +
       String(d.getDate()).padStart(2,'0');
+  }
+
+  // ── REASIGNACIÓN DE GRUPOS ───────────────────────────────────────
+  var grupoReasigActual = null;
+
+  function iniciarReasignacion() {
+    var sel = document.getElementById('reasigMaestroOrigen');
+    sel.innerHTML = '<option value="">Selecciona un maestro...</option>';
+    maestrosData.filter(m => m.activo).forEach(function(m) {
+      sel.innerHTML += '<option value="' + m.id + '">' + m.nombre + ' (' + m.id + ')</option>';
+    });
+    document.getElementById('gruposMaestroOrigen').innerHTML =
+      '<div class="empty-state" style="padding:1.5rem;">Selecciona un maestro para ver sus grupos</div>';
+    document.getElementById('reasigConfirm').style.display = 'none';
+    document.getElementById('reasigVacio').style.display   = 'block';
+
+    // Cargar grupos sin maestro
+    cargarGruposSinMaestro();
+  }
+
+  function cargarGruposSinMaestro() {
+    fetch(APPS_SCRIPT + '?action=getGruposSinMaestro')
+      .then(r => r.json())
+      .then(data => {
+        var tbody  = document.getElementById('tablaSinMaestro');
+        var badge  = document.getElementById('badgeSinMaestro');
+        var grupos = data.grupos || [];
+
+        badge.textContent = grupos.length;
+        document.getElementById('statSinMaestro').textContent = grupos.length;
+
+        if (!grupos.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-state">✅ Todos los grupos tienen maestro asignado</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = grupos.map(function(g) {
+          return '<tr>' +
+            '<td style="font-weight:700;color:var(--text);">' + g.id + '</td>' +
+            '<td>' + g.horario + '</td>' +
+            '<td>' + g.nivel + '</td>' +
+            '<td>' + (g.inscritos || 0) + ' alumnos</td>' +
+            '<td><button class="btn-sm success" onclick="asignarDesdeTabla(\'' + g.id + '\',\'' + g.horario.replace(/'/g,'') + '\',\'' + g.nivel.replace(/'/g,'') + '\')">Asignar maestro</button></td>' +
+          '</tr>';
+        }).join('');
+      });
+  }
+
+  function asignarDesdeTabla(idGrupo, horario, nivel) {
+    // Reutiliza el mismo modal de reasignación pero sin maestro origen
+    grupoReasigActual = {
+      idGrupo:             idGrupo,
+      horario:             horario,
+      nivel:               nivel,
+      maestroOrigenId:     null,
+      maestroOrigenNombre: null,
+      maestroOrigenWA:     null
+    };
+
+    document.getElementById('modalReasigInfo').innerHTML =
+      'Asignando maestro al grupo <strong style="color:var(--orange);">' + idGrupo + '</strong><br>' +
+      'Horario: ' + horario + ' · ' + nivel + '<br>' +
+      '<span style="color:#f87171;">Este grupo actualmente no tiene maestro asignado.</span>';
+
+    var sel = document.getElementById('reasigMaestroDestino');
+    sel.innerHTML = '<option value="">Selecciona el maestro...</option>';
+    maestrosData.filter(m => m.activo).forEach(function(m) {
+      sel.innerHTML += '<option value="' + m.id + '">' + m.nombre + ' (' + m.id + ')</option>';
+    });
+
+    document.getElementById('modalReasig').classList.add('visible');
+  }
+
+  function cargarGruposMaestro() {
+    var idMaestro = document.getElementById('reasigMaestroOrigen').value;
+    var lista     = document.getElementById('gruposMaestroOrigen');
+    document.getElementById('reasigConfirm').style.display = 'none';
+    document.getElementById('reasigVacio').style.display   = 'block';
+
+    if (!idMaestro) {
+      lista.innerHTML = '<div class="empty-state" style="padding:1.5rem;">Selecciona un maestro para ver sus grupos</div>';
+      return;
+    }
+
+    fetch(APPS_SCRIPT + '?action=getGruposMaestro&idMaestro=' + encodeURIComponent(idMaestro))
+      .then(r => r.json())
+      .then(data => {
+        if (!data.grupos || !data.grupos.length) {
+          lista.innerHTML = '<div class="empty-state" style="padding:1.5rem;">Este maestro no tiene grupos asignados</div>';
+          return;
+        }
+        lista.innerHTML = data.grupos.map(function(g) {
+          return '<div class="grupo-item-reasig">' +
+            '<div>' +
+              '<div class="grupo-item-reasig-info">' + g.id + ' · ' + g.horario + '</div>' +
+              '<div class="grupo-item-reasig-sub">' + g.nivel + ' · ' + g.inscritos + ' alumnos</div>' +
+            '</div>' +
+            '<button class="btn-reasignar" onclick="abrirModalReasig(\'' + g.id + '\',\'' + g.horario.replace(/'/g,"") + '\',\'' + g.nivel.replace(/'/g,"") + '\',\'' + idMaestro + '\')">Reasignar →</button>' +
+          '</div>';
+        }).join('');
+      });
+  }
+
+  function abrirModalReasig(idGrupo, horario, nivel, idMaestroOrigen) {
+    var maestroOrigen = maestrosData.find(m => m.id === idMaestroOrigen);
+    grupoReasigActual = {
+      idGrupo:             idGrupo,
+      horario:             horario,
+      nivel:               nivel,
+      maestroOrigenId:     idMaestroOrigen,
+      maestroOrigenNombre: maestroOrigen ? maestroOrigen.nombre : idMaestroOrigen,
+      maestroOrigenWA:     maestroOrigen ? maestroOrigen.whatsapp : ''
+    };
+
+    document.getElementById('modalReasigInfo').innerHTML =
+      'Reasignando el grupo <strong style="color:var(--orange);">' + idGrupo + '</strong><br>' +
+      'Horario: ' + horario + ' · ' + nivel + '<br>' +
+      'Maestro actual: <strong>' + grupoReasigActual.maestroOrigenNombre + '</strong>';
+
+    var sel = document.getElementById('reasigMaestroDestino');
+    sel.innerHTML = '<option value="">Selecciona el maestro destino...</option>';
+    maestrosData.filter(m => m.activo && m.id !== idMaestroOrigen).forEach(function(m) {
+      sel.innerHTML += '<option value="' + m.id + '">' + m.nombre + ' (' + m.id + ')</option>';
+    });
+
+    document.getElementById('modalReasig').classList.add('visible');
+  }
+
+  function cerrarModalReasig() {
+    document.getElementById('modalReasig').classList.remove('visible');
+    grupoReasigActual = null;
+  }
+
+  function confirmarReasignacion() {
+    var idDestino = document.getElementById('reasigMaestroDestino').value;
+    if (!idDestino) { alert('Selecciona un maestro destino.'); return; }
+    if (!grupoReasigActual) return;
+
+    var maestroDestino = maestrosData.find(m => m.id === idDestino);
+    if (!maestroDestino) return;
+
+    var btn = document.querySelector('#modalReasig .btn-modal-confirm');
+    btn.textContent = 'Guardando...';
+    btn.disabled    = true;
+
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: JSON.stringify({
+        action:         'reasignarGrupo',
+        idGrupo:        grupoReasigActual.idGrupo,
+        idMaestroNuevo: idDestino,
+        idCA:           caData.id
+      })
+    })
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Confirmar cambio';
+        btn.disabled    = false;
+
+        if (data.status !== 'ok') {
+          alert('Error: ' + (data.mensaje || 'Intenta de nuevo.'));
+          return;
+        }
+
+        cerrarModalReasig();
+
+        var grupo = grupoReasigActual;
+
+        var msgNuevo = encodeURIComponent(
+          'Hola ' + maestroDestino.nombre.split(' ')[0] + ' 👋\n\n' +
+          'Te informamos que a partir de ahora tienes asignado el grupo *' + grupo.idGrupo + '*.\n\n' +
+          '📅 Horario: ' + grupo.horario + ' hora CDMX\n' +
+          '📚 Nivel: ' + grupo.nivel + '\n\n' +
+          'Por favor revisa tu panel de maestro para ver los detalles del grupo y los alumnos. ¡Bienvenido a este nuevo grupo! 🚀\n\n' +
+          '— Coordinación Académica · Organic English'
+        );
+
+        document.getElementById('btnWaNuevo').href = 'https://wa.me/52' + maestroDestino.whatsapp + '?text=' + msgNuevo;
+
+        // Solo mostrar botón de maestro saliente si había uno antes
+        var btnAnterior = document.getElementById('btnWaAnterior');
+        if (grupo.maestroOrigenId) {
+          var msgAnterior = encodeURIComponent(
+            'Hola ' + grupo.maestroOrigenNombre.split(' ')[0] + ' 👋\n\n' +
+            'Te informamos que el grupo *' + grupo.idGrupo + '* (' + grupo.horario + ' · ' + grupo.nivel + ') ' +
+            'ha sido reasignado a otro maestro a partir de este momento.\n\n' +
+            'Si tienes alguna duda sobre este cambio, no dudes en contactarnos.\n\n' +
+            '¡Gracias por tu comprensión! 🙏\n\n' +
+            '— Coordinación Académica · Organic English'
+          );
+          btnAnterior.href         = 'https://wa.me/52' + grupo.maestroOrigenWA + '?text=' + msgAnterior;
+          btnAnterior.style.display = 'flex';
+        } else {
+          btnAnterior.style.display = 'none';
+        }
+
+        document.getElementById('reasigResumen').innerHTML = grupo.maestroOrigenId
+          ? 'El grupo <strong>' + grupo.idGrupo + '</strong> fue reasignado de <strong>' + grupo.maestroOrigenNombre + '</strong> a <strong>' + maestroDestino.nombre + '</strong>.<br>Usa los botones para notificar a cada maestro.'
+          : 'El grupo <strong>' + grupo.idGrupo + '</strong> fue asignado a <strong>' + maestroDestino.nombre + '</strong>.<br>Notifica al maestro con el botón de abajo.';
+
+        document.getElementById('reasigConfirm').style.display = 'block';
+        document.getElementById('reasigVacio').style.display   = 'none';
+
+        cargarGruposMaestro();
+        cargarDatos();
+      })
+      .catch(() => {
+        btn.textContent = 'Confirmar cambio';
+        btn.disabled    = false;
+        alert('Error de conexión. Intenta de nuevo.');
+      });
   }
 
   function logout() {
@@ -732,5 +1035,21 @@
     });
   });
 </script>
+<!-- ══ MODAL SELECCIONAR MAESTRO DESTINO ═════════════════════════ -->
+<div id="modalReasig" class="modal-overlay" onclick="if(event.target===this)cerrarModalReasig()">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-title">🔄 Reasignar grupo</div>
+    <div id="modalReasigInfo" style="font-size:13px;color:#94a3b8;margin-bottom:16px;line-height:1.6;background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.2);border-radius:10px;padding:12px 14px;"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Asignar a:</div>
+    <select class="reasig-select" id="reasigMaestroDestino">
+      <option value="">Selecciona el maestro destino...</option>
+    </select>
+    <div class="modal-actions" style="margin-top:8px;">
+      <button class="btn-modal-cancel" onclick="cerrarModalReasig()">Cancelar</button>
+      <button class="btn-modal-confirm" style="background:var(--orange);" onclick="confirmarReasignacion()">Confirmar cambio</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
