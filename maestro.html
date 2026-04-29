@@ -229,20 +229,16 @@
         <div id="listaMapas"><div class="loading">Cargando jardín...</div></div>
       </div>
 
-      <!-- TAB MASTER CHALLENGE -->
+    <!-- TAB MASTER CHALLENGE -->
       <div id="contenidoChallenge" style="display:none;">
         <div class="bloque-sel">
-          <div class="bloque-btn active" id="bloqueBtn1" onclick="selBloque(1)">Bloque 1 (sem 1-8)</div>
-          <div class="bloque-btn"        id="bloqueBtn2" onclick="selBloque(2)">Bloque 2 (sem 9-16)</div>
+          <div class="bloque-btn active" id="tipoBtn1" onclick="selTipoChallenge('Mini')">🌤 Mini Challenge (sem 4 / sem 12)</div>
+          <div class="bloque-btn"        id="tipoBtn2" onclick="selTipoChallenge('Gran')">🌟 Gran Challenge (sem 8 / sem 16)</div>
         </div>
-        <p style="color:var(--gris);font-size:13px;margin-bottom:16px;">Escribe el feedback personalizado para cada alumno y marca si completó el Master Challenge.</p>
+        <p style="color:var(--gris);font-size:13px;margin-bottom:16px;">Escribe el feedback personalizado para cada alumno y marca si completó el challenge.</p>
         <div id="listaChallenges"></div>
-        <button class="btn-guardar" onclick="guardarChallenge()">Guardar Master Challenge</button>
+        <button class="btn-guardar" onclick="guardarChallenge()">Guardar Challenge</button>
       </div>
-
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -422,8 +418,29 @@
     var resultados=[], pendientes=alumnos.length;
     alumnos.forEach(function(a){
       fetch(APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(a.id)+'&idGrupo='+encodeURIComponent(grupoActual.id))
-        .then(r=>r.json())
-        .then(data=>{ resultados.push({alumno:a,data:data}); pendientes--; if(pendientes===0) renderMapas(resultados); })
+       .then(data=>{ 
+  resultados.push({alumno:a,data:data}); 
+  pendientes--; 
+  if(pendientes===0) {
+    resultados.sort(function(x,y){
+      var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
+      var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
+      return numX-numY;
+    });
+    renderMapas(resultados);
+  }
+})
+.catch(()=>{ 
+  pendientes--; 
+  if(pendientes===0) {
+    resultados.sort(function(x,y){
+      var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
+      var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
+      return numX-numY;
+    });
+    renderMapas(resultados);
+  }
+});
         .catch(()=>{ pendientes--; if(pendientes===0) renderMapas(resultados); });
     });
   }
@@ -435,91 +452,77 @@
     return {color:SEM_COLORS[4],label:SEM_LABELS[4],emoji:SEM_EMOJIS[4]};
   }
 
-  function plantaSVG(val, tieneInsignia) {
+  function plantaSVG(val, tipoInsignia) {
   val = val||1;
   var c = nivelColor(val).color;
 
-  // Colores de cielo según nivel
   var cielo1 = val<1.5 ? '#1a1a2e' : val<2.5 ? '#1e2a4a' : val<3.5 ? '#1a3a5c' : '#0f4c75';
   var cielo2 = val<1.5 ? '#2d2d2d' : val<2.5 ? '#243570' : val<3.5 ? '#1e6091' : '#1a7abf';
 
   var svg = '<svg width="60" height="140" viewBox="0 0 60 140" xmlns="http://www.w3.org/2000/svg">';
 
-  // CIELO (fondo)
   svg += '<defs><linearGradient id="sky'+Math.round(val*10)+'" x1="0" y1="0" x2="0" y2="1">'+
     '<stop offset="0%" stop-color="'+cielo1+'"/>'+
     '<stop offset="100%" stop-color="'+cielo2+'"/>'+
     '</linearGradient></defs>';
   svg += '<rect width="60" height="140" fill="url(#sky'+Math.round(val*10)+')" rx="8"/>';
 
-  // TIERRA
   svg += '<ellipse cx="30" cy="128" rx="26" ry="8" fill="#4a3520" opacity="0.9"/>';
-  svg += '<rect x="4" y="124" width="52" height="12" rx="0 0 8 8" fill="#4a3520" opacity="0.9"/>';
-  svg += '<rect x="4" y="128" width="52" height="8" rx="0 0 8 8" fill="#3d2b16"/>';
+  svg += '<rect x="4" y="124" width="52" height="12" rx="0" fill="#4a3520" opacity="0.9"/>';
+  svg += '<rect x="4" y="128" width="52" height="8" rx="0" fill="#3d2b16"/>';
 
   if (val < 1.5) {
-    // LATENTE — tallo seco sin hojas
     svg += '<rect x="28" y="70" width="4" height="54" rx="2" fill="#6b4e2a" opacity="0.7"/>';
     svg += '<line x1="22" y1="90" x2="15" y2="82" stroke="#6b4e2a" stroke-width="2" opacity="0.6"/>';
     svg += '<line x1="38" y1="100" x2="45" y2="92" stroke="#6b4e2a" stroke-width="2" opacity="0.6"/>';
-
   } else if (val < 2.5) {
-    // SEMILLA — brote pequeño
     svg += '<rect x="28" y="95" width="4" height="29" rx="2" fill="#4ade80" opacity="0.8"/>';
     svg += '<ellipse cx="30" cy="92" rx="7" ry="9" fill="#22c55e" opacity="0.9"/>';
     svg += '<ellipse cx="30" cy="88" rx="4" ry="5" fill="#4ade80" opacity="0.7"/>';
-
   } else if (val < 3.5) {
-    // BROTANDO — planta con hojas
     svg += '<rect x="28" y="72" width="4" height="52" rx="2" fill="#16a34a" opacity="0.9"/>';
-    // hoja izquierda baja
     svg += '<ellipse cx="18" cy="105" rx="13" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(-30 18 105)"/>';
-    // hoja derecha baja
     svg += '<ellipse cx="42" cy="95" rx="13" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(30 42 95)"/>';
-    // hoja izquierda alta
     svg += '<ellipse cx="20" cy="84" rx="11" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(-25 20 84)"/>';
-    // hoja derecha alta
     svg += '<ellipse cx="40" cy="78" rx="11" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(25 40 78)"/>';
-
   } else {
-    // FLORECIENDO — planta completa con flor de 6 pétalos
     svg += '<rect x="28" y="65" width="4" height="59" rx="2" fill="#15803d" opacity="0.9"/>';
-    // hojas
     svg += '<ellipse cx="16" cy="100" rx="14" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(-30 16 100)"/>';
     svg += '<ellipse cx="44" cy="90" rx="14" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(30 44 90)"/>';
     svg += '<ellipse cx="18" cy="80" rx="12" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(-25 18 80)"/>';
     svg += '<ellipse cx="42" cy="74" rx="12" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(25 42 74)"/>';
-    // flor — 6 pétalos
     var cx=30, cy=52, pr=10, pc=5;
     for (var i=0;i<6;i++) {
-      var ang = (i*60)*Math.PI/180;
-      var px = cx + pr*Math.cos(ang);
-      var py = cy + pr*Math.sin(ang);
+      var ang=(i*60)*Math.PI/180;
+      var px=cx+pr*Math.cos(ang);
+      var py=cy+pr*Math.sin(ang);
       svg += '<ellipse cx="'+px+'" cy="'+py+'" rx="'+pc+'" ry="7" fill="'+c+'" opacity="0.9" transform="rotate('+(i*60)+' '+px+' '+py+')" />';
     }
-    // centro de la flor
     svg += '<circle cx="'+cx+'" cy="'+cy+'" r="7" fill="#fef08a" opacity="0.95"/>';
     svg += '<circle cx="'+cx+'" cy="'+cy+'" r="3" fill="#ca8a04" opacity="0.9"/>';
   }
 
-  // INSIGNIA — arcoíris + estrella si completó Master Challenge
-  if (tieneInsignia) {
-    // arcoíris
-    var arcos = ['#f87171','#fb923c','#facc15','#4ade80','#60a5fa','#818cf8'];
-    arcos.forEach(function(col, i) {
-      var r = 28 - i*4;
+  // INSIGNIA — arcoíris siempre si tiene cualquier challenge
+  if (tipoInsignia) {
+    var arcos=['#f87171','#fb923c','#facc15','#4ade80','#60a5fa','#818cf8'];
+    arcos.forEach(function(col,i){
+      var r=28-i*4;
       svg += '<path d="M '+(30-r)+' 30 A '+r+' '+r+' 0 0 1 '+(30+r)+' 30" fill="none" stroke="'+col+'" stroke-width="3" opacity="0.7"/>';
     });
-    // estrella
-    var sx=30, sy=16, sr=7, si=3.5;
-    var pts='';
-    for (var s=0;s<10;s++) {
-      var sang=(s*36-90)*Math.PI/180;
-      var sr2=s%2===0?sr:si;
-      pts+=(sx+sr2*Math.cos(sang))+','+(sy+sr2*Math.sin(sang))+' ';
+
+    // ESTRELLA GRANDE solo en Gran Challenge
+    if (tipoInsignia === 'Gran') {
+      var sx=30, sy=13, sr=11, si=5, pts='';
+      for (var s=0;s<10;s++){
+        var sang=(s*36-90)*Math.PI/180;
+        var sr2=s%2===0?sr:si;
+        pts+=(sx+sr2*Math.cos(sang))+','+(sy+sr2*Math.sin(sang))+' ';
+      }
+      svg += '<polygon points="'+pts+'" fill="#fef08a" opacity="0.98"/>';
+      svg += '<polygon points="'+pts+'" fill="none" stroke="#ca8a04" stroke-width="1" opacity="0.9"/>';
+      // brillo centro estrella
+      svg += '<circle cx="30" cy="13" r="3" fill="#fff" opacity="0.6"/>';
     }
-    svg += '<polygon points="'+pts+'" fill="#fef08a" opacity="0.95"/>';
-    svg += '<polygon points="'+pts+'" fill="none" stroke="#ca8a04" stroke-width="0.5" opacity="0.8"/>';
   }
 
   svg += '</svg>';
@@ -539,7 +542,14 @@
             var val=p[pi]||0;
             var n=nivelColor(val);
             return '<div class="mapa-pilar">'+
-              '<div style="display:flex;justify-content:center;align-items:flex-end;height:144px;">'+plantaSVG(val, d.success && d.challenges && d.challenges.some(function(ch){return ch.aprobado;}))+' </div>'+
+             '<div style="display:flex;justify-content:center;align-items:flex-end;height:144px;">'+plantaSVG(val, (function(){
+  if (!d.success||!d.challenges) return null;
+  var gran=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Gran';});
+  if (gran) return 'Gran';
+  var mini=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Mini';});
+  if (mini) return 'Mini';
+  return null;
+})())+' </div>'+
               '<div class="mapa-pilar-label">'+PILAR_LABELS[pi]+'</div>'+
               '<div class="mapa-pilar-val" style="color:'+n.color+'">'+n.emoji+' '+n.label+'</div>'+
             '</div>';
@@ -560,11 +570,13 @@
     }).join('');
   }
 
-  // ── MASTER CHALLENGE ───────────────────────────────────────────────
-  function selBloque(b) {
-    bloqueActualChallenge=b;
-    document.getElementById('bloqueBtn1').classList.toggle('active',b===1);
-    document.getElementById('bloqueBtn2').classList.toggle('active',b===2);
+ // ── MASTER CHALLENGE ───────────────────────────────────────────────
+  var tipoChallenge = 'Mini';
+
+  function selTipoChallenge(tipo) {
+    tipoChallenge = tipo;
+    document.getElementById('tipoBtn1').classList.toggle('active', tipo === 'Mini');
+    document.getElementById('tipoBtn2').classList.toggle('active', tipo === 'Gran');
   }
 
   function renderChallenge() {
@@ -589,18 +601,20 @@
   }
 
   function guardarChallenge() {
-    var alumnos=grupoActual.alumnos||[];
-    var fecha=new Date().toISOString().split('T')[0];
-    var data=alumnos.map(function(a){
-      var aprobado=document.getElementById('apr-si-'+a.id).classList.contains('sel-si');
-      return {idAlumno:a.id,feedback:document.getElementById('fb-'+a.id).value,aprobado:aprobado};
+    var alumnos = grupoActual.alumnos||[];
+    var fecha   = new Date().toISOString().split('T')[0];
+    var bw      = calcularBloqueySemana();
+    var data    = alumnos.map(function(a){
+      var aprobado = document.getElementById('apr-si-'+a.id).classList.contains('sel-si');
+      return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprobado:aprobado};
     });
     fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+
-      '&bloque='+bloqueActualChallenge+'&fecha='+fecha+
+      '&bloque='+bw.bloque+'&fecha='+fecha+
+      '&tipo='+encodeURIComponent(tipoChallenge)+
       '&alumnos='+encodeURIComponent(JSON.stringify(data)))
       .then(r=>r.json())
       .then(d=>{
-        if (d.success) mostrarToast('Master Challenge guardado','success');
+        if (d.success) mostrarToast(tipoChallenge+' Challenge guardado','success');
         else mostrarToast('Error: '+d.error,'error');
       })
       .catch(()=>mostrarToast('Error de conexión','error'));
