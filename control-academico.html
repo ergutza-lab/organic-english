@@ -459,7 +459,7 @@
     var lista=document.getElementById('reasigGruposLista');
     lista.innerHTML='<div class="empty-state">Cargando grupos...</div>';
     fetch(APPS_SCRIPT+'?action=getDatosCA')
-      .then(r=>r.json())
+      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
       .then(data=>{
         var grupos=data.grupos||[];
         var sinMaestro=grupos.filter(g=>!g.idMaestro||g.idMaestro==='').length;
@@ -506,7 +506,7 @@
     btn.textContent='Guardando...'; btn.disabled=true;
 
     fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(grupoReasigActual.idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idDestino)+'&idCA='+encodeURIComponent(caData.id))
-      .then(r=>r.json())
+      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
       .then(data=>{
         btn.textContent='Confirmar cambio'; btn.disabled=false;
         if (data.status!=='ok') { alert('Error: '+(data.mensaje||'Intenta de nuevo.')); return; }
@@ -524,7 +524,7 @@
         document.getElementById('reasigConfirm').style.display='block';
         cargarTodosGrupos(); cargarDatos();
       })
-      .catch(()=>{ btn.textContent='Confirmar cambio'; btn.disabled=false; alert('Error de conexión.'); });
+      .catch((err)=>{ btn.textContent='Confirmar cambio'; btn.disabled=false; alert('Error: '+err.message); });
   }
 
   function darDeAlta() {
@@ -536,7 +536,7 @@
     var btn=document.querySelector('.btn-alta');
     btn.textContent='Registrando...'; btn.disabled=true;
     fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'altaMaestro',nombre,whatsapp,email,rol,clave,costo,activo,idCA:caData.id})})
-      .then(r=>r.json())
+      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
       .then(data=>{
         btn.textContent='Registrar maestro'; btn.disabled=false;
         if (data.status==='ok') {
@@ -553,11 +553,11 @@
   function confirmarBaja() {
     if (!maestroBajaId) return;
     fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'bajaMaestro',idMaestro:maestroBajaId,idCA:caData.id})})
-      .then(r=>r.json()).then(data=>{ cerrarModalBaja(); if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
+      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; }).then(data=>{ cerrarModalBaja(); if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
   }
   function reactivarMaestro(id) {
     fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'reactivarMaestro',idMaestro:id,idCA:caData.id})})
-      .then(r=>r.json()).then(data=>{ if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
+      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; }).then(data=>{ if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
   }
 
   function switchTab(nombre) {
