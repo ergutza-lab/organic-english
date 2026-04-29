@@ -504,14 +504,14 @@
     if (!maestroDestino) return;
     var btn=document.querySelector('#modalReasig .btn-modal-confirm');
     btn.textContent='Guardando...'; btn.disabled=true;
+    var grupo=JSON.parse(JSON.stringify(grupoReasigActual)); // copia antes del fetch
 
-    fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(grupoReasigActual.idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idDestino)+'&idCA='+encodeURIComponent(caData.id))
+    fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(grupo.idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idDestino)+'&idCA='+encodeURIComponent(caData.id))
       .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
       .then(data=>{
         btn.textContent='Confirmar cambio'; btn.disabled=false;
         if (data.status!=='ok') { alert('Error: '+(data.mensaje||'Intenta de nuevo.')); return; }
         cerrarModalReasig();
-        var grupo=grupoReasigActual;
         var msgNuevo=encodeURIComponent('Hola '+maestroDestino.nombre.split(' ')[0]+'\n\nTienes asignado el grupo '+grupo.idGrupo+'.\nHorario: '+grupo.horario+' hora CDMX\nNivel: '+grupo.nivel+'\n\nRevisa tu panel para ver los detalles.\n\n— Coordinacion Academica · Organic English');
         document.getElementById('btnWaNuevo').href='https://wa.me/52'+maestroDestino.whatsapp+'?text='+msgNuevo;
         var btnAnt=document.getElementById('btnWaAnterior');
