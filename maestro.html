@@ -418,30 +418,30 @@
     var resultados=[], pendientes=alumnos.length;
     alumnos.forEach(function(a){
       fetch(APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(a.id)+'&idGrupo='+encodeURIComponent(grupoActual.id))
-       .then(data=>{ 
-  resultados.push({alumno:a,data:data}); 
-  pendientes--; 
-  if(pendientes===0) {
-    resultados.sort(function(x,y){
-      var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
-      var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
-      return numX-numY;
-    });
-    renderMapas(resultados);
-  }
-})
-.catch(()=>{ 
-  pendientes--; 
-  if(pendientes===0) {
-    resultados.sort(function(x,y){
-      var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
-      var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
-      return numX-numY;
-    });
-    renderMapas(resultados);
-  }
-});
-        .catch(()=>{ pendientes--; if(pendientes===0) renderMapas(resultados); });
+        .then(r=>r.json())
+        .then(data=>{
+          resultados.push({alumno:a,data:data});
+          pendientes--;
+          if(pendientes===0){
+            resultados.sort(function(x,y){
+              var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
+              var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
+              return numX-numY;
+            });
+            renderMapas(resultados);
+          }
+        })
+        .catch(()=>{
+          pendientes--;
+          if(pendientes===0){
+            resultados.sort(function(x,y){
+              var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
+              var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
+              return numX-numY;
+            });
+            renderMapas(resultados);
+          }
+        });
     });
   }
 
