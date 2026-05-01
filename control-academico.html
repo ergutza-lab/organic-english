@@ -109,12 +109,7 @@
   .grupo-item-reasig-maestro { font-size:11px; color:var(--orange); margin-top:2px; }
   .btn-reasignar { font-size:12px; padding:6px 14px; border-radius:8px; border:1px solid rgba(249,115,22,0.4); background:rgba(249,115,22,0.1); color:var(--orange); cursor:pointer; font-weight:600; transition:all 0.2s; white-space:nowrap; }
   .btn-reasignar:hover { background:rgba(249,115,22,0.2); }
-  .reasig-confirm { background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); border-radius:12px; padding:20px; margin-top:16px; display:none; }
-  .reasig-confirm-title { font-size:15px; font-weight:700; color:#4ade80; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-  .reasig-wa-btns { display:flex; flex-direction:column; gap:10px; }
-  .btn-wa-lg { display:flex; align-items:center; gap:10px; background:#16a34a; color:#fff; border:none; border-radius:100px; padding:13px 22px; font-size:14px; font-weight:700; cursor:pointer; text-decoration:none; width:100%; }
-  .btn-wa-lg.saliente { background:#64748b; }
-  .btn-wa-lg:hover { opacity:0.9; }
+  /* Modal de notificación post-reasignación */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
   .modal-overlay.visible { display:flex; }
   .modal-box { background:var(--surface); border-radius:18px; border:1px solid var(--border); padding:28px; width:100%; max-width:420px; }
@@ -132,6 +127,9 @@
   .reasig-select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 14px; color:var(--text); font-size:14px; outline:none; margin-bottom:12px; }
   .reasig-select:focus { border-color:var(--orange); }
   .reasig-select option { background:#1a2540; }
+  .btn-wa-lg { display:flex; align-items:center; gap:10px; background:#16a34a; color:#fff; border:none; border-radius:100px; padding:13px 22px; font-size:14px; font-weight:700; cursor:pointer; text-decoration:none; width:100%; margin-bottom:10px; }
+  .btn-wa-lg.saliente { background:#64748b; }
+  .btn-wa-lg:hover { opacity:0.9; }
   @media(max-width:768px){.panel-root{padding:1rem;}.stats-row{grid-template-columns:1fr 1fr;}.form-grid{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -237,27 +235,6 @@
           <span id="badgeSinMaestro" style="font-size:11px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:3px 10px;border-radius:20px;font-weight:700;display:none;">0 sin maestro</span>
         </div>
         <div id="reasigGruposLista" class="grupos-lista"><div class="empty-state">Cargando grupos...</div></div>
-        <div id="reasigConfirm" class="reasig-confirm">
-          <div class="reasig-confirm-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            Grupo reasignado correctamente
-          </div>
-          <div id="reasigResumen" style="font-size:13px;color:#94a3b8;margin-bottom:12px;line-height:1.6;"></div>
-          <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Notifica a los maestros con los botones de abajo y luego cierra.</p>
-          <div class="reasig-wa-btns">
-            <a id="btnWaNuevo" href="#" target="_blank" class="btn-wa-lg">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-              Notificar al maestro entrante
-            </a>
-            <a id="btnWaAnterior" href="#" target="_blank" class="btn-wa-lg saliente" style="display:none;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-              Notificar al maestro saliente
-            </a>
-            <button onclick="document.getElementById('reasigConfirm').style.display='none'; cargarTodosGrupos();" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px;color:#94a3b8;font-size:14px;cursor:pointer;margin-top:12px;">Cerrar</button>
-           <button onclick="document.getElementById('reasigConfirm').style.display='none'; cargarTodosGrupos();" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px;color:#94a3b8;font-size:14px;cursor:pointer;margin-top:12px;">Cerrar</button>
-            <button onclick="document.getElementById('reasigConfirm').style.display='none'; cargarTodosGrupos();" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px;color:var(--muted);font-size:14px;cursor:pointer;margin-top:4px;">Cerrar</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -294,6 +271,28 @@
   </div>
 </div>
 
+<!-- ══ MODAL NOTIFICAR MAESTROS (fuera de tabs) ══════════════════ -->
+<div id="modalNotificar" class="modal-overlay">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      Grupo reasignado correctamente
+    </div>
+    <div id="reasigResumen" style="font-size:13px;color:#94a3b8;margin-bottom:16px;line-height:1.6;"></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Notifica a los maestros con los botones de abajo y luego cierra.</p>
+    <a id="btnWaNuevo" href="#" target="_blank" class="btn-wa-lg">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+      Notificar al maestro entrante
+    </a>
+    <a id="btnWaAnterior" href="#" target="_blank" class="btn-wa-lg saliente" style="display:none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+      Notificar al maestro saliente
+    </a>
+    <button onclick="cerrarModalNotificar()" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px;color:#94a3b8;font-size:14px;cursor:pointer;margin-top:4px;">Cerrar</button>
+  </div>
+</div>
+
+<!-- ══ MODAL BAJA MAESTRO ════════════════════════════════════════ -->
 <div id="modalBaja" class="modal-overlay" onclick="if(event.target===this)cerrarModalBaja()">
   <div class="modal-box">
     <div class="modal-title">
@@ -308,6 +307,7 @@
   </div>
 </div>
 
+<!-- ══ MODAL SELECCIONAR MAESTRO DESTINO ════════════════════════ -->
 <div id="modalReasig" class="modal-overlay" onclick="if(event.target===this)cerrarModalReasig()">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-title">
@@ -454,15 +454,13 @@
     }).join('');
   }
 
-  function iniciarReasignacion() {
-    cargarTodosGrupos();
-  }
+  function iniciarReasignacion() { cargarTodosGrupos(); }
 
   function cargarTodosGrupos() {
     var lista=document.getElementById('reasigGruposLista');
     lista.innerHTML='<div class="empty-state">Cargando grupos...</div>';
     fetch(APPS_SCRIPT+'?action=getDatosCA')
-      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
+      .then(r=>r.json())
       .then(data=>{
         var grupos=data.grupos||[];
         var sinMaestro=grupos.filter(g=>!g.idMaestro||g.idMaestro==='').length;
@@ -499,6 +497,12 @@
 
   function cerrarModalReasig() { document.getElementById('modalReasig').classList.remove('visible'); grupoReasigActual=null; }
 
+  function cerrarModalNotificar() {
+    document.getElementById('modalNotificar').classList.remove('visible');
+    cargarTodosGrupos();
+    cargarDatos();
+  }
+
   function confirmarReasignacion() {
     var idDestino=document.getElementById('reasigMaestroDestino').value;
     if (!idDestino) { alert('Selecciona un maestro.'); return; }
@@ -507,14 +511,15 @@
     if (!maestroDestino) return;
     var btn=document.querySelector('#modalReasig .btn-modal-confirm');
     btn.textContent='Guardando...'; btn.disabled=true;
-    var grupo=JSON.parse(JSON.stringify(grupoReasigActual)); // copia antes del fetch
+    var grupo=JSON.parse(JSON.stringify(grupoReasigActual));
 
     fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(grupo.idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idDestino)+'&idCA='+encodeURIComponent(caData.id))
-      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
+      .then(r=>r.json())
       .then(data=>{
         btn.textContent='Confirmar cambio'; btn.disabled=false;
         if (data.status!=='ok') { alert('Error: '+(data.mensaje||'Intenta de nuevo.')); return; }
         cerrarModalReasig();
+        // Preparar mensajes WA
         var msgNuevo=encodeURIComponent('Hola '+maestroDestino.nombre.split(' ')[0]+'\n\nTienes asignado el grupo '+grupo.idGrupo+'.\nHorario: '+grupo.horario+' hora CDMX\nNivel: '+grupo.nivel+'\n\nRevisa tu panel para ver los detalles.\n\n— Coordinacion Academica · Organic English');
         document.getElementById('btnWaNuevo').href='https://wa.me/52'+maestroDestino.whatsapp+'?text='+msgNuevo;
         var btnAnt=document.getElementById('btnWaAnterior');
@@ -524,7 +529,8 @@
           btnAnt.style.display='flex';
         } else { btnAnt.style.display='none'; }
         document.getElementById('reasigResumen').innerHTML=grupo.maestroOrigenId?'El grupo <strong>'+grupo.idGrupo+'</strong> fue reasignado a <strong>'+maestroDestino.nombre+'</strong>.':'El grupo <strong>'+grupo.idGrupo+'</strong> fue asignado a <strong>'+maestroDestino.nombre+'</strong>.';
-        document.getElementById('reasigConfirm').style.display='block';
+        // Mostrar modal de notificación
+        document.getElementById('modalNotificar').classList.add('visible');
       })
       .catch((err)=>{ btn.textContent='Confirmar cambio'; btn.disabled=false; alert('Error: '+err.message); });
   }
@@ -538,7 +544,7 @@
     var btn=document.querySelector('.btn-alta');
     btn.textContent='Registrando...'; btn.disabled=true;
     fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'altaMaestro',nombre,whatsapp,email,rol,clave,costo,activo,idCA:caData.id})})
-      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; })
+      .then(r=>r.json())
       .then(data=>{
         btn.textContent='Registrar maestro'; btn.disabled=false;
         if (data.status==='ok') {
@@ -555,11 +561,11 @@
   function confirmarBaja() {
     if (!maestroBajaId) return;
     fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'bajaMaestro',idMaestro:maestroBajaId,idCA:caData.id})})
-      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; }).then(data=>{ cerrarModalBaja(); if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
+      .then(r=>r.json()).then(data=>{ cerrarModalBaja(); if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
   }
   function reactivarMaestro(id) {
     fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'reactivarMaestro',idMaestro:id,idCA:caData.id})})
-      .then(r=>r.text()).then(text=>{ var data; try { data=JSON.parse(text); } catch(e) { throw new Error('No JSON: '+text.substring(0,200)); } return data; }).then(data=>{ if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
+      .then(r=>r.json()).then(data=>{ if(data.status==='ok') cargarDatos(); else alert('Error: '+(data.mensaje||'Intenta de nuevo.')); });
   }
 
   function switchTab(nombre) {
