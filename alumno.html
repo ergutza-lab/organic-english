@@ -697,7 +697,27 @@
       formData.append('base64',base64); formData.append('mimeType',archivoSubida.type); formData.append('nombreArchivo',archivoSubida.name);
       fetch(APPS_SCRIPT,{method:'POST',body:formData})
         .then(r=>r.json())
-        .then(data=>{ btn.classList.remove('cargando'); btn.textContent='Subir comprobante'; if(data.success){setUploadStatus('Comprobante enviado.','ok');btn.textContent='Enviado!';setTimeout(cerrarModalPago,3000);}else{btn.classList.add('activo');setUploadStatus('Error: '+(data.error||'Intenta de nuevo.'),'err');} })
+        .then(data=>{
+          btn.classList.remove('cargando'); btn.textContent='Subir comprobante';
+          if(data.success){
+            setUploadStatus('✅ Comprobante enviado correctamente.','ok');
+            btn.textContent='¡Enviado!';
+            var s=alumnoData.asistente;
+            if(s&&s.whatsapp){
+              var msg=encodeURIComponent('Hola '+s.nombre.split(' ')[0]+' 👋\n\nTe informo que acabo de subir mi comprobante de pago.\n\n👤 Alumno: '+alumnoData.alumno.nombre+'\n🆔 ID: '+alumnoData.alumno.id+'\n📚 Grupo: '+(alumnoData.grupo?alumnoData.grupo.id:'—')+'\n\nQuedo pendiente de tu validación. ¡Gracias! 🙏');
+              var btnWA=document.createElement('a');
+              btnWA.href='https://wa.me/52'+s.whatsapp+'?text='+msg;
+              btnWA.target='_blank';
+              btnWA.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;background:#16a34a;color:#fff;border-radius:100px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;';
+              btnWA.innerHTML='📱 Notificar a mi asistente CE por WhatsApp';
+              document.getElementById('uploadStatus').after(btnWA);
+            }
+            setTimeout(cerrarModalPago,8000);
+          }else{
+            btn.classList.add('activo');
+            setUploadStatus('Error: '+(data.error||'Intenta de nuevo.'),'err');
+          }
+        })
         .catch(()=>{ btn.classList.remove('cargando');btn.classList.add('activo');btn.textContent='Subir comprobante';setUploadStatus('Error de conexion.','err'); });
     };
     reader.readAsDataURL(archivoSubida);
