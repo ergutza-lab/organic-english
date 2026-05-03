@@ -281,6 +281,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <button class="tab activo" onclick="cambiarTab('resumen',this)">Resumen</button>
     <button class="tab" onclick="cambiarTab('grupos',this)">Grupos</button>
     <button class="tab" onclick="cambiarTab('nuevo-grupo',this)">+ Nuevo Grupo</button>
+    <button class="tab" onclick="cambiarTab('nuevo-asistente',this)">+ Nuevo Asistente</button>
     <button class="tab" onclick="cambiarTab('asistentes',this)">Asistentes CE</button>
     <button class="tab" onclick="cambiarTab('seguimiento',this)">Seguimiento de alumnos</button>
     <button class="tab" onclick="cambiarTab('alertas',this)" id="tab-alertas">Alertas</button>
@@ -457,6 +458,59 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
             <button class="btn btn-primario" onclick="crearGrupo()">Crear grupo</button>
             <button class="btn btn-outline" onclick="limpiarFormNuevoGrupo()">Limpiar</button>
             <div class="form-msg" id="form-nuevo-grupo-msg"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: NUEVO ASISTENTE -->
+    <div id="sec-nuevo-asistente" class="seccion">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">Dar de alta nuevo Asistente CE</div>
+            <div class="card-sub">El ID se genera automáticamente. Todos los campos son obligatorios.</div>
+          </div>
+        </div>
+        <div class="form-nuevo-grupo">
+          <div class="form-grid">
+            <div class="form-campo">
+              <label>Nombre completo *</label>
+              <input type="text" id="na-nombre" placeholder="Nombre del asistente" autocomplete="off" />
+            </div>
+            <div class="form-campo">
+              <label>WhatsApp *</label>
+              <input type="tel" id="na-whatsapp" placeholder="10 dígitos" autocomplete="off" maxlength="10" />
+            </div>
+            <div class="form-campo">
+              <label>Email *</label>
+              <input type="email" id="na-email" placeholder="correo@ejemplo.com" autocomplete="off" />
+            </div>
+            <div class="form-campo">
+              <label>Clave de acceso *</label>
+              <input type="text" id="na-clave" placeholder="Clave para el panel" autocomplete="off" />
+            </div>
+            <div class="form-campo">
+              <label>Nómina *</label>
+              <input type="text" id="na-nomina" placeholder="Monto o referencia de nómina" autocomplete="off" />
+            </div>
+            <div class="form-campo">
+              <label>Institución bancaria *</label>
+              <input type="text" id="na-banco" placeholder="Ej: BBVA, Santander..." autocomplete="off" />
+            </div>
+            <div class="form-campo full">
+              <label>Información bancaria *</label>
+              <input type="text" id="na-info-bancaria" placeholder="CLABE, cuenta o tarjeta" autocomplete="off" />
+            </div>
+            <div class="form-campo full">
+              <label>URL de foto</label>
+              <input type="url" id="na-foto" placeholder="https://... (opcional)" autocomplete="off" />
+            </div>
+          </div>
+          <div class="form-acciones">
+            <button class="btn btn-primario" onclick="crearAsistente()">Dar de alta</button>
+            <button class="btn btn-outline" onclick="limpiarFormAsistente()">Limpiar</button>
+            <div class="form-msg" id="form-nuevo-asistente-msg"></div>
           </div>
         </div>
       </div>
@@ -685,7 +739,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNh2bE9xL6P6fcj0isN2feQKxcVAsmyqZ2uUFFFPfantp1c7TsJ96T48AaVXlMTKG6/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
 var estado = {
   idCE: '', nombreCE: '',
@@ -1168,7 +1222,7 @@ function cambiarTab(seccion, boton) {
 }
 
 function irATab(seccion) {
-  var mapa = { resumen:0, grupos:1, 'nuevo-grupo':2, asistentes:3, seguimiento:4, alertas:5 };
+  var mapa = { resumen:0, grupos:1, 'nuevo-grupo':2, 'nuevo-asistente':3, asistentes:4, seguimiento:5, alertas:6 };
   var tabs = document.querySelectorAll('.tab');
   var idx = mapa[seccion];
   if (idx === undefined) return;
@@ -1249,6 +1303,67 @@ function confirmarEvaluacion() {
     btnGuardar.textContent = 'Guardar evaluación'; btnGuardar.disabled = false;
     msgEl.textContent = 'Error de conexión. Intenta de nuevo.';
     msgEl.className = 'modal-msg error';
+  });
+}
+
+// ── CREAR ASISTENTE CE ──
+function crearAsistente() {
+  var nombre       = document.getElementById('na-nombre').value.trim();
+  var whatsapp     = document.getElementById('na-whatsapp').value.trim();
+  var email        = document.getElementById('na-email').value.trim();
+  var clave        = document.getElementById('na-clave').value.trim();
+  var nomina       = document.getElementById('na-nomina').value.trim();
+  var banco        = document.getElementById('na-banco').value.trim();
+  var infoBancaria = document.getElementById('na-info-bancaria').value.trim();
+  var foto         = document.getElementById('na-foto').value.trim();
+  var msgEl        = document.getElementById('form-nuevo-asistente-msg');
+
+  msgEl.className = 'form-msg'; msgEl.style.display = 'none';
+
+  if (!nombre || !whatsapp || !email || !clave || !nomina || !banco || !infoBancaria) {
+    msgEl.textContent = 'Por favor completa todos los campos obligatorios.';
+    msgEl.className = 'form-msg error'; return;
+  }
+  if (!/^\d{10}$/.test(whatsapp)) {
+    msgEl.textContent = 'El WhatsApp debe tener exactamente 10 dígitos.';
+    msgEl.className = 'form-msg error'; return;
+  }
+
+  var btn = document.querySelector('#sec-nuevo-asistente .btn-primario');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+
+  api({
+    action:       'crearAsistenteCE',
+    nombre:       nombre,
+    whatsapp:     whatsapp,
+    email:        email,
+    clave:        clave,
+    nomina:       nomina,
+    banco:        banco,
+    infoBancaria: infoBancaria,
+    foto:         foto,
+    idCE:         estado.idCE
+  }).then(function(res) {
+    btn.textContent = 'Dar de alta'; btn.disabled = false;
+    if (res.ok) {
+      msgEl.textContent = 'Asistente ' + res.idAsistente + ' dado de alta correctamente.';
+      msgEl.className = 'form-msg ok';
+      limpiarFormAsistente();
+      cargarDatos();
+    } else {
+      msgEl.textContent = res.error || 'Error al dar de alta.';
+      msgEl.className = 'form-msg error';
+    }
+  }).catch(function() {
+    btn.textContent = 'Dar de alta'; btn.disabled = false;
+    msgEl.textContent = 'Error de conexión. Intenta de nuevo.';
+    msgEl.className = 'form-msg error';
+  });
+}
+
+function limpiarFormAsistente() {
+  ['na-nombre','na-whatsapp','na-email','na-clave','na-nomina','na-banco','na-info-bancaria','na-foto'].forEach(function(id) {
+    document.getElementById(id).value = '';
   });
 }
 
