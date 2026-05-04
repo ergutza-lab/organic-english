@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -412,12 +412,24 @@
   </div>
 </div>
 
+<!-- MODAL NOTIFICACIÓN PAGO VALIDADO -->
+<div class="modal-confirm-overlay" id="modal-notif-pago">
+  <div class="modal-confirm-box">
+    <div class="modal-confirm-titulo">✓ Pago validado</div>
+    <div class="modal-confirm-sub" id="notif-pago-mensaje">El pago ha sido registrado correctamente.</div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-ok" style="background:var(--verde)" onclick="notificarAlumnoPago()">📱 Notificar al alumno</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalNotifPago()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 let asistente=null,datosPanel=null;
-let pagoActivoId=null,pagoActivoFecha=null;
+let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null;
 
 setTimeout(()=>{
@@ -760,9 +772,34 @@ async function validarPago(idAlumno,fechaPago,monto){
     const url=`${APPS_SCRIPT}?action=validarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fechaPago=${encodeURIComponent(fechaPago)}&idAsistente=${encodeURIComponent(asistente.id)}&monto=${encodeURIComponent(monto||0)}`;
     const resp=await fetch(url);
     const data=await resp.json();
-    if(data.status==='ok'){mostrarToast('✓ Pago validado correctamente','success');await cargarDatos();}
+    if(data.status==='ok'){
+      mostrarToast('✓ Pago validado correctamente','success');
+      // Guardar datos para posible notificación
+      const pago = (datosPanel?.pagos_pendientes || []).find(p => p.id_alumno === idAlumno);
+      if (pago) {
+        pagoActivoNombre = pago.nombre;
+        pagoActivoWA = pago.whatsapp;
+      }
+      document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
+      document.getElementById('modal-notif-pago').classList.add('open');
+      await cargarDatos();
+    }
     else mostrarToast(data.mensaje||'Error al validar','error');
   }catch(e){mostrarToast('Error de conexión','error');}
+}
+
+function cerrarModalNotifPago(){
+  document.getElementById('modal-notif-pago').classList.remove('open');
+  pagoActivoNombre=null;
+  pagoActivoWA=null;
+}
+
+function notificarAlumnoPago(){
+  if(pagoActivoWA){
+    const msg = encodeURIComponent('Hola! Te informo que tu pago ha sido validado correctamente. Ya puedes asistir a tus clases. ¡Bienvenido/a!');
+    window.open(`https://wa.me/52${pagoActivoWA}?text=${msg}`,'_blank');
+  }
+  cerrarModalNotifPago();
 }
 
 function mostrarToast(msg,tipo=''){
