@@ -495,6 +495,9 @@
   // ── MODAL NOTIFICACIÓN ──
   function cerrarModalNotif() {
     document.getElementById('modalNotificacion').classList.remove('active');
+    // Restaurar botón notificar por si fue ocultado
+    document.getElementById('btnNotificar').style.display = '';
+    document.getElementById('btnNotificar').textContent = 'Notificar';
     modalData = null;
     // Recargar la lista de pendientes para reflejar validaciones ya hechas
     recargarPendientes();
@@ -538,11 +541,16 @@
         var msgCE = encodeURIComponent('Hola ' + d.asisNombre + ', se ha inscrito un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Por favor preséntate con él para darle la bienvenida.');
         window.open('https://wa.me/52' + d.asisWA + '?text=' + msgCE, '_blank');
       }
+      // Siempre mostrar paso del maestro
+      modalData = { tipo: 'maestro', data: d };
+      document.getElementById('modalTitulo').textContent = 'Notificar al Maestro';
       if (d.maestroWA) {
-        modalData = { tipo: 'maestro', data: d };
-        document.getElementById('modalTitulo').textContent = 'Notificar al Maestro';
-        document.getElementById('modalMensaje').textContent = '¿Deseas notificar al maestro sobre la inscripción de ' + d.nombreAlumno + ' en el grupo ' + d.idGrupo + '?';
-      } else { cerrarModalNotif(); }
+        document.getElementById('modalMensaje').textContent = '¿Deseas notificar al maestro ' + (d.maestroNombre || '') + ' sobre la inscripción de ' + d.nombreAlumno + ' en el grupo ' + d.idGrupo + '?';
+        document.getElementById('btnNotificar').textContent = 'Notificar al Maestro';
+      } else {
+        document.getElementById('modalMensaje').textContent = 'El maestro del grupo ' + d.idGrupo + ' no tiene WhatsApp registrado. Puedes cerrar.';
+        document.getElementById('btnNotificar').style.display = 'none';
+      }
     } else if (modalData.tipo === 'maestro') {
       var msgMaestro = encodeURIComponent('Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.');
       window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
