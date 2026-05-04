@@ -399,34 +399,38 @@
 
     var comprobanteUrl = '';
 
-    // 1. Si hay archivo, convertir a base64 y subir a Drive
+    // 1. Si hay archivo, subir a Drive enviando JSON (no FormData)
     if (archivoSubida) {
       try {
         setStatus('Subiendo comprobante...', '');
-        var base64 = await fileToBase64(archivoSubida);
+        var base64Full = await fileToBase64(archivoSubida);
+        var base64Data = base64Full.split(',')[1];
+
         var respSubir = await fetch(APPS_SCRIPT, {
-  method: 'POST',
-  body: JSON.stringify({
-    action:         'subirComprobanteAsesor',
-    idAlumno:       alumnoActual,
-    base64:         base64.split(',')[1],
-    mimeType:       archivoSubida.type,
-    nombreArchivo:  archivoSubida.name
-  })
-});
+          method:   'POST',
+          redirect: 'follow',
+          body: JSON.stringify({
+            action:        'subirComprobanteAsesor',
+            idAlumno:      alumnoActual,
+            base64:        base64Data,
+            mimeType:      archivoSubida.type,
+            nombreArchivo: archivoSubida.name,
+            idAsesor:      asesorData.id
+          })
+        });
         var dataSubir = await respSubir.json();
         if (dataSubir.success) {
           comprobanteUrl = dataSubir.url || '';
           setStatus('Comprobante subido correctamente.', 'ok');
         } else {
-          setStatus('No se pudo subir el comprobante, pero se continuará con la validación.', 'err');
+          setStatus('No se pudo subir el comprobante, continuando con la validación.', 'err');
         }
       } catch(e) {
         setStatus('Error al subir comprobante. Continuando...', 'err');
       }
     }
 
-    // 2. Validar pago en Apps Script (registra monto en col C y link en col E)
+    // 2. Validar pago — registra monto en col C y link en col E de PAGOS_ALUMNO
     try {
       setStatus('Validando pago...', '');
       var url = APPS_SCRIPT +
@@ -442,12 +446,20 @@
       cerrarModalValidar();
 
       if (data.success) {
-        // Actualizar UI de la card
+        // Eliminar la card del alumno validado de la lista
         var card = btnActual ? btnActual.closest('.alumno-card') : null;
-        if (card) { card.style.opacity='0.4'; card.style.pointerEvents='none'; }
-        if (btnActual) btnActual.textContent = 'Validado';
+        if (card) card.remove();
+
+        // Actualizar comisión
         asesorData.comisionSemana = (asesorData.comisionSemana || 0) + 100;
         document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+
+        // Si no quedan pendientes mostrar estado vacío
+        var restantes = document.querySelectorAll('.alumno-card');
+        if (restantes.length === 0) {
+          document.getElementById('listaPendientes').innerHTML =
+            '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
+        }
 
         // Abrir modal de notificaciones
         if (data.esColocacion) {
