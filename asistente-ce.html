@@ -615,9 +615,13 @@ function renderPagos(){
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
   const nuevos=datosPanel?.alumnos_nuevos||[];
-  if(!nuevos.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
+  // Cargar presentados del storage
+  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
+  // Filtrar los que ya se presentaron
+  const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
+  if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
-  cont.innerHTML=nuevos.map(a=>{
+  cont.innerHTML=sinPresentar.map(a=>{
     const msg=encodeURIComponent(`¡Hola ${a.nombre}! 👋 Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. 🎉\n\nEstoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. 😊\n\n📌 IMPORTANTE: Por favor sube tus comprobantes de pago desde tu panel personal. Después de subirlo, notifícame por aquí para que pueda validarlo y confirmar tu pago en el sistema.\n\n¡Bienvenido/a a Organic English!`);
     return `
     <div class="nuevo-card">
@@ -626,9 +630,22 @@ function renderNuevos(){
         <div class="nuevo-sub">${a.whatsapp} · <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--azul);font-weight:700">${a.id}</span></div>
         <div class="nuevo-chip">🎓 ${a.grupo} · ${a.horario}</div>
       </div>
-      <a class="btn-whats" href="https://wa.me/52${a.whatsapp}?text=${msg}" target="_blank">👋 Presentarse</a>
+      <div style="display:flex;gap:8px">
+        <a class="btn-whats" href="https://wa.me/52${a.whatsapp}?text=${msg}" target="_blank">👋 Presentarse</a>
+        <button class="btn-confirmado" onclick="marcarPresentado('${a.id}')" style="padding:9px 14px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✓ Listo</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+function marcarPresentado(idAlumno){
+  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
+  if(!presentados.includes(idAlumno)){
+    presentados.push(idAlumno);
+    localStorage.setItem('nuevos_presentados', JSON.stringify(presentados));
+  }
+  renderNuevos();
+  mostrarToast('Alumno marcado como presentado','success');
 }
 
 function renderAlertas(){
