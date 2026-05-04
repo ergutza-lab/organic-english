@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -18,7 +18,8 @@
       --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background-color:#0f172a;background-image:url('images/hero01.webp');background-size:cover;background-position:center;background-attachment:fixed;font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;}
+    body{background-color:#0f172a;background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp');background-size:cover;background-position:center;background-attachment:fixed;font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;}
+    body::before{content:'';position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:0;}
     #login-screen,#panel-screen{position:relative;z-index:1;}
 
     /* LOGIN */
@@ -40,8 +41,8 @@
     /* HEADER */
     #panel-screen{display:none}
     .header{background:var(--azul);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.2)}
-    .header-left{display:flex;align-items:center;gap:10px}
-    .header-logo{height:38px;object-fit:contain;filter:brightness(0) invert(1)}
+    .header-left{display:flex;align-items:center;gap:12px}
+    .header-logo{height:48px;object-fit:contain;filter:brightness(0) invert(1)}
     .header-title{color:#fff;font-size:14px;font-weight:700;letter-spacing:-.2px}
     .header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:500}
     .header-right{display:flex;align-items:center;gap:10px}
@@ -290,7 +291,7 @@
 <div id="panel-screen">
   <div class="header">
     <div class="header-left">
-      <img src="images/logoblanco.png" class="header-logo" alt="OE">
+      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" class="header-logo" alt="OE" onerror="this.src='https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png'">
       <div>
         <div class="header-title">Organic English</div>
         <div class="header-sub">Asistente CE</div>
@@ -634,16 +635,18 @@ function renderAlertas(){
   const lista=datosPanel?.sin_pago||[];
   if(!lista.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
   cont.innerHTML=lista.map(a=>{
-    const waBtn=a.whatsapp?`<a class="btn-wa-mini" href="https://wa.me/52${a.whatsapp}?text=${encodeURIComponent(`Hola ${a.nombre}, te recuerdo que tu pago de Organic English vence este sábado. 😊`)}" target="_blank" style="padding:6px 12px">Avisar</a>`:'';
+    const fechaLimite = a.fecha_limite || '';
+    const msg = encodeURIComponent(`Hola ${a.nombre} 👋 Te recuerdo que tu pago en Organic English vence el ${fechaLimite}. Por favor realiza tu pago antes de esa fecha para no perder tu vigencia. ¿Necesitas ayuda? 😊`);
+    const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/52${a.whatsapp}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
     return `
     <div class="alerta-card">
       <div class="alerta-icon">⚠️</div>
       <div class="alerta-info">
         <div class="alerta-nombre">${a.nombre}</div>
-        <div class="alerta-sub"><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);font-size:11px">${a.id}</span> · ${a.grupo} · Último pago: ${a.ultimo_pago||'Sin registro'}</div>
+        <div class="alerta-sub"><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);font-size:11px">${a.id}</span> · ${a.grupo} · Vence: ${fechaLimite}</div>
       </div>
       ${waBtn}
-      <div class="alerta-badge">Baja el sábado</div>
+      <div class="alerta-badge">Sin pago vigente</div>
     </div>`;
   }).join('');
 }
