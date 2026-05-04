@@ -404,14 +404,16 @@
       try {
         setStatus('Subiendo comprobante...', '');
         var base64 = await fileToBase64(archivoSubida);
-        var formData = new FormData();
-        formData.append('action',        'subirComprobanteAsesor');
-        formData.append('idAlumno',      alumnoActual);
-        formData.append('base64',        base64.split(',')[1]);
-        formData.append('mimeType',      archivoSubida.type);
-        formData.append('nombreArchivo', archivoSubida.name);
-
-        var respSubir = await fetch(APPS_SCRIPT, { method: 'POST', body: formData });
+        var respSubir = await fetch(APPS_SCRIPT, {
+  method: 'POST',
+  body: JSON.stringify({
+    action:         'subirComprobanteAsesor',
+    idAlumno:       alumnoActual,
+    base64:         base64.split(',')[1],
+    mimeType:       archivoSubida.type,
+    nombreArchivo:  archivoSubida.name
+  })
+});
         var dataSubir = await respSubir.json();
         if (dataSubir.success) {
           comprobanteUrl = dataSubir.url || '';
