@@ -215,7 +215,8 @@
     <h3 id="modalTitulo">Plaza validada</h3>
     <p id="modalMensaje"></p>
     <div class="modal-notif-actions">
-      <button class="btn-notificar" id="btnNotificar">Notificar</button>
+      <button class="btn-notificar" id="btnNotificarCE" onclick="notificarAsistenteCE()">Notificar Asistente CE</button>
+      <button class="btn-notificar" id="btnNotificarMaestro" onclick="notificarMaestro()">Notificar Maestro</button>
       <button class="btn-cerrar-modal" onclick="cerrarModalNotif()">Cerrar</button>
     </div>
   </div>
@@ -462,17 +463,18 @@
         }
 
         // Abrir modal de notificaciones
+        modalData = { data: data };
         if (data.esColocacion) {
-          modalData = { tipo: 'colocacion', data: data };
           document.getElementById('modalTitulo').textContent = 'Pago validado';
           document.getElementById('modalMensaje').textContent =
-            'El pago de ' + data.nombreAlumno + ' ha sido registrado. ¿Deseas notificar al alumno y al encargado de colocación?';
+            'El pago de ' + data.nombreAlumno + ' ha sido registrado. Ahora puedes notificar al Asistente CE y/o al Maestro.';
         } else {
-          modalData = { tipo: 'normal', data: data };
           document.getElementById('modalTitulo').textContent = 'Plaza validada';
           document.getElementById('modalMensaje').textContent =
-            'El pago de ' + data.nombreAlumno + ' fue validado y se envió el correo de bienvenida. ¿Deseas notificar al Asistente CE y al Maestro?';
+            'El pago de ' + data.nombreAlumno + ' fue validado y se envió el correo de bienvenida. Usa los botones para notificar.';
         }
+        document.getElementById('btnNotificarCE').style.display = data.asisWA ? '' : 'none';
+        document.getElementById('btnNotificarMaestro').style.display = data.maestroWA ? '' : 'none';
         document.getElementById('modalNotificacion').classList.add('active');
       } else {
         alert('Error al validar: ' + (data.error || 'Intenta de nuevo.'));
@@ -495,11 +497,9 @@
   // ── MODAL NOTIFICACIÓN ──
   function cerrarModalNotif() {
     document.getElementById('modalNotificacion').classList.remove('active');
-    // Restaurar botón notificar por si fue ocultado
-    document.getElementById('btnNotificar').style.display = '';
-    document.getElementById('btnNotificar').textContent = 'Notificar';
+    document.getElementById('btnNotificarCE').style.display = '';
+    document.getElementById('btnNotificarMaestro').style.display = '';
     modalData = null;
-    // Recargar la lista de pendientes para reflejar validaciones ya hechas
     recargarPendientes();
   }
 
@@ -561,6 +561,28 @@
       cerrarModalNotif();
     }
   });
+
+  function notificarAsistenteCE() {
+    if (!modalData || !modalData.data) return;
+    var d = modalData.data;
+    if (d.asisWA) {
+      var msgCE = encodeURIComponent('Hola ' + d.asisNombre + ', se ha inscrito un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Por favor preséntate con él para darle la bienvenida.');
+      window.open('https://wa.me/52' + d.asisWA + '?text=' + msgCE, '_blank');
+    } else {
+      alert('El Asistente CE no tiene WhatsApp registrado.');
+    }
+  }
+
+  function notificarMaestro() {
+    if (!modalData || !modalData.data) return;
+    var d = modalData.data;
+    if (d.maestroWA) {
+      var msgMaestro = encodeURIComponent('Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.');
+      window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
+    } else {
+      alert('El maestro no tiene WhatsApp registrado.');
+    }
+  }
 
   function logout() {
     asesorData = null;
