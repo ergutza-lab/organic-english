@@ -523,45 +523,6 @@
       });
   }
 
-  document.getElementById('btnNotificar').addEventListener('click', function() {
-    if (!modalData) return;
-    var d = modalData.data;
-    if (modalData.tipo === 'colocacion') {
-      if (d.whatsappAlumno) {
-        var msgAlumno = encodeURIComponent('Hola ' + d.nombreAlumno + ', tu pago ha sido validado en Organic English. En breve el encargado de colocación te contactará para tu evaluación. ¡Bienvenido/a!');
-        window.open('https://wa.me/52' + d.whatsappAlumno + '?text=' + msgAlumno, '_blank');
-      }
-      if (d.colocadorWA) {
-        modalData = { tipo: 'colocador', data: d };
-        document.getElementById('modalTitulo').textContent = 'Notificar al Colocador';
-        document.getElementById('modalMensaje').textContent = '¿Deseas notificar al encargado de colocación sobre ' + d.nombreAlumno + '?';
-      } else { cerrarModalNotif(); }
-    } else if (modalData.tipo === 'normal') {
-      if (d.asisWA) {
-        var msgCE = encodeURIComponent('Hola ' + d.asisNombre + ', se ha inscrito un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Por favor preséntate con él para darle la bienvenida.');
-        window.open('https://wa.me/52' + d.asisWA + '?text=' + msgCE, '_blank');
-      }
-      // Siempre mostrar paso del maestro
-      modalData = { tipo: 'maestro', data: d };
-      document.getElementById('modalTitulo').textContent = 'Notificar al Maestro';
-      if (d.maestroWA) {
-        document.getElementById('modalMensaje').textContent = '¿Deseas notificar al maestro ' + (d.maestroNombre || '') + ' sobre la inscripción de ' + d.nombreAlumno + ' en el grupo ' + d.idGrupo + '?';
-        document.getElementById('btnNotificar').textContent = 'Notificar al Maestro';
-      } else {
-        document.getElementById('modalMensaje').textContent = 'El maestro del grupo ' + d.idGrupo + ' no tiene WhatsApp registrado. Puedes cerrar.';
-        document.getElementById('btnNotificar').style.display = 'none';
-      }
-    } else if (modalData.tipo === 'maestro') {
-      var msgMaestro = encodeURIComponent('Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.');
-      window.open('https://wa.me/52' + d.maestroWA + '?text=' + msgMaestro, '_blank');
-      cerrarModalNotif();
-    } else if (modalData.tipo === 'colocador') {
-      var msgCol = encodeURIComponent('Hola ' + d.colocadorNombre + ', hay un nuevo alumno por colocación: ' + d.nombreAlumno + '. Su pago fue validado. Por favor contáctalo para su evaluación.');
-      window.open('https://wa.me/52' + d.colocadorWA + '?text=' + msgCol, '_blank');
-      cerrarModalNotif();
-    }
-  });
-
   function notificarAsistenteCE() {
     if (!modalData || !modalData.data) return;
     var d = modalData.data;
