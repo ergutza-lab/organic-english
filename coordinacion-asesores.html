@@ -143,7 +143,7 @@
               </tr>
             </thead>
             <tbody id="tablaAsesores">
-              <tr><td colspan="7" class="empty-state">Cargando asesores...</td></tr>
+              <tr><td colspan="6" class="empty-state" id="loadingMsg">Cargando asesores...</td></tr>
             </tbody>
           </table>
         </div>
@@ -200,15 +200,28 @@
     }
 
     function cargarDatos() {
+      document.getElementById('loadingMsg').textContent = 'Cargando datos...';
       fetch(APPS_SCRIPT + '?action=getDatosCoordinadorAsesores')
         .then(r => r.json())
         .then(data => {
-          if (data.status !== 'ok') return;
+          console.log('Datos recibidos:', data);
+          if (data.status === 'error') {
+            document.getElementById('loadingMsg').textContent = 'Error: ' + data.mensaje;
+            return;
+          }
+          if (data.status !== 'ok') {
+            document.getElementById('loadingMsg').textContent = 'Error desconocido';
+            return;
+          }
           asesoresData = data.asesores || [];
+          console.log('Asesores:', asesoresData);
           renderStats(data);
           renderAsesores();
         })
-        .catch(e => console.error('Error cargando datos:', e));
+        .catch(e => {
+          console.error('Error cargando datos:', e);
+          document.getElementById('loadingMsg').textContent = 'Error de conexión: ' + e.message;
+        });
     }
 
     function renderStats(data) {
@@ -221,7 +234,7 @@
     function renderAsesores() {
       var tbody = document.getElementById('tablaAsesores');
       if (!asesoresData.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sin asesores registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin asesores registrados</td></tr>';
         return;
       }
       
