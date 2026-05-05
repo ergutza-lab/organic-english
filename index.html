@@ -80,6 +80,7 @@ nav{
 }
 .btn-nav-staff:hover{color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.1)}
 .nav-icon{width:14px;height:14px;flex-shrink:0}
+.nav-mobile-menu{display:none;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:8px}
 
 /* ── HERO ── */
 #inicio{
@@ -89,7 +90,7 @@ nav{
 }
 .hero-bg{
   position:absolute;inset:0;z-index:0;
-  background:url('images/hero01.webp') center center/cover no-repeat;
+  background:url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero01.webp') center center/cover no-repeat;
 }
 .hero-bg::after{
   content:'';position:absolute;inset:0;
@@ -436,11 +437,39 @@ footer{
 /* ── RESPONSIVE ── */
 @media(max-width:1024px){
   .nav-links{display:none}
+  .nav-mobile-menu{display:block}
   .metodo-grid,.funciona-grid{grid-template-columns:1fr}
   .niveles-grid{grid-template-columns:repeat(3,1fr)}
   .trust-bar{grid-template-columns:repeat(3,1fr)}
   .trust-item:nth-child(4),.trust-item:nth-child(5){display:none}
 }
+
+/* Menú móvil */
+.nav-mobile-links{
+  display:none;
+  position:absolute;
+  top:100%;
+  left:0;
+  right:0;
+  background:var(--navy-dark);
+  padding:16px;
+  flex-direction:column;
+  gap:8px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.nav-mobile-links.open{display:flex}
+.nav-mobile-links a{
+  color:rgba(255,255,255,.85);
+  text-decoration:none;
+  font-size:15px;
+  font-weight:500;
+  padding:12px 16px;
+  border-radius:8px;
+  transition:background .2s;
+}
+.nav-mobile-links a:hover{background:rgba(255,255,255,0.1)}
+.nav-mobile-links .btn-nav-alumnos,.nav-mobile-links .btn-nav-staff{margin-top:8px;text-align:center}
+
 @media(max-width:700px){
   .nav-inner{padding:0 16px}
   .niveles-grid{grid-template-columns:1fr 1fr}
@@ -455,6 +484,33 @@ footer{
   .niveles-grid{grid-template-columns:1fr}
   .trust-bar{grid-template-columns:1fr}
   .trust-item:nth-child(n+3){display:none}
+  .hero-title{font-size:32px}
+  .hero-subtitle{font-size:15px}
+  .hero-cta{flex-direction:column;gap:10px}
+  .hero-cta a{padding:14px 20px;font-size:14px}
+  .section{padding:50px 16px}
+  .section-title{font-size:28px}
+  .section-sub{font-size:14px}
+  .metodo-card,.funciona-card{padding:20px}
+  .metodo-card h3,.funciona-card h3{font-size:18px}
+  .metodo-card p,.funciona-card p{font-size:13px}
+  .nivel-card{padding:16px}
+  .nivel-card h4{font-size:16px}
+  .testimonio-card{padding:20px}
+  .testimonio-text{font-size:14px}
+  .faq-item{padding:14px}
+  .faq-question{font-size:14px}
+  .faq-answer{font-size:13px}
+  .contacto-card{padding:20px}
+  .footer{padding:30px 16px}
+  .whatsapp-btn{padding:12px 20px;font-size:14px}
+}
+
+@media(max-width:360px){
+  .nav-brand-name{display:none}
+  .hero-title{font-size:28px}
+  .section-title{font-size:24px}
+  .btn-nav-alumnos,.btn-nav-staff{padding:6px 10px;font-size:11px}
 }
 
 /* STAFF MODAL */
@@ -482,10 +538,12 @@ footer{
   <div class="nav-inner">
     <a href="#inicio" class="nav-brand">
       <img class="nav-logo"
-           src="images/logoblanco.png"
-           alt="Organic English">
+           src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png"
+           alt="Organic English"
+           onerror="this.src='https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png'">
       <span class="nav-brand-name">Organic English</span>
     </a>
+    <button class="nav-mobile-menu" onclick="toggleMobileMenu()">☰</button>
     <div class="nav-links">
       <a href="#inicio">Inicio</a>
       <a href="#metodo">Método</a>
@@ -504,6 +562,15 @@ footer{
         Staff
       </a>
     </div>
+  </div>
+  <div class="nav-mobile-links" id="mobileMenu">
+    <a href="#inicio" onclick="closeMobileMenu()">Inicio</a>
+    <a href="#metodo" onclick="closeMobileMenu()">Método</a>
+    <a href="#niveles" onclick="closeMobileMenu()">Niveles</a>
+    <a href="#como-funciona" onclick="closeMobileMenu()">Cómo Funciona</a>
+    <a href="#contacto" onclick="closeMobileMenu()">Contacto</a>
+    <a href="alumno.html" class="btn-nav-alumnos" onclick="closeMobileMenu()">Acceso Alumnos</a>
+    <a href="#" onclick="checkStaff(event);closeMobileMenu()" class="btn-nav-staff">Staff</a>
   </div>
 </nav>
 
@@ -847,6 +914,14 @@ footer{
 </div>
 
 <script>
+// Menú móvil
+function toggleMobileMenu(){
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+function closeMobileMenu(){
+  document.getElementById('mobileMenu').classList.remove('open');
+}
+
 // Smooth scroll para links del nav
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
