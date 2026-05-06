@@ -136,6 +136,10 @@
           <div class="stat-num" id="statPendientes">0</div>
           <div class="stat-label">En trámite</div>
         </div>
+        <div class="stat-card purple">
+          <div class="stat-num" id="statCancelados">0</div>
+          <div class="stat-label">Cancelados</div>
+        </div>
       </div>
 
       <div class="card">
@@ -226,6 +230,11 @@
       document.getElementById('tablaAsesores').innerHTML = '<tr><td colspan="6" class="empty-state">Selecciona una semana y presiona Cargar</td></tr>';
     }
 
+    function formatDate(date) {
+      var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      return ('0' + date.getDate()).slice(-2) + '/' + meses[date.getMonth()] + '/' + date.getFullYear();
+    }
+    
     function confirmarFecha() {
       var fechaSemana = document.getElementById('semanaSelector').value;
       if (!fechaSemana) {
@@ -246,10 +255,7 @@
       var hace4Semanas = new Date(lunes);
       hace4Semanas.setDate(hace4Semanas.getDate() - 21);
       
-      var fechaInicioStr = hace4Semanas.toISOString().split('T')[0];
-      var fechaFinStr = domingo.toISOString().split('T')[0];
-      
-      document.getElementById('dateRange').textContent = fechaInicioStr + ' al ' + fechaFinStr + ' (4 sem)';
+      document.getElementById('dateRange').textContent = formatDate(hace4Semanas) + ' al ' + formatDate(domingo);
       
       cargarDatos(fechaSemana);
     }
@@ -288,10 +294,12 @@
     }
 
     function renderStats(data) {
+      console.log('RenderStats called with:', data);
       var activos = asesoresData.filter(a => a.activo !== false).length;
       document.getElementById('statTotal').textContent = activos;
       document.getElementById('statInscritos').textContent = data.inscritosSemana || 0;
       document.getElementById('statPendientes').textContent = data.pendientesSemana || 0;
+      document.getElementById('statCancelados').textContent = data.canceladosTotal || 0;
     }
 
     function renderAsesores() {
