@@ -454,13 +454,18 @@ function guardar(tipo) {
         console.log('elId:', elId, 'value:', elId ? elId.value : 'NO EXISTE');
         console.log('elNombre:', elNombre, 'value:', elNombre ? elNombre.value : 'NO EXISTE');
 
-        var id     = elId     ? elId.value.trim().toUpperCase()     : '';
+var id     = elId     ? elId.value.trim().toUpperCase()     : '';
         var nombre = elNombre ? elNombre.value.trim() : '';
+
+        console.log('id trimmed:', id);
+        console.log('nombre trimmed:', nombre);
 
         if (!id || !nombre) {
           alert('ID: "' + id + '" | Nombre: "' + nombre + '" — Uno o ambos están vacíos.');
           return;
         }
+
+        console.log('Pasó validación, preparando datos...');
 
         var wa        = (document.getElementById('newWhatsapp')     || {value:''}).value.trim();
         var email     = (document.getElementById('newEmail')        || {value:''}).value.trim();
@@ -477,8 +482,12 @@ function guardar(tipo) {
           redirect: 'follow',
           body: JSON.stringify({ action: 'agregarDirector', datos: datos })
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { 
+          console.log('Fetch response status:', r.status); 
+          return r.json(); 
+        })
         .then(function(data) {
+          console.log('Server response:', data);
           if (data.status === 'ok') {
             alert('Director guardado correctamente');
             closeModal();
@@ -501,10 +510,14 @@ function guardar(tipo) {
 
         var nombre = elNombre ? elNombre.value.trim() : '';
 
+        console.log('nombre trimmed:', nombre);
+
         if (!nombre) {
           alert('Nombre: "' + nombre + '" — El nombre está vacío.');
           return;
         }
+
+        console.log('Pasó validación actualizar, preparando datos...');
 
         var wa = (document.getElementById('editWhatsapp') || {value:''}).value.trim();
         var email = (document.getElementById('editEmail') || {value:''}).value.trim();
@@ -516,13 +529,19 @@ function guardar(tipo) {
 
         var datos = { idOriginal: idOriginal, id: idOriginal, nombre: nombre, whatsapp: wa, email: email, clave: clave, nomina: nomina, foto: foto, infoBancaria: infoBan, instBancaria: instBan };
 
+        console.log('Datos a actualizar:', datos);
+
         fetch(APPS_SCRIPT, {
           method: 'POST',
           redirect: 'follow',
           body: JSON.stringify({ action: 'actualizarDirector', datos: datos })
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { 
+          console.log('Actualizar response status:', r.status); 
+          return r.json(); 
+        })
         .then(function(data) {
+          console.log('Actualizar response:', data);
           if (data.status === 'ok') {
             alert('Director actualizado correctamente');
             closeModal();
