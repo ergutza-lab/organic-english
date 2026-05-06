@@ -148,8 +148,8 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaAcademica"><tr class="info-row"><td colspan="6">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nómina</th><th>Banco</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAcademica"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -635,7 +635,8 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria')) +
       '&instBancaria=' + encodeURIComponent(val('newInstBancaria')) +
       '&grupos=' + encodeURIComponent(val('newGrupos')) +
-      '&costo=' + encodeURIComponent(val('newCosto'));
+      '&costo=' + encodeURIComponent(val('newCosto')) +
+      '&cuentaBancaria=' + encodeURIComponent(val('newCuentaBancaria'));
 
     console.log('Guardar URL:', url);
     
@@ -713,7 +714,8 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '&infoBancaria=' + encodeURIComponent(val('editInfoBancaria')) +
       '&instBancaria=' + encodeURIComponent(val('editInstBancaria')) +
       '&grupos=' + encodeURIComponent(val('editGrupos')) +
-      '&costo=' + encodeURIComponent(val('editCosto'));
+      '&costo=' + encodeURIComponent(val('editCosto')) +
+      '&cuentaBancaria=' + encodeURIComponent(val('editCuentaBancaria'));
 
     fetch(url)
       .then(function(r) { return r.text(); })
@@ -890,9 +892,20 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
 
   function renderAcademica(lista) {
     var tb = document.getElementById('tablaAcademica');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin coordinadores académicos</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="10">Sin coordinadores académicos</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
-      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
         '<td><span class="badge badge-activo">Activo</span></td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'academica\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
