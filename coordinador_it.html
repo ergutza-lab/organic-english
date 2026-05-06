@@ -445,18 +445,83 @@ function logout() {
       }).join('');
     }
 
-    function guardar(tipo) {
+function guardar(tipo) {
       if (tipo === 'direccion') {
-        var elId = document.getElementById('newId');
-        var elNombre = document.getElementById('newNombre');
-        
-        var id = elId ? elId.value.trim() : '';
-        var nombre = elNombre ? elNombre.value.trim() : '';
-        
-        if (!id || !nombre) { 
-          alert('ID y Nombre son obligatorios. ID=' + id + ', Nombre=' + nombre); 
-          return; 
+        var id = (document.getElementById('newId') || {value: ''}).value.trim().toUpperCase();
+        var nombre = (document.getElementById('newNombre') || {value: ''}).value.trim();
+        var wa = (document.getElementById('newWhatsapp') || {value: ''}).value.trim();
+        var email = (document.getElementById('newEmail') || {value: ''}).value.trim();
+        var clave = (document.getElementById('newClave') || {value: ''}).value.trim();
+        var nomina = (document.getElementById('newNomina') || {value: ''}).value.trim();
+        var foto = (document.getElementById('newFoto') || {value: ''}).value.trim();
+        var infoBan = (document.getElementById('newInfoBancaria') || {value: ''}).value.trim();
+        var instBan = (document.getElementById('newInstBancaria') || {value: ''}).value.trim();
+
+        if (!id || !nombre) {
+          alert('ID y Nombre son obligatorios.');
+          return;
         }
+
+        var datos = { id: id, nombre: nombre, whatsapp: wa, email: email, clave: clave, nomina: nomina, foto: foto, infoBancaria: infoBan, instBancaria: instBan };
+
+        fetch(APPS_SCRIPT, {
+          method: 'POST',
+          redirect: 'follow',
+          body: JSON.stringify({ action: 'agregarDirector', datos: datos })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === 'ok') {
+            alert('Director guardado correctamente');
+            closeModal();
+            datosCargados.direccion = false;
+            switchTab('direccion');
+          } else {
+            alert(data.mensaje || 'Error al guardar');
+          }
+        })
+        .catch(function(e) { alert('Error: ' + e.message); });
+      }
+    }
+
+    function actualizar(tipo) {
+      if (tipo === 'direccion') {
+        var idOriginal = window.datosTemporal ? window.datosTemporal.ID : '';
+        var nombre = (document.getElementById('editNombre') || {value: ''}).value.trim();
+        var wa = (document.getElementById('editWhatsapp') || {value: ''}).value.trim();
+        var email = (document.getElementById('editEmail') || {value: ''}).value.trim();
+        var clave = (document.getElementById('editClave') || {value: ''}).value.trim();
+        var nomina = (document.getElementById('editNomina') || {value: ''}).value.trim();
+        var foto = (document.getElementById('editFoto') || {value: ''}).value.trim();
+        var infoBan = (document.getElementById('editInfoBancaria') || {value: ''}).value.trim();
+        var instBan = (document.getElementById('editInstBancaria') || {value: ''}).value.trim();
+
+        if (!nombre) {
+          alert('El nombre es obligatorio.');
+          return;
+        }
+
+        var datos = { idOriginal: idOriginal, id: idOriginal, nombre: nombre, whatsapp: wa, email: email, clave: clave, nomina: nomina, foto: foto, infoBancaria: infoBan, instBancaria: instBan };
+
+        fetch(APPS_SCRIPT, {
+          method: 'POST',
+          redirect: 'follow',
+          body: JSON.stringify({ action: 'actualizarDirector', datos: datos })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === 'ok') {
+            alert('Director actualizado correctamente');
+            closeModal();
+            datosCargados.direccion = false;
+            switchTab('direccion');
+          } else {
+            alert(data.mensaje || 'Error al actualizar');
+          }
+        })
+        .catch(function(e) { alert('Error: ' + e.message); });
+      }
+    }
         
         var datos = {
           id: id.toUpperCase(),
@@ -491,10 +556,10 @@ function logout() {
 
     function notificar(tipo) {
       if (tipo === 'direccion') {
-        var nombre = document.getElementById('newNombre').value.trim();
-        var whatsapp = document.getElementById('newWhatsapp').value.trim();
-        var id = document.getElementById('newId').value.trim().toUpperCase();
-        var clave = document.getElementById('newClave').value.trim();
+        var nombre = (document.getElementById('newNombre') || {value: ''}).value.trim();
+        var whatsapp = (document.getElementById('newWhatsapp') || {value: ''}).value.trim();
+        var id = (document.getElementById('newId') || {value: ''}).value.trim().toUpperCase();
+        var clave = (document.getElementById('newClave') || {value: ''}).value.trim();
         
         if (!nombre) { alert('El nombre es obligatorio'); return; }
         
