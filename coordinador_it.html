@@ -44,6 +44,7 @@
     .badge-inactivo { background:rgba(239,68,68,0.2); color:var(--red); }
     .btn-action { padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
     .btn-edit { background:var(--blue); color:#fff; }
+    .btn-wa { background:#25D366; color:#fff; padding:6px 10px; }
     .form-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; }
     .form-group { margin-bottom:0.5rem; }
     .form-group label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
@@ -656,6 +657,24 @@ console.log('Guardar URL:', url);
     abrirWA(d.Nombre, d.WhatsApp, d.ID, d.Clave);
   }
 
+  /* Notificar desde la tabla directamente */
+  function notificarDesdeTabla(tipo, id) {
+    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status !== 'ok') { alert('Error al obtener datos'); return; }
+        var lista = data[tipo] || [];
+        var datos = null;
+        for (var i = 0; i < lista.length; i++) {
+          if (lista[i].ID === id) { datos = lista[i]; break; }
+        }
+        if (!datos) { alert('No se encontró el registro'); return; }
+        if (!datos.WhatsApp) { alert('No hay WhatsApp registrado'); return; }
+        abrirWA(datos.Nombre, datos.WhatsApp, datos.ID, datos.Clave);
+      })
+      .catch(function(e) { alert('Error: ' + e.message); });
+  }
+
   function abrirWA(nombre, whatsapp, id, clave) {
     var msg = 'Hola ' + nombre + '.' +
       '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
@@ -674,7 +693,7 @@ console.log('Guardar URL:', url);
   ═══════════════════════════════════════════════════════════ */
   function renderDireccion(lista) {
     var tb = document.getElementById('tablaDireccion');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin directores registrados</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin directores registrados</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       var foto = p.Foto
         ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
@@ -687,7 +706,10 @@ console.log('Guardar URL:', url);
         '<td>' + esc(p.Email) + '</td>' +
         '<td>' + esc(p.Clave) + '</td>' +
         '<td>' + esc(p.Nomina) + '</td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + esc(p.ID) + '\')">Editar</button></td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'direccion\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td>' +
       '</tr>';
     }).join('');
   }
