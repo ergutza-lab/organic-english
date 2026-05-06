@@ -638,85 +638,7 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       .catch(function(e) { alert('❌ Error: ' + e.message); });
   }
 
-console.log('Guardar URL:', url);
-    
-    fetch(url)
-      .then(function(r) { 
-        console.log('Response status:', r.status);
-        console.log('Response type:', r.type);
-        return r.text(); 
-      })
-      .then(function(text) {
-        console.log('Response text:', text);
-        
-        if (!text || text.trim() === '') {
-          alert('El servidor respondió vacío. Revisa la consola.');
-          return;
-        }
-        
-        var data = JSON.parse(text);
-        console.log('Response data:', data);
-        if (data.status === 'ok') {
-          alert('✅ Director guardado correctamente.\n\nAhora puedes notificarle por WhatsApp.');
-          // Guardar los datos para abrir el modal de edición
-          var nuevosDatos = {
-            ID: id,
-            Nombre: val('newNombre'),
-            WhatsApp: val('newWhatsapp'),
-            Email: val('newEmail'),
-            Clave: val('newClave'),
-            Nomina: val('newNomina'),
-            Foto: val('newFoto'),
-            InfoBancaria: val('newInfoBancaria'),
-            InstBancaria: val('newInstBancaria')
-          };
-          window.datosTemporal = nuevosDatos;
-          // Abrir modal de edición para poder notificar
-          openEditarModal('direccion', nuevosDatos);
-          // Recargar los datos en背景
-          recargarTab('direccion');
-        } else {
-          alert('❌ ' + (data.mensaje || 'Error al guardar. Revisa el Apps Script.'));
-        }
-      })
-      .catch(function(e) { 
-        console.error('Error:', e);
-        alert('❌ Error de red: ' + e.message); 
-      });
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     EDITAR — carga el registro y abre el modal
-  ═══════════════════════════════════════════════════════════ */
-  function editar(tipo, id) {
-    fetch(APPS_SCRIPT + '?action=getPersonalIT')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
-
-        var lista = data[tipo] || [];
-        var datos = null;
-        for (var i = 0; i < lista.length; i++) {
-          if (lista[i].ID === id) { datos = lista[i]; break; }
-        }
-        if (!datos) { alert('No se encontró el registro con ID: ' + id); return; }
-        openEditarModal(tipo, datos);
-      })
-      .catch(function(e) { alert('Error al obtener datos: ' + e.message); });
-  }
-
-/* ═══════════════════════════════════════════════════════════
-     ACTUALIZAR REGISTRO EXISTENTE — Genérico
-   ═══════════════════════════════════════════════════════════ */
-  function actualizar() {
-    var tipo = window.tipoActual || 'direccion';
-    var nombre = val('editNombre');
-    if (!nombre) { alert('⚠️ El nombre es obligatorio.'); return; }
-
-    var idOriginal = (window.datosTemporal && window.datosTemporal.ID) ? window.datosTemporal.ID : '';
-    if (!idOriginal) { alert('Error interno: falta el ID original.'); return; }
-
-    var actionMap = {
+var actionMap = {
       direccion: 'actualizarDirector',
       academica: 'actualizarAcademica',
       maestros: 'actualizarMaestro',
@@ -755,39 +677,10 @@ console.log('Guardar URL:', url);
           alert('❌ ' + (data.mensaje || 'Error al actualizar.'));
         }
       })
-.catch(function(e) { alert('❌ Error: ' + e.message); });
+      .catch(function(e) { alert('❌ Error: ' + e.message); });
   }
 
   /* ═══════════════════════════════════════════════════════════
-      .then(function(r) { 
-        console.log('Response status:', r.status);
-        return r.text(); 
-      })
-      .then(function(text) {
-        console.log('Response text:', text);
-        
-        if (!text || text.trim() === '') {
-          alert('El servidor respondió vacío. Revisa la consola.');
-          return;
-        }
-        
-        var data = JSON.parse(text);
-        console.log('Response data:', data);
-        if (data.status === 'ok') {
-          alert('✅ Director actualizado correctamente en el Sheets.');
-          closeModal();
-          recargarTab('direccion');
-        } else {
-          alert('❌ ' + (data.mensaje || 'Error al actualizar. Revisa el Apps Script.'));
-        }
-      })
-      .catch(function(e) { 
-        console.error('Error:', e);
-        alert('❌ Error de red: ' + e.message); 
-      });
-  }
-
-/* ═══════════════════════════════════════════════════════════
       NOTIFICACIONES WHATSAPP
    ═══════════════════════════════════════════════════════════ */
   function notificarNuevo() {
