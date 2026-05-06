@@ -639,6 +639,25 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
   }
 
   /* ═══════════════════════════════════════════════════════════
+      EDITAR — carga el registro y abre el modal
+   ═══════════════════════════════════════════════════════════ */
+  function editar(tipo, id) {
+    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
+        var lista = data[tipo] || [];
+        var datos = null;
+        for (var i = 0; i < lista.length; i++) {
+          if (lista[i].ID === id) { datos = lista[i]; break; }
+        }
+        if (!datos) { alert('No se encontró el registro con ID: ' + id); return; }
+        openEditarModal(tipo, datos);
+      })
+      .catch(function(e) { alert('Error al obtener datos: ' + e.message); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
       ACTUALIZAR REGISTRO EXISTENTE — Genérico
    ═══════════════════════════════════════════════════════════ */
   function actualizar() {
