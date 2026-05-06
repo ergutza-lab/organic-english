@@ -61,6 +61,11 @@
     .btn-cancel { padding:10px 20px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; }
     .btn-save { background:var(--orange); color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer; }
     .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:2rem; }
+    .botones-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:2rem; }
+    .btn-seccion { padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+    .btn-seccion:hover { background:var(--orange); border-color:var(--orange); }
+    .btn-seccion.active { background:var(--orange); border-color:var(--orange); }
+    .mensaje-vacio { text-align:center; padding:3rem; color:var(--muted); font-size:16px; }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; text-align:center; }
     .stat-num { font-size:32px; font-weight:700; }
     .stat-label { font-size:12px; color:var(--muted); margin-top:4px; }
@@ -106,33 +111,18 @@
         </div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-num" id="statPersonal">0</div>
-          <div class="stat-label">Personal Total</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statGrupos">0</div>
-          <div class="stat-label">Grupos Activos</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statModulos">0</div>
-          <div class="stat-label">Módulos</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statAlumnos">0</div>
-          <div class="stat-label">Alumnos</div>
-        </div>
+      <div class="botones-grid">
+        <button class="btn-seccion" onclick="switchTab('direccion')">Dirección</button>
+        <button class="btn-seccion" onclick="switchTab('academica')">Coordinación Académica</button>
+        <button class="btn-seccion" onclick="switchTab('maestros')">Maestros</button>
+        <button class="btn-seccion" onclick="switchTab('escolar')">Coordinación Escolar</button>
+        <button class="btn-seccion" onclick="switchTab('asistentes')">Asistentes CE</button>
+        <button class="btn-seccion" onclick="switchTab('ventas')">Coordinación Ventas</button>
+        <button class="btn-seccion" onclick="switchTab('asesores')">Asesores Venta</button>
       </div>
 
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('direccion')">Dirección</button>
-        <button class="tab" onclick="switchTab('academica')">Coordinación Académica</button>
-        <button class="tab" onclick="switchTab('maestros')">Maestros</button>
-        <button class="tab" onclick="switchTab('escolar')">Coordinación Escolar</button>
-        <button class="tab" onclick="switchTab('asistentes')">Asistentes CE</button>
-        <button class="tab" onclick="switchTab('ventas')">Coordinación Ventas</button>
-        <button class="tab" onclick="switchTab('asesores')">Asesores Venta</button>
+      <div id="contenidoVacio" class="mensaje-vacio">
+        Selecciona una sección para ver el personal
       </div>
 
       <!-- DIRECCIÓN -->
@@ -300,23 +290,49 @@
     }
 
     function switchTab(tab) {
-      var mapeo = {
-        'direccion': 'Direccion',
-        'academica': 'Academica',
-        'maestros': 'Maestros',
-        'escolar': 'Escolar',
-        'asistentes': 'Asistentes',
-        'ventas': 'Ventas',
-        'asesores': 'Asesores'
-      };
-      document.querySelectorAll('.tab').forEach(function(t, i) { 
-        t.classList.remove('active'); 
-        if (t.textContent.toLowerCase().replace(' ','') === tab.toLowerCase()) t.classList.add('active');
-      });
+      document.querySelectorAll('.btn-seccion').forEach(function(b) { b.classList.remove('active'); });
+      event.target.classList.add('active');
+      document.getElementById('contenidoVacio').style.display = 'none';
       document.querySelectorAll('.tab-content').forEach(function(c) { c.style.display = 'none'; });
-      var tabId = 'tab' + mapeo[tab];
-      var el = document.getElementById(tabId);
-      if (el) el.style.display = 'block';
+      
+      var mapeo = { 'direccion': 'Direccion', 'academica': 'Academica', 'maestros': 'Maestros', 'escolar': 'Escolar', 'asistentes': 'Asistentes', 'ventas': 'Ventas', 'asesores': 'Asesores' };
+      document.getElementById('tab' + mapeo[tab]).style.display = 'block';
+      
+      cargarSeccion(tab);
+    }
+
+    var datosCargados = { direccion: false, academica: false, maestros: false, escolar: false, asistentes: false, ventas: false, asesores: false };
+
+    function cargarSeccion(seccion) {
+      if (datosCargados[seccion]) return;
+      
+      document.getElementById('tabla' + (seccion === 'escolar' ? 'Escolar' : seccion.charAt(0).toUpperCase() + seccion.slice(1))).innerHTML = '<tr><td colspan="8">Cargando...</td></tr>';
+      
+      fetch(APPS_SCRIPT + '?action=getPersonalIT')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === 'ok') {
+            datosCargados[seccion] = true;
+            if (seccion === 'direccion') renderDireccion(data.direccion || []);
+            if (seccion === 'academica') renderAcademica(data.academica || []);
+            if (seccion === 'maestros') renderMaestros(data.maestros || []);
+            if (seccion === 'escolar') renderEscolar(data.escolar || []);
+            if (seccion === 'asistentes') renderAsistentes(data.asistentes || []);
+            if (seccion === 'ventas') renderVentas(data.ventas || []);
+            if (seccion === 'asesores') renderAsesores(data.asesores || []);
+          }
+        });
+    }
+
+    function logout() {
+      itData = null;
+      document.getElementById('screenPanel').classList.remove('active');
+      document.getElementById('screenLogin').classList.add('active');
+      document.getElementById('inputId').value = '';
+      document.getElementById('inputClave').value = '';
+      document.getElementById('contenidoVacio').style.display = 'block';
+      document.querySelectorAll('.btn-seccion').forEach(function(b) { b.classList.remove('active'); });
+      Object.keys(datosCargados).forEach(function(k) { datosCargados[k] = false; });
     }
 
 function cargarDatos() {
