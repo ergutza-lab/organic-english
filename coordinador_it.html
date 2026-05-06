@@ -452,51 +452,138 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     '</div>';
   }
 
-  function openAgregarModal(tipo) {
-    var titulos = { direccion:'Agregar Director', academica:'Agregar Coord. Académico', maestro:'Agregar Maestro', escolar:'Agregar Coord. Escolar', asistente:'Agregar Asistente CE', ventas:'Agregar Coord. Ventas', asesor:'Agregar Asesor' };
-    var html = '';
+  /* Campos para Académica */
+  function htmlCamposAcademica(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Coord. Académico *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="CA-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+    '</div>';
+  }
 
-    if (tipo === 'direccion') {
-      html = htmlCamposDireccion('new') +
-        '<div class="modal-footer">' +
-          '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
-          '<button class="btn-wa" onclick="notificar()">📲 Notificar WA</button>' +
-          '<button class="btn-save" onclick="guardar()">💾 Guardar en Sheets</button>' +
-        '</div>';
-    } else {
-      html = '<p style="color:var(--muted);padding:1rem 0">Modal de <b>' + esc(tipo) + '</b> próximamente.</p>' +
-        '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cerrar</button></div>';
-    }
+  /* Campos para Maestros */
+  function htmlCamposMaestro(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Maestro *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="MAE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Grupos</label><input type="text" id="' + prefijo + 'Grupos" value="' + v('Grupos') + '" placeholder="A1, A2, B1"></div>' +
+      '<div class="form-group"><label>Costo por hora</label><input type="text" id="' + prefijo + 'Costo" value="' + v('Costo') + '" placeholder="200"></div>' +
+    '</div>';
+  }
+
+  /* Campos para Escolar */
+  function htmlCamposEscolar(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Coord. Escolar *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="CE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Grupos</label><input type="text" id="' + prefijo + 'Grupos" value="' + v('Grupos') + '" placeholder="A1, A2, B1"></div>' +
+    '</div>';
+  }
+
+  /* Campos para Asistentes CE */
+  function htmlCamposAsistente(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Asistente *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="ASIST-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Grupos</label><input type="text" id="' + prefijo + 'Grupos" value="' + v('Grupos') + '" placeholder="A1, A2, B1"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+    '</div>';
+  }
+
+  /* Campos para Ventas */
+  function htmlCamposVenta(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Coord. Ventas *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="CV-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+    '</div>';
+  }
+
+  /* Campos para Asesores */
+  function htmlCamposAsesor(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Asesor *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="ASE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+    '</div>';
+  }
+
+  /* Función genérica para abrir modal de agregar */
+  function getCampos(tipo, prefijo, datos) {
+    var fn = {
+      direccion: htmlCamposDireccion,
+      academica: htmlCamposAcademica,
+      maestros: htmlCamposMaestro,
+      escolar: htmlCamposEscolar,
+      asistentes: htmlCamposAsistente,
+      ventas: htmlCamposVenta,
+      asesores: htmlCamposAsesor
+    };
+    return fn[tipo] ? fn[tipo](prefijo, datos) : '';
+  }
+
+  function openAgregarModal(tipo) {
+    var titulos = { direccion:'Agregar Director', academica:'Agregar Coord. Académico', maestros:'Agregar Maestro', escolar:'Agregar Coord. Escolar', asistentes:'Agregar Asistente CE', ventas:'Agregar Coord. Ventas', asesores:'Agregar Asesor' };
+    var html = getCampos(tipo, 'new', null) +
+      '<div class="modal-footer">' +
+        '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
+        '<button class="btn-wa" onclick="notificarNuevo()">📲 Notificar WA</button>' +
+        '<button class="btn-save" onclick="guardar()">💾 Guardar en Sheets</button>' +
+      '</div>';
 
     document.getElementById('modalTitle').textContent = titulos[tipo] || 'Agregar';
     document.getElementById('modalBody').innerHTML    = html;
     document.getElementById('modal').classList.add('active');
+    window.tipoActual = tipo;
   }
 
   function openEditarModal(tipo, datos) {
     window.datosTemporal = datos;
-    var titulos = { direccion:'Editar Director' };
-    var html = '';
-
-    if (tipo === 'direccion') {
-      html = htmlCamposDireccion('edit', datos) +
-        '<div class="modal-footer">' +
-          '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
-          '<button class="btn-wa" onclick="notificarExistente()">📲 Notificar WA</button>' +
-          '<button class="btn-save" onclick="actualizar()">💾 Actualizar en Sheets</button>' +
-        '</div>';
-    }
+    window.tipoActual = tipo;
+    var titulos = { direccion:'Editar Director', academica:'Editar Coord. Académico', maestros:'Editar Maestro', escolar:'Editar Coord. Escolar', asistentes:'Editar Asistente CE', ventas:'Editar Coord. Ventas', asesores:'Editar Asesor' };
+    var html = getCampos(tipo, 'edit', datos) +
+      '<div class="modal-footer">' +
+        '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
+        '<button class="btn-wa" onclick="notificarExistente()">📲 Notificar WA</button>' +
+        '<button class="btn-save" onclick="actualizar()">💾 Actualizar en Sheets</button>' +
+      '</div>';
 
     document.getElementById('modalTitle').textContent = titulos[tipo] || 'Editar';
     document.getElementById('modalBody').innerHTML    = html;
     document.getElementById('modal').classList.add('active');
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     GUARDAR NUEVO DIRECTOR — JSONP
-  ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+      GUARDAR NUEVO REGISTRO — Genérico
+   ═══════════════════════════════════════════════════════════ */
   function guardar() {
-    var id     = val('newId').toUpperCase();
+    var tipo = window.tipoActual || 'direccion';
+    var id = val('newId').toUpperCase();
     var nombre = val('newNombre');
 
     if (!id || !nombre) {
@@ -504,17 +591,52 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       return;
     }
 
-    var url = APPS_SCRIPT +
-      '?action=agregarDirector' +
-      '&id='           + encodeURIComponent(id)                     +
-      '&nombre='       + encodeURIComponent(nombre)                 +
-      '&whatsapp='     + encodeURIComponent(val('newWhatsapp'))      +
-      '&email='        + encodeURIComponent(val('newEmail'))         +
-      '&clave='        + encodeURIComponent(val('newClave'))         +
-      '&nomina='       + encodeURIComponent(val('newNomina'))        +
-      '&foto='         + encodeURIComponent(val('newFoto'))          +
-      '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria'))  +
-      '&instBancaria=' + encodeURIComponent(val('newInstBancaria'));
+    var actionMap = {
+      direccion: 'agregarDirector',
+      academica: 'agregarAcademica',
+      maestros: 'agregarMaestro',
+      escolar: 'agregarEscolar',
+      asistentes: 'agregarAsistente',
+      ventas: 'agregarVenta',
+      asesores: 'agregarAsesor'
+    };
+
+    var action = actionMap[tipo] || 'agregarDirector';
+    
+    var url = APPS_SCRIPT + '?action=' + action +
+      '&id=' + encodeURIComponent(id) +
+      '&nombre=' + encodeURIComponent(nombre) +
+      '&whatsapp=' + encodeURIComponent(val('newWhatsapp')) +
+      '&email=' + encodeURIComponent(val('newEmail')) +
+      '&clave=' + encodeURIComponent(val('newClave')) +
+      '&nomina=' + encodeURIComponent(val('newNomina')) +
+      '&foto=' + encodeURIComponent(val('newFoto')) +
+      '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria')) +
+      '&instBancaria=' + encodeURIComponent(val('newInstBancaria')) +
+      '&grupos=' + encodeURIComponent(val('newGrupos')) +
+      '&costo=' + encodeURIComponent(val('newCosto'));
+
+    console.log('Guardar URL:', url);
+    
+    fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (!text || text.trim() === '') { alert('El servidor respondió vacío.'); return; }
+        var data = JSON.parse(text);
+        if (data.status === 'ok') {
+          alert('✅ Registro guardado correctamente.\n\nAhora puedes notificarle por WhatsApp.');
+          var nuevosDatos = {
+            ID: id, Nombre: nombre, WhatsApp: val('newWhatsapp'), Email: val('newEmail'), Clave: val('newClave')
+          };
+          window.datosTemporal = nuevosDatos;
+          openEditarModal(tipo, nuevosDatos);
+          recargarTab(tipo);
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al guardar.'));
+        }
+      })
+      .catch(function(e) { alert('❌ Error: ' + e.message); });
+  }
 
 console.log('Guardar URL:', url);
     
@@ -584,31 +706,59 @@ console.log('Guardar URL:', url);
   }
 
 /* ═══════════════════════════════════════════════════════════
-      ACTUALIZAR REGISTRO EXISTENTE — FETCH GET
+     ACTUALIZAR REGISTRO EXISTENTE — Genérico
    ═══════════════════════════════════════════════════════════ */
   function actualizar() {
+    var tipo = window.tipoActual || 'direccion';
     var nombre = val('editNombre');
     if (!nombre) { alert('⚠️ El nombre es obligatorio.'); return; }
 
     var idOriginal = (window.datosTemporal && window.datosTemporal.ID) ? window.datosTemporal.ID : '';
-    if (!idOriginal) { alert('Error interno: falta el ID original. Cierra el modal y vuelve a intentarlo.'); return; }
+    if (!idOriginal) { alert('Error interno: falta el ID original.'); return; }
 
-    var url = APPS_SCRIPT +
-      '?action=actualizarDirector' +
-      '&idOriginal='   + encodeURIComponent(idOriginal)              +
-      '&id='           + encodeURIComponent(idOriginal)              +
-      '&nombre='       + encodeURIComponent(nombre)                  +
-      '&whatsapp='     + encodeURIComponent(val('editWhatsapp'))      +
-      '&email='        + encodeURIComponent(val('editEmail'))         +
-      '&clave='        + encodeURIComponent(val('editClave'))         +
-      '&nomina='       + encodeURIComponent(val('editNomina'))        +
-      '&foto='         + encodeURIComponent(val('editFoto'))          +
-      '&infoBancaria=' + encodeURIComponent(val('editInfoBancaria'))  +
-      '&instBancaria=' + encodeURIComponent(val('editInstBancaria'));
+    var actionMap = {
+      direccion: 'actualizarDirector',
+      academica: 'actualizarAcademica',
+      maestros: 'actualizarMaestro',
+      escolar: 'actualizarEscolar',
+      asistentes: 'actualizarAsistente',
+      ventas: 'actualizarVenta',
+      asesores: 'actualizarAsesor'
+    };
 
-    console.log('Actualizar URL:', url);
+    var action = actionMap[tipo] || 'actualizarDirector';
     
+    var url = APPS_SCRIPT + '?action=' + action +
+      '&idOriginal=' + encodeURIComponent(idOriginal) +
+      '&id=' + encodeURIComponent(idOriginal) +
+      '&nombre=' + encodeURIComponent(nombre) +
+      '&whatsapp=' + encodeURIComponent(val('editWhatsapp')) +
+      '&email=' + encodeURIComponent(val('editEmail')) +
+      '&clave=' + encodeURIComponent(val('editClave')) +
+      '&nomina=' + encodeURIComponent(val('editNomina')) +
+      '&foto=' + encodeURIComponent(val('editFoto')) +
+      '&infoBancaria=' + encodeURIComponent(val('editInfoBancaria')) +
+      '&instBancaria=' + encodeURIComponent(val('editInstBancaria')) +
+      '&grupos=' + encodeURIComponent(val('editGrupos')) +
+      '&costo=' + encodeURIComponent(val('editCosto'));
+
     fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (!text || text.trim() === '') { alert('El servidor respondió vacío.'); return; }
+        var data = JSON.parse(text);
+        if (data.status === 'ok') {
+          alert('✅ Registro actualizado correctamente.');
+          closeModal();
+          recargarTab(tipo);
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al actualizar.'));
+        }
+      })
+.catch(function(e) { alert('❌ Error: ' + e.message); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
       .then(function(r) { 
         console.log('Response status:', r.status);
         return r.text(); 
@@ -637,24 +787,87 @@ console.log('Guardar URL:', url);
       });
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     NOTIFICACIONES WHATSAPP
-  ═══════════════════════════════════════════════════════════ */
-  function notificar() {
+/* ═══════════════════════════════════════════════════════════
+      NOTIFICACIONES WHATSAPP
+   ═══════════════════════════════════════════════════════════ */
+  function notificarNuevo() {
     var nombre   = val('newNombre');
     var whatsapp = val('newWhatsapp');
     var id       = val('newId').toUpperCase();
     var clave    = val('newClave');
+    var tipo     = window.tipoActual || 'direccion';
+    
     if (!nombre)   { alert('Escribe el nombre antes de notificar.'); return; }
     if (!whatsapp) { alert('Escribe el WhatsApp antes de notificar.'); return; }
-    abrirWA(nombre, whatsapp, id, clave);
+    
+    var panelLink = {
+      direccion: 'https://organicenglish1.com/director.html',
+      academica: 'https://organicenglish1.com/coordinador_academico.html',
+      maestros: 'https://organicenglish1.com/maestro.html',
+      escolar: 'https://organicenglish1.com/coordinador_escolar.html',
+      asistentes: 'https://organicenglish1.com/asistente.html',
+      ventas: 'https://organicenglish1.com/coordinador_ventas.html',
+      asesores: 'https://organicenglish1.com/asesor.html'
+    };
+    
+    var nombrePanel = {
+      direccion: 'Director',
+      academica: 'Coordinador Académico',
+      maestros: 'Maestro',
+      escolar: 'Coordinador Escolar',
+      asistentes: 'Asistente CE',
+      ventas: 'Coordinador de Ventas',
+      asesores: 'Asesor'
+    };
+    
+    var msg = 'Hola ' + nombre + '.' +
+      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+      '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
+      '%0A📍 Enlace: ' + panelLink[tipo] +
+      '%0A👤 Usuario: ' + id +
+      (clave ? '%0A🔐 Contraseña: ' + clave : '') +
+      '%0A%0ACualquier duda, estoy para orientarte.' +
+      '%0A%0ASaludos cordiales.';
+    window.open('https://wa.me/52' + whatsapp + '?text=' + msg, '_blank');
   }
 
   function notificarExistente() {
     var d = window.datosTemporal || {};
-    if (!d.Nombre)   { alert('No hay datos del director.'); return; }
+    var tipo = window.tipoActual || 'direccion';
+    if (!d.Nombre)   { alert('No hay datos del registro.'); return; }
     if (!d.WhatsApp) { alert('No hay WhatsApp registrado.'); return; }
-    abrirWA(d.Nombre, d.WhatsApp, d.ID, d.Clave);
+    
+    var panelLink = {
+      direccion: 'https://organicenglish1.com/director.html',
+      academica: 'https://organicenglish1.com/coordinador_academico.html',
+      maestros: 'https://organicenglish1.com/maestro.html',
+      escolar: 'https://organicenglish1.com/coordinador_escolar.html',
+      asistentes: 'https://organicenglish1.com/asistente.html',
+      ventas: 'https://organicenglish1.com/coordinador_ventas.html',
+      asesores: 'https://organicenglish1.com/asesor.html'
+    };
+    
+    var nombrePanel = {
+      direccion: 'Director',
+      academica: 'Coordinador Académico',
+      maestros: 'Maestro',
+      escolar: 'Coordinador Escolar',
+      asistentes: 'Asistente CE',
+      ventas: 'Coordinador de Ventas',
+      asesores: 'Asesor'
+    };
+    
+    var msg = 'Hola ' + d.Nombre + '.' +
+      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+      '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
+      '%0A📍 Enlace: ' + panelLink[tipo] +
+      '%0A👤 Usuario: ' + (d.ID || '') +
+      (d.Clave ? '%0A🔐 Contraseña: ' + d.Clave : '') +
+      '%0A%0ACualquier duda, estoy para orientarte.' +
+      '%0A%0ASaludos cordiales.';
+    window.open('https://wa.me/52' + d.WhatsApp + '?text=' + msg, '_blank');
   }
 
   /* Notificar desde la tabla directamente */
@@ -670,22 +883,39 @@ console.log('Guardar URL:', url);
         }
         if (!datos) { alert('No se encontró el registro'); return; }
         if (!datos.WhatsApp) { alert('No hay WhatsApp registrado'); return; }
-        abrirWA(datos.Nombre, datos.WhatsApp, datos.ID, datos.Clave);
+        
+        var panelLink = {
+          direccion: 'https://organicenglish1.com/director.html',
+          academica: 'https://organicenglish1.com/coordinador_academico.html',
+          maestros: 'https://organicenglish1.com/maestro.html',
+          escolar: 'https://organicenglish1.com/coordinador_escolar.html',
+          asistentes: 'https://organicenglish1.com/asistente.html',
+          ventas: 'https://organicenglish1.com/coordinador_ventas.html',
+          asesores: 'https://organicenglish1.com/asesor.html'
+        };
+        
+        var nombrePanel = {
+          direccion: 'Director',
+          academica: 'Coordinador Académico',
+          maestros: 'Maestro',
+          escolar: 'Coordinador Escolar',
+          asistentes: 'Asistente CE',
+          ventas: 'Coordinador de Ventas',
+          asesores: 'Asesor'
+        };
+        
+        var msg = 'Hola ' + datos.Nombre + '.' +
+          '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+          '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+          '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
+          '%0A📍 Enlace: ' + panelLink[tipo] +
+          '%0A👤 Usuario: ' + (datos.ID || '') +
+          (datos.Clave ? '%0A🔐 Contraseña: ' + datos.Clave : '') +
+          '%0A%0ACualquier duda, estoy para orientarte.' +
+          '%0A%0ASaludos cordiales.';
+        window.open('https://wa.me/52' + datos.WhatsApp + '?text=' + msg, '_blank');
       })
       .catch(function(e) { alert('Error: ' + e.message); });
-  }
-
-  function abrirWA(nombre, whatsapp, id, clave) {
-    var msg = 'Hola ' + nombre + '.' +
-      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
-      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
-      '%0A%0A*Tu acceso al panel de Dirección:*' +
-      '%0A📍 Enlace: https://organicenglish1.com/director.html' +
-      '%0A👤 Usuario: ' + id +
-      '%0A🔐 Contraseña: ' + clave +
-      '%0A%0ACualquier duda, estoy para orientarte.' +
-      '%0A%0ASaludos cordiales.';
-    window.open('https://wa.me/52' + whatsapp + '?text=' + msg, '_blank');
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -716,66 +946,84 @@ console.log('Guardar URL:', url);
 
   function renderAcademica(lista) {
     var tb = document.getElementById('tablaAcademica');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="6">Sin coordinadores académicos</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin coordinadores académicos</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
         '<td><span class="badge badge-activo">Activo</span></td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'academica\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'academica\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'academica\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td></tr>';
     }).join('');
   }
 
   function renderMaestros(lista) {
     var tb = document.getElementById('tablaMaestros');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin maestros</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin maestros</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       var activo = (p.Activo === 'TRUE' || p.Activo === true);
       return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
         '<td>' + esc(p.Grupos) + '</td><td>$' + esc(p.Costo || '0') + '</td>' +
         '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'maestros\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td></tr>';
     }).join('');
   }
 
   function renderEscolar(lista) {
     var tb = document.getElementById('tablaEscolar');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="6">Sin coordinadores escolares</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin coordinadores escolares</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td>' +
         '<td><span class="badge badge-activo">Activo</span></td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'escolar\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td></tr>';
     }).join('');
   }
 
   function renderAsistentes(lista) {
     var tb = document.getElementById('tablaAsistentes');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin asistentes CE</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin asistentes CE</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td><td>' + esc(p.Email) + '</td>' +
         '<td><span class="badge badge-activo">Activo</span></td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'asistentes\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'asistentes\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'asistentes\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td></tr>';
     }).join('');
   }
 
   function renderVentas(lista) {
     var tb = document.getElementById('tablaVentas');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="6">Sin coordinadores de ventas</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin coordinadores de ventas</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
         '<td><span class="badge badge-activo">Activo</span></td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'ventas\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td></tr>';
     }).join('');
   }
 
   function renderAsesores(lista) {
     var tb = document.getElementById('tablaAsesores');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin asesores</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin asesores</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
       var activo = (p.Activo === 'TRUE' || p.Activo === true);
       return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Alumnos || '0') + '</td>' +
         '<td>$' + esc(p.Comision || '0') + '</td>' +
         '<td><a href="' + esc(p.Link || '#') + '" target="_blank" style="color:var(--blue)">Link</a></td>' +
         '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
-        '<td><button class="btn-action btn-edit" onclick="editar(\'asesores\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'asesores\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'asesores\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td></tr>';
     }).join('');
   }
 
