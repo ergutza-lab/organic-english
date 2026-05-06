@@ -515,14 +515,23 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria'))  +
       '&instBancaria=' + encodeURIComponent(val('newInstBancaria'));
 
-    console.log('Guardar URL:', url);
+console.log('Guardar URL:', url);
     
     fetch(url)
       .then(function(r) { 
         console.log('Response status:', r.status);
-        return r.json(); 
+        console.log('Response type:', r.type);
+        return r.text(); 
       })
-      .then(function(data) {
+      .then(function(text) {
+        console.log('Response text:', text);
+        
+        if (!text || text.trim() === '') {
+          alert('El servidor respondió vacío. Revisa la consola.');
+          return;
+        }
+        
+        var data = JSON.parse(text);
         console.log('Response data:', data);
         if (data.status === 'ok') {
           alert('✅ Director guardado correctamente en el Sheets.');
@@ -586,9 +595,17 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     fetch(url)
       .then(function(r) { 
         console.log('Response status:', r.status);
-        return r.json(); 
+        return r.text(); 
       })
-      .then(function(data) {
+      .then(function(text) {
+        console.log('Response text:', text);
+        
+        if (!text || text.trim() === '') {
+          alert('El servidor respondió vacío. Revisa la consola.');
+          return;
+        }
+        
+        var data = JSON.parse(text);
         console.log('Response data:', data);
         if (data.status === 'ok') {
           alert('✅ Director actualizado correctamente en el Sheets.');
