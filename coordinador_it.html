@@ -273,12 +273,12 @@
         });
     }
 
-    function mostrarPanel() {
+function mostrarPanel() {
       document.getElementById('screenLogin').classList.remove('active');
       document.getElementById('screenPanel').classList.add('active');
-      var ini = (itData.nombre || 'IT').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      var ini = (itData.nombre || 'IT').split(' ').map(function(w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
       document.getElementById('avatarInitials').textContent = ini;
-      cargarDatos();
+      document.getElementById('contenidoVacio').style.display = 'block';
     }
 
     function logout() {
@@ -324,7 +324,7 @@
         });
     }
 
-    function logout() {
+function logout() {
       itData = null;
       document.getElementById('screenPanel').classList.remove('active');
       document.getElementById('screenLogin').classList.add('active');
@@ -332,83 +332,22 @@
       document.getElementById('inputClave').value = '';
       document.getElementById('contenidoVacio').style.display = 'block';
       document.querySelectorAll('.btn-seccion').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.style.display = 'none'; });
       Object.keys(datosCargados).forEach(function(k) { datosCargados[k] = false; });
     }
 
-function cargarDatos() {
-      document.getElementById('tablaDireccion').innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
-      document.getElementById('tablaAcademica').innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
-      document.getElementById('tablaMaestros').innerHTML = '<tr><td colspan="8">Cargando...</td></tr>';
-      document.getElementById('tablaEscolar').innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
-      document.getElementById('tablaAsistentes').innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
-      document.getElementById('tablaVentas').innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
-      document.getElementById('tablaAsesores').innerHTML = '<tr><td colspan="8">Cargando...</td></tr>';
+    function openModal(tipo) {
+      var titulos = { 'direccion': 'Agregar Director', 'academica': 'Agregar Coordinador Académico', 'maestro': 'Agregar Maestro', 'escolar': 'Agregar Coordinador Escolar', 'asistente': 'Agregar Asistente CE', 'ventas': 'Agregar Coordinador Ventas', 'asesor': 'Agregar Asesor' };
+      var campos = { 'direccion': '<div class="form-group"><label>ID</label><input type="text" id="newId"></div><div class="form-group"><label>Nombre</label><input type="text" id="newNombre"></div><div class="form-group"><label>WhatsApp</label><input type="text" id="newWhatsapp"></div><div class="form-group"><label>Email</label><input type="email" id="newEmail"></div><div class="form-group"><label>Clave</label><input type="text" id="newClave"></div>', 'maestro': '<div class="form-group"><label>ID</label><input type="text" id="newId"></div><div class="form-group"><label>Nombre</label><input type="text" id="newNombre"></div><div class="form-group"><label>WhatsApp</label><input type="text" id="newWhatsapp"></div><div class="form-group"><label>Email</label><input type="email" id="newEmail"></div><div class="form-group"><label>Rol</label><select id="newRol"><option value="Maestro">Maestro</option><option value="Auxiliar">Auxiliar</option></select></div><div class="form-group"><label>Clave</label><input type="text" id="newClave"></div><div class="form-group"><label>Costo/Clase</label><input type="number" id="newCosto"></div>' };
       
-      fetch(APPS_SCRIPT + '?action=getPersonalIT')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status === 'ok') {
-            renderDireccion(data.direccion || []);
-            renderAcademica(data.academica || []);
-            renderMaestros(data.maestros || []);
-            renderEscolar(data.escolar || []);
-            renderAsistentes(data.asistentes || []);
-            renderVentas(data.ventas || []);
-            renderAsesores(data.asesores || []);
-          }
-        });
+      document.getElementById('modal').classList.add('active');
+      document.getElementById('modalTitle').textContent = titulos[tipo] || 'Agregar';
+      document.getElementById('modalBody').innerHTML = (campos[tipo] || '<p>Modal de ' + tipo + '</p>') + '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="guardar(\'' + tipo + '\')">Guardar</button></div>';
     }
 
-    function renderDireccion(lista) {
-      if (!lista.length) { document.getElementById('tablaDireccion').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin directores</td></tr>'; return; }
-      document.getElementById('tablaDireccion').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Email || '') + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
+    function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
-    function renderAcademica(lista) {
-      if (!lista.length) { document.getElementById('tablaAcademica').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin coordinadores académicos</td></tr>'; return; }
-      document.getElementById('tablaAcademica').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Email || '') + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit" onclick="editar(\'academica\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
-
-    function renderMaestros(lista) {
-      if (!lista.length) { document.getElementById('tablaMaestros').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Sin maestros</td></tr>'; return; }
-      document.getElementById('tablaMaestros').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Email || '') + '</td><td>' + (p.Grupos || '') + '</td><td>' + (p.Costo || '$0') + '</td><td><span class="badge ' + (p.Activo === 'TRUE' ? 'badge-activo' : 'badge-inactivo') + '">' + (p.Activo === 'TRUE' ? 'Activo' : 'Inactivo') + '</span></td><td><button class="btn-action btn-edit" onclick="editar(\'maestro\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
-
-    function renderEscolar(lista) {
-      if (!lista.length) { document.getElementById('tablaEscolar').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin coordinadores escolares</td></tr>'; return; }
-      document.getElementById('tablaEscolar').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Grupos || '') + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
-
-    function renderAsistentes(lista) {
-      if (!lista.length) { document.getElementById('tablaAsistentes').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Sin asistentes CE</td></tr>'; return; }
-      document.getElementById('tablaAsistentes').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Grupos || '') + '</td><td>' + (p.Email || '') + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit" onclick="editar(\'asistente\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
-
-    function renderVentas(lista) {
-      if (!lista.length) { document.getElementById('tablaVentas').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin coordinadores de ventas</td></tr>'; return; }
-      document.getElementById('tablaVentas').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Email || '') + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
-
-    function renderAsesores(lista) {
-      if (!lista.length) { document.getElementById('tablaAsesores').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Sin asesores</td></tr>'; return; }
-      document.getElementById('tablaAsesores').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Alumnos || '0') + '</td><td>$' + (p.Comision || '0') + '</td><td><a href="' + (p.Link || '#') + '" target="_blank">Link</a></td><td><span class="badge ' + (p.Activo === 'TRUE' ? 'badge-activo' : 'badge-inactivo') + '">' + (p.Activo === 'TRUE' ? 'Activo' : 'Inactivo') + '</span></td><td><button class="btn-action btn-edit" onclick="editar(\'asesor\',\'' + p.ID + '\')">Editar</button></td></tr>';
-      }).join('');
-    }
-
-    function editar(tipo, id) { alert('Editar ' + tipo + ': ' + id); }
+    function guardar(tipo) { alert('Guardar: ' + tipo); closeModal(); }
   </script>
 </body>
 </html>
