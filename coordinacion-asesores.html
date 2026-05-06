@@ -40,7 +40,8 @@
     .date-selector { display:flex; align-items:center; gap:16px; margin-bottom:1.5rem; background:var(--surface); padding:1rem 1.5rem; border-radius:12px; border:1px solid var(--border); }
     .date-selector label { font-size:14px; font-weight:600; color:var(--text); }
     .date-selector input { padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; background:var(--bg); color:var(--text); }
-    .date-selector .date-range { font-size:13px; color:var(--muted); }
+    .date-selector .btn-confirm { padding:8px 16px; background:var(--orange); color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+    .date-selector .date-range { font-size:13px; color:var(--muted); margin-left:auto; }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.8rem 1.4rem; text-align:center; }
     .stat-card.orange { border-color:rgba(249,115,22,0.3); }
     .stat-card.blue { border-color:rgba(59,130,246,0.3); }
@@ -117,8 +118,9 @@
 
       <div class="date-selector">
         <label>Selecciona semana:</label>
-        <input type="date" id="semanaSelector" onchange="cargarDatos()" />
-        <span class="date-range" id="dateRange"></span>
+        <input type="date" id="semanaSelector" />
+        <button class="btn-confirm" onclick="confirmarFecha()">Cargar</button>
+        <span class="date-range" id="dateRange">Selecciona una semana</span>
       </div>
 
       <div class="stats-row">
@@ -220,11 +222,16 @@
       var fechaDefault = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       document.getElementById('semanaSelector').value = fechaDefault.toISOString().split('T')[0];
       
-      cargarDatos();
+      confirmarFecha();
     }
 
-    function cargarDatos() {
+    function confirmarFecha() {
       var fechaSemana = document.getElementById('semanaSelector').value;
+      if (!fechaSemana) {
+        alert('Selecciona una fecha');
+        return;
+      }
+      
       var fechaSeleccionada = new Date(fechaSemana + 'T12:00:00');
       
       var finSemana = new Date(fechaSeleccionada);
@@ -240,7 +247,12 @@
       
       document.getElementById('dateRange').textContent = fechaInicioStr + ' al ' + fechaFinStr + ' (4 semanas)';
       
-      document.getElementById('loadingMsg').textContent = 'Cargando datos...';
+      cargarDatos(fechaSemana);
+    }
+
+    function cargarDatos(fechaSemana) {
+      var loadingEl = document.getElementById('loadingMsg');
+      if (loadingEl) loadingEl.textContent = 'Cargando datos...';
       var url = APPS_SCRIPT + '?action=getDatosCoordinadorAsesores&fecha=' + encodeURIComponent(fechaSemana);
       console.log('Data URL:', url);
       
