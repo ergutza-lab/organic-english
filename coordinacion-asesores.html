@@ -37,6 +37,10 @@
     .avatar { width:36px; height:36px; border-radius:50%; background:#1c2b5e; border:2px solid var(--orange); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; }
     .btn-logout { font-size:13px; color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:6px 13px; background:transparent; cursor:pointer; }
     .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:2rem; }
+    .date-selector { display:flex; align-items:center; gap:16px; margin-bottom:1.5rem; background:var(--surface); padding:1rem 1.5rem; border-radius:12px; border:1px solid var(--border); }
+    .date-selector label { font-size:14px; font-weight:600; color:var(--text); }
+    .date-selector input { padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; background:var(--bg); color:var(--text); }
+    .date-selector .date-range { font-size:13px; color:var(--muted); }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.8rem 1.4rem; text-align:center; }
     .stat-card.orange { border-color:rgba(249,115,22,0.3); }
     .stat-card.blue { border-color:rgba(59,130,246,0.3); }
@@ -109,6 +113,12 @@
           <div class="avatar" id="avatarInitials">CA</div>
           <button class="btn-logout" onclick="logout()">Salir</button>
         </div>
+      </div>
+
+      <div class="date-selector">
+        <label>Selecciona semana:</label>
+        <input type="date" id="semanaSelector" onchange="cargarDatos()" />
+        <span class="date-range" id="dateRange"></span>
       </div>
 
       <div class="stats-row">
@@ -205,12 +215,33 @@
       document.getElementById('screenPanel').classList.add('active');
       var ini = (caData.nombre || 'CA').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
       document.getElementById('avatarInitials').textContent = ini;
+      
+      var hoy = new Date();
+      var fechaDefault = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      document.getElementById('semanaSelector').value = fechaDefault.toISOString().split('T')[0];
+      
       cargarDatos();
     }
 
     function cargarDatos() {
+      var fechaSemana = document.getElementById('semanaSelector').value;
+      var fechaSeleccionada = new Date(fechaSemana + 'T12:00:00');
+      
+      var finSemana = new Date(fechaSeleccionada);
+      finSemana.setDate(finSemana.getDate() + 6);
+      
+      var inicioRango = new Date(fechaSeleccionada);
+      inicioRango.setDate(inicioRango.getDate() - 21);
+      
+      var finRango = finSemana;
+      
+      var fechaInicioStr = inicioRango.toISOString().split('T')[0];
+      var fechaFinStr = finRango.toISOString().split('T')[0];
+      
+      document.getElementById('dateRange').textContent = fechaInicioStr + ' al ' + fechaFinStr + ' (4 semanas)';
+      
       document.getElementById('loadingMsg').textContent = 'Cargando datos...';
-      var url = APPS_SCRIPT + '?action=getDatosCoordinadorAsesores';
+      var url = APPS_SCRIPT + '?action=getDatosCoordinadorAsesores&fecha=' + encodeURIComponent(fechaSemana);
       console.log('Data URL:', url);
       
       fetch(url)
