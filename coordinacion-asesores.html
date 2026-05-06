@@ -120,7 +120,7 @@
         <label>Selecciona semana:</label>
         <input type="date" id="semanaSelector" />
         <button class="btn-confirm" onclick="confirmarFecha()">Cargar</button>
-        <span class="date-range" id="dateRange">Selecciona una semana</span>
+        <span class="date-range" id="dateRange">Presiona Cargar para ver datos</span>
       </div>
 
       <div class="stats-row">
@@ -222,7 +222,8 @@
       var fechaDefault = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       document.getElementById('semanaSelector').value = fechaDefault.toISOString().split('T')[0];
       
-      confirmarFecha();
+      document.getElementById('dateRange').textContent = 'Presiona Cargar para ver datos';
+      document.getElementById('tablaAsesores').innerHTML = '<tr><td colspan="6" class="empty-state">Selecciona una semana y presiona Cargar</td></tr>';
     }
 
     function confirmarFecha() {
@@ -234,18 +235,21 @@
       
       var fechaSeleccionada = new Date(fechaSemana + 'T12:00:00');
       
-      var finSemana = new Date(fechaSeleccionada);
-      finSemana.setDate(finSemana.getDate() + 6);
+      var dia = fechaSeleccionada.getDay();
+      var diff = dia === 0 ? 6 : dia - 1;
+      var lunes = new Date(fechaSeleccionada);
+      lunes.setDate(lunes.getDate() - diff);
       
-      var inicioRango = new Date(fechaSeleccionada);
-      inicioRango.setDate(inicioRango.getDate() - 21);
+      var domingo = new Date(lunes);
+      domingo.setDate(domingo.getDate() + 6);
       
-      var finRango = finSemana;
+      var hace4Semanas = new Date(lunes);
+      hace4Semanas.setDate(hace4Semanas.getDate() - 21);
       
-      var fechaInicioStr = inicioRango.toISOString().split('T')[0];
-      var fechaFinStr = finRango.toISOString().split('T')[0];
+      var fechaInicioStr = hace4Semanas.toISOString().split('T')[0];
+      var fechaFinStr = domingo.toISOString().split('T')[0];
       
-      document.getElementById('dateRange').textContent = fechaInicioStr + ' al ' + fechaFinStr + ' (4 semanas)';
+      document.getElementById('dateRange').textContent = fechaInicioStr + ' al ' + fechaFinStr + ' (4 sem)';
       
       cargarDatos(fechaSemana);
     }
