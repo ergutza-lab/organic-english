@@ -85,11 +85,11 @@
         <p>Ingresa tus credenciales</p>
         <div class="field">
           <label>ID de Coordinador IT</label>
-          <input type="text" id="inputId" placeholder="Ej. IT-01" />
+          <input type="text" id="inputId" placeholder="Ej. IT-01" onkeypress="if(event.key==='Enter')login()" />
         </div>
         <div class="field">
           <label>Clave de acceso</label>
-          <input type="password" id="inputClave" placeholder="Tu contraseña" />
+          <input type="password" id="inputClave" placeholder="Tu contraseña" onkeypress="if(event.key==='Enter')login()" />
         </div>
         <button class="btn-primary" onclick="login()">Entrar</button>
         <div class="error-msg" id="errorMsg"></div>
@@ -352,18 +352,20 @@ function logout() {
       };
       
       var campos = {
-        'direccion': 
-          '<div class="form-grid">' +
+        '<div class="form-grid">' +
             '<div class="form-group"><label>ID Director *</label><input type="text" id="newId" placeholder="DIR-01"></div>' +
             '<div class="form-group"><label>Nombre *</label><input type="text" id="newNombre" placeholder="Nombre completo"></div>' +
             '<div class="form-group"><label>WhatsApp (solo números) *</label><input type="number" id="newWhatsapp" placeholder="2721564694"></div>' +
             '<div class="form-group"><label>Email</label><input type="email" id="newEmail" placeholder="correo@ejemplo.com"></div>' +
             '<div class="form-group"><label>Clave *</label><input type="text" id="newClave" placeholder="Contraseña"></div>' +
-            '<div class="form-group"><label>Nomina (MXN)</label><input type="number" id="newNomina" placeholder="15000"></div>' +
+            '<div class="form-group"><label>Nomina (MXN)</label><input type="number" id="newNomina" placeholder="15000" onchange="this.value = this.value ? \u0027$\u0027 + this.value : \u0027\u0027"></div>' +
             '<div class="form-group"><label>Foto URL</label><input type="text" id="newFoto" placeholder="https://..."></div>' +
             '<div class="form-group"><label>Info Bancaria</label><input type="text" id="newInfoBancaria" placeholder="Banco, cuenta, CLABE"></div>' +
             '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="newInstBancaria" placeholder="Nombre banco"></div>' +
-          '</div>'
+          '</div>' + '<div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">' +
+          '<button class="btn-save" onclick="guardar(\'direccion\')">Cargar</button>' +
+          '<button class="btn-save" style="background:#25D366" onclick="notificar(\'direccion\')">Notificar al Personal</button>' +
+          '</div>' + '<div class="modal-footer" style="margin-top:0"><button class="btn-cancel" onclick="closeModal()">Cancelar</button></div>'
       };
       
       document.getElementById('modal').classList.add('active');
@@ -446,8 +448,6 @@ function logout() {
         var infoBancaria = document.getElementById('newInfoBancaria').value.trim();
         var instBancaria = document.getElementById('newInstBancaria').value.trim();
         
-        console.log('ID:', id, 'Nombre:', nombre);
-        
         if (!id || !nombre) { alert('ID y Nombre son obligatorios'); return; }
         
         var datos = {
@@ -468,30 +468,48 @@ function logout() {
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          console.log('Respuesta:', data);
           if (data.status === 'ok') {
-            document.getElementById('modalBody').innerHTML = 
-              '<div style="text-align:center;padding:20px;">' +
-                '<div style="font-size:48px;margin-bottom:16px;">✅</div>' +
-                '<h3 style="color:var(--green);margin-bottom:16px;">¡Registro Exitoso!</h3>' +
-                '<p style="margin-bottom:20px;">El director <strong>' + nombre + '</strong> ha sido registrado correctamente.</p>' +
-                '<div style="background:var(--bg);padding:16px;border-radius:12px;margin-bottom:20px;text-align:left;">' +
-                  '<p style="margin-bottom:8px;"><strong>Panel:</strong> <a href="https://organicenglish1.com/director.html" target="_blank" style="color:var(--blue);">organicenglish1.com/director.html</a></p>' +
-                  '<p style="margin-bottom:8px;"><strong>Usuario:</strong> ' + id.toUpperCase() + '</p>' +
-                  '<p><strong>Contraseña:</strong> ' + clave + '</p>' +
-                '</div>' +
-                (whatsapp ? '<a href="https://wa.me/52' + whatsapp + '?text=Hola%20' + encodeURIComponent(nombre) + ',%20bienvenido%20a%20Organic%20English.%20Tu%20panel%20es%20director.html%20con%20usuario%20' + id.toUpperCase() + '" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:16px;">📱 Contactar por WhatsApp</a>' : '') +
-                '<br><button class="btn-cancel" onclick="closeModal();datosCargados.direccion=false;switchTab(\'direccion\')">Cerrar</button>' +
-              '</div>';
+            alert('Director guardado correctamente');
+            closeModal();
+            datosCargados.direccion = false;
+            switchTab('direccion');
           } else {
             alert(data.mensaje || 'Error al guardar');
           }
         })
-        .catch(function(e) { console.error(e); alert('Error: ' + e.message); });
-      } else {
-        alert('Funcionalidad de ' + tipo + ' en desarrollo');
-        closeModal();
+        .catch(function(e) { alert('Error: ' + e.message); });
       }
+    }
+
+    function notificar(tipo) {
+      if (tipo === 'direccion') {
+        var nombre = document.getElementById('newNombre').value.trim();
+        var whatsapp = document.getElementById('newWhatsapp').value.trim();
+        var id = document.getElementById('newId').value.trim().toUpperCase();
+        var clave = document.getElementById('newClave').value.trim();
+        
+        if (!nombre) { alert('El nombre es obligatorio'); return; }
+        
+        var mensaje = 'Hola ' + nombre + ', bienvenido a Organic English.%0A%0ATus datos de acceso son:%0A- Panel: director.html%0A- Usuario: ' + id + '%0A- Contraseña: ' + clave + '%0A%0APor favor ingresa y completa tu perfil.';
+        
+        window.open('https://wa.me/52' + whatsapp + '?text=' + mensaje, '_blank');
+      }
+    }
+
+    function notificarExistente(tipo) {
+      var datos = window.datosTemporal;
+      if (!datos || !datos.Nombre) return;
+      
+      var nombre = datos.Nombre;
+      var whatsapp = datos.WhatsApp;
+      var id = datos.ID;
+      var clave = datos.Clave;
+      
+      if (!whatsapp) { alert('No hay WhatsApp registrado'); return; }
+      
+      var mensaje = 'Hola ' + nombre + ', tus datos de acceso son:%0A- Panel: director.html%0A- Usuario: ' + id + '%0A- Contraseña: ' + clave;
+      
+      window.open('https://wa.me/52' + whatsapp + '?text=' + mensaje, '_blank');
     }
       
       // Variable global para almacenar datos temporales
@@ -530,7 +548,7 @@ function logout() {
         
         document.getElementById('modal').classList.add('active');
         document.getElementById('modalTitle').textContent = titulos[tipo] || 'Editar';
-        document.getElementById('modalBody').innerHTML = campos[tipo] + '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" style="background:var(--green)" onclick="actualizar(\'' + tipo + '\')">Actualizar Datos</button></div>';
+        document.getElementById('modalBody').innerHTML = campos[tipo] + '<div style="display:flex;gap:12px;justify-content:center;margin-top:16px;"><button class="btn-save" style="background:var(--green)" onclick="actualizar(\'' + tipo + '\')">Actualizar Datos</button><button class="btn-save" style="background:#25D366" onclick="notificarExistente(\'' + tipo + '\')">Notificar al Personal</button></div><div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cancelar</button></div>';
       }
 
       function actualizar(tipo) {
