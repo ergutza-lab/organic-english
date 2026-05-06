@@ -405,24 +405,25 @@
     var tb   = document.getElementById(tbId);
     if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8">Cargando...</td></tr>';
 
-    jsonp(APPS_SCRIPT + '?action=getPersonalIT', function(err, data) {
-      if (err) {
-        if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(err.message) + '</td></tr>';
-        return;
-      }
-      if (data.status === 'ok') {
-        datosCargados[seccion] = true;
-        if (seccion === 'direccion')  renderDireccion(data.direccion   || []);
-        if (seccion === 'academica')  renderAcademica(data.academica   || []);
-        if (seccion === 'maestros')   renderMaestros(data.maestros     || []);
-        if (seccion === 'escolar')    renderEscolar(data.escolar       || []);
-        if (seccion === 'asistentes') renderAsistentes(data.asistentes || []);
-        if (seccion === 'ventas')     renderVentas(data.ventas         || []);
-        if (seccion === 'asesores')   renderAsesores(data.asesores     || []);
-      } else {
-        if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(data.mensaje || 'Error al cargar') + '</td></tr>';
-      }
-    });
+    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'ok') {
+          datosCargados[seccion] = true;
+          if (seccion === 'direccion')  renderDireccion(data.direccion   || []);
+          if (seccion === 'academica')  renderAcademica(data.academica   || []);
+          if (seccion === 'maestros')   renderMaestros(data.maestros     || []);
+          if (seccion === 'escolar')    renderEscolar(data.escolar       || []);
+          if (seccion === 'asistentes') renderAsistentes(data.asistentes || []);
+if (seccion === 'ventas')     renderVentas(data.ventas         || []);
+          if (seccion === 'asesores')   renderAsesores(data.asesores     || []);
+        } else {
+          if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(data.mensaje || 'Error al cargar') + '</td></tr>';
+        }
+      })
+      .catch(function(e) {
+        if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(e.message) + '</td></tr>';
+      });
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -514,39 +515,52 @@
       '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria'))  +
       '&instBancaria=' + encodeURIComponent(val('newInstBancaria'));
 
-    jsonp(url, function(err, data) {
-      if (err) { alert('❌ Error de red: ' + err.message); return; }
-      if (data.status === 'ok') {
-        alert('✅ Director guardado correctamente en el Sheets.');
-        closeModal();
-        recargarTab('direccion');
-      } else {
-        alert('❌ ' + (data.mensaje || 'Error al guardar. Revisa el Apps Script.'));
-      }
-    });
+    console.log('Guardar URL:', url);
+    
+    fetch(url)
+      .then(function(r) { 
+        console.log('Response status:', r.status);
+        return r.json(); 
+      })
+      .then(function(data) {
+        console.log('Response data:', data);
+        if (data.status === 'ok') {
+          alert('✅ Director guardado correctamente en el Sheets.');
+          closeModal();
+          recargarTab('direccion');
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al guardar. Revisa el Apps Script.'));
+        }
+      })
+      .catch(function(e) { 
+        console.error('Error:', e);
+        alert('❌ Error de red: ' + e.message); 
+      });
   }
 
   /* ═══════════════════════════════════════════════════════════
      EDITAR — carga el registro y abre el modal
   ═══════════════════════════════════════════════════════════ */
   function editar(tipo, id) {
-    jsonp(APPS_SCRIPT + '?action=getPersonalIT', function(err, data) {
-      if (err) { alert('Error al obtener datos: ' + err.message); return; }
-      if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
+    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
 
-      var lista = data[tipo] || [];
-      var datos = null;
-      for (var i = 0; i < lista.length; i++) {
-        if (lista[i].ID === id) { datos = lista[i]; break; }
-      }
-      if (!datos) { alert('No se encontró el registro con ID: ' + id); return; }
-      openEditarModal(tipo, datos);
-    });
+        var lista = data[tipo] || [];
+        var datos = null;
+        for (var i = 0; i < lista.length; i++) {
+          if (lista[i].ID === id) { datos = lista[i]; break; }
+        }
+        if (!datos) { alert('No se encontró el registro con ID: ' + id); return; }
+        openEditarModal(tipo, datos);
+      })
+      .catch(function(e) { alert('Error al obtener datos: ' + e.message); });
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     ACTUALIZAR REGISTRO EXISTENTE — JSONP
-  ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+      ACTUALIZAR REGISTRO EXISTENTE — FETCH GET
+   ═══════════════════════════════════════════════════════════ */
   function actualizar() {
     var nombre = val('editNombre');
     if (!nombre) { alert('⚠️ El nombre es obligatorio.'); return; }
@@ -567,16 +581,27 @@
       '&infoBancaria=' + encodeURIComponent(val('editInfoBancaria'))  +
       '&instBancaria=' + encodeURIComponent(val('editInstBancaria'));
 
-    jsonp(url, function(err, data) {
-      if (err) { alert('❌ Error de red: ' + err.message); return; }
-      if (data.status === 'ok') {
-        alert('✅ Director actualizado correctamente en el Sheets.');
-        closeModal();
-        recargarTab('direccion');
-      } else {
-        alert('❌ ' + (data.mensaje || 'Error al actualizar. Revisa el Apps Script.'));
-      }
-    });
+    console.log('Actualizar URL:', url);
+    
+    fetch(url)
+      .then(function(r) { 
+        console.log('Response status:', r.status);
+        return r.json(); 
+      })
+      .then(function(data) {
+        console.log('Response data:', data);
+        if (data.status === 'ok') {
+          alert('✅ Director actualizado correctamente en el Sheets.');
+          closeModal();
+          recargarTab('direccion');
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al actualizar. Revisa el Apps Script.'));
+        }
+      })
+      .catch(function(e) { 
+        console.error('Error:', e);
+        alert('❌ Error de red: ' + e.message); 
+      });
   }
 
   /* ═══════════════════════════════════════════════════════════
