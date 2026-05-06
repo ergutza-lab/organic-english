@@ -38,35 +38,38 @@
     .btn-add { background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px; }
     table { width:100%; border-collapse:collapse; }
     th { text-align:left; font-size:12px; color:var(--muted); padding:12px 8px; border-bottom:1px solid var(--border); }
-    td { padding:12px 8px; border-bottom:1px solid var(--border); font-size:14px; }
+    td { padding:12px 8px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle; }
     .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; }
     .badge-activo { background:rgba(34,197,94,0.2); color:var(--green); }
     .badge-inactivo { background:rgba(239,68,68,0.2); color:var(--red); }
     .btn-action { padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
     .btn-edit { background:var(--blue); color:#fff; }
-    .btn-delete { background:var(--red); color:#fff; }
     .form-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; }
-    .form-group { margin-bottom:1rem; }
+    .form-group { margin-bottom:0.5rem; }
     .form-group label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    .form-group input, .form-group select { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:14px; }
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:100; }
+    .form-group input { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:14px; }
+    .form-group input:disabled { opacity:0.5; cursor:not-allowed; }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:100; padding:1rem; }
     .modal.active { display:flex; }
-    .modal-content { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem; width:90%; max-width:500px; max-height:90vh; overflow-y:auto; }
+    .modal-content { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem; width:100%; max-width:560px; max-height:92vh; overflow-y:auto; }
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
     .modal-title { font-size:1.2rem; font-weight:700; }
-    .modal-close { background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer; }
-    .modal-footer { display:flex; gap:12px; justify-content:flex-end; margin-top:1.5rem; }
-    .btn-cancel { padding:10px 20px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; }
-    .btn-save { background:var(--orange); color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer; }
+    .modal-close { background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer; line-height:1; }
+    .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:1.5rem; flex-wrap:wrap; }
+    .btn-cancel { padding:10px 18px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+    .btn-save { background:var(--orange); color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px; }
+    .btn-wa { background:#25D366; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px; }
     .botones-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:2rem; }
     .btn-seccion { padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
     .btn-seccion:hover { background:var(--orange); border-color:var(--orange); }
     .btn-seccion.active { background:var(--orange); border-color:var(--orange); }
     .mensaje-vacio { text-align:center; padding:3rem; color:var(--muted); font-size:16px; }
     .tab-content { display:none; }
+    .info-row td { text-align:center; color:var(--muted); padding:2rem !important; }
     @media(max-width:768px) {
       .botones-grid { grid-template-columns:repeat(2,1fr); }
       .form-grid { grid-template-columns:1fr; }
+      .panel-root { padding:1rem; }
     }
   </style>
 </head>
@@ -76,7 +79,7 @@
   <div id="screenLogin" class="screen active">
     <div class="login-wrap">
       <div class="login-box">
-        <img src="images/flor.jpg.webp" alt="Logo" />
+        <img src="images/flor.jpg.webp" alt="Logo" onerror="this.style.display='none'" />
         <h1>Coordinador IT</h1>
         <p>Ingresa tus credenciales</p>
         <div class="field">
@@ -87,7 +90,7 @@
           <label>Clave de acceso</label>
           <input type="password" id="inputClave" placeholder="Tu contraseña" onkeypress="loginEnter(event)" />
         </div>
-        <button class="btn-primary" onclick="login()">Entrar</button>
+        <button class="btn-primary" id="btnLogin" onclick="login()">Entrar</button>
         <div class="error-msg" id="errorMsg"></div>
       </div>
     </div>
@@ -98,7 +101,7 @@
     <div class="panel-root">
       <div class="top-bar">
         <div class="logo-area">
-          <img src="images/flor.jpg.webp" alt="Logo" />
+          <img src="images/flor.jpg.webp" alt="Logo" onerror="this.style.display='none'" />
           <span class="logo-text">Organic English - IT</span>
         </div>
         <div class="top-right">
@@ -108,13 +111,13 @@
       </div>
 
       <div class="botones-grid">
-        <button class="btn-seccion" onclick="switchTab('direccion', this)">Dirección</button>
-        <button class="btn-seccion" onclick="switchTab('academica', this)">Coordinación Académica</button>
-        <button class="btn-seccion" onclick="switchTab('maestros', this)">Maestros</button>
-        <button class="btn-seccion" onclick="switchTab('escolar', this)">Coordinación Escolar</button>
-        <button class="btn-seccion" onclick="switchTab('asistentes', this)">Asistentes CE</button>
-        <button class="btn-seccion" onclick="switchTab('ventas', this)">Coordinación Ventas</button>
-        <button class="btn-seccion" onclick="switchTab('asesores', this)">Asesores Venta</button>
+        <button class="btn-seccion" onclick="switchTab('direccion',this)">Dirección</button>
+        <button class="btn-seccion" onclick="switchTab('academica',this)">Coordinación Académica</button>
+        <button class="btn-seccion" onclick="switchTab('maestros',this)">Maestros</button>
+        <button class="btn-seccion" onclick="switchTab('escolar',this)">Coordinación Escolar</button>
+        <button class="btn-seccion" onclick="switchTab('asistentes',this)">Asistentes CE</button>
+        <button class="btn-seccion" onclick="switchTab('ventas',this)">Coordinación Ventas</button>
+        <button class="btn-seccion" onclick="switchTab('asesores',this)">Asesores Venta</button>
       </div>
 
       <div id="contenidoVacio" class="mensaje-vacio">Selecciona una sección para ver el personal</div>
@@ -124,26 +127,30 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">Directores</span>
-            <button class="btn-add" onclick="openModal('direccion')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('direccion')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nomina</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaDireccion"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nómina</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaDireccion"><tr class="info-row"><td colspan="8">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- COORDINACIÓN ACADÉMICA -->
+      <!-- ACADÉMICA -->
       <div id="tabAcademica" class="tab-content">
         <div class="card">
           <div class="card-header">
             <span class="card-title">Coordinadores Académicos</span>
-            <button class="btn-add" onclick="openModal('academica')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('academica')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaAcademica"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAcademica"><tr class="info-row"><td colspan="6">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -152,68 +159,78 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">Maestros</span>
-            <button class="btn-add" onclick="openModal('maestro')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('maestro')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Grupos</th><th>Costo/Clase</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaMaestros"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Grupos</th><th>Costo/Clase</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMaestros"><tr class="info-row"><td colspan="8">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- COORDINACIÓN ESCOLAR -->
+      <!-- ESCOLAR -->
       <div id="tabEscolar" class="tab-content">
         <div class="card">
           <div class="card-header">
             <span class="card-title">Coordinadores Escolares</span>
-            <button class="btn-add" onclick="openModal('escolar')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('escolar')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Grupos</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaEscolar"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Grupos</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaEscolar"><tr class="info-row"><td colspan="6">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- ASISTENTES CE -->
+      <!-- ASISTENTES -->
       <div id="tabAsistentes" class="tab-content">
         <div class="card">
           <div class="card-header">
             <span class="card-title">Asistentes CE</span>
-            <button class="btn-add" onclick="openModal('asistente')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('asistente')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Grupos Asignados</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaAsistentes"><tr><td colspan="7" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Grupos</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsistentes"><tr class="info-row"><td colspan="7">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- COORDINACIÓN VENTAS -->
+      <!-- VENTAS -->
       <div id="tabVentas" class="tab-content">
         <div class="card">
           <div class="card-header">
             <span class="card-title">Coordinadores de Ventas</span>
-            <button class="btn-add" onclick="openModal('ventas')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('ventas')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaVentas"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaVentas"><tr class="info-row"><td colspan="6">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- ASESORES VENTA -->
+      <!-- ASESORES -->
       <div id="tabAsesores" class="tab-content">
         <div class="card">
           <div class="card-header">
             <span class="card-title">Asesores de Venta</span>
-            <button class="btn-add" onclick="openModal('asesor')">+ Agregar</button>
+            <button class="btn-add" onclick="openAgregarModal('asesor')">+ Agregar</button>
           </div>
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Alumnos</th><th>Comisión</th><th>Link</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaAsesores"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Alumnos</th><th>Comisión</th><th>Link</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsesores"><tr class="info-row"><td colspan="8">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -224,395 +241,465 @@
   <div class="modal" id="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title" id="modalTitle">Agregar Personal</span>
+        <span class="modal-title" id="modalTitle">Agregar</span>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       <div id="modalBody"></div>
     </div>
   </div>
 
-  <script>
-    const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-    var itData = null;
-    window.datosTemporal = {};
-    var datosCargados = { direccion: false, academica: false, maestros: false, escolar: false, asistentes: false, ventas: false, asesores: false };
+<script>
+  /* ═══════════════════════════════════════════════════════════
+     CONFIGURACIÓN
+  ═══════════════════════════════════════════════════════════ */
+  var APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
-    // ── LOGIN ──────────────────────────────────────────────────────────────────
+  var itData = null;
+  window.datosTemporal = {};
+  var datosCargados = { direccion:false, academica:false, maestros:false, escolar:false, asistentes:false, ventas:false, asesores:false };
+  var mapeoTab = { direccion:'Direccion', academica:'Academica', maestros:'Maestros', escolar:'Escolar', asistentes:'Asistentes', ventas:'Ventas', asesores:'Asesores' };
 
-    function loginEnter(e) {
-      if (e.key === 'Enter') login();
+  /* ═══════════════════════════════════════════════════════════
+     JSONP — única forma de llamar Apps Script sin CORS
+     Agrega ?callback=NOMBRE al URL y espera que el servidor
+     responda: NOMBRE({...json...})
+  ═══════════════════════════════════════════════════════════ */
+  function jsonp(url, callback) {
+    var id     = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 99999);
+    var script = document.createElement('script');
+    var done   = false;
+
+    function cleanup() {
+      done = true;
+      delete window[id];
+      if (script.parentNode) script.parentNode.removeChild(script);
     }
 
-    function login() {
-      var id = document.getElementById('inputId').value.trim().toUpperCase();
-      var clave = document.getElementById('inputClave').value.trim();
-      var err = document.getElementById('errorMsg');
-      if (!id || !clave) { err.style.display = 'block'; err.textContent = 'Completa todos los campos'; return; }
-      err.style.display = 'none';
-      var btn = document.querySelector('.btn-primary');
-      btn.textContent = 'Verificando...';
-      btn.disabled = true;
+    window[id] = function(data) {
+      if (done) return;
+      cleanup();
+      callback(null, data);
+    };
 
-      fetch(APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
-        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function(data) {
-          btn.textContent = 'Entrar'; btn.disabled = false;
-          if (data.status === 'ok') { itData = data; mostrarPanel(); }
-          else { err.style.display = 'block'; err.textContent = data.mensaje || 'ID o clave incorrectos'; }
-        })
-        .catch(function(e) {
-          btn.textContent = 'Entrar'; btn.disabled = false;
-          err.style.display = 'block'; err.textContent = 'Error de conexión: ' + e.message;
-        });
-    }
+    script.onerror = function() {
+      if (done) return;
+      cleanup();
+      callback(new Error('Error de red. Verifica tu conexión.'));
+    };
 
-    function mostrarPanel() {
-      document.getElementById('screenLogin').classList.remove('active');
-      document.getElementById('screenPanel').classList.add('active');
-      var ini = (itData.nombre || 'IT').split(' ').map(function(w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
-      document.getElementById('avatarInitials').textContent = ini;
-      document.getElementById('contenidoVacio').style.display = 'block';
-      document.querySelectorAll('.tab-content').forEach(function(c) { c.style.display = 'none'; });
-      document.querySelectorAll('.btn-seccion').forEach(function(b) { b.classList.remove('active'); });
-    }
-
-    function logout() {
-      itData = null;
-      Object.keys(datosCargados).forEach(function(k) { datosCargados[k] = false; });
-      document.getElementById('screenPanel').classList.remove('active');
-      document.getElementById('screenLogin').classList.add('active');
-      document.getElementById('inputId').value = '';
-      document.getElementById('inputClave').value = '';
-      document.getElementById('contenidoVacio').style.display = 'block';
-      document.querySelectorAll('.btn-seccion').forEach(function(b) { b.classList.remove('active'); });
-      document.querySelectorAll('.tab-content').forEach(function(c) { c.style.display = 'none'; });
-    }
-
-    // ── NAVEGACIÓN ─────────────────────────────────────────────────────────────
-
-    function switchTab(tab, btn) {
-      document.querySelectorAll('.btn-seccion').forEach(function(b) { b.classList.remove('active'); });
-      if (btn) btn.classList.add('active');
-      document.getElementById('contenidoVacio').style.display = 'none';
-      document.querySelectorAll('.tab-content').forEach(function(c) { c.style.display = 'none'; });
-      var mapeo = { direccion:'Direccion', academica:'Academica', maestros:'Maestros', escolar:'Escolar', asistentes:'Asistentes', ventas:'Ventas', asesores:'Asesores' };
-      var el = document.getElementById('tab' + mapeo[tab]);
-      if (el) el.style.display = 'block';
-      cargarSeccion(tab);
-    }
-
-    function recargarTab(tab) {
-      datosCargados[tab] = false;
-      var btnActivo = document.querySelector('.btn-seccion.active');
-      switchTab(tab, btnActivo);
-    }
-
-    function cargarSeccion(seccion) {
-      if (datosCargados[seccion]) return;
-      var tablaId = 'tabla' + seccion.charAt(0).toUpperCase() + seccion.slice(1);
-      var tabla = document.getElementById(tablaId);
-      if (tabla) tabla.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Cargando...</td></tr>';
-
-      fetch(APPS_SCRIPT + '?action=getPersonalIT')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status === 'ok') {
-            datosCargados[seccion] = true;
-            if (seccion === 'direccion')  renderDireccion(data.direccion  || []);
-            if (seccion === 'academica')  renderAcademica(data.academica  || []);
-            if (seccion === 'maestros')   renderMaestros(data.maestros    || []);
-            if (seccion === 'escolar')    renderEscolar(data.escolar      || []);
-            if (seccion === 'asistentes') renderAsistentes(data.asistentes|| []);
-            if (seccion === 'ventas')     renderVentas(data.ventas        || []);
-            if (seccion === 'asesores')   renderAsesores(data.asesores    || []);
-          }
-        })
-        .catch(function(e) {
-          if (tabla) tabla.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--red)">Error al cargar: ' + e.message + '</td></tr>';
-        });
-    }
-
-    // ── MODAL ──────────────────────────────────────────────────────────────────
-
-    function closeModal() {
-      document.getElementById('modal').classList.remove('active');
-    }
-
-    function openModal(tipo) {
-      var titulos = {
-        direccion:'Agregar Director', academica:'Agregar Coordinador Académico',
-        maestro:'Agregar Maestro', escolar:'Agregar Coordinador Escolar',
-        asistente:'Agregar Asistente CE', ventas:'Agregar Coordinador Ventas', asesor:'Agregar Asesor'
-      };
-
-      var camposHTML = '';
-      if (tipo === 'direccion') {
-        camposHTML =
-          '<div class="form-grid">' +
-            '<div class="form-group"><label>ID Director *</label><input type="text" id="newId" placeholder="DIR-01"></div>' +
-            '<div class="form-group"><label>Nombre *</label><input type="text" id="newNombre" placeholder="Nombre completo"></div>' +
-            '<div class="form-group"><label>WhatsApp (solo números) *</label><input type="text" id="newWhatsapp" placeholder="2721564694"></div>' +
-            '<div class="form-group"><label>Email</label><input type="email" id="newEmail" placeholder="correo@ejemplo.com"></div>' +
-            '<div class="form-group"><label>Clave *</label><input type="text" id="newClave" placeholder="Contraseña"></div>' +
-            '<div class="form-group"><label>Nomina (MXN)</label><input type="text" id="newNomina" placeholder="15000"></div>' +
-            '<div class="form-group"><label>Foto URL</label><input type="text" id="newFoto" placeholder="https://..."></div>' +
-            '<div class="form-group"><label>Info Bancaria</label><input type="text" id="newInfoBancaria" placeholder="Banco, cuenta, CLABE"></div>' +
-            '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="newInstBancaria" placeholder="Nombre banco"></div>' +
-          '</div>' +
-          '<div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">' +
-            '<button class="btn-save" onclick="guardar(\'direccion\')">Cargar</button>' +
-            '<button class="btn-save" style="background:#25D366" onclick="notificar(\'direccion\')">Notificar al Personal</button>' +
-          '</div>' +
-          '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cancelar</button></div>';
-      } else {
-        camposHTML = '<p style="color:var(--muted);padding:1rem 0">Modal de ' + tipo + ' en desarrollo</p>' +
-          '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cerrar</button></div>';
+    setTimeout(function() {
+      if (!done) {
+        cleanup();
+        callback(new Error('Tiempo de espera agotado (15 s).'));
       }
+    }, 15000);
 
-      document.getElementById('modalTitle').textContent = titulos[tipo] || 'Agregar';
-      document.getElementById('modalBody').innerHTML = camposHTML;
-      document.getElementById('modal').classList.add('active');
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    script.src = url + sep + 'callback=' + id;
+    document.head.appendChild(script);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     HELPERS
+  ═══════════════════════════════════════════════════════════ */
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function val(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LOGIN
+  ═══════════════════════════════════════════════════════════ */
+  function loginEnter(e) { if (e.key === 'Enter') login(); }
+
+  function login() {
+    var id    = document.getElementById('inputId').value.trim().toUpperCase();
+    var clave = document.getElementById('inputClave').value.trim();
+    var err   = document.getElementById('errorMsg');
+    var btn   = document.getElementById('btnLogin');
+
+    if (!id || !clave) {
+      err.style.display = 'block';
+      err.textContent   = 'Completa todos los campos';
+      return;
     }
+    err.style.display = 'none';
+    btn.textContent   = 'Verificando...';
+    btn.disabled      = true;
 
-    function openEditModal(tipo, datos) {
-      var titulos = { direccion:'Editar Director' };
-      var camposHTML = '';
+    /* El login sí funciona con fetch normal (el servidor hace redirect
+       y el navegador lo sigue). JSONP también funcionaría, pero fetch
+       ya estaba funcionando para este endpoint. */
+    fetch(APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = 'Entrar'; btn.disabled = false;
+        if (data.status === 'ok') {
+          itData = data;
+          mostrarPanel();
+        } else {
+          err.style.display = 'block';
+          err.textContent   = data.mensaje || 'ID o clave incorrectos';
+        }
+      })
+      .catch(function(e) {
+        btn.textContent = 'Entrar'; btn.disabled = false;
+        err.style.display = 'block';
+        err.textContent   = 'Error de conexión: ' + e.message;
+      });
+  }
 
-      if (tipo === 'direccion') {
-        camposHTML =
-          '<div class="form-grid">' +
-            '<div class="form-group"><label>ID</label><input type="text" id="editId" value="' + esc(datos.ID) + '" disabled></div>' +
-            '<div class="form-group"><label>Nombre *</label><input type="text" id="editNombre" value="' + esc(datos.Nombre) + '"></div>' +
-            '<div class="form-group"><label>WhatsApp</label><input type="text" id="editWhatsapp" value="' + esc(datos.WhatsApp) + '"></div>' +
-            '<div class="form-group"><label>Email</label><input type="email" id="editEmail" value="' + esc(datos.Email) + '"></div>' +
-            '<div class="form-group"><label>Clave</label><input type="text" id="editClave" value="' + esc(datos.Clave) + '"></div>' +
-            '<div class="form-group"><label>Nomina</label><input type="text" id="editNomina" value="' + esc(datos.Nomina) + '"></div>' +
-            '<div class="form-group"><label>Foto URL</label><input type="text" id="editFoto" value="' + esc(datos.Foto) + '"></div>' +
-            '<div class="form-group"><label>Info Bancaria</label><input type="text" id="editInfoBancaria" value="' + esc(datos.InfoBancaria) + '"></div>' +
-            '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="editInstBancaria" value="' + esc(datos.InstBancaria) + '"></div>' +
-          '</div>' +
-          '<div class="modal-footer">' +
-            '<button class="btn-save" style="background:#25D366" onclick="notificarExistente()">Notificar</button>' +
-            '<button class="btn-save" onclick="actualizar(\'direccion\')">Actualizar Datos</button>' +
-            '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
-          '</div>';
-      }
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+    var ini = (itData.nombre || 'IT').split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
+    document.getElementById('avatarInitials').textContent = ini;
+    document.getElementById('contenidoVacio').style.display = 'block';
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
+    document.querySelectorAll('.btn-seccion').forEach(function(b){ b.classList.remove('active'); });
+  }
 
-      document.getElementById('modalTitle').textContent = titulos[tipo] || 'Editar';
-      document.getElementById('modalBody').innerHTML = camposHTML;
-      document.getElementById('modal').classList.add('active');
-    }
+  function logout() {
+    itData = null;
+    Object.keys(datosCargados).forEach(function(k){ datosCargados[k]=false; });
+    document.getElementById('screenPanel').classList.remove('active');
+    document.getElementById('screenLogin').classList.add('active');
+    document.getElementById('inputId').value   = '';
+    document.getElementById('inputClave').value = '';
+    document.getElementById('contenidoVacio').style.display = 'block';
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
+    document.querySelectorAll('.btn-seccion').forEach(function(b){ b.classList.remove('active'); });
+  }
 
-    // Helper para escapar valores en atributos HTML
-    function esc(v) {
-      return (v || '').toString().replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
+  /* ═══════════════════════════════════════════════════════════
+     NAVEGACIÓN
+  ═══════════════════════════════════════════════════════════ */
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.btn-seccion').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    document.getElementById('contenidoVacio').style.display = 'none';
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
+    var el = document.getElementById('tab' + mapeoTab[tab]);
+    if (el) el.style.display = 'block';
+    cargarSeccion(tab);
+  }
 
-    // ── GUARDAR (nuevo director) ───────────────────────────────────────────────
+  function recargarTab(tab) {
+    datosCargados[tab] = false;
+    cargarSeccion(tab);
+  }
 
-    function guardar(tipo) {
-      if (tipo !== 'direccion') return;
+  /* ═══════════════════════════════════════════════════════════
+     CARGAR DATOS — usa JSONP para evitar CORS
+  ═══════════════════════════════════════════════════════════ */
+  function cargarSeccion(seccion) {
+    if (datosCargados[seccion]) return;
 
-      var id     = (document.getElementById('newId')     || {value:''}).value.trim().toUpperCase();
-      var nombre = (document.getElementById('newNombre') || {value:''}).value.trim();
+    var tbId = 'tabla' + mapeoTab[seccion];
+    var tb   = document.getElementById(tbId);
+    if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8">Cargando...</td></tr>';
 
-      if (!id || !nombre) {
-        alert('El ID y el Nombre son obligatorios.');
+    jsonp(APPS_SCRIPT + '?action=getPersonalIT', function(err, data) {
+      if (err) {
+        if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(err.message) + '</td></tr>';
         return;
       }
+      if (data.status === 'ok') {
+        datosCargados[seccion] = true;
+        if (seccion === 'direccion')  renderDireccion(data.direccion   || []);
+        if (seccion === 'academica')  renderAcademica(data.academica   || []);
+        if (seccion === 'maestros')   renderMaestros(data.maestros     || []);
+        if (seccion === 'escolar')    renderEscolar(data.escolar       || []);
+        if (seccion === 'asistentes') renderAsistentes(data.asistentes || []);
+        if (seccion === 'ventas')     renderVentas(data.ventas         || []);
+        if (seccion === 'asesores')   renderAsesores(data.asesores     || []);
+      } else {
+        if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(data.mensaje || 'Error al cargar') + '</td></tr>';
+      }
+    });
+  }
 
-      var wa      = (document.getElementById('newWhatsapp')     || {value:''}).value.trim();
-      var email   = (document.getElementById('newEmail')        || {value:''}).value.trim();
-      var clave   = (document.getElementById('newClave')        || {value:''}).value.trim();
-      var nomina  = (document.getElementById('newNomina')       || {value:''}).value.trim();
-      var foto    = (document.getElementById('newFoto')         || {value:''}).value.trim();
-      var infoBan = (document.getElementById('newInfoBancaria') || {value:''}).value.trim();
-      var instBan = (document.getElementById('newInstBancaria') || {value:''}).value.trim();
+  /* ═══════════════════════════════════════════════════════════
+     MODAL
+  ═══════════════════════════════════════════════════════════ */
+  function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+  }
 
-      fetch(APPS_SCRIPT +
-        '?action=agregarDirector' +
-        '&id='           + encodeURIComponent(id)     +
-        '&nombre='       + encodeURIComponent(nombre) +
-        '&whatsapp='     + encodeURIComponent(wa)     +
-        '&email='        + encodeURIComponent(email)  +
-        '&clave='        + encodeURIComponent(clave)  +
-        '&nomina='       + encodeURIComponent(nomina) +
-        '&foto='         + encodeURIComponent(foto)   +
-        '&infoBancaria=' + encodeURIComponent(infoBan)+
-        '&instBancaria=' + encodeURIComponent(instBan))
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.status === 'ok') {
-          alert('Director guardado correctamente');
-          closeModal();
-          recargarTab('direccion');
-        } else {
-          alert(data.mensaje || 'Error al guardar');
-        }
-      })
-      .catch(function(e) { alert('Error de red: ' + e.message); });
+  /* Campos reutilizables para Dirección */
+  function htmlCamposDireccion(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Director *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="DIR-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp (solo números)</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Clave *</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+    '</div>';
+  }
+
+  function openAgregarModal(tipo) {
+    var titulos = { direccion:'Agregar Director', academica:'Agregar Coord. Académico', maestro:'Agregar Maestro', escolar:'Agregar Coord. Escolar', asistente:'Agregar Asistente CE', ventas:'Agregar Coord. Ventas', asesor:'Agregar Asesor' };
+    var html = '';
+
+    if (tipo === 'direccion') {
+      html = htmlCamposDireccion('new') +
+        '<div class="modal-footer">' +
+          '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
+          '<button class="btn-wa" onclick="notificar()">📲 Notificar WA</button>' +
+          '<button class="btn-save" onclick="guardar()">💾 Guardar en Sheets</button>' +
+        '</div>';
+    } else {
+      html = '<p style="color:var(--muted);padding:1rem 0">Modal de <b>' + esc(tipo) + '</b> próximamente.</p>' +
+        '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cerrar</button></div>';
     }
 
-    // ── EDITAR ────────────────────────────────────────────────────────────────
+    document.getElementById('modalTitle').textContent = titulos[tipo] || 'Agregar';
+    document.getElementById('modalBody').innerHTML    = html;
+    document.getElementById('modal').classList.add('active');
+  }
 
-    function editar(tipo, id) {
-      fetch(APPS_SCRIPT + '?action=getPersonalIT')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status !== 'ok') { alert('Error al obtener datos'); return; }
-          var lista = data[tipo] || data.direccion || [];
-          var datos = lista.find(function(p) { return p.ID === id; });
-          if (!datos) { alert('No se encontró el registro'); return; }
-          window.datosTemporal = datos;
-          openEditModal(tipo, datos);
-        })
-        .catch(function(e) { alert('Error: ' + e.message); });
+  function openEditarModal(tipo, datos) {
+    window.datosTemporal = datos;
+    var titulos = { direccion:'Editar Director' };
+    var html = '';
+
+    if (tipo === 'direccion') {
+      html = htmlCamposDireccion('edit', datos) +
+        '<div class="modal-footer">' +
+          '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
+          '<button class="btn-wa" onclick="notificarExistente()">📲 Notificar WA</button>' +
+          '<button class="btn-save" onclick="actualizar()">💾 Actualizar en Sheets</button>' +
+        '</div>';
     }
 
-    // ── ACTUALIZAR (editar director) ──────────────────────────────────────────
+    document.getElementById('modalTitle').textContent = titulos[tipo] || 'Editar';
+    document.getElementById('modalBody').innerHTML    = html;
+    document.getElementById('modal').classList.add('active');
+  }
 
-    function actualizar(tipo) {
-      if (tipo !== 'direccion') return;
+  /* ═══════════════════════════════════════════════════════════
+     GUARDAR NUEVO DIRECTOR — JSONP
+  ═══════════════════════════════════════════════════════════ */
+  function guardar() {
+    var id     = val('newId').toUpperCase();
+    var nombre = val('newNombre');
 
-      var nombre = (document.getElementById('editNombre') || {value:''}).value.trim();
-      if (!nombre) { alert('El nombre es obligatorio.'); return; }
-
-      var idOriginal = window.datosTemporal.ID || '';
-      var wa      = (document.getElementById('editWhatsapp')     || {value:''}).value.trim();
-      var email   = (document.getElementById('editEmail')        || {value:''}).value.trim();
-      var clave   = (document.getElementById('editClave')        || {value:''}).value.trim();
-      var nomina  = (document.getElementById('editNomina')       || {value:''}).value.trim();
-      var foto    = (document.getElementById('editFoto')         || {value:''}).value.trim();
-      var infoBan = (document.getElementById('editInfoBancaria') || {value:''}).value.trim();
-      var instBan = (document.getElementById('editInstBancaria') || {value:''}).value.trim();
-
-      var datos = {
-        action: 'actualizarDirector',
-        datos: {
-          idOriginal: idOriginal,
-          id:         idOriginal,
-          nombre:     nombre,
-          whatsapp:   wa,
-          email:      email,
-          clave:      clave,
-          nomina:     nomina,
-          foto:       foto,
-          infoBancaria: infoBan,
-          instBancaria: instBan
-        }
-      };
-
-      fetch(APPS_SCRIPT, {
-        method: 'POST',
-        body: JSON.stringify(datos)
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.status === 'ok') {
-          alert('Director actualizado correctamente');
-          closeModal();
-          recargarTab('direccion');
-        } else {
-          alert(data.mensaje || 'Error al actualizar');
-        }
-      })
-      .catch(function(e) { alert('Error de red: ' + e.message); });
+    if (!id || !nombre) {
+      alert('⚠️ El ID y el Nombre son obligatorios.');
+      return;
     }
 
-    // ── NOTIFICACIONES WhatsApp ────────────────────────────────────────────────
+    var url = APPS_SCRIPT +
+      '?action=agregarDirector' +
+      '&id='           + encodeURIComponent(id)                     +
+      '&nombre='       + encodeURIComponent(nombre)                 +
+      '&whatsapp='     + encodeURIComponent(val('newWhatsapp'))      +
+      '&email='        + encodeURIComponent(val('newEmail'))         +
+      '&clave='        + encodeURIComponent(val('newClave'))         +
+      '&nomina='       + encodeURIComponent(val('newNomina'))        +
+      '&foto='         + encodeURIComponent(val('newFoto'))          +
+      '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria'))  +
+      '&instBancaria=' + encodeURIComponent(val('newInstBancaria'));
 
-    function notificar(tipo) {
-      if (tipo !== 'direccion') return;
-      var nombre   = (document.getElementById('newNombre')   || {value:''}).value.trim();
-      var whatsapp = (document.getElementById('newWhatsapp') || {value:''}).value.trim();
-      var id       = (document.getElementById('newId')       || {value:''}).value.trim().toUpperCase();
-      var clave    = (document.getElementById('newClave')    || {value:''}).value.trim();
-      if (!nombre) { alert('El nombre es obligatorio para notificar'); return; }
-      if (!whatsapp) { alert('El WhatsApp es obligatorio para notificar'); return; }
-      var msg = 'Hola ' + nombre + '.%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.%0A%0ATe informo que ya tienes acceso a la plataforma.%0A%0A*Tu acceso al panel de Dirección:*%0A📍 Enlace: https://organicenglish1.com/director.html%0A👤 Usuario: ' + id + '%0A🔐 Contraseña: ' + clave + '%0A%0ACualquier duda sobre el funcionamiento de la plataforma, estoy para orientarte.%0A%0ASaludos cordiales.';
-      window.open('https://wa.me/52' + whatsapp + '?text=' + msg, '_blank');
-    }
+    jsonp(url, function(err, data) {
+      if (err) { alert('❌ Error de red: ' + err.message); return; }
+      if (data.status === 'ok') {
+        alert('✅ Director guardado correctamente en el Sheets.');
+        closeModal();
+        recargarTab('direccion');
+      } else {
+        alert('❌ ' + (data.mensaje || 'Error al guardar. Revisa el Apps Script.'));
+      }
+    });
+  }
 
-    function notificarExistente() {
-      var datos = window.datosTemporal;
-      if (!datos || !datos.Nombre) { alert('No hay datos del director'); return; }
-      if (!datos.WhatsApp) { alert('No hay WhatsApp registrado'); return; }
-      var msg = 'Hola ' + datos.Nombre + '.%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.%0A%0ATe informo que ya tienes acceso a la plataforma.%0A%0A*Tu acceso al panel de Dirección:*%0A📍 Enlace: https://organicenglish1.com/director.html%0A👤 Usuario: ' + datos.ID + '%0A🔐 Contraseña: ' + datos.Clave + '%0A%0ACualquier duda sobre el funcionamiento de la plataforma, estoy para orientarte.%0A%0ASaludos cordiales.';
-      window.open('https://wa.me/52' + datos.WhatsApp + '?text=' + msg, '_blank');
-    }
+  /* ═══════════════════════════════════════════════════════════
+     EDITAR — carga el registro y abre el modal
+  ═══════════════════════════════════════════════════════════ */
+  function editar(tipo, id) {
+    jsonp(APPS_SCRIPT + '?action=getPersonalIT', function(err, data) {
+      if (err) { alert('Error al obtener datos: ' + err.message); return; }
+      if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
 
-    // ── RENDER TABLES ─────────────────────────────────────────────────────────
+      var lista = data[tipo] || [];
+      var datos = null;
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].ID === id) { datos = lista[i]; break; }
+      }
+      if (!datos) { alert('No se encontró el registro con ID: ' + id); return; }
+      openEditarModal(tipo, datos);
+    });
+  }
 
-    function renderDireccion(lista) {
-      var tb = document.getElementById('tablaDireccion');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Sin directores registrados</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        var fotoHtml = p.Foto
-          ? '<img src="' + p.Foto + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">'
-          : '<div style="width:40px;height:40px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;">' + (p.Nombre ? p.Nombre[0] : '?') + '</div>';
-        return '<tr>' +
-          '<td>' + fotoHtml + '</td>' +
-          '<td>' + esc(p.ID) + '</td>' +
-          '<td>' + esc(p.Nombre) + '</td>' +
-          '<td>' + esc(p.WhatsApp) + '</td>' +
-          '<td>' + esc(p.Email) + '</td>' +
-          '<td>' + esc(p.Clave) + '</td>' +
-          '<td>' + esc(p.Nomina) + '</td>' +
-          '<td><button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + esc(p.ID) + '\')">Editar</button></td>' +
-        '</tr>';
-      }).join('');
-    }
+  /* ═══════════════════════════════════════════════════════════
+     ACTUALIZAR REGISTRO EXISTENTE — JSONP
+  ═══════════════════════════════════════════════════════════ */
+  function actualizar() {
+    var nombre = val('editNombre');
+    if (!nombre) { alert('⚠️ El nombre es obligatorio.'); return; }
 
-    function renderAcademica(lista) {
-      var tb = document.getElementById('tablaAcademica');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin coordinadores académicos</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
-      }).join('');
-    }
+    var idOriginal = (window.datosTemporal && window.datosTemporal.ID) ? window.datosTemporal.ID : '';
+    if (!idOriginal) { alert('Error interno: falta el ID original. Cierra el modal y vuelve a intentarlo.'); return; }
 
-    function renderMaestros(lista) {
-      var tb = document.getElementById('tablaMaestros');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Sin maestros</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        var activo = (p.Activo === 'TRUE' || p.Activo === true);
-        return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td><td>' + esc(p.Grupos) + '</td><td>$' + esc(p.Costo || '0') + '</td><td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
-      }).join('');
-    }
+    var url = APPS_SCRIPT +
+      '?action=actualizarDirector' +
+      '&idOriginal='   + encodeURIComponent(idOriginal)              +
+      '&id='           + encodeURIComponent(idOriginal)              +
+      '&nombre='       + encodeURIComponent(nombre)                  +
+      '&whatsapp='     + encodeURIComponent(val('editWhatsapp'))      +
+      '&email='        + encodeURIComponent(val('editEmail'))         +
+      '&clave='        + encodeURIComponent(val('editClave'))         +
+      '&nomina='       + encodeURIComponent(val('editNomina'))        +
+      '&foto='         + encodeURIComponent(val('editFoto'))          +
+      '&infoBancaria=' + encodeURIComponent(val('editInfoBancaria'))  +
+      '&instBancaria=' + encodeURIComponent(val('editInstBancaria'));
 
-    function renderEscolar(lista) {
-      var tb = document.getElementById('tablaEscolar');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin coordinadores escolares</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
-      }).join('');
-    }
+    jsonp(url, function(err, data) {
+      if (err) { alert('❌ Error de red: ' + err.message); return; }
+      if (data.status === 'ok') {
+        alert('✅ Director actualizado correctamente en el Sheets.');
+        closeModal();
+        recargarTab('direccion');
+      } else {
+        alert('❌ ' + (data.mensaje || 'Error al actualizar. Revisa el Apps Script.'));
+      }
+    });
+  }
 
-    function renderAsistentes(lista) {
-      var tb = document.getElementById('tablaAsistentes');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Sin asistentes CE</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td><td>' + esc(p.Email) + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
-      }).join('');
-    }
+  /* ═══════════════════════════════════════════════════════════
+     NOTIFICACIONES WHATSAPP
+  ═══════════════════════════════════════════════════════════ */
+  function notificar() {
+    var nombre   = val('newNombre');
+    var whatsapp = val('newWhatsapp');
+    var id       = val('newId').toUpperCase();
+    var clave    = val('newClave');
+    if (!nombre)   { alert('Escribe el nombre antes de notificar.'); return; }
+    if (!whatsapp) { alert('Escribe el WhatsApp antes de notificar.'); return; }
+    abrirWA(nombre, whatsapp, id, clave);
+  }
 
-    function renderVentas(lista) {
-      var tb = document.getElementById('tablaVentas');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin coordinadores de ventas</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
-      }).join('');
-    }
+  function notificarExistente() {
+    var d = window.datosTemporal || {};
+    if (!d.Nombre)   { alert('No hay datos del director.'); return; }
+    if (!d.WhatsApp) { alert('No hay WhatsApp registrado.'); return; }
+    abrirWA(d.Nombre, d.WhatsApp, d.ID, d.Clave);
+  }
 
-    function renderAsesores(lista) {
-      var tb = document.getElementById('tablaAsesores');
-      if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Sin asesores</td></tr>'; return; }
-      tb.innerHTML = lista.map(function(p) {
-        var activo = (p.Activo === 'TRUE' || p.Activo === true);
-        return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Alumnos || '0') + '</td><td>$' + esc(p.Comision || '0') + '</td><td><a href="' + (p.Link || '#') + '" target="_blank" style="color:var(--blue)">Link</a></td><td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
-      }).join('');
-    }
+  function abrirWA(nombre, whatsapp, id, clave) {
+    var msg = 'Hola ' + nombre + '.' +
+      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+      '%0A%0A*Tu acceso al panel de Dirección:*' +
+      '%0A📍 Enlace: https://organicenglish1.com/director.html' +
+      '%0A👤 Usuario: ' + id +
+      '%0A🔐 Contraseña: ' + clave +
+      '%0A%0ACualquier duda, estoy para orientarte.' +
+      '%0A%0ASaludos cordiales.';
+    window.open('https://wa.me/52' + whatsapp + '?text=' + msg, '_blank');
+  }
 
-  </script>
+  /* ═══════════════════════════════════════════════════════════
+     RENDER TABLAS
+  ═══════════════════════════════════════════════════════════ */
+  function renderDireccion(lista) {
+    var tb = document.getElementById('tablaDireccion');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin directores registrados</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + esc(p.ID) + '\')">Editar</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderAcademica(lista) {
+    var tb = document.getElementById('tablaAcademica');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="6">Sin coordinadores académicos</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
+        '<td><span class="badge badge-activo">Activo</span></td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'academica\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+    }).join('');
+  }
+
+  function renderMaestros(lista) {
+    var tb = document.getElementById('tablaMaestros');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin maestros</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var activo = (p.Activo === 'TRUE' || p.Activo === true);
+      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Grupos) + '</td><td>$' + esc(p.Costo || '0') + '</td>' +
+        '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+    }).join('');
+  }
+
+  function renderEscolar(lista) {
+    var tb = document.getElementById('tablaEscolar');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="6">Sin coordinadores escolares</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td>' +
+        '<td><span class="badge badge-activo">Activo</span></td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+    }).join('');
+  }
+
+  function renderAsistentes(lista) {
+    var tb = document.getElementById('tablaAsistentes');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin asistentes CE</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td><td>' + esc(p.Email) + '</td>' +
+        '<td><span class="badge badge-activo">Activo</span></td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'asistentes\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+    }).join('');
+  }
+
+  function renderVentas(lista) {
+    var tb = document.getElementById('tablaVentas');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="6">Sin coordinadores de ventas</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
+        '<td><span class="badge badge-activo">Activo</span></td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+    }).join('');
+  }
+
+  function renderAsesores(lista) {
+    var tb = document.getElementById('tablaAsesores');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin asesores</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var activo = (p.Activo === 'TRUE' || p.Activo === true);
+      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Alumnos || '0') + '</td>' +
+        '<td>$' + esc(p.Comision || '0') + '</td>' +
+        '<td><a href="' + esc(p.Link || '#') + '" target="_blank" style="color:var(--blue)">Link</a></td>' +
+        '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td><button class="btn-action btn-edit" onclick="editar(\'asesores\',\'' + esc(p.ID) + '\')">Editar</button></td></tr>';
+    }).join('');
+  }
+
+</script>
 </body>
 </html>
