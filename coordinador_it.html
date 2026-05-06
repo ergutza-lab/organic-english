@@ -231,14 +231,27 @@
       btn.textContent = 'Verificando...';
       btn.disabled = true;
       
-      fetch(APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
-        .then(function(r) { return r.json(); })
+      var url = APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave);
+      console.log('Login URL:', url);
+      
+      fetch(url)
+        .then(function(response) { 
+          console.log('Response status:', response.status);
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.json(); 
+        })
         .then(function(data) {
+          console.log('Login response:', data);
           btn.textContent = 'Entrar'; btn.disabled = false;
           if (data.status === 'ok') { itData = data; mostrarPanel(); }
           else { err.style.display = 'block'; err.textContent = data.mensaje || 'ID o clave incorrectos'; }
         })
-        .catch(function(e) { btn.textContent = 'Entrar'; btn.disabled = false; err.style.display = 'block'; err.textContent = 'Error de conexión'; });
+        .catch(function(e) { 
+          console.error('Login error:', e);
+          btn.textContent = 'Entrar'; btn.disabled = false; 
+          err.style.display = 'block'; 
+          err.textContent = 'Error de conexión: ' + e.message; 
+        });
     }
 
     function mostrarPanel() {
