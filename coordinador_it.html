@@ -133,8 +133,8 @@
             <button class="btn-add" onclick="openModal('direccion')">+ Agregar</button>
           </div>
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="tablaDireccion"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
+            <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nomina</th><th>Foto</th><th>Info Bancaria</th><th>Acciones</th></tr></thead>
+            <tbody id="tablaDireccion"><tr><td colspan="9" style="text-align:center;color:var(--muted)">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -354,12 +354,12 @@ function logout() {
       var campos = {
         'direccion': 
           '<div class="form-grid">' +
-            '<div class="form-group"><label>ID Director</label><input type="text" id="newId" placeholder="DIR-01"></div>' +
-            '<div class="form-group"><label>Nombre</label><input type="text" id="newNombre" placeholder="Nombre completo"></div>' +
-            '<div class="form-group"><label>WhatsApp</label><input type="text" id="newWhatsapp" placeholder="272XXXXXXX"></div>' +
+            '<div class="form-group"><label>ID Director *</label><input type="text" id="newId" placeholder="DIR-01"></div>' +
+            '<div class="form-group"><label>Nombre *</label><input type="text" id="newNombre" placeholder="Nombre completo"></div>' +
+            '<div class="form-group"><label>WhatsApp (solo números) *</label><input type="number" id="newWhatsapp" placeholder="2721564694"></div>' +
             '<div class="form-group"><label>Email</label><input type="email" id="newEmail" placeholder="correo@ejemplo.com"></div>' +
-            '<div class="form-group"><label>Clave</label><input type="text" id="newClave" placeholder="Contraseña"></div>' +
-            '<div class="form-group"><label>Nomina</label><input type="text" id="newNomina" placeholder="Número nómina"></div>' +
+            '<div class="form-group"><label>Clave *</label><input type="text" id="newClave" placeholder="Contraseña"></div>' +
+            '<div class="form-group"><label>Nomina (MXN)</label><input type="number" id="newNomina" placeholder="15000"></div>' +
             '<div class="form-group"><label>Foto URL</label><input type="text" id="newFoto" placeholder="https://..."></div>' +
             '<div class="form-group"><label>Info Bancaria</label><input type="text" id="newInfoBancaria" placeholder="Banco, cuenta, CLABE"></div>' +
             '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="newInstBancaria" placeholder="Nombre banco"></div>' +
@@ -374,9 +374,19 @@ function logout() {
     function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
     function renderDireccion(lista) {
-      if (!lista.length) { document.getElementById('tablaDireccion').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Sin directores</td></tr>'; return; }
+      if (!lista.length) { document.getElementById('tablaDireccion').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted)">Sin directores</td></tr>'; return; }
       document.getElementById('tablaDireccion').innerHTML = lista.map(function(p) {
-        return '<tr><td>' + (p.ID || '') + '</td><td>' + (p.Nombre || '') + '</td><td>' + (p.WhatsApp || '') + '</td><td>' + (p.Email || '') + '</td><td><span class="badge badge-activo">Activo</span></td><td><button class="btn-action btn-edit">Editar</button></td></tr>';
+        return '<tr>' +
+          '<td>' + (p.ID || '') + '</td>' +
+          '<td>' + (p.Nombre || '') + '</td>' +
+          '<td>' + (p.WhatsApp || '') + '</td>' +
+          '<td>' + (p.Email || '') + '</td>' +
+          '<td>' + (p.Clave || '') + '</td>' +
+          '<td>$' + (p.Nomina || '0') + '</td>' +
+          '<td>' + (p.Foto || '') + '</td>' +
+          '<td>' + (p.InfoBancaria || '') + '</td>' +
+          '<td><button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + p.ID + '\')">Editar</button></td>' +
+        '</tr>';
       }).join('');
     }
 
@@ -426,19 +436,31 @@ function logout() {
 
     function guardar(tipo) {
       if (tipo === 'direccion') {
-        var datos = {
-          id: document.getElementById('newId').value.trim().toUpperCase(),
-          nombre: document.getElementById('newNombre').value.trim(),
-          whatsapp: document.getElementById('newWhatsapp').value.trim(),
-          email: document.getElementById('newEmail').value.trim(),
-          clave: document.getElementById('newClave').value.trim(),
-          nomina: document.getElementById('newNomina').value.trim(),
-          foto: document.getElementById('newFoto').value.trim(),
-          infoBancaria: document.getElementById('newInfoBancaria').value.trim(),
-          instBancaria: document.getElementById('newInstBancaria').value.trim()
-        };
+        var id = document.getElementById('newId').value.trim();
+        var nombre = document.getElementById('newNombre').value.trim();
+        var whatsapp = document.getElementById('newWhatsapp').value.trim();
+        var email = document.getElementById('newEmail').value.trim();
+        var clave = document.getElementById('newClave').value.trim();
+        var nomina = document.getElementById('newNomina').value.trim();
+        var foto = document.getElementById('newFoto').value.trim();
+        var infoBancaria = document.getElementById('newInfoBancaria').value.trim();
+        var instBancaria = document.getElementById('newInstBancaria').value.trim();
         
-        if (!datos.id || !datos.nombre) { alert('ID y Nombre son obligatorios'); return; }
+        console.log('ID:', id, 'Nombre:', nombre);
+        
+        if (!id || !nombre) { alert('ID y Nombre son obligatorios'); return; }
+        
+        var datos = {
+          id: id.toUpperCase(),
+          nombre: nombre,
+          whatsapp: whatsapp,
+          email: email,
+          clave: clave,
+          nomina: nomina,
+          foto: foto,
+          infoBancaria: infoBancaria,
+          instBancaria: instBancaria
+        };
         
         fetch(APPS_SCRIPT, {
           method: 'POST',
@@ -446,21 +468,107 @@ function logout() {
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
+          console.log('Respuesta:', data);
           if (data.status === 'ok') {
-            alert('Director guardado correctamente');
-            closeModal();
-            datosCargados.direccion = false;
-            switchTab('direccion');
+            document.getElementById('modalBody').innerHTML = 
+              '<div style="text-align:center;padding:20px;">' +
+                '<div style="font-size:48px;margin-bottom:16px;">✅</div>' +
+                '<h3 style="color:var(--green);margin-bottom:16px;">¡Registro Exitoso!</h3>' +
+                '<p style="margin-bottom:20px;">El director <strong>' + nombre + '</strong> ha sido registrado correctamente.</p>' +
+                '<div style="background:var(--bg);padding:16px;border-radius:12px;margin-bottom:20px;text-align:left;">' +
+                  '<p style="margin-bottom:8px;"><strong>Panel:</strong> <a href="https://organicenglish1.com/director.html" target="_blank" style="color:var(--blue);">organicenglish1.com/director.html</a></p>' +
+                  '<p style="margin-bottom:8px;"><strong>Usuario:</strong> ' + id.toUpperCase() + '</p>' +
+                  '<p><strong>Contraseña:</strong> ' + clave + '</p>' +
+                '</div>' +
+                (whatsapp ? '<a href="https://wa.me/52' + whatsapp + '?text=Hola%20' + encodeURIComponent(nombre) + ',%20bienvenido%20a%20Organic%20English.%20Tu%20panel%20es%20director.html%20con%20usuario%20' + id.toUpperCase() + '" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:16px;">📱 Contactar por WhatsApp</a>' : '') +
+                '<br><button class="btn-cancel" onclick="closeModal();datosCargados.direccion=false;switchTab(\'direccion\')">Cerrar</button>' +
+              '</div>';
           } else {
             alert(data.mensaje || 'Error al guardar');
           }
         })
-        .catch(function(e) { alert('Error: ' + e.message); });
+        .catch(function(e) { console.error(e); alert('Error: ' + e.message); });
       } else {
         alert('Funcionalidad de ' + tipo + ' en desarrollo');
         closeModal();
       }
     }
+      
+      // Variable global para almacenar datos temporales
+      window.datosTemporal = {};
+      
+      function editar(tipo, id) {
+        fetch(APPS_SCRIPT + '?action=getPersonalIT')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.status !== 'ok') return;
+            var lista = data.direccion || [];
+            var datos = lista.find(function(p) { return p.ID === id; });
+            if (!datos) { alert('No se encontró el registro'); return; }
+            window.datosTemporal = datos;
+            openEditModal(tipo, datos);
+          });
+      }
+
+      function openEditModal(tipo, datos) {
+        var titulos = { 'direccion': 'Editar Director' };
+        
+        var campos = {
+          'direccion': 
+            '<div class="form-grid">' +
+              '<div class="form-group"><label>ID</label><input type="text" id="editId" value="' + (datos.ID || '') + '" disabled></div>' +
+              '<div class="form-group"><label>Nombre</label><input type="text" id="editNombre" value="' + (datos.Nombre || '') + '"></div>' +
+              '<div class="form-group"><label>WhatsApp</label><input type="number" id="editWhatsapp" value="' + (datos.WhatsApp || '') + '"></div>' +
+              '<div class="form-group"><label>Email</label><input type="email" id="editEmail" value="' + (datos.Email || '') + '"></div>' +
+              '<div class="form-group"><label>Clave</label><input type="text" id="editClave" value="' + (datos.Clave || '') + '"></div>' +
+              '<div class="form-group"><label>Nomina</label><input type="number" id="editNomina" value="' + (datos.Nomina || '') + '"></div>' +
+              '<div class="form-group"><label>Foto URL</label><input type="text" id="editFoto" value="' + (datos.Foto || '') + '"></div>' +
+              '<div class="form-group"><label>Info Bancaria</label><input type="text" id="editInfoBancaria" value="' + (datos.InfoBancaria || '') + '"></div>' +
+              '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="editInstBancaria" value="' + (datos.InstBancaria || '') + '"></div>' +
+            '</div>'
+        };
+        
+        document.getElementById('modal').classList.add('active');
+        document.getElementById('modalTitle').textContent = titulos[tipo] || 'Editar';
+        document.getElementById('modalBody').innerHTML = campos[tipo] + '<div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" style="background:var(--green)" onclick="actualizar(\'' + tipo + '\')">Actualizar Datos</button></div>';
+      }
+
+      function actualizar(tipo) {
+        if (tipo === 'direccion') {
+          var datosOriginal = window.datosTemporal;
+          var datos = {
+            idOriginal: datosOriginal.ID,
+            id: document.getElementById('editId').value,
+            nombre: document.getElementById('editNombre').value.trim(),
+            whatsapp: document.getElementById('editWhatsapp').value.trim(),
+            email: document.getElementById('editEmail').value.trim(),
+            clave: document.getElementById('editClave').value.trim(),
+            nomina: document.getElementById('editNomina').value.trim(),
+            foto: document.getElementById('editFoto').value.trim(),
+            infoBancaria: document.getElementById('editInfoBancaria').value.trim(),
+            instBancaria: document.getElementById('editInstBancaria').value.trim()
+          };
+          
+          if (!datos.nombre) { alert('El nombre es obligatorio'); return; }
+          
+          fetch(APPS_SCRIPT, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'actualizarDirector', datos: datos })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.status === 'ok') {
+              alert('Director actualizado correctamente');
+              closeModal();
+              datosCargados.direccion = false;
+              switchTab('direccion');
+            } else {
+              alert(data.mensaje || 'Error al actualizar');
+            }
+          })
+          .catch(function(e) { alert('Error: ' + e.message); });
+        }
+      }
   </script>
 </body>
 </html>
