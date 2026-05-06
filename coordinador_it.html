@@ -165,8 +165,8 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Grupos</th><th>Costo/Clase</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaMaestros"><tr class="info-row"><td colspan="8">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Rol</th><th>Activo</th><th>Clave</th><th>Costo</th><th>Info Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMaestros"><tr class="info-row"><td colspan="12">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -476,16 +476,19 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     d = d || {};
     var esEditar = prefijo === 'edit';
     function v(campo) { return esc(d[campo] || ''); }
+    var activoCheck = (d.Activo === 'TRUE' || d.Activo === true || d.Activo === '1' || d.Activo === 1);
     return '<div class="form-grid">' +
       '<div class="form-group"><label>ID Maestro *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="MAE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
       '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
       '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
       '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Rol</label><input type="text" id="' + prefijo + 'Rol" value="' + v('Rol') + '" placeholder="Maestro / Tutor"></div>' +
+      '<div class="form-group"><label>Activo</label><input type="checkbox" id="' + prefijo + 'Activo" ' + (activoCheck ? 'checked' : '') + ' style="width:auto"></div>' +
       '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
-      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
       '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
-      '<div class="form-group"><label>Grupos</label><input type="text" id="' + prefijo + 'Grupos" value="' + v('Grupos') + '" placeholder="A1, A2, B1"></div>' +
-      '<div class="form-group"><label>Costo por hora</label><input type="text" id="' + prefijo + 'Costo" value="' + v('Costo') + '" placeholder="200"></div>' +
+      '<div class="form-group"><label>Costo/Clase</label><input type="text" id="' + prefijo + 'Costo" value="' + v('Costo') + '" placeholder="200"></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Inst. Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex"></div>' +
     '</div>';
   }
 
@@ -637,7 +640,9 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '&instBancaria=' + encodeURIComponent(val('newInstBancaria')) +
       '&grupos=' + encodeURIComponent(val('newGrupos')) +
       '&costo=' + encodeURIComponent(val('newCosto')) +
-      '&cuentaBancaria=' + encodeURIComponent(val('newCuentaBancaria'));
+      '&cuentaBancaria=' + encodeURIComponent(val('newCuentaBancaria')) +
+      '&rol=' + encodeURIComponent(val('newRol')) +
+      '&activo=' + (document.getElementById('newActivo') && document.getElementById('newActivo').checked ? 'TRUE' : 'FALSE');
 
     console.log('Guardar URL:', url);
     
@@ -716,7 +721,9 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '&instBancaria=' + encodeURIComponent(val('editInstBancaria')) +
       '&grupos=' + encodeURIComponent(val('editGrupos')) +
       '&costo=' + encodeURIComponent(val('editCosto')) +
-      '&cuentaBancaria=' + encodeURIComponent(val('editCuentaBancaria'));
+      '&cuentaBancaria=' + encodeURIComponent(val('editCuentaBancaria')) +
+      '&rol=' + encodeURIComponent(val('editRol')) +
+      '&activo=' + (document.getElementById('editActivo') && document.getElementById('editActivo').checked ? 'TRUE' : 'FALSE');
 
     fetch(url)
       .then(function(r) { return r.text(); })
@@ -948,15 +955,28 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
 
   function renderMaestros(lista) {
     var tb = document.getElementById('tablaMaestros');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin maestros</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="12">Sin maestros</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
       var activo = (p.Activo === 'TRUE' || p.Activo === true);
-      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
-        '<td>' + esc(p.Grupos) + '</td><td>$' + esc(p.Costo || '0') + '</td>' +
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Rol) + '</td>' +
         '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>$' + esc(p.Costo || '0') + '</td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'maestros\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
-          '<button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button>' +
+          '<button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'maestros\',\'' + esc(p.ID) + '\')">Baja</button>' +
         '</td></tr>';
     }).join('');
   }
