@@ -182,8 +182,8 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Grupos</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaEscolar"><tr class="info-row"><td colspan="6">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Clave</th><th>Nómina</th><th>Info Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaEscolar"><tr class="info-row"><td colspan="9">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -486,7 +486,7 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '<div class="form-group"><label>Rol</label><select id="' + prefijo + 'Rol">' +
         '<option value="">Seleccionar...</option>' +
         '<option value="Docente"' + (v('Rol') === 'Docente' ? ' selected' : '') + '>Docente</option>' +
-        '<option value="Colaborador"' + (v('Rol') === 'Colaborador' ? ' selected' : '') + '>Colaborador</option>' +
+        '<option value="Colocador"' + (v('Rol') === 'Colocador' ? ' selected' : '') + '>Colocador</option>' +
         '<option value="Ambos"' + (v('Rol') === 'Ambos' ? ' selected' : '') + '>Ambos</option>' +
       '</select></div>' +
       '<div class="form-group"><label>Activo</label><input type="checkbox" id="' + prefijo + 'Activo" ' + (activoCheck ? 'checked' : '') + ' style="width:auto"></div>' +
@@ -989,13 +989,24 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
 
   function renderEscolar(lista) {
     var tb = document.getElementById('tablaEscolar');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin coordinadores escolares</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin coordinadores escolares</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
-      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td>' +
-        '<td><span class="badge badge-activo">Activo</span></td>' +
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'escolar\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
-          '<button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + esc(p.ID) + '\')">Editar</button>' +
+          '<button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'escolar\',\'' + esc(p.ID) + '\')">Baja</button>' +
         '</td></tr>';
     }).join('');
   }
