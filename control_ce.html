@@ -899,7 +899,7 @@ function renderGrupos(filtro) {
       : '<span class="chip chip-naranja">Sin asignar</span>';
     // Botón WhatsApp al Coord IT solo si 0 alumnos
     var btnWA = inscritos === 0
-      ? ' <a class="btn btn-sm" style="background:#25D366;color:#fff;text-decoration:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600" onclick="abrirWhatsCoordIT(\'' + g.id + '\')">📲 Whats Coord. IT</a>'
+      ? ' <button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\'' + g.id + '\')">Notificar al Coord. IT</button>'
       : '';
     return '<tr>' +
       '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.id + '</strong></td>' +
@@ -1011,7 +1011,7 @@ function renderAlertas() {
         '<td style="font-size:.8rem">' + formatFecha(g.fechaInicio) + '</td>' +
         '<td><span class="chip chip-gris">' + (g.idMaestro||'—') + '</span></td>' +
         '<td>' + (g.idAsistente ? '<span class="chip chip-azul">' + g.idAsistente + '</span>' : '<span class="chip chip-gris">—</span>') + '</td>' +
-        '<td><a class="btn btn-sm" style="background:#25D366;color:#fff;text-decoration:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600" onclick="abrirWhatsCoordIT(\'' + g.id + '\')">📲 Whats Coord. IT</a></td>' +
+        '<td><button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\'' + g.id + '\')">Notificar al Coord. IT</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -1431,17 +1431,36 @@ function formatFecha(str) {
 <script>
 // ── ABRIR WHATSAPP AL COORDINADOR IT ──
 function abrirWhatsCoordIT(idGrupo) {
-  fetch(APPS_SCRIPT + '?action=notificarBajaGrupoCE&idGrupo=' + encodeURIComponent(idGrupo) + '&idCE=' + encodeURIComponent(estado.idCE), { redirect: 'follow' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success && data.linkWA) {
-        window.open(data.linkWA, '_blank');
-      } else {
-        alert('❌ No se pudo obtener el enlace de WhatsApp: ' + (data.error || 'Error desconocido'));
+  var btn = event.target;
+  btn.textContent = 'Cargando...';
+  btn.disabled = true;
+  
+  var url = APPS_SCRIPT + '?action=notificarBajaGrupoCE&idGrupo=' + encodeURIComponent(idGrupo);
+  
+  fetch(url, { redirect: 'follow' })
+    .then(function(response) { return response.text(); })
+    .then(function(text) {
+      btn.textContent = 'Notificar al Coord. IT';
+      btn.disabled = false;
+      try {
+        var data = JSON.parse(text);
+        if (data.success && data.linkWA) {
+          window.open(data.linkWA, '_blank');
+        } else if (data.linkWA) {
+          window.open(data.linkWA, '_blank');
+        } else {
+          alert('No se encontró link de WhatsApp. Revisa la consola para más info.');
+          console.log(data);
+        }
+      } catch(e) {
+        alert('Error al procesar respuesta: ' + e.message);
+        console.log(text);
       }
     })
-    .catch(function() {
-      alert('❌ Error de conexión');
+    .catch(function(err) {
+      btn.textContent = 'Notificar al Coord. IT';
+      btn.disabled = false;
+      alert('Error de conexión: ' + err.message);
     });
 }
 </script>
