@@ -596,9 +596,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <span class="fi-icono">ℹ️</span>
           <div>
             <strong>¿Cómo funciona la fusión?</strong>
-            Avisa al asistente CE responsable del grupo para que gestione el cambio de cada alumno como si fuera
-            una solicitud del alumno. Una vez que el grupo llegue a 0 alumnos, aparecerá el botón
-            <strong>Cancelar grupo</strong> para cerrarlo definitivamente.
+            Avisa al asistente CE responsable del grupo para que gestione el cambio de cada alumno como si fuera una solicitud del alumno. Cuando el grupo llegue a 0 alumnos, haz clic en <strong>"Notificar al Coord. IT"</strong> para que se dé de baja el grupo en el sistema.
           </div>
         </div>
         <div class="tabla-wrap">
@@ -1013,7 +1011,7 @@ function renderAlertas() {
         '<td style="font-size:.8rem">' + formatFecha(g.fechaInicio) + '</td>' +
         '<td><span class="chip chip-gris">' + (g.idMaestro||'—') + '</span></td>' +
         '<td>' + (g.idAsistente ? '<span class="chip chip-azul">' + g.idAsistente + '</span>' : '<span class="chip chip-gris">—</span>') + '</td>' +
-        '<td><button class="btn btn-rojo btn-sm" onclick="abrirModalCancelar(\'' + g.id + '\',\'' + (g.nombre||'').replace(/'/g,'') + '\',\'' + g.horario + '\',\'' + g.nivel + '\',\'' + (g.idMaestro||'') + '\')">Cancelar grupo</button></td>' +
+        '<td><button class="btn btn-naranja btn-sm" onclick="notificarBajaGrupo(\'' + g.id + '\')">Notificar al Coord. IT</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -1429,6 +1427,33 @@ function formatFecha(str) {
     <div class="modal-msg" id="modal-evaluar-msg"></div>
   </div>
 </div>
+
+<script>
+// ── NOTIFICAR BAJA DE GRUPO AL COORDINADOR IT ──
+function notificarBajaGrupo(idGrupo) {
+  if (!confirm('¿Notificar al Coordinador IT para dar de baja el grupo ' + idGrupo + '?')) return;
+  
+  var btn = event.target;
+  btn.textContent = 'Enviando...'; btn.disabled = true;
+  
+  fetch(APPS_SCRIPT + '?action=notificarBajaGrupoCE&idGrupo=' + encodeURIComponent(idGrupo) + '&idCE=' + encodeURIComponent(estado.idCE), { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.textContent = 'Enviado'; btn.disabled = false;
+      if (data.success || data.status === 'ok') {
+        alert('✅ Notificación enviada al Coordinador IT');
+      } else {
+        alert('❌ Error: ' + (data.error || data.mensaje || 'Error al enviar'));
+        btn.textContent = 'Notificar al Coord. IT';
+        btn.disabled = false;
+      }
+    })
+    .catch(function() {
+      btn.textContent = 'Error de conexión';
+      btn.disabled = false;
+    });
+}
+</script>
 
 </body>
 </html>
