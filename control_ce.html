@@ -1431,11 +1431,32 @@ function formatFecha(str) {
 <script>
 // ── ABRIR WHATSAPP AL COORDINADOR IT ──
 function abrirWhatsCoordIT(idGrupo) {
-  // Número de WhatsApp de Organic English (puedes cambiarlo)
-  var phone = '5626053674';
-  var mensaje = 'Hola, el grupo ' + idGrupo + ' ha llegado a 0 alumnos. Por favor dar de baja el grupo en el sistema.';
-  var linkWA = 'https://wa.me/52' + phone + '?text=' + encodeURIComponent(mensaje);
-  window.open(linkWA, '_blank');
+  var btn = event.target;
+  var originalText = btn.textContent;
+  btn.textContent = 'Cargando...';
+  btn.disabled = true;
+  
+  var url = APPS_SCRIPT + '?action=getCoordITWhats';
+  
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      if (data.whatsapp) {
+        var phone = data.whatsapp.replace(/\D/g, '');
+        var mensaje = 'Hola ' + data.nombre + ', el grupo ' + idGrupo + ' ha llegado a 0 alumnos. Por favor dar de baja el grupo en el sistema.';
+        var linkWA = 'https://wa.me/52' + phone + '?text=' + encodeURIComponent(mensaje);
+        window.open(linkWA, '_blank');
+      } else {
+        alert('No se encontró WhatsApp del Coordinador IT');
+      }
+    })
+    .catch(function(err) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      alert('Error: ' + err.message);
+    });
 }
 </script>
 
