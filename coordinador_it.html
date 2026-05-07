@@ -230,8 +230,8 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Alumnos</th><th>Comisión</th><th>Link</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaAsesores"><tr class="info-row"><td colspan="8">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Activo</th><th>Clave</th><th>Link Inscripción</th><th>Info Bancaria</th><th>Banco</th><th>Email</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsesores"><tr class="info-row"><td colspan="11">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -557,13 +557,18 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     d = d || {};
     var esEditar = prefijo === 'edit';
     function v(campo) { return esc(d[campo] || ''); }
+    var activoCheck = (d.Activo === 'TRUE' || d.Activo === true || d.Activo === '1' || d.Activo === 1);
     return '<div class="form-grid">' +
       '<div class="form-group"><label>ID Asesor *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="ASE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
       '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
       '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Activo</label><input type="checkbox" id="' + prefijo + 'Activo" ' + (activoCheck ? 'checked' : '') + ' style="width:auto"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Link Inscripción</label><input type="text" id="' + prefijo + 'LinkInscripcion" value="' + v('LinkInscripcion') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
       '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
-      '<div class="form-group"><label>Link</label><input type="text" id="' + prefijo + 'Link" value="' + v('Link') + '" placeholder="https://..."></div>' +
-      '<div class="form-group"><label>Activo</label><select id="' + prefijo + 'Activo"><option value="TRUE"' + (v('Activo') === 'TRUE' ? ' selected' : '') + '>Activo</option><option value="FALSE"' + (v('Activo') === 'FALSE' ? ' selected' : '') + '>Inactivo</option></select></div>' +
     '</div>';
   }
 
@@ -1067,16 +1072,27 @@ var panelLink = {
 
   function renderAsesores(lista) {
     var tb = document.getElementById('tablaAsesores');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin asesores</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="11">Sin asesores</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
       var activo = (p.Activo === 'TRUE' || p.Activo === true);
-      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Alumnos || '0') + '</td>' +
-        '<td>$' + esc(p.Comision || '0') + '</td>' +
-        '<td><a href="' + esc(p.Link || '#') + '" target="_blank" style="color:var(--blue)">Link</a></td>' +
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
         '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td><a href="' + esc(p.LinkInscripcion || '#') + '" target="_blank" style="color:var(--blue)">Link</a></td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'asesores\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
-          '<button class="btn-action btn-edit" onclick="editar(\'asesores\',\'' + esc(p.ID) + '\')">Editar</button>' +
+          '<button class="btn-action btn-edit" onclick="editar(\'asesores\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'asesores\',\'' + esc(p.ID) + '\')">Baja</button>' +
         '</td></tr>';
     }).join('');
   }
