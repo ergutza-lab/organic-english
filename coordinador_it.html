@@ -122,6 +122,7 @@
         <button class="btn-seccion" onclick="switchTab('asistentes',this)">Asistentes CE</button>
         <button class="btn-seccion" onclick="switchTab('ventas',this)">Coordinación Ventas</button>
         <button class="btn-seccion" onclick="switchTab('asesores',this)">Asesores Venta</button>
+        <button class="btn-seccion" onclick="switchTab('grupos',this)" style="background:var(--green);border-color:var(--green);color:#fff;">Mantenimiento Grupos</button>
       </div>
 
       <div id="contenidoVacio" class="mensaje-vacio">Selecciona una sección para ver el personal</div>
@@ -238,6 +239,99 @@
         </div>
       </div>
 
+      <!-- NUEVO GRUPO -->
+      <div id="tabGrupos" class="tab-content">
+        <div style="display:flex;gap:10px;margin-bottom:20px;">
+          <button class="tab-sub" id="sub-alta" onclick="switchSubTab('alta')" style="background:var(--green);color:#fff;border:none;padding:10px 24px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;">Alta de Grupos</button>
+          <button class="tab-sub" id="sub-baja" onclick="switchSubTab('baja')" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-bottom:none;padding:10px 24px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;">Baja de Grupos</button>
+        </div>
+
+        <!-- ALTA DE GRUPOS -->
+        <div id="subAlta" class="sub-tab-content">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Crear nuevo grupo</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:16px;">
+              <div class="form-group">
+                <label>ID Grupo *</label>
+                <input type="text" id="ng-id" placeholder="Ej: AC-01" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Nombre *</label>
+                <input type="text" id="ng-nombre" placeholder="Nombre del grupo" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Horario *</label>
+                <select id="ng-horario" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);">
+                  <option value="">Seleccionar</option>
+                  <option value="7:00 AM">7:00 AM</option>
+                  <option value="8:00 AM">8:00 AM</option>
+                  <option value="9:00 AM">9:00 AM</option>
+                  <option value="10:00 AM">10:00 AM</option>
+                  <option value="11:00 AM">11:00 AM</option>
+                  <option value="12:00 PM">12:00 PM</option>
+                  <option value="1:00 PM">1:00 PM</option>
+                  <option value="2:00 PM">2:00 PM</option>
+                  <option value="3:00 PM">3:00 PM</option>
+                  <option value="4:00 PM">4:00 PM</option>
+                  <option value="5:00 PM">5:00 PM</option>
+                  <option value="6:00 PM">6:00 PM</option>
+                  <option value="7:00 PM">7:00 PM</option>
+                  <option value="8:00 PM">8:00 PM</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Fecha Inicio *</label>
+                <input type="date" id="ng-fecha" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Nivel *</label>
+                <select id="ng-nivel" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);">
+                  <option value="">Seleccionar</option>
+                  <option value="A1">A1 - Beginner</option>
+                  <option value="A2">A2 - Elementary</option>
+                  <option value="B1">B1 - Intermediate</option>
+                  <option value="B2">B2 - Upper Intermediate</option>
+                  <option value="C1">C1 - Advanced</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Cupo *</label>
+                <input type="number" id="ng-cupo" placeholder="10" min="1" max="30" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Link Zoom *</label>
+                <input type="text" id="ng-zoom" placeholder="https://zoom.us/..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Asistente CE *</label>
+                <select id="ng-asistente" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);">
+                  <option value="">Seleccionar</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:20px;">
+              <button onclick="crearGrupoIT()" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;">Crear grupo</button>
+              <span id="msg-grupo" style="margin-left:16px;display:none;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BAJA DE GRUPOS -->
+        <div id="subBaja" class="sub-tab-content" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Grupos Existentes</span>
+              <button onclick="cargarGruposExistentes()" style="background:var(--surface);border:1px solid var(--border);padding:8px 16px;border-radius:6px;cursor:pointer;">🔄 Actualizar</button>
+            </div>
+            <div id="tabla-grupos-container" style="margin-top:16px;overflow-x:auto;">
+              <p style="color:var(--text-muted);">Cargando grupos...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -260,8 +354,8 @@
 
   var itData = null;
   window.datosTemporal = {};
-  var datosCargados = { direccion:false, academica:false, maestros:false, escolar:false, asistentes:false, ventas:false, asesores:false };
-  var mapeoTab = { direccion:'Direccion', academica:'Academica', maestros:'Maestros', escolar:'Escolar', asistentes:'Asistentes', ventas:'Ventas', asesores:'Asesores' };
+  var datosCargados = { direccion:false, academica:false, maestros:false, escolar:false, asistentes:false, ventas:false, asesores:false, grupos:false };
+  var mapeoTab = { direccion:'Direccion', academica:'Academica', maestros:'Maestros', escolar:'Escolar', asistentes:'Asistentes', ventas:'Ventas', asesores:'Asesores', grupos:'Grupos' };
 
   /* ═══════════════════════════════════════════════════════════
      JSONP — única forma de llamar Apps Script sin CORS
@@ -340,7 +434,7 @@
     /* El login sí funciona con fetch normal (el servidor hace redirect
        y el navegador lo sigue). JSONP también funcionaría, pero fetch
        ya estaba funcionando para este endpoint. */
-    fetch(APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave))
+    fetch(APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave), { redirect: 'follow' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         btn.textContent = 'Entrar'; btn.disabled = false;
@@ -391,7 +485,7 @@
     document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
     var el = document.getElementById('tab' + mapeoTab[tab]);
     if (el) el.style.display = 'block';
-    cargarSeccion(tab);
+    if (tab !== 'grupos') cargarSeccion(tab);
   }
 
   function recargarTab(tab) {
@@ -409,7 +503,7 @@
     var tb   = document.getElementById(tbId);
     if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8">Cargando...</td></tr>';
 
-    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.status === 'ok') {
@@ -688,7 +782,7 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       EDITAR — carga el registro y abre el modal
    ═══════════════════════════════════════════════════════════ */
   function editar(tipo, id) {
-    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
@@ -882,7 +976,7 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
 
   /* Notificar desde la tabla directamente */
   function notificarDesdeTabla(tipo, id) {
-    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.status !== 'ok') { alert('Error al obtener datos'); return; }
@@ -1110,6 +1204,168 @@ var panelLink = {
         '</td></tr>';
     }).join('');
   }
+
+  // ── CREAR GRUPO ──
+  function crearGrupoIT() {
+    var id        = document.getElementById('ng-id').value.trim().toUpperCase();
+    var nombre    = document.getElementById('ng-nombre').value.trim();
+    var horario   = document.getElementById('ng-horario').value;
+    var fecha     = document.getElementById('ng-fecha').value;
+    var nivel     = document.getElementById('ng-nivel').value;
+    var cupo      = document.getElementById('ng-cupo').value;
+    var zoom      = document.getElementById('ng-zoom').value.trim();
+    var asistente = document.getElementById('ng-asistente').value;
+    var msgEl     = document.getElementById('msg-grupo');
+
+    msgEl.style.display = 'none';
+
+    if (!id || !nombre || !horario || !fecha || !nivel || !cupo || !zoom || !asistente) {
+      msgEl.textContent = 'Por favor completa todos los campos obligatorios.';
+      msgEl.style.display = 'inline'; return;
+    }
+
+    var regexId = /^[A-Z]{2}-\d{2}$/;
+    if (!regexId.test(id)) {
+      msgEl.textContent = 'El ID del grupo debe tener el formato XX-00 (Ej: AC-01).';
+      msgEl.style.display = 'inline'; return;
+    }
+
+    var btn = document.querySelector('#tabGrupos .card button');
+    btn.textContent = 'Creando...'; btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=crearGrupo&idGrupo=' + encodeURIComponent(id) +
+      '&nombre=' + encodeURIComponent(nombre) +
+      '&horario=' + encodeURIComponent(horario) +
+      '&fecha=' + encodeURIComponent(fecha) +
+      '&nivel=' + encodeURIComponent(nivel) +
+      '&cupo=' + encodeURIComponent(cupo) +
+      '&zoom=' + encodeURIComponent(zoom) +
+      '&asistente=' + encodeURIComponent(asistente), { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = 'Crear grupo'; btn.disabled = false;
+        if (data.success || data.status === 'ok') {
+          msgEl.textContent = '✅ Grupo creado exitosamente!';
+          msgEl.style.color = 'var(--green)';
+          msgEl.style.display = 'inline';
+          document.getElementById('ng-id').value = '';
+          document.getElementById('ng-nombre').value = '';
+          document.getElementById('ng-horario').value = '';
+          document.getElementById('ng-fecha').value = '';
+          document.getElementById('ng-nivel').value = '';
+          document.getElementById('ng-cupo').value = '';
+          document.getElementById('ng-zoom').value = '';
+          document.getElementById('ng-asistente').value = '';
+        } else {
+          msgEl.textContent = '❌ ' + (data.error || data.mensaje || 'Error al crear grupo');
+          msgEl.style.color = 'var(--red)';
+          msgEl.style.display = 'inline';
+        }
+      })
+      .catch(function() {
+        btn.textContent = 'Crear grupo'; btn.disabled = false;
+        msgEl.textContent = '❌ Error de conexión';
+        msgEl.style.color = 'var(--red)';
+        msgEl.style.display = 'inline';
+      });
+  }
+
+  // Cargar asistentes al select
+  function cargarAsistentesSelect() {
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var sel = document.getElementById('ng-asistente');
+        sel.innerHTML = '<option value="">Seleccionar</option>';
+        if (data.asistentes) {
+          data.asistentes.forEach(function(a) {
+            sel.innerHTML += '<option value="' + a.ID + '">' + a.Nombre + '</option>';
+          });
+        }
+      });
+  }
+
+  // ── SUB-TABS MANTENIMIENTO GRUPOS ──
+  function switchSubTab(sub) {
+    document.getElementById('subAlta').style.display = sub === 'alta' ? 'block' : 'none';
+    document.getElementById('subBaja').style.display = sub === 'baja' ? 'block' : 'none';
+    document.getElementById('sub-alta').style.background = sub === 'alta' ? 'var(--green)' : 'var(--surface)';
+    document.getElementById('sub-alta').style.color = sub === 'alta' ? '#fff' : 'var(--text)';
+    document.getElementById('sub-baja').style.background = sub === 'baja' ? 'var(--green)' : 'var(--surface)';
+    document.getElementById('sub-baja').style.color = sub === 'baja' ? '#fff' : 'var(--text)';
+    if (sub === 'baja') cargarGruposExistentes();
+  }
+
+  function cargarGruposExistentes() {
+    var container = document.getElementById('tabla-grupos-container');
+    container.innerHTML = '<p style="color:var(--text-muted);">Cargando grupos...</p>';
+    fetch(APPS_SCRIPT + '?action=getGruposExistentes', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.grupos && data.grupos.length > 0) {
+          var html = '<table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr style="background:var(--surface);">';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">ID</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Nombre</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Horario</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Nivel</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:center;">Alumnos</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Estado</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:center;">Acción</th></tr></thead><tbody>';
+          data.grupos.forEach(function(g) {
+            var puedeCancelar = g.inscritos === 0 && g.estado !== 'CANCELADO';
+            html += '<tr>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.id + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.nombre + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.horario + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.nivel + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;">' + g.inscritos + '</td>';
+            var colorEstado = g.estado === 'CANCELADO' ? 'var(--red)' : 'var(--green)';
+            html += '<td style="padding:10px;border:1px solid var(--border);color:' + colorEstado + ';">' + (g.estado || 'ACTIVO') + '</td>';
+            if (puedeCancelar) {
+              html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;">';
+              html += '<button onclick="cancelarGrupo(\'' + g.id + '\')" style="background:var(--red);color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Cancelar</button>';
+              html += '</td>';
+            } else {
+              html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);">-</td>';
+            }
+            html += '</tr>';
+          });
+          html += '</tbody></table>';
+          container.innerHTML = html;
+        } else {
+          container.innerHTML = '<p style="color:var(--text-muted);">No hay grupos registrados.</p>';
+        }
+      })
+      .catch(function() {
+        container.innerHTML = '<p style="color:var(--red);">Error al cargar grupos.</p>';
+      });
+  }
+
+  function cancelarGrupo(idGrupo) {
+    if (!confirm('¿Estás seguro de cancelar el grupo ' + idGrupo + '? Esto marcará el grupo como CANCELADO y ya no aparecerá en inscripciones.')) return;
+    var btn = event.target;
+    btn.textContent = 'Cancelando...'; btn.disabled = true;
+    fetch(APPS_SCRIPT + '?action=cancelarGrupoIT&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = 'Cancelar'; btn.disabled = false;
+        if (data.success) {
+          alert('✅ Grupo cancelado correctamente');
+          cargarGruposExistentes();
+        } else {
+          alert('❌ ' + (data.error || 'Error al cancelar'));
+        }
+      })
+      .catch(function() {
+        btn.textContent = 'Cancelar'; btn.disabled = false;
+        alert('❌ Error de conexión');
+      });
+  }
+
+  // Llamar al cargar la página
+  window.onload = function() {
+    cargarAsistentesSelect();
+  };
 
 </script>
 </body>
