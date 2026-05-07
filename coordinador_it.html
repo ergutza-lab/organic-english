@@ -198,8 +198,8 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Grupos</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaAsistentes"><tr class="info-row"><td colspan="7">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Clave</th><th>Email</th><th>Nómina</th><th>Info Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsistentes"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -524,7 +524,6 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '<div class="form-group"><label>ID Asistente *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="ASIST-01"' + (esEditar ? ' disabled' : '') + '></div>' +
       '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
       '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
-      '<div class="form-group"><label>Grupos</label><input type="text" id="' + prefijo + 'Grupos" value="' + v('Grupos') + '" placeholder="A1, A2, B1"></div>' +
       '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
       '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
       '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
@@ -831,9 +830,9 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     
     var panelLink = {
       direccion: 'https://organicenglish1.com/director.html',
-      academica: 'https://organicenglish1.com/coordinador_academico.html',
+      academica: 'https://organicenglish1.com/control-academico.html',
       maestros: 'https://organicenglish1.com/maestro.html',
-      escolar: 'https://organicenglish1.com/coordinador_escolar.html',
+      escolar: 'https://organicenglish1.com/control_ce.html',
       asistentes: 'https://organicenglish1.com/asistente.html',
       ventas: 'https://organicenglish1.com/coordinador_ventas.html',
       asesores: 'https://organicenglish1.com/asesor.html'
@@ -875,15 +874,15 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
         if (!datos) { alert('No se encontró el registro'); return; }
         if (!datos.WhatsApp) { alert('No hay WhatsApp registrado'); return; }
         
-        var panelLink = {
-          direccion: 'https://organicenglish1.com/director.html',
-          academica: 'https://organicenglish1.com/coordinador_academico.html',
-          maestros: 'https://organicenglish1.com/maestro.html',
-          escolar: 'https://organicenglish1.com/coordinador_escolar.html',
-          asistentes: 'https://organicenglish1.com/asistente.html',
-          ventas: 'https://organicenglish1.com/coordinador_ventas.html',
-          asesores: 'https://organicenglish1.com/asesor.html'
-        };
+var panelLink = {
+      direccion: 'https://organicenglish1.com/director.html',
+      academica: 'https://organicenglish1.com/control-academico.html',
+      maestros: 'https://organicenglish1.com/maestro.html',
+      escolar: 'https://organicenglish1.com/control_ce.html',
+      asistentes: 'https://organicenglish1.com/asistente.html',
+      ventas: 'https://organicenglish1.com/coordinador_ventas.html',
+      asesores: 'https://organicenglish1.com/asesor.html'
+    };
         
         var nombrePanel = {
           direccion: 'Director',
@@ -1013,13 +1012,25 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
 
   function renderAsistentes(lista) {
     var tb = document.getElementById('tablaAsistentes');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="8">Sin asistentes CE</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="10">Sin asistentes CE</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
-      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Grupos) + '</td><td>' + esc(p.Email) + '</td>' +
-        '<td><span class="badge badge-activo">Activo</span></td>' +
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'asistentes\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
-          '<button class="btn-action btn-edit" onclick="editar(\'asistentes\',\'' + esc(p.ID) + '\')">Editar</button>' +
+          '<button class="btn-action btn-edit" onclick="editar(\'asistentes\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'asistentes\',\'' + esc(p.ID) + '\')">Baja</button>' +
         '</td></tr>';
     }).join('');
   }
