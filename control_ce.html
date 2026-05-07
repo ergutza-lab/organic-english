@@ -732,7 +732,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     </div>
     <div class="modal-acciones">
       <button class="btn btn-outline" onclick="cerrarModal('modal-cancelar-grupo')">No cancelar</button>
-      <button class="btn btn-rojo" id="btn-confirmar-cancelar" onclick="confirmarCancelacion()">Sí, cancelar grupo</button>
+      <button class="btn btn-rojo" id="btn-confirmar-cancelar" style="display:none;">Sí, cancelar grupo</button>
     </div>
     <div class="modal-msg" id="modal-cancelar-msg"></div>
   </div>
@@ -897,9 +897,9 @@ function renderGrupos(filtro) {
     var chipAsi = g.idAsistente
       ? '<span class="chip chip-azul">' + g.idAsistente + '</span>'
       : '<span class="chip chip-naranja">Sin asignar</span>';
-    // Botón cancelar solo si 0 alumnos
-    var btnNotificar = inscritos === 0
-      ? ' <button class="btn btn-naranja btn-sm" onclick="notificarBajaGrupo(\'' + g.id + '\')">Notificar al Coord. IT</button>'
+    // Botón WhatsApp al Coord IT solo si 0 alumnos
+    var btnWA = inscritos === 0
+      ? ' <a class="btn btn-sm" style="background:#25D366;color:#fff;text-decoration:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600" onclick="abrirWhatsCoordIT(\'' + g.id + '\')">📲 Whats Coord. IT</a>'
       : '';
     return '<tr>' +
       '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.id + '</strong></td>' +
@@ -909,7 +909,7 @@ function renderGrupos(filtro) {
       '<td><strong>' + g.inscritos + '</strong> / ' + g.cupoMax + '</td>' +
       '<td>' + chipEstado + '</td>' +
       '<td>' + chipAsi + '</td>' +
-      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="abrirModalAsignar(\'' + g.id + '\')">Asignar CE</button>' + btnNotificar + '</td>' +
+      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="abrirModalAsignar(\'' + g.id + '\')">Asignar CE</button>' + btnWA + '</td>' +
     '</tr>';
   }).join('');
 }
@@ -1011,7 +1011,7 @@ function renderAlertas() {
         '<td style="font-size:.8rem">' + formatFecha(g.fechaInicio) + '</td>' +
         '<td><span class="chip chip-gris">' + (g.idMaestro||'—') + '</span></td>' +
         '<td>' + (g.idAsistente ? '<span class="chip chip-azul">' + g.idAsistente + '</span>' : '<span class="chip chip-gris">—</span>') + '</td>' +
-        '<td><button class="btn btn-naranja btn-sm" onclick="notificarBajaGrupo(\'' + g.id + '\')">Notificar al Coord. IT</button></td>' +
+        '<td><a class="btn btn-sm" style="background:#25D366;color:#fff;text-decoration:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600" onclick="abrirWhatsCoordIT(\'' + g.id + '\')">📲 Whats Coord. IT</a></td>' +
       '</tr>';
     }).join('');
   }
@@ -1429,28 +1429,19 @@ function formatFecha(str) {
 </div>
 
 <script>
-// ── NOTIFICAR BAJA DE GRUPO AL COORDINADOR IT ──
-function notificarBajaGrupo(idGrupo) {
-  if (!confirm('¿Notificar al Coordinador IT para dar de baja el grupo ' + idGrupo + '?')) return;
-  
-  var btn = event.target;
-  btn.textContent = 'Enviando...'; btn.disabled = true;
-  
+// ── ABRIR WHATSAPP AL COORDINADOR IT ──
+function abrirWhatsCoordIT(idGrupo) {
   fetch(APPS_SCRIPT + '?action=notificarBajaGrupoCE&idGrupo=' + encodeURIComponent(idGrupo) + '&idCE=' + encodeURIComponent(estado.idCE), { redirect: 'follow' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      btn.textContent = 'Enviado'; btn.disabled = false;
-      if (data.success || data.status === 'ok') {
-        alert('✅ Notificación enviada al Coordinador IT');
+      if (data.success && data.linkWA) {
+        window.open(data.linkWA, '_blank');
       } else {
-        alert('❌ Error: ' + (data.error || data.mensaje || 'Error al enviar'));
-        btn.textContent = 'Notificar al Coord. IT';
-        btn.disabled = false;
+        alert('❌ No se pudo obtener el enlace de WhatsApp: ' + (data.error || 'Error desconocido'));
       }
     })
     .catch(function() {
-      btn.textContent = 'Error de conexión';
-      btn.disabled = false;
+      alert('❌ Error de conexión');
     });
 }
 </script>
