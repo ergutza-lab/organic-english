@@ -214,8 +214,8 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaVentas"><tr class="info-row"><td colspan="6">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nómina</th><th>Cuenta Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaVentas"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -546,6 +546,9 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
       '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
       '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Cuenta Bancaria</label><input type="text" id="' + prefijo + 'CuentaBancaria" value="' + v('CuentaBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
     '</div>';
   }
 
@@ -1039,13 +1042,25 @@ var panelLink = {
 
   function renderVentas(lista) {
     var tb = document.getElementById('tablaVentas');
-    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="7">Sin coordinadores de ventas</td></tr>'; return; }
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="10">Sin coordinadores de ventas</td></tr>'; return; }
     tb.innerHTML = lista.map(function(p) {
-      return '<tr><td>' + esc(p.ID) + '</td><td>' + esc(p.Nombre) + '</td><td>' + esc(p.WhatsApp) + '</td><td>' + esc(p.Email) + '</td>' +
-        '<td><span class="badge badge-activo">Activo</span></td>' +
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.CuentaBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'ventas\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
-          '<button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + esc(p.ID) + '\')">Editar</button>' +
+          '<button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'ventas\',\'' + esc(p.ID) + '\')">Baja</button>' +
         '</td></tr>';
     }).join('');
   }
