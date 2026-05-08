@@ -1312,17 +1312,22 @@ var panelLink = {
       alert('Por favor completa los datos del grupo primero');
       return;
     }
-    fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats')
+    fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(datos.asistente))
+      .then(function(r) { return r.json(); })
+      .then(function(asiData) {
+        return fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats');
+      })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.success) {
+          var nombreAsistente = asiData.success ? asiData.nombre : datos.asistente;
           var msg = 'Hola ' + data.nombre + ', se ha registrado un nuevo grupo en el sistema:%0A%0A';
           msg += '- ID: ' + datos.id + '%0A';
           msg += '- Horario: ' + datos.horario + '%0A';
           msg += '- Fecha Inicio: ' + datos.fecha + '%0A';
           msg += '- Nivel: ' + datos.nivel + '%0A%0A';
-          msg += 'El Asistente CE (' + datos.asistente + ') ya fue notificado para su control.%0A%0A';
-          msg += 'Por favor verificar y dar seguimiento.';
+          msg += 'El Asistente ' + datos.asistente + ' ' + nombreAsistente + ' ya fue notificado para su control.%0A%0A';
+          msg += 'Buen día.';
           window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
         } else {
           alert('No se pudo obtener el WhatsApp del Coordinador Escolar');
@@ -1346,7 +1351,8 @@ var panelLink = {
           msg += '- Horario: ' + datos.horario + '%0A';
           msg += '- Fecha Inicio: ' + datos.fecha + '%0A';
           msg += '- Nivel: ' + datos.nivel + '%0A%0A';
-          msg += 'Por favor crear el grupo oficial de WhatsApp para los alumnos.';
+          msg += 'Por favor crear el grupo oficial de WhatsApp para los alumnos.%0A%0A';
+          msg += 'Buen día.';
           window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
         } else {
           alert('No se pudo obtener el WhatsApp del Asistente');
