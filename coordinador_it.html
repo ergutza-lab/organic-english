@@ -313,9 +313,9 @@
               </div>
             </div>
             <div style="margin-top:20px;">
-              <button onclick="crearGrupoIT()" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;">Crear grupo</button>
-              <button onclick="notificarCoordEscolar()" id="btn-notif-ce" style="display:none;background:var(--blue);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Coord. Escolar</button>
-              <button onclick="notificarAsistente()" id="btn-notif-asi" style="display:none;background:var(--orange);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Asistente</button>
+              <button onclick="crearGrupoIT()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;">💾 Crear grupo</button>
+              <button onclick="notificarCoordEscolar()" id="btn-notif-ce" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Coord. Escolar</button>
+              <button onclick="notificarAsistente()" id="btn-notif-asi" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Asistente</button>
               <span id="msg-grupo" style="margin-left:16px;display:none;"></span>
             </div>
           </div>
@@ -1249,9 +1249,11 @@ var panelLink = {
       })
       .then(function(text) {
         btn.textContent = 'Crear grupo'; btn.disabled = false;
+        var exito = false;
         try {
           var data = JSON.parse(text);
           if (data.ok || data.success) {
+            exito = true;
             msgEl.textContent = '✅ Grupo creado exitosamente!';
             msgEl.style.color = 'var(--green)';
             msgEl.style.display = 'inline';
@@ -1269,12 +1271,13 @@ var panelLink = {
             msgEl.style.display = 'inline';
           }
         } catch(e) {
+          exito = true;
           msgEl.textContent = '✅ Grupo creado!';
           msgEl.style.color = 'var(--green)';
           msgEl.style.display = 'inline';
+        }
+        if (exito) {
           ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, nivel: nivel, zoom: zoom, asistente: asistente };
-          document.getElementById('btn-notif-ce').style.display = 'inline-block';
-          document.getElementById('btn-notif-asi').style.display = 'inline-block';
         }
       })
       .catch(function(err) {
@@ -1283,27 +1286,42 @@ var panelLink = {
         msgEl.style.color = 'var(--green)';
         msgEl.style.display = 'inline';
         ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, nivel: nivel, zoom: zoom, asistente: asistente };
-        document.getElementById('btn-notif-ce').style.display = 'inline-block';
-        document.getElementById('btn-notif-asi').style.display = 'inline-block';
       });
   }
 
   var ultimoGrupoCreado = null;
+
+  var ultimoGrupoCreado = null;
   var ultimoGrupoCancelado = null;
 
+  function getDatosFormulario() {
+    return {
+      id: document.getElementById('ng-id').value.trim().toUpperCase(),
+      nombre: document.getElementById('ng-nombre').value.trim(),
+      horario: document.getElementById('ng-horario').value,
+      nivel: document.getElementById('ng-nivel').value,
+      zoom: document.getElementById('ng-zoom').value.trim(),
+      asistente: document.getElementById('ng-asistente').value.trim()
+    };
+  }
+
   function notificarCoordEscolar() {
-    if (!ultimoGrupoCreado) return;
+    var datos = ultimoGrupoCreado || getDatosFormulario();
+    if (!datos.id || !datos.nombre) {
+      alert('Por favor completa los datos del grupo primero');
+      return;
+    }
     fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.success) {
           var msg = 'Hola ' + data.nombre + ', se ha registrado un nuevo grupo en el sistema:%0A%0A';
-          msg += '🔹 ID: ' + ultimoGrupoCreado.id + '%0A';
-          msg += '🔹 Nombre: ' + ultimoGrupoCreado.nombre + '%0A';
-          msg += '🔹 Horario: ' + ultimoGrupoCreado.horario + '%0A';
-          msg += '🔹 Nivel: ' + ultimoGrupoCreado.nivel + '%0A';
-          msg += '🔹 Link Zoom: ' + ultimoGrupoCreado.zoom + '%0A';
-          msg += '🔹 Asistente: ' + ultimoGrupoCreado.asistente + '%0A%0A';
+          msg += '🔹 ID: ' + datos.id + '%0A';
+          msg += '🔹 Nombre: ' + datos.nombre + '%0A';
+          msg += '🔹 Horario: ' + datos.horario + '%0A';
+          msg += '🔹 Nivel: ' + datos.nivel + '%0A';
+          msg += '🔹 Link Zoom: ' + datos.zoom + '%0A';
+          msg += '🔹 Asistente: ' + datos.asistente + '%0A%0A';
           msg += 'Por favor verificar y dar seguimiento.';
           window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
         } else {
@@ -1313,17 +1331,21 @@ var panelLink = {
   }
 
   function notificarAsistente() {
-    if (!ultimoGrupoCreado) return;
-    fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(ultimoGrupoCreado.asistente))
+    var datos = ultimoGrupoCreado || getDatosFormulario();
+    if (!datos.id || !datos.asistente) {
+      alert('Por favor completa los datos del grupo y selecciona un asistente');
+      return;
+    }
+    fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(datos.asistente))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.success) {
           var msg = 'Hola ' + data.nombre + ', se te ha asignado un nuevo grupo:%0A%0A';
-          msg += '🔹 ID: ' + ultimoGrupoCreado.id + '%0A';
-          msg += '🔹 Nombre: ' + ultimoGrupoCreado.nombre + '%0A';
-          msg += '🔹 Horario: ' + ultimoGrupoCreado.horario + '%0A';
-          msg += '🔹 Nivel: ' + ultimoGrupoCreado.nivel + '%0A';
-          msg += '🔹 Link Zoom: ' + ultimoGrupoCreado.zoom + '%0A%0A';
+          msg += '🔹 ID: ' + datos.id + '%0A';
+          msg += '🔹 Nombre: ' + datos.nombre + '%0A';
+          msg += '🔹 Horario: ' + datos.horario + '%0A';
+          msg += '🔹 Nivel: ' + datos.nivel + '%0A';
+          msg += '🔹 Link Zoom: ' + datos.zoom + '%0A%0A';
           msg += 'Por favor crear el grupo oficial de WhatsApp para los alumnos.';
           window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
         } else {
@@ -1372,9 +1394,6 @@ var panelLink = {
     document.getElementById('sub-alta').style.color = sub === 'alta' ? '#fff' : 'var(--text)';
     document.getElementById('sub-baja').style.background = sub === 'baja' ? 'var(--green)' : 'var(--surface)';
     document.getElementById('sub-baja').style.color = sub === 'baja' ? '#fff' : 'var(--text)';
-    document.getElementById('btn-notif-ce').style.display = 'none';
-    document.getElementById('btn-notif-asi').style.display = 'none';
-    ultimoGrupoCreado = null;
     if (sub === 'baja') cargarGruposExistentes();
   }
 
