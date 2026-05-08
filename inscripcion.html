@@ -96,6 +96,9 @@
     .cal-day.con-inicio.sel{background:var(--orange);color:#fff;border-color:var(--orange)}
     .cal-day.con-inicio::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--orange2)}
     .cal-day.con-inicio.sel::after{background:rgba(255,255,255,0.7)}
+    .cal-day.con-inicio.llena{background:rgba(249,115,22,0.15);border:2px solid rgba(249,115,22,0.25);color:rgba(249,115,22,0.6);opacity:0.6}
+    .cal-day.con-inicio.llena:hover{background:rgba(249,115,22,0.2);opacity:0.8}
+    .cal-day.con-inicio.llena::after{display:none}
     .cal-filtro-activo{display:inline-flex;align-items:center;gap:8px;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.3);border-radius:8px;padding:5px 11px;margin-top:10px;font-size:0.75rem;color:var(--orange2)}
     .cal-filtro-activo button{background:none;border:none;color:var(--orange);cursor:pointer;font-size:13px;line-height:1;padding:0;margin-left:4px}
 
@@ -467,13 +470,21 @@
     const hoy = new Date(); hoy.setHours(0,0,0,0);
 
     const fechasSet = {};
+    const fechasLlenas = {}; // fechas donde todos los grupos están llenos
     grupos.forEach(g => {
       if (!g.fechaObj) return;
       const iso = fechaISO(g.fechaObj);
-      if (!fechasSet[iso]) fechasSet[iso] = g.fechaObj;
+      if (!fechasSet[iso]) {
+        fechasSet[iso] = g.fechaObj;
+        fechasLlenas[iso] = true; // empezar como potencialmente llena
+      }
+      // Si al menos un grupo tiene plazas, la fecha NO está llena
+      if (g.libres > 0) {
+        fechasLlenas[iso] = false;
+      }
     });
 
-    const calHtml = renderCalendario(fechasSet, hoy);
+    const calHtml = renderCalendario(fechasSet, fechasLlenas, hoy);
 
     const leyendaHtml = `
     <div class="leyenda-box">
@@ -531,7 +542,7 @@
     content.innerHTML = leyendaHtml + calHtml + `<div id="secciones">${seccionesHtml}</div>`;
   }
 
-  function renderCalendario(fechasSet, hoy) {
+  function renderCalendario(fechasSet, fechasLlenas, hoy) {
     const DIAS  = ['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
     const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -551,7 +562,8 @@
         const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         if (fechasSet[iso]) {
           const sel = fechaFiltro === iso ? 'sel' : '';
-          diasHtml += `<div class="cal-day con-inicio ${sel}" onclick="seleccionarFecha('${iso}')">${d}</div>`;
+          const llena = fechasLlenas[iso] ? 'llena' : '';
+          diasHtml += `<div class="cal-day con-inicio ${sel} ${llena}" onclick="seleccionarFecha('${iso}')">${d}</div>`;
         } else {
           diasHtml += `<div class="cal-day normal">${d}</div>`;
         }
@@ -677,6 +689,7 @@
     try {
       await fetch(APPS_SCRIPT, {
         method: 'POST',
+        redirect: 'follow',
         body: JSON.stringify({ nombre, whatsapp, email, idGrupo: grupoSel.id, idAsesor: asesorId, fecha: new Date().toISOString() })
       });
     } catch(e) {}
