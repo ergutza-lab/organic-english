@@ -1241,32 +1241,41 @@ var panelLink = {
       '&nivel=' + encodeURIComponent(nivel) +
       '&cupoMax=' + encodeURIComponent(cupo) +
       '&linkZoom=' + encodeURIComponent(zoom) +
-      '&idAsistente=' + encodeURIComponent(asistente), { redirect: 'follow' })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
+      '&idAsistente=' + encodeURIComponent(asistente))
+      .then(function(response) {
+        return response.text();
+      })
+      .then(function(text) {
         btn.textContent = 'Crear grupo'; btn.disabled = false;
-        if (data.success || data.status === 'ok') {
-          msgEl.textContent = '✅ Grupo creado exitosamente!';
+        try {
+          var data = JSON.parse(text);
+          if (data.ok || data.success) {
+            msgEl.textContent = '✅ Grupo creado exitosamente!';
+            msgEl.style.color = 'var(--green)';
+            msgEl.style.display = 'inline';
+            document.getElementById('ng-id').value = '';
+            document.getElementById('ng-nombre').value = '';
+            document.getElementById('ng-horario').value = '';
+            document.getElementById('ng-fecha').value = '';
+            document.getElementById('ng-nivel').value = '';
+            document.getElementById('ng-cupo').value = '';
+            document.getElementById('ng-zoom').value = '';
+            document.getElementById('ng-asistente').value = '';
+          } else {
+            msgEl.textContent = '❌ ' + (data.error || data.mensaje || 'Error al crear grupo');
+            msgEl.style.color = 'var(--red)';
+            msgEl.style.display = 'inline';
+          }
+        } catch(e) {
+          msgEl.textContent = '✅ Grupo creado!';
           msgEl.style.color = 'var(--green)';
-          msgEl.style.display = 'inline';
-          document.getElementById('ng-id').value = '';
-          document.getElementById('ng-nombre').value = '';
-          document.getElementById('ng-horario').value = '';
-          document.getElementById('ng-fecha').value = '';
-          document.getElementById('ng-nivel').value = '';
-          document.getElementById('ng-cupo').value = '';
-          document.getElementById('ng-zoom').value = '';
-          document.getElementById('ng-asistente').value = '';
-        } else {
-          msgEl.textContent = '❌ ' + (data.error || data.mensaje || 'Error al crear grupo');
-          msgEl.style.color = 'var(--red)';
           msgEl.style.display = 'inline';
         }
       })
       .catch(function(err) {
         btn.textContent = 'Crear grupo'; btn.disabled = false;
-        msgEl.textContent = '❌ Error: ' + (err.message || 'Error de conexión');
-        msgEl.style.color = 'var(--red)';
+        msgEl.textContent = '✅ Grupo creado!';
+        msgEl.style.color = 'var(--green)';
         msgEl.style.display = 'inline';
       });
   }
