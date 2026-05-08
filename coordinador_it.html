@@ -1314,15 +1314,16 @@ ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, fecha: fecha, ni
       alert('Por favor completa los datos del grupo primero');
       return;
     }
+    var nombreAsistente = datos.asistente;
     fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(datos.asistente))
       .then(function(r) { return r.json(); })
       .then(function(asiData) {
+        if (asiData.success) nombreAsistente = asiData.nombre;
         return fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats');
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.success && data.whatsapp) {
-          var nombreAsistente = asiData.success ? asiData.nombre : datos.asistente;
           var msg = 'Hola ' + data.nombre + ', se ha registrado un nuevo grupo en el sistema:%0A%0A';
           msg += '- ID: ' + datos.id + '%0A';
           msg += '- Horario: ' + datos.horario + '%0A';
