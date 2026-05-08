@@ -314,6 +314,8 @@
             </div>
             <div style="margin-top:20px;">
               <button onclick="crearGrupoIT()" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;">Crear grupo</button>
+              <button onclick="notificarCoordEscolar()" id="btn-notif-ce" style="display:none;background:var(--blue);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Coord. Escolar</button>
+              <button onclick="notificarAsistente()" id="btn-notif-asi" style="display:none;background:var(--orange);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Asistente</button>
               <span id="msg-grupo" style="margin-left:16px;display:none;"></span>
             </div>
           </div>
@@ -1270,6 +1272,9 @@ var panelLink = {
           msgEl.textContent = '✅ Grupo creado!';
           msgEl.style.color = 'var(--green)';
           msgEl.style.display = 'inline';
+          ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, nivel: nivel, zoom: zoom, asistente: asistente };
+          document.getElementById('btn-notif-ce').style.display = 'inline-block';
+          document.getElementById('btn-notif-asi').style.display = 'inline-block';
         }
       })
       .catch(function(err) {
@@ -1277,6 +1282,70 @@ var panelLink = {
         msgEl.textContent = '✅ Grupo creado!';
         msgEl.style.color = 'var(--green)';
         msgEl.style.display = 'inline';
+        ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, nivel: nivel, zoom: zoom, asistente: asistente };
+        document.getElementById('btn-notif-ce').style.display = 'inline-block';
+        document.getElementById('btn-notif-asi').style.display = 'inline-block';
+      });
+  }
+
+  var ultimoGrupoCreado = null;
+  var ultimoGrupoCancelado = null;
+
+  function notificarCoordEscolar() {
+    if (!ultimoGrupoCreado) return;
+    fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = 'Hola ' + data.nombre + ', se ha registrado un nuevo grupo en el sistema:%0A%0A';
+          msg += '🔹 ID: ' + ultimoGrupoCreado.id + '%0A';
+          msg += '🔹 Nombre: ' + ultimoGrupoCreado.nombre + '%0A';
+          msg += '🔹 Horario: ' + ultimoGrupoCreado.horario + '%0A';
+          msg += '🔹 Nivel: ' + ultimoGrupoCreado.nivel + '%0A';
+          msg += '🔹 Link Zoom: ' + ultimoGrupoCreado.zoom + '%0A';
+          msg += '🔹 Asistente: ' + ultimoGrupoCreado.asistente + '%0A%0A';
+          msg += 'Por favor verificar y dar seguimiento.';
+          window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
+        } else {
+          alert('No se pudo obtener el WhatsApp del Coordinador Escolar');
+        }
+      });
+  }
+
+  function notificarAsistente() {
+    if (!ultimoGrupoCreado) return;
+    fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(ultimoGrupoCreado.asistente))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = 'Hola ' + data.nombre + ', se te ha asignado un nuevo grupo:%0A%0A';
+          msg += '🔹 ID: ' + ultimoGrupoCreado.id + '%0A';
+          msg += '🔹 Nombre: ' + ultimoGrupoCreado.nombre + '%0A';
+          msg += '🔹 Horario: ' + ultimoGrupoCreado.horario + '%0A';
+          msg += '🔹 Nivel: ' + ultimoGrupoCreado.nivel + '%0A';
+          msg += '🔹 Link Zoom: ' + ultimoGrupoCreado.zoom + '%0A%0A';
+          msg += 'Por favor crear el grupo oficial de WhatsApp para los alumnos.';
+          window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
+        } else {
+          alert('No se pudo obtener el WhatsApp del Asistente');
+        }
+      });
+  }
+
+  function notificarBajaGrupoCE() {
+    if (!ultimoGrupoCancelado) return;
+    fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = 'Hola ' + data.nombre + ', el siguiente grupo ha sido dado de baja del sistema:%0A%0A';
+          msg += '🔹 ID: ' + ultimoGrupoCancelado.id + '%0A';
+          msg += '🔹 Nombre: ' + ultimoGrupoCancelado.nombre + '%0A%0A';
+          msg += 'Por favor actualizar los registros correspondientes.';
+          window.open('https://wa.me/' + data.whatsapp + '?text=' + msg, '_blank');
+        } else {
+          alert('No se pudo obtener el WhatsApp del Coordinador Escolar');
+        }
       });
   }
 
@@ -1303,6 +1372,9 @@ var panelLink = {
     document.getElementById('sub-alta').style.color = sub === 'alta' ? '#fff' : 'var(--text)';
     document.getElementById('sub-baja').style.background = sub === 'baja' ? 'var(--green)' : 'var(--surface)';
     document.getElementById('sub-baja').style.color = sub === 'baja' ? '#fff' : 'var(--text)';
+    document.getElementById('btn-notif-ce').style.display = 'none';
+    document.getElementById('btn-notif-asi').style.display = 'none';
+    ultimoGrupoCreado = null;
     if (sub === 'baja') cargarGruposExistentes();
   }
 
@@ -1333,7 +1405,7 @@ var panelLink = {
             html += '<td style="padding:10px;border:1px solid var(--border);color:' + colorEstado + ';">' + (g.estado || 'ACTIVO') + '</td>';
             if (puedeCancelar) {
               html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;">';
-              html += '<button onclick="cancelarGrupo(\'' + g.id + '\')" style="background:var(--red);color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Cancelar</button>';
+              html += '<button onclick="cancelarGrupo(\'' + g.id + '\',\'' + g.nombre + '\')" style="background:var(--red);color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Cancelar</button>';
               html += '</td>';
             } else {
               html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);">-</td>';
@@ -1351,7 +1423,7 @@ var panelLink = {
       });
   }
 
-  function cancelarGrupo(idGrupo) {
+  function cancelarGrupo(idGrupo, nombreGrupo) {
     if (!confirm('¿Estás seguro de cancelar el grupo ' + idGrupo + '? Esto marcará el grupo como CANCELADO y ya no aparecerá en inscripciones.')) return;
     var btn = event.target;
     btn.textContent = 'Cancelando...'; btn.disabled = true;
@@ -1361,6 +1433,10 @@ var panelLink = {
         btn.textContent = 'Cancelar'; btn.disabled = false;
         if (data.success) {
           alert('✅ Grupo cancelado correctamente');
+          ultimoGrupoCancelado = { id: idGrupo, nombre: nombreGrupo };
+          if (confirm('¿Deseas notificar al Coordinador Escolar sobre la baja del grupo?')) {
+            notificarBajaGrupoCE();
+          }
           cargarGruposExistentes();
         } else {
           alert('❌ ' + (data.error || 'Error al cancelar'));
