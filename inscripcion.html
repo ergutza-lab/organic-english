@@ -758,7 +758,7 @@
   function validateForm() {
     let ok = true;
     const n = document.getElementById('nombre').value.trim();
-    const w = paisActual.dial.replace('+','') + document.getElementById('whatsapp').value.trim();
+    const w = document.getElementById('whatsapp').value.trim();
     const e = document.getElementById('email').value.trim();
     if (n.length < 3)                           { showError('nombre',   true); ok=false; } else showError('nombre',   false);
     if (!/^\d{7,15}$/.test(w))                 { showError('whatsapp', true); ok=false; } else showError('whatsapp', false);
@@ -772,7 +772,8 @@
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-top-color:#fff"></div>&nbsp;Reservando...';
     const nombre   = document.getElementById('nombre').value.trim();
-    const whatsapp = paisActual.dial.replace('+','') + document.getElementById('whatsapp').value.trim();
+    const whatsappLocal = document.getElementById('whatsapp').value.trim();
+    const whatsapp = paisActual.dial.replace('+','') + whatsappLocal;
     const email    = document.getElementById('email').value.trim();
     try {
       await fetch(APPS_SCRIPT, {
@@ -783,6 +784,7 @@
     } catch(e) {}
     document.getElementById('confirm-resumen').innerHTML = `
       <div class="confirm-row"><span class="confirm-row-label">Nombre</span><span class="confirm-row-value">${nombre}</span></div>
+      <div class="confirm-row"><span class="confirm-row-label">WhatsApp</span><span class="confirm-row-value">${paisActual.flag} ${paisActual.dial} ${whatsappLocal}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Grupo</span><span class="confirm-row-value">${grupoSel.id}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Horario</span><span class="confirm-row-value">${grupoSel.horario} · Lunes a Jueves</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Nivel</span><span class="confirm-row-value">${grupoSel.nivel}</span></div>
@@ -829,12 +831,13 @@
   }
   function enviarCol() {
     const nombre   = document.getElementById('col-nombre').value.trim();
-    const whatsapp = paisActual.dial.replace('+','') + document.getElementById('col-whatsapp').value.trim();
+    const whatsappLocal = document.getElementById('col-whatsapp').value.trim();
+    const whatsapp = paisActual.dial.replace('+','') + whatsappLocal;
     const email    = document.getElementById('col-email').value.trim();
     const errDiv   = document.getElementById('col-error');
     const errMsg   = document.getElementById('col-error-msg');
-    if (!nombre||!whatsapp||!email)        { errMsg.textContent='Completa todos los campos.'; errDiv.style.display='block'; return; }
-    if (!/^\d{7,15}$/.test(whatsapp))        { errMsg.textContent='WhatsApp: 7 a 15 dígitos (incluye clave de país).'; errDiv.style.display='block'; return; }
+    if (!nombre||!whatsappLocal||!email)        { errMsg.textContent='Completa todos los campos.'; errDiv.style.display='block'; return; }
+    if (!/^\d{7,15}$/.test(whatsappLocal))     { errMsg.textContent='WhatsApp: 7 a 15 dígitos.'; errDiv.style.display='block'; return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errMsg.textContent='Correo inválido.'; errDiv.style.display='block'; return; }
     errDiv.style.display = 'none';
     const btn = document.getElementById('col-btn');
