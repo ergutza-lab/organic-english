@@ -222,6 +222,32 @@
       .cal-months{flex-direction:column}
       .fecha-titulo{font-size:1.3rem}
     }
+
+    .wa-input-wrap{display:flex;gap:8px;align-items:center}
+    .wa-flag-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:9px 12px;font-size:20px;cursor:pointer;flex-shrink:0;transition:border-color .2s}
+    .wa-flag-btn:hover{border-color:var(--orange2)}
+    .wa-flag-btn.selected{border-color:var(--orange2);background:rgba(249,115,22,0.1)}
+    #wa-country-display{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 12px;font-size:16px;cursor:pointer;flex-shrink:0;min-width:48px;text-align:center;transition:border-color .2s;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#f1f5f9}
+    #wa-country-display:hover{border-color:var(--orange2)}
+    #wa-selected-country{font-size:20px}
+    #wa-country-code{font-size:12px;color:#94a3b8}
+
+    .country-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;align-items:center;justify-content:center;padding:20px}
+    .country-modal-overlay.open{display:flex}
+    .country-modal{background:#1e2a4a;border-radius:16px;max-width:380px;width:100%;padding:20px;border:1px solid rgba(255,255,255,0.08);max-height:80vh;display:flex;flex-direction:column}
+    .country-modal-h{color:#fff;font-size:16px;font-weight:700;margin-bottom:12px;text-align:center}
+    .country-search{width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;margin-bottom:12px}
+    .country-search:focus{border-color:var(--orange2)}
+    .country-list{max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+    .country-list::-webkit-scrollbar{width:4px}
+    .country-list::-webkit-scrollbar-track{background:transparent}
+    .country-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:4px}
+    .country-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s}
+    .country-item:hover{background:rgba(255,255,255,0.06)}
+    .country-item.selected{background:rgba(249,115,22,0.15)}
+    .country-flag{font-size:22px;line-height:1}
+    .country-name{flex:1;font-size:13px;font-weight:500;color:#f1f5f9}
+    .country-dial{font-size:12px;font-weight:600;color:#94a3b8;font-family:monospace}
   </style>
 </head>
 <body>
@@ -297,9 +323,15 @@
       </div>
       <div class="form-group">
         <label class="form-label" for="whatsapp">WhatsApp <span>*</span></label>
-        <input class="form-input" type="tel" id="whatsapp" placeholder="Ej. 522721234567 (con clave de país)" autocomplete="tel" maxlength="15" />
+        <div class="wa-input-wrap">
+          <div id="wa-country-display" onclick="openCountryPicker()">
+            <span id="wa-selected-country">🇲🇽</span>
+            <span id="wa-country-code">+52</span>
+          </div>
+          <input class="form-input" type="tel" id="whatsapp" placeholder="Ej. 2721234567" autocomplete="tel" maxlength="15" style="flex:1" />
+        </div>
         <div class="form-hint">Solo números, sin espacios ni guiones.</div>
-        <div class="form-error" id="error-whatsapp">Ingresa un número válido (7 a 15 dígitos, incluye clave de país).</div>
+        <div class="form-error" id="error-whatsapp">Ingresa un número válido (7 a 15 dígitos).</div>
       </div>
       <div class="form-group">
         <label class="form-label" for="email">Correo electrónico <span>*</span></label>
@@ -359,7 +391,15 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
         <div><label style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px">Nombre completo</label><input id="col-nombre" type="text" placeholder="Tu nombre" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:#f1f5f9;font-size:14px;box-sizing:border-box;outline:none" /></div>
-        <div><label style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px">WhatsApp</label><input id="col-whatsapp" type="tel" placeholder="Ej. 522721234567 (con clave de país)" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:#f1f5f9;font-size:14px;box-sizing:border-box;outline:none" /></div>
+        <div><label style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px">WhatsApp</label>
+          <div class="wa-input-wrap">
+            <div id="col-country-display" onclick="openCountryPicker()" class="wa-flag-btn selected" style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#f1f5f9">
+              <span id="col-selected-country">🇲🇽</span>
+              <span id="col-country-code">+52</span>
+            </div>
+            <input id="col-whatsapp" type="tel" placeholder="Ej. 2721234567" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:#f1f5f9;font-size:14px;box-sizing:border-box;outline:none" />
+          </div>
+        </div>
         <div><label style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px">Correo electrónico</label><input id="col-email" type="email" placeholder="tu@correo.com" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:#f1f5f9;font-size:14px;box-sizing:border-box;outline:none" /></div>
       </div>
       <div id="col-error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:9px 13px;margin-bottom:14px"><p style="color:#f87171;font-size:12px;margin:0" id="col-error-msg"></p></div>
@@ -381,6 +421,15 @@
   </div>
 </div>
 
+<!-- COUNTRY PICKER MODAL -->
+<div class="country-modal-overlay" id="countryPicker">
+  <div class="country-modal">
+    <div class="country-modal-h">Selecciona el país</div>
+    <input type="text" class="country-search" id="countrySearch" placeholder="Buscar país..." oninput="filtrarPaises(this.value)" />
+    <div class="country-list" id="countryList"></div>
+  </div>
+</div>
+
 <script>
   const SHEET_ID    = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
@@ -391,6 +440,45 @@
   let grupoSel   = null;
   let fechaFiltro = null;
   let mostrarTodos = false;
+  let paisActual  = {flag:'🇲🇽', dial:'+52', name:'México'};
+
+  const PAISES = [
+    {flag:'🇲🇽',dial:'+52',name:'México'},{flag:'🇺🇸',dial:'+1',name:'Estados Unidos'},{flag:'🇬🇹',dial:'+502',name:'Guatemala'},{flag:'🇸🇻',dial:'+503',name:'El Salvador'},{flag:'🇭🇳',dial:'+504',name:'Honduras'},{flag:'🇳🇮',dial:'+505',name:'Nicaragua'},{flag:'🇨🇷',dial:'+506',name:'Costa Rica'},{flag:'🇵🇦',dial:'+507',name:'Panamá'},{flag:'🇨🇴',dial:'+57',name:'Colombia'},{flag:'🇻🇪',dial:'+58',name:'Venezuela'},{flag:'🇵🇪',dial:'+51',name:'Perú'},{flag:'🇧🇴',dial:'+591',name:'Bolivia'},{flag:'🇨🇱',dial:'+56',name:'Chile'},{flag:'🇦🇷',dial:'+54',name:'Argentina'},{flag:'🇪🇸',dial:'+34',name:'España'},{flag:'🇪🇨',dial:'+593',name:'Ecuador'},{flag:'🇵🇾',dial:'+595',name:'Paraguay'},{flag:'🇺🇾',dial:'+598',name:'Uruguay'},{flag:'🇨🇺',dial:'+53',name:'Cuba'},{flag:'🇩🇴',dial:'+1',name:'República Dominicana'},{flag:'🇵🇷',dial:'+1',name:'Puerto Rico'},{flag:'🇯🇲',dial:'+1',name:'Jamaica'},{flag:'🇹🇹',dial:'+1',name:'Trinidad y Tobago'},{flag:'🇧🇧',dial:'+1',name:'Barbados'},{flag:'🇧🇿',dial:'+501',name:'Belice'},{flag:'🇬🇾',dial:'+592',name:'Guyana'},{flag:'🇸🇷',dial:'+597',name:'Surinam'},{flag:'🇧🇷',dial:'+55',name:'Brasil'},{flag:'🇵🇹',dial:'+351',name:'Portugal'},{flag:'🇫🇷',dial:'+33',name:'Francia'},{flag:'🇩🇪',dial:'+49',name:'Alemania'},{flag:'🇬🇧',dial:'+44',name:'Reino Unido'},{flag:'🇮🇹',dial:'+39',name:'Italia'},{flag:'🇨🇦',dial:'+1',name:'Canadá'},{flag:'🇦🇺',dial:'+61',name:'Australia'},{flag:'🇯🇵',dial:'+81',name:'Japón'},{flag:'🇨🇳',dial:'+86',name:'China'},{flag:'🇰🇷',dial:'+82',name:'Corea del Sur'},{flag:'🇮🇳',dial:'+91',name:'India'},{flag:'🇵🇭',dial:'+63',name:'Filipinas'}
+  ];
+
+  function openCountryPicker() {
+    document.getElementById('countryList').innerHTML = PAISES.map(p =>
+      '<div class="country-item' + (p.dial === paisActual.dial ? ' selected' : '') + '" onclick="seleccionarPais(\'' + p.flag + '\',\'' + p.dial + '\',\'' + p.name.replace(/'/g,"\\'") + '\')">' +
+      '<span class="country-flag">' + p.flag + '</span>' +
+      '<span class="country-name">' + p.name + '</span>' +
+      '<span class="country-dial">' + p.dial + '</span></div>'
+    ).join('');
+    document.getElementById('countrySearch').value = '';
+    document.getElementById('countryPicker').classList.add('open');
+  }
+
+  function seleccionarPais(flag, dial, name) {
+    paisActual = {flag, dial, name};
+    document.getElementById('wa-selected-country').textContent = flag;
+    document.getElementById('wa-country-code').textContent = dial;
+    document.getElementById('col-selected-country').textContent = flag;
+    document.getElementById('col-country-code').textContent = dial;
+    document.getElementById('countryPicker').classList.remove('open');
+  }
+
+  function filtrarPaises(texto) {
+    const lista = document.getElementById('countryList');
+    lista.innerHTML = PAISES.filter(p => p.name.toLowerCase().includes(texto.toLowerCase())).map(p =>
+      '<div class="country-item' + (p.dial === paisActual.dial ? ' selected' : '') + '" onclick="seleccionarPais(\'' + p.flag + '\',\'' + p.dial + '\',\'' + p.name.replace(/'/g,"\\'") + '\')">' +
+      '<span class="country-flag">' + p.flag + '</span>' +
+      '<span class="country-name">' + p.name + '</span>' +
+      '<span class="country-dial">' + p.dial + '</span></div>'
+    ).join('');
+  }
+
+  document.getElementById('countryPicker').addEventListener('click', function(e) {
+    if (e.target === this) document.getElementById('countryPicker').classList.remove('open');
+  });
 
   async function cargarAsesor() {
     try {
@@ -670,10 +758,10 @@
   function validateForm() {
     let ok = true;
     const n = document.getElementById('nombre').value.trim();
-    const w = document.getElementById('whatsapp').value.trim();
+    const w = paisActual.dial.replace('+','') + document.getElementById('whatsapp').value.trim();
     const e = document.getElementById('email').value.trim();
     if (n.length < 3)                           { showError('nombre',   true); ok=false; } else showError('nombre',   false);
-        if (!/^\d{7,15}$/.test(w))                 { showError('whatsapp', true); ok=false; } else showError('whatsapp', false);
+    if (!/^\d{7,15}$/.test(w))                 { showError('whatsapp', true); ok=false; } else showError('whatsapp', false);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { showError('email',    true); ok=false; } else showError('email',    false);
     return ok;
   }
@@ -684,7 +772,7 @@
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-top-color:#fff"></div>&nbsp;Reservando...';
     const nombre   = document.getElementById('nombre').value.trim();
-    const whatsapp = document.getElementById('whatsapp').value.trim();
+    const whatsapp = paisActual.dial.replace('+','') + document.getElementById('whatsapp').value.trim();
     const email    = document.getElementById('email').value.trim();
     try {
       await fetch(APPS_SCRIPT, {
@@ -741,7 +829,7 @@
   }
   function enviarCol() {
     const nombre   = document.getElementById('col-nombre').value.trim();
-    const whatsapp = document.getElementById('col-whatsapp').value.trim();
+    const whatsapp = paisActual.dial.replace('+','') + document.getElementById('col-whatsapp').value.trim();
     const email    = document.getElementById('col-email').value.trim();
     const errDiv   = document.getElementById('col-error');
     const errMsg   = document.getElementById('col-error-msg');
