@@ -437,6 +437,7 @@
 
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
 let asistente=null,datosPanel=null;
 let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null;
@@ -637,7 +638,7 @@ function abrirModalGrupo(idx){
       if(a.pago_ok){pip='pip-ok';lbl='Al corriente';lclass='lbl-ok';}
       else if(a.pago_pendiente){pip='pip-pendiente';lbl='Comprobante enviado';lclass='lbl-pendiente';}
       else{pip='pip-sinpago';lbl='Sin pago';lclass='lbl-sinpago';}
-      const waBtn=esSinPago&&a.whatsapp?`<a class="btn-wa-mini" href="https://wa.me/52${a.whatsapp}?text=${encodeURIComponent(`Hola ${a.nombre}, te recuerdo que tu pago de Organic English está pendiente. 😊`)}" target="_blank">WhatsApp</a>`:'';
+      const waBtn=esSinPago&&a.whatsapp?`<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${encodeURIComponent(`Hola ${a.nombre}, te recuerdo que tu pago de Organic English está pendiente. 😊`)}" target="_blank">WhatsApp</a>`:'';
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
       return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}</div>`;
     }).join('');
@@ -702,7 +703,7 @@ function renderNuevos(){
         <div class="nuevo-chip">🎓 ${a.grupo} · ${a.horario}</div>
       </div>
       <div style="display:flex;gap:8px">
-        <a class="btn-whats" href="https://wa.me/52${a.whatsapp}?text=${msg}" target="_blank">👋 Presentarse</a>
+        <a class="btn-whats" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank">👋 Presentarse</a>
         <button class="btn-confirmado" onclick="marcarPresentado('${a.id}')" style="padding:9px 14px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✓ Listo</button>
       </div>
     </div>`;
@@ -726,7 +727,7 @@ function renderAlertas(){
   cont.innerHTML=lista.map(a=>{
     const fechaLimite = a.fecha_limite || '';
     const msg = encodeURIComponent(`Hola ${a.nombre} 👋 Te recuerdo que tu pago en Organic English vence el ${fechaLimite}. Por favor realiza tu pago antes de esa fecha para no perder tu vigencia. ¿Necesitas ayuda? 😊`);
-    const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/52${a.whatsapp}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
+    const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
     return `
     <div class="alerta-card">
       <div class="alerta-icon">⚠️</div>
@@ -889,7 +890,7 @@ function cerrarModalNotifPago(){
 function notificarAlumnoPago(){
   if(pagoActivoWA){
     const msg = encodeURIComponent('Hola! Te informo que tu pago ha sido validado correctamente. Ya puedes asistir a tus clases. ¡Bienvenido/a!');
-    window.open(`https://wa.me/52${pagoActivoWA}?text=${msg}`,'_blank');
+    window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${msg}`,'_blank');
   }
   cerrarModalNotifPago();
 }
