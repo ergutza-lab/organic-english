@@ -268,7 +268,7 @@
     .nivel-btn span{font-size:11px;font-weight:700;border-radius:20px;padding:2px 7px;background:var(--gris-100);color:var(--gris-500)}
     .nivel-btn.active span{background:rgba(255,255,255,.25);color:#fff}
 
-    .grupo-nombre-row .nombre-adolescentes{color:var(--naranja)}
+    .grupo-nombre-row.nombre-adolescentes{color:var(--naranja)!important}
   </style>
 </head>
 <body>
@@ -324,7 +324,7 @@
       <div class="summary-grid" id="resumen-cards"></div>
       <div class="sec-header">
         <h2 class="sec-title">Mis Grupos</h2>
-        <span class="sec-hint" id="sec-hint-texto">Selecciona un nivel para ver sus grupos</span>
+        <span class="sec-hint" id="sec-hint-texto">Toca un nivel para ver sus grupos</span>
       </div>
       <div id="nivel-selector" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;"></div>
       <div id="lista-grupos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
@@ -476,6 +476,7 @@ function mostrarPanel(){
 
 function cerrarSesion(){
   asistente=null;datosPanel=null;nivelActivo=null;
+  document.getElementById('nivel-selector').innerHTML='';
   document.getElementById('panel-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('input-id').value='';
@@ -500,7 +501,7 @@ function cambiarTab(tab,el){
 function renderResumen(){
   if(!datosPanel)return;
   const{grupos=[],pagos_pendientes=[],alumnos_nuevos=[],sin_pago=[]}=datosPanel;
-  const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.filter(al=>al.estatus==='VALIDADO').length||0),0);
+  const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.filter(al=>al.a.Estatus_Pago === 'VALIDADO').length||0),0);
   const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
   bn.textContent=alumnos_nuevos.length;bn.className='tab-badge'+(alumnos_nuevos.length?'':' cero');
@@ -529,9 +530,10 @@ function renderGrupos(){
   });
   const listaNiveles=Object.keys(niveles).sort();
   selector.innerHTML=listaNiveles.map(n=>`<button class="nivel-btn${nivelActivo===n?' active':''}" onclick="seleccionarNivel('${n}',this)">${n} <span>${niveles[n].length}</span></button>`).join('');
-  if(!nivelActivo||!niveles[nivelActivo]){
-    nivelActivo=listaNiveles[0];
-    selector.innerHTML=listaNiveles.map(n=>`<button class="nivel-btn${nivelActivo===n?' active':''}" onclick="seleccionarNivel('${n}',this)">${n} <span>${niveles[n].length}</span></button>`).join('');
+  if(!nivelActivo || !niveles[nivelActivo]){
+    nivelActivo=null;
+    cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👆</div><h3>Selecciona un nivel</h3><p>Toca un nivel arriba para ver sus grupos</p></div>`;
+    return;
   }
   renderGruposPorNivel(nivelActivo);
 }
@@ -551,31 +553,53 @@ function renderGruposPorNivel(nivelFiltro){
   if(!filtrados.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin grupos en este nivel</h3></div>`;return;}
   const sinPagoIds=new Set((datosPanel.sin_pago||[]).map(a=>a.id));
   const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
-  cont.innerHTML=filtrados.map((g,i)=>{
-    const pct=Math.round((g.inscritos/g.cupo_max)*100);
-    const lleno=g.inscritos>=g.cupo_max;
-    const alumnos=g.alumnos||[];
-    const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
-    const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
-    const esAdolescentes=g.nombre?.toLowerCase().includes('adolescentes');
-    return `
-    <div class="grupo-row" onclick="abrirModalGrupoPorNombre('${g.id}')">
-      <div class="grupo-row-inner">
-        <span class="grupo-chip">${g.id}</span>
-        <div class="grupo-info">
-          <div class="grupo-nombre-row${esAdolescentes?' nombre-adolescentes':''}">${g.nombre} <span style="color:#94a3b8;font-size:12px;font-weight:400">${g.nivel||''}</span></div>
-          <div class="grupo-horario-row">${g.horario} · Inicio ${g.fecha_inicio}</div>
-        </div>
-        <div class="grupo-stats">
-          <span class="gstat total">${g.inscritos}/${g.cupo_max}</span>
-          ${nNuevos?`<span class="gstat nuevo">+${nNuevos} nuevos</span>`:''}
-          ${nSinPago?`<span class="gstat sinpago">${nSinPago} sin pago</span>`:''}
-        </div>
-        <span class="grupo-chevron">›</span>
+  const porFecha={};
+  filtrados.forEach(g=>{
+    const fecha=g.fecha_inicio||'Sin fecha';
+    if(!porFecha[fecha])porFecha[fecha]=[];
+    porFecha[fecha].push(g);
+  });
+  const fechasOrdenadas=Object.keys(porFecha).sort((a,b)=>{
+    const [da,ma,ya]=a.split('/'),[db,mb,yb]=b.split('/');
+    return new Date(`${ya}-${ma}-${da}`)-new Date(`${yb}-${mb}-${db}`);
+  });
+  let html='';
+  fechasOrdenadas.forEach(fecha=>{
+    const gruposFecha=porFecha[fecha];
+    const esAdolescentesFecha=gruposFecha.some(g=>g.nombre?.toLowerCase().includes('adolescentes'));
+    html+=`<div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${esAdolescentesFecha?'var(--naranja)':'var(--azul)'}"></div>
+        <span style="font-size:12px;font-weight:700;color:var(--gris-500);text-transform:uppercase;letter-spacing:.5px">Inicio: ${fecha}</span>
       </div>
-      <div class="grupo-progress-bar"><div class="grupo-progress-fill${lleno?' lleno':''}" style="width:${pct}%"></div></div>
+      ${gruposFecha.map(g=>{
+        const pct=Math.round((g.inscritos/g.cupo_max)*100);
+        const lleno=g.inscritos>=g.cupo_max;
+        const alumnos=(g.alumnos||[]).filter(a=>a.Estatus_Pago === 'VALIDADO');
+        const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
+        const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
+        const esAdolescentes=g.nombre?.toLowerCase().includes('adolescentes');
+        return `
+        <div class="grupo-row" onclick="abrirModalGrupoPorNombre('${g.id}')" style="margin-bottom:6px">
+          <div class="grupo-row-inner">
+            <span class="grupo-chip">${g.id}</span>
+            <div class="grupo-info">
+              <div class="grupo-nombre-row${esAdolescentes?' nombre-adolescentes':''}">${g.nombre} <span style="color:#94a3b8;font-size:12px;font-weight:400">${g.nivel||''}</span></div>
+              <div class="grupo-horario-row">${g.horario}</div>
+            </div>
+            <div class="grupo-stats">
+              <span class="gstat total">${alumnos.length}/${g.cupo_max}</span>
+              ${nNuevos?`<span class="gstat nuevo">+${nNuevos} nuevos</span>`:''}
+              ${nSinPago?`<span class="gstat sinpago">${nSinPago} sin pago</span>`:''}
+            </div>
+            <span class="grupo-chevron">›</span>
+          </div>
+          <div class="grupo-progress-bar"><div class="grupo-progress-fill${lleno?' lleno':''}" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('')}
     </div>`;
-  }).join('');
+  });
+  cont.innerHTML=html;
 }
 
 function abrirModalGrupoPorNombre(idGrupo){
@@ -588,7 +612,7 @@ function abrirModalGrupo(idx){
   if(!g)return;
   const sinPagoIds=new Set((datosPanel.sin_pago||[]).map(a=>a.id));
   const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
-  const alumnos=(g.alumnos||[]).filter(a=>a.estatus==='VALIDADO');
+  const alumnos=(g.alumnos||[]).filter(a=>a.Estatus_Pago === 'VALIDADO');
   const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
   const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
   const nOk=alumnos.filter(a=>a.pago_ok).length;
@@ -719,7 +743,7 @@ function renderAlertas(){
 function renderCambios(){
   const select=document.getElementById('select-alumno-cambio');
   const alumnos=[];
-  (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).filter(a=>a.estatus==='VALIDADO').forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel}));});
+  (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).filter(a=>a.a.Estatus_Pago === 'VALIDADO').forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel}));});
   alumnos.sort((a,b)=>a.id.localeCompare(b.id));
   select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
 }
