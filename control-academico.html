@@ -109,7 +109,6 @@
   .grupo-item-reasig-maestro { font-size:11px; color:var(--orange); margin-top:2px; }
   .btn-reasignar { font-size:12px; padding:6px 14px; border-radius:8px; border:1px solid rgba(249,115,22,0.4); background:rgba(249,115,22,0.1); color:var(--orange); cursor:pointer; font-weight:600; transition:all 0.2s; white-space:nowrap; }
   .btn-reasignar:hover { background:rgba(249,115,22,0.2); }
-  /* Modal de notificación post-reasignación */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
   .modal-overlay.visible { display:flex; }
   .modal-box { background:var(--surface); border-radius:18px; border:1px solid var(--border); padding:28px; width:100%; max-width:420px; }
@@ -138,7 +137,7 @@
 <div id="screenLogin" class="screen active">
   <div class="login-wrap">
     <div class="login-box">
-      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
+      <img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
       <h1>Coordinación Académica</h1>
       <p>Accede con tu ID y clave</p>
       <div class="field"><label>ID de Coordinador</label><input type="text" id="inputId" placeholder="Ej: CA-01" autocomplete="off" /></div>
@@ -153,7 +152,7 @@
   <div class="panel-root">
     <div class="top-bar">
       <div class="logo-area">
-        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
+        <img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
         <span class="logo-text">Coordinador Académico</span>
       </div>
       <div class="top-right">
@@ -210,7 +209,7 @@
         </div>
         <div class="asist-tabla-wrap">
           <table>
-            <thead><tr><th>Maestro</th><th>Grupo</th><th>Horario</th><th>Nivel</th><th>Inicio de curso</th><th>¿Dio clase?</th></tr></thead>
+            <thead><tr><th>Maestro</th><th>Grupo</th><th>Horario</th><th>Nivel · Nombre</th><th>Inicio de curso</th><th>¿Dio clase?</th></tr></thead>
             <tbody id="asistBody"><tr><td colspan="6" class="empty-state">Selecciona una fecha y da clic en "Cargar grupos"</td></tr></tbody>
           </table>
         </div>
@@ -271,7 +270,7 @@
   </div>
 </div>
 
-<!-- ══ MODAL NOTIFICAR MAESTROS (fuera de tabs) ══════════════════ -->
+<!-- ══ MODAL NOTIFICAR MAESTROS ══════════════════════════════════ -->
 <div id="modalNotificar" class="modal-overlay">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-title">
@@ -419,7 +418,9 @@
       html += '<tr class="asist-seccion-header"><td colspan="6">Inicio de curso: '+fecha+' — '+porFecha[fecha].length+' grupo(s)</td></tr>';
       porFecha[fecha].forEach(function(item) {
         var r=item.r, idx=item.idx, checked=r.dioclase?'checked':'';
-        html += '<tr><td><span style="font-weight:600;color:var(--text);">'+r.maestroNombre+'</span><br><span style="font-size:11px;color:var(--muted);">'+r.maestroId+'</span></td><td style="font-weight:600;color:var(--text);">'+r.idGrupo+'</td><td>'+r.horario+'</td><td>'+r.nivel+'</td><td>'+(r.fechaInicio||'—')+'</td><td><div class="check-cell"><input type="checkbox" id="chk_'+idx+'" '+checked+' /><label for="chk_'+idx+'" style="font-size:13px;color:var(--muted);">Sí, dio clase</label></div></td></tr>';
+        /* ── CORRECCIÓN: nivel + nombre del grupo ── */
+        var nivelNombre = r.nivel + (r.nombre ? ' · <span style="color:#fbbf24;font-weight:700;">' + r.nombre + '</span>' : '');
+        html += '<tr><td><span style="font-weight:600;color:var(--text);">'+r.maestroNombre+'</span><br><span style="font-size:11px;color:var(--muted);">'+r.maestroId+'</span></td><td style="font-weight:600;color:var(--text);">'+r.idGrupo+'</td><td>'+r.horario+'</td><td>'+nivelNombre+'</td><td>'+(r.fechaInicio||'—')+'</td><td><div class="check-cell"><input type="checkbox" id="chk_'+idx+'" '+checked+' /><label for="chk_'+idx+'" style="font-size:13px;color:var(--muted);">Sí, dio clase</label></div></td></tr>';
       });
     });
     tbody.innerHTML = html;
@@ -474,8 +475,18 @@
           html+='<div class="fecha-seccion"><div class="fecha-seccion-title">Inicio: '+fecha+' — '+porFecha[fecha].length+' grupo(s)</div>';
           porFecha[fecha].forEach(function(g) {
             var mNombre=g.idMaestro?(g.maestroNombre||g.idMaestro):'<span style="color:#f87171;">Sin maestro asignado</span>';
-            var idG=(g.id||'').replace(/'/g,''), hor=(g.horario||'').replace(/'/g,''), niv=(g.nivel||'').replace(/'/g,''), idM=(g.idMaestro||''), mN=(g.maestroNombre||'').replace(/'/g,''), mW=(g.maestroWA||'');
-            html+='<div class="grupo-item-reasig"><div><div class="grupo-item-reasig-info">'+g.id+' · '+g.horario+'</div><div class="grupo-item-reasig-sub">'+g.nivel+' · '+(g.inscritos||0)+' alumnos</div><div class="grupo-item-reasig-maestro">'+mNombre+'</div></div><button class="btn-reasignar" onclick="abrirModalReasig(\''+idG+'\',\''+hor+'\',\''+niv+'\',\''+idM+'\',\''+mN+'\',\''+mW+'\')">Cambiar maestro</button></div>';
+            var idG=(g.id||'').replace(/'/g,'');
+            var hor=(g.horario||'').replace(/'/g,'');
+            var niv=(g.nivel||'').replace(/'/g,'');
+            var idM=(g.idMaestro||'');
+            var mN=(g.maestroNombre||'').replace(/'/g,'');
+            var mW=(g.maestroWA||'');
+            var nomG=(g.nombre||'').replace(/'/g,'');
+
+            /* ── CORRECCIÓN: nivel + nombre del grupo ── */
+            var nivelNombre = g.nivel + (g.nombre ? ' · <span style="color:#fbbf24;font-weight:700;">' + g.nombre + '</span>' : '');
+
+            html+='<div class="grupo-item-reasig"><div><div class="grupo-item-reasig-info">'+g.id+' · '+g.horario+'</div><div class="grupo-item-reasig-sub">'+nivelNombre+' · '+(g.inscritos||0)+' alumnos</div><div class="grupo-item-reasig-maestro">'+mNombre+'</div></div><button class="btn-reasignar" onclick="abrirModalReasig(\''+idG+'\',\''+hor+'\',\''+niv+'\',\''+idM+'\',\''+mN+'\',\''+mW+'\',\''+nomG+'\')">Cambiar maestro</button></div>';
           });
           html+='</div>';
         });
@@ -484,9 +495,12 @@
       .catch(()=>{ lista.innerHTML='<div class="empty-state">Error al cargar grupos.</div>'; });
   }
 
-  function abrirModalReasig(idGrupo,horario,nivel,idMaestroOrigen,nombreOrigen,waOrigen) {
+  /* ── CORRECCIÓN: recibe parámetro nombreGrupo ── */
+  function abrirModalReasig(idGrupo,horario,nivel,idMaestroOrigen,nombreOrigen,waOrigen,nombreGrupo) {
     grupoReasigActual={idGrupo,horario,nivel,maestroOrigenId:idMaestroOrigen||null,maestroOrigenNombre:nombreOrigen||null,maestroOrigenWA:waOrigen||null};
-    var info='Grupo <strong style="color:var(--orange);">'+idGrupo+'</strong><br>Horario: '+horario+' · '+nivel+'<br>';
+    /* ── CORRECCIÓN: muestra nivel + nombre en el modal ── */
+    var nivelNombre = nivel + (nombreGrupo ? ' · <span style="color:#fbbf24;font-weight:700;">' + nombreGrupo + '</span>' : '');
+    var info='Grupo <strong style="color:var(--orange);">'+idGrupo+'</strong><br>Horario: '+horario+' · '+nivelNombre+'<br>';
     info+=idMaestroOrigen?'Maestro actual: <strong>'+(nombreOrigen||idMaestroOrigen)+'</strong>':'<span style="color:#f87171;">Sin maestro asignado actualmente.</span>';
     document.getElementById('modalReasigInfo').innerHTML=info;
     var sel=document.getElementById('reasigMaestroDestino');
@@ -519,7 +533,6 @@
         btn.textContent='Confirmar cambio'; btn.disabled=false;
         if (data.status!=='ok') { alert('Error: '+(data.mensaje||'Intenta de nuevo.')); return; }
         cerrarModalReasig();
-        // Preparar mensajes WA
         var msgNuevo=encodeURIComponent('Hola '+maestroDestino.nombre.split(' ')[0]+'\n\nTienes asignado el grupo '+grupo.idGrupo+'.\nHorario: '+grupo.horario+' hora CDMX\nNivel: '+grupo.nivel+'\n\nRevisa tu panel para ver los detalles.\n\n— Coordinacion Academica · Organic English');
         document.getElementById('btnWaNuevo').href='https://wa.me/52'+maestroDestino.whatsapp+'?text='+msgNuevo;
         var btnAnt=document.getElementById('btnWaAnterior');
@@ -529,7 +542,6 @@
           btnAnt.style.display='flex';
         } else { btnAnt.style.display='none'; }
         document.getElementById('reasigResumen').innerHTML=grupo.maestroOrigenId?'El grupo <strong>'+grupo.idGrupo+'</strong> fue reasignado a <strong>'+maestroDestino.nombre+'</strong>.':'El grupo <strong>'+grupo.idGrupo+'</strong> fue asignado a <strong>'+maestroDestino.nombre+'</strong>.';
-        // Mostrar modal de notificación
         document.getElementById('modalNotificar').classList.add('visible');
       })
       .catch((err)=>{ btn.textContent='Confirmar cambio'; btn.disabled=false; alert('Error: '+err.message); });
