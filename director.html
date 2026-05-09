@@ -254,6 +254,7 @@
       <button class="tab" onclick="switchTab('maestros',this)">Maestros</button>
       <button class="tab" onclick="switchTab('ce',this)">Coord. Control Escolar</button>
       <button class="tab" onclick="switchTab('asistentes',this)">Asistentes CE</button>
+      <button class="tab" onclick="switchTab('coordventas',this)">Coord. de Ventas</button>
       <button class="tab" onclick="switchTab('asesores',this)">Asesores</button>
     </div>
 
@@ -261,11 +262,12 @@
     <div id="tab-maestros"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
     <div id="tab-ce"         class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
     <div id="tab-asistentes" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
+    <div id="tab-coordventas" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
     <div id="tab-asesores"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
 
     <div class="sec-label">Grupos</div>
     <div class="grupos-filtro" id="gruposFiltro"></div>
-    <div id="tablaGrupos"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
+    <div id="tablaGrupos" style="display:none"><div class="tabla-wrap"><div class="loading">Selecciona un nivel para ver grupos.</div></div></div>
 
   </div>
 </div>
@@ -363,6 +365,7 @@
         renderMaestros(data.maestros);
         renderCE(data.ce);
         renderAsistentes(data.asistentes);
+        renderCoordVentas(data.coordVentas);
         renderAsesores(data.asesores);
         construirFiltros(todosGrupos);
         renderGrupos(todosGrupos);
@@ -371,11 +374,16 @@
   }
 
   function renderResumen(r) {
+    var gruposNoDemo = (todosGrupos||[]).filter(function(g){
+      var id = (g.idGrupo||'').toUpperCase();
+      var pre = id.substring(0,2);
+      return pre!=='AA' && pre!=='AB' && pre!=='AC' && pre!=='AD' && pre!=='AE' && pre!=='AF' && pre!=='AG' && pre!=='AH';
+    }).length;
     var items = [
       {icon:'alumnos',    val:r.alumnosActivos,   label:'Alumnos activos',      cls:'',         valcls:''},
       {icon:'inscritos',  val:r.alumnosInscritos, label:'Inscritos esta semana', cls:'',         valcls:''},
       {icon:'bajas',      val:r.bajasSemana,      label:'Bajas esta semana',     cls:'baja-card',valcls:'red'},
-      {icon:'grupos',     val:r.gruposActivos,    label:'Grupos activos',        cls:'',         valcls:''},
+      {icon:'grupos',     val:gruposNoDemo,        label:'Grupos activos',        cls:'',         valcls:''},
       {icon:'maestros',   val:r.maestrosActivos,  label:'Maestros',              cls:'',         valcls:''},
       {icon:'asistentes', val:r.asisActivos,      label:'Asistentes CE',         cls:'',         valcls:''},
       {icon:'asesores',   val:r.asesoresActivos,  label:'Asesores',              cls:'',         valcls:''}
@@ -460,6 +468,17 @@
       ];}));
   }
 
+  function renderCoordVentas(cv) {
+    tablaPersonal('tab-coordventas',['Coord. de Ventas','Sueldo semanal','Cuenta bancaria','Inst. bancaria','Contacto'],
+      (cv||[]).map(function(c){return[
+        fotoCell(c.foto,c.nombre,c.id),
+        '<span class="td-gray">'+fmt(c.nomina)+'</span>',
+        '<span class="td-gray">'+(c.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(c.banco||'—')+'</span>',
+        waBtn(c.whatsapp)
+      ];}));
+  }
+
   function construirFiltros(grupos) {
     var niveles = ['TODOS'];
     (grupos||[]).forEach(function(g){ if(g.nivel && niveles.indexOf(g.nivel)===-1) niveles.push(g.nivel); });
@@ -474,7 +493,15 @@
   function filtrarGrupos(nivel, btn) {
     document.querySelectorAll('.filtro-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
-    renderGrupos(nivel==='TODOS' ? todosGrupos : todosGrupos.filter(function(g){ return g.nivel===nivel; }));
+    var filtrados = nivel==='TODOS' ? todosGrupos : todosGrupos.filter(function(g){ return g.nivel===nivel; });
+    var tablaEl = document.getElementById('tablaGrupos');
+    if (nivel === 'TODOS') {
+      tablaEl.style.display = 'none';
+      tablaEl.innerHTML = '<div class="tabla-wrap"><div class="loading">Selecciona un nivel para ver grupos.</div></div>';
+    } else {
+      tablaEl.style.display = '';
+      renderGrupos(filtrados);
+    }
   }
 
   function calcUnidad(fechaInicio) {
