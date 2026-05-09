@@ -325,6 +325,7 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+  function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
   var caData = null, maestrosData = [], asistenciaRows = [], maestroBajaId = null, grupoReasigActual = null;
 
   function login() {
@@ -381,7 +382,7 @@
       var foto = m.foto ? '<img src="'+m.foto+'" class="maestro-foto" onerror="this.style.display=\'none\'" />' : '<div class="maestro-foto-fallback">'+(m.nombre[0]||'M')+'</div>';
       var badge = m.activo ? '<span class="badge badge-activo">Activo</span>' : '<span class="badge badge-inactivo">Inactivo</span>';
       var btnBaja = m.activo ? '<button class="btn-sm danger" onclick="abrirModalBaja(\''+m.id+'\',\''+m.nombre.replace(/'/g,'')+ '\')">Dar de baja</button>' : '<button class="btn-sm success" onclick="reactivarMaestro(\''+m.id+'\')">Reactivar</button>';
-      var waLink = m.whatsapp ? '<a href="https://wa.me/52'+m.whatsapp+'" target="_blank" class="btn-sm" style="color:#4ade80;border-color:rgba(34,197,94,0.3);">WhatsApp</a>' : '—';
+      var waLink = m.whatsapp ? '<a href="https://wa.me/'+cleanWA(m.whatsapp)+'" target="_blank" class="btn-sm" style="color:#4ade80;border-color:rgba(34,197,94,0.3);">WhatsApp</a>' : '—';
       return '<tr><td><div style="display:flex;align-items:center;gap:10px;">'+foto+'<div><div class="maestro-nombre">'+m.nombre+'</div><div class="maestro-id">'+m.id+'</div></div></div></td><td><span class="badge badge-rol">'+(m.rol||'—')+'</span></td><td style="font-weight:700;color:var(--text);">'+(m.grupos||0)+'</td><td>'+waLink+'</td><td>'+badge+'</td><td>'+btnBaja+'</td></tr>';
     }).join('');
   }
@@ -533,11 +534,11 @@
         if (data.status!=='ok') { alert('Error: '+(data.mensaje||'Intenta de nuevo.')); return; }
         cerrarModalReasig();
         var msgNuevo=encodeURIComponent('Hola '+maestroDestino.nombre.split(' ')[0]+'\n\nTienes asignado el grupo '+grupo.idGrupo+'.\nHorario: '+grupo.horario+' hora CDMX\nNivel: '+grupo.nivel+'\n\nRevisa tu panel para ver los detalles.\n\n— Coordinacion Academica · Organic English');
-        document.getElementById('btnWaNuevo').href='https://wa.me/52'+maestroDestino.whatsapp+'?text='+msgNuevo;
+        document.getElementById('btnWaNuevo').href='https://wa.me/'+cleanWA(maestroDestino.whatsapp)+'?text='+msgNuevo;
         var btnAnt=document.getElementById('btnWaAnterior');
         if (grupo.maestroOrigenId&&grupo.maestroOrigenWA) {
           var msgAnt=encodeURIComponent('Hola '+(grupo.maestroOrigenNombre||'').split(' ')[0]+'\n\nEl grupo '+grupo.idGrupo+' ('+grupo.horario+' · '+grupo.nivel+') ha sido reasignado.\n\nGracias por tu comprension.\n\n— Coordinacion Academica · Organic English');
-          btnAnt.href='https://wa.me/52'+grupo.maestroOrigenWA+'?text='+msgAnt;
+          btnAnt.href='https://wa.me/'+cleanWA(grupo.maestroOrigenWA)+'?text='+msgAnt;
           btnAnt.style.display='flex';
         } else { btnAnt.style.display='none'; }
         document.getElementById('reasigResumen').innerHTML=grupo.maestroOrigenId?'El grupo <strong>'+grupo.idGrupo+'</strong> fue reasignado a <strong>'+maestroDestino.nombre+'</strong>.':'El grupo <strong>'+grupo.idGrupo+'</strong> fue asignado a <strong>'+maestroDestino.nombre+'</strong>.';
