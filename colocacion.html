@@ -299,22 +299,33 @@
     });
     var html = '';
     Object.keys(porNivel).sort().forEach(function(nivel) {
-      html += '<div class="nivel-seccion"><div class="nivel-titulo">' + nivel + '</div>';
+      var nivelId = 'nivel-' + nivel.replace(/\s+/g,'_');
+      html += '<div class="nivel-seccion">';
+      html += '<div class="nivel-titulo" style="cursor:pointer;user-select:none;" onclick="toggleNivel(\'' + nivelId + '\', this)">' + nivel + ' <span style="float:right;">▼</span></div>';
+      html += '<div id="' + nivelId + '" style="display:none;">';
       porNivel[nivel].forEach(function(g) {
         var pocas = g.lugares <= 3;
+        var colorNombre = (g.nombre||'').toLowerCase().includes('adolescente') ? '#fbbf24' : '#f1f5f9';
         html += '<div class="grupo-card">' +
-          '<div><div class="g-id">' + g.idGrupo + ' — ' + g.nombre + '</div><div class="g-horario">' + g.horario + ' · Lun a Jue</div></div>' +
+          '<div><div class="g-id">' + g.idGrupo + ' — <span style="color:' + colorNombre + ';font-weight:700;">' + g.nombre + '</span></div><div class="g-horario">' + g.horario + ' · Lun a Jue</div></div>' +
           '<div class="g-estado">Asistente CE:<br><span>' + (g.asistente || '—') + '</span></div>' +
           '<div class="g-estado">Maestro:<br><span>' + (g.maestro || '—') + '</span></div>' +
           '<div class="g-estado">' + (g.estado || '') + '</div>' +
           '<div class="g-plazas' + (pocas ? ' pocas' : '') + '"><span class="num">' + g.lugares + '</span><span class="label">plazas</span></div>' +
         '</div>';
       });
-      html += '</div>';
+      html += '</div></div>';
     });
     lista.innerHTML = html;
   }
 
+function toggleNivel(id, btn) {
+    var el = document.getElementById(id);
+    var abierto = el.style.display !== 'none';
+    el.style.display = abierto ? 'none' : 'block';
+    btn.querySelector('span').textContent = abierto ? '▼' : '▲';
+  }
+ 
   // ── MODAL ASIGNACIÓN ──
   function abrirModalAsignacion(idAlumno) {
     alumnoActual = todosAlumnos.find(function(a) { return a.idAlumno === idAlumno; });
