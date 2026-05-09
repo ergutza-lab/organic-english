@@ -630,6 +630,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 
 <script>
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
 
 var estado = {
   idCE:'', nombreCE:'',
@@ -845,7 +846,7 @@ function renderSeguimiento(filtroTexto, filtroSit) {
     if (sit.clave==='vencido'||sit.clave==='proximo'||sit.clave==='pendiente') {
       var wa=(a.whatsappCE||'').replace(/\D/g,'');
       var msg=encodeURIComponent('Hola, te contacto sobre el alumno '+a.nombre+' ('+a.idAlumno+') del grupo '+a.idGrupo+'. Su situación de pago requiere atención.');
-      if (wa) accion='<a href="https://wa.me/52'+wa+'?text='+msg+'" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
+      if (wa) accion='<a href="https://wa.me/'+cleanWA(wa)+'?text='+msg+'" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
       else    accion='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
     } else if (sit.clave==='vigente') {
       accion='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
@@ -1002,7 +1003,7 @@ function confirmarCancelacion() {
 // ── HELPERS ──
 function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
   var mensaje='Hola, te informo que el grupo '+idGrupo+' tiene '+inscritos+' alumno(s) activo(s) y sera fusionado. Por favor gestiona el cambio de: '+listaAlumnos;
-  window.open('https://wa.me/52'+whatsapp+'?text='+encodeURIComponent(mensaje),'_blank');
+  window.open('https://wa.me/'+cleanWA(whatsapp)+'?text='+encodeURIComponent(mensaje),'_blank');
 }
 
 function poblarSelectAsistentes() {
@@ -1101,7 +1102,7 @@ function abrirWhatsCoordIT(idGrupo) {
     if (data.whatsapp) {
       var phone=data.whatsapp.replace(/\D/g,'');
       var mensaje='Hola '+data.nombre+', el grupo '+idGrupo+' ha llegado a 0 alumnos. Por favor dar de baja el grupo en el sistema.';
-      window.open('https://wa.me/52'+phone+'?text='+encodeURIComponent(mensaje),'_blank');
+      window.open('https://wa.me/'+cleanWA(phone)+'?text='+encodeURIComponent(mensaje),'_blank');
     } else { alert('No se encontró WhatsApp del Coordinador IT'); }
   }).catch(function(err){ btn.textContent=originalText; btn.disabled=false; alert('Error: '+err.message); });
 }
