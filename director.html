@@ -255,6 +255,8 @@
       <button class="tab" onclick="switchTab('ce',this)">Coord. Control Escolar</button>
       <button class="tab" onclick="switchTab('asistentes',this)">Asistentes CE</button>
       <button class="tab" onclick="switchTab('coordventas',this)">Coord. de Ventas</button>
+      <button class="tab" onclick="switchTab('coordit',this)">Coord. IT</button>
+      <button class="tab" onclick="switchTab('direccion',this)">Dirección</button>
       <button class="tab" onclick="switchTab('asesores',this)">Asesores</button>
     </div>
 
@@ -263,6 +265,8 @@
     <div id="tab-ce"         class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
     <div id="tab-asistentes" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
     <div id="tab-coordventas" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
+    <div id="tab-coordit" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
+    <div id="tab-direccion" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
     <div id="tab-asesores"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando...</div></div></div>
 
     <div class="sec-label">Grupos</div>
@@ -366,6 +370,8 @@
         renderCE(data.ce);
         renderAsistentes(data.asistentes);
         renderCoordVentas(data.coordVentas);
+        renderCoordIT(data.coordIT);
+        renderDireccion(data.direccion);
         renderAsesores(data.asesores);
         construirFiltros(todosGrupos);
         renderGrupos(todosGrupos);
@@ -427,32 +433,48 @@
   }
 
   function renderCA(ca) {
-    tablaPersonal('tab-ca',['Coordinador Académico','Sueldo semanal','Contacto'],
-      (ca||[]).map(function(c){return[fotoCell(c.foto,c.nombre,c.id),'<span class="td-orange">'+fmt(c.sueldo)+'</span>',waBtn(c.whatsapp)];}));
+    tablaPersonal('tab-ca',['Coord. Académico','Sueldo','Cuenta','Banco','Contacto'],
+      (ca||[]).map(function(c){return[
+        fotoCell(c.foto,c.nombre,c.id),
+        '<span class="td-orange">'+fmt(c.sueldo)+'</span>',
+        '<span class="td-gray">'+(c.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(c.banco||'—')+'</span>',
+        waBtn(c.whatsapp)
+      ];}));
   }
 
   function renderMaestros(maestros) {
-    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases esta semana','Costo por clase','Pago semana','Contacto'],
+    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','Pago semana','Cuenta','Banco','Contacto'],
       (maestros||[]).map(function(m){return[
         fotoCell(m.foto,m.nombre,m.id), m.grupos,
-        '<span class="chip chip-blue">'+m.clases+' clases</span>',
+        '<span class="chip chip-blue">'+m.clases+'</span>',
         '<span class="td-gray">'+fmt(m.costoClase)+'</span>',
         '<span class="td-orange">'+fmt(m.pago)+'</span>',
+        '<span class="td-gray">'+(m.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(m.banco||'—')+'</span>',
         waBtn(m.whatsapp)
       ];}));
   }
 
   function renderCE(ce) {
-    tablaPersonal('tab-ce',['Coordinador de Control Escolar','Sueldo semanal','Contacto'],
-      (ce||[]).map(function(c){return[fotoCell(c.foto,c.nombre,c.id),'<span class="td-orange">'+fmt(c.sueldo)+'</span>',waBtn(c.whatsapp)];}));
+    tablaPersonal('tab-ce',['Coord. Control Escolar','Sueldo','Cuenta','Banco','Contacto'],
+      (ce||[]).map(function(c){return[
+        fotoCell(c.foto,c.nombre,c.id),
+        '<span class="td-orange">'+fmt(c.sueldo)+'</span>',
+        '<span class="td-gray">'+(c.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(c.banco||'—')+'</span>',
+        waBtn(c.whatsapp)
+      ];}));
   }
 
   function renderAsistentes(asistentes) {
-    tablaPersonal('tab-asistentes',['Asistente CE','Grupos a cargo','Alumnos','Sueldo semanal','Contacto'],
+    tablaPersonal('tab-asistentes',['Asistente CE','Grupos','Alumnos','Sueldo','Cuenta','Banco','Contacto'],
       (asistentes||[]).map(function(a){return[
         fotoCell(a.foto,a.nombre,a.id), a.grupos,
-        '<span class="chip chip-green">'+a.alumnos+' alumnos</span>',
+        '<span class="chip chip-green">'+a.alumnos+'</span>',
         '<span class="td-orange">'+fmt(a.sueldo)+'</span>',
+        '<span class="td-gray">'+(a.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(a.banco||'—')+'</span>',
         waBtn(a.whatsapp)
       ];}));
   }
@@ -469,10 +491,32 @@
   }
 
   function renderCoordVentas(cv) {
-    tablaPersonal('tab-coordventas',['Coord. de Ventas','Sueldo semanal','Cuenta bancaria','Inst. bancaria','Contacto'],
+    tablaPersonal('tab-coordventas',['Coord. de Ventas','Sueldo','Cuenta','Inst. bancaria','Contacto'],
       (cv||[]).map(function(c){return[
         fotoCell(c.foto,c.nombre,c.id),
-        '<span class="td-gray">'+fmt(c.nomina)+'</span>',
+        '<span class="td-orange">'+fmt(c.nomina)+'</span>',
+        '<span class="td-gray">'+(c.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(c.banco||'—')+'</span>',
+        waBtn(c.whatsapp)
+      ];}));
+  }
+
+  function renderCoordIT(it) {
+    tablaPersonal('tab-coordit',['Coord. IT','Sueldo','Cuenta','Inst. bancaria','Contacto'],
+      (it||[]).map(function(c){return[
+        fotoCell(c.foto,c.nombre,c.id),
+        '<span class="td-orange">'+fmt(c.nomina)+'</span>',
+        '<span class="td-gray">'+(c.cuenta||'—')+'</span>',
+        '<span class="td-gray">'+(c.banco||'—')+'</span>',
+        waBtn(c.whatsapp)
+      ];}));
+  }
+
+  function renderDireccion(dir) {
+    tablaPersonal('tab-direccion',['Dirección','Sueldo','Cuenta','Inst. bancaria','Contacto'],
+      (dir||[]).map(function(c){return[
+        fotoCell(c.foto,c.nombre,c.id),
+        '<span class="td-orange">'+fmt(c.nomina)+'</span>',
         '<span class="td-gray">'+(c.cuenta||'—')+'</span>',
         '<span class="td-gray">'+(c.banco||'—')+'</span>',
         waBtn(c.whatsapp)
