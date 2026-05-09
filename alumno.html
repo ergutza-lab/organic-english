@@ -10,7 +10,7 @@
     background: #0f172a; 
     font-family: 'Segoe UI', Arial, sans-serif; 
     min-height: 100vh;
-    background-image: url('images/hero3.webp');
+    background-image: url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -20,10 +20,10 @@
 
   /* ── LOGIN ── */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .login-box { background: #1e2a4a; border-radius: 24px; padding: 48px 44px; width: 100%; max-width: 440px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
-  .login-box img { display: block; margin: 0 auto 14px; height: 90px; }
-  .login-box h1 { color: #f1f5f9; font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 6px; }
-  .login-box p { color: #64748b; font-size: 15px; text-align: center; margin-bottom: 32px; }
+  .login-box { background: #1e2a4a; border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; }
+  .login-box img { width: 340px; height: auto; }
+  .login-box h1 { color: #fff; font-size: 22px; font-weight: 600; margin: 10px 0 0 0; }
+  .login-box p { color: #64748b; font-size: 13px; margin: 4px 0 16px 0; }
   .field { margin-bottom: 18px; }
   .field label { display: block; color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 8px; }
   .field input { width: 100%; background: #0b1120; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; color: #f1f5f9; font-size: 16px; outline: none; transition: border-color 0.2s; }
@@ -515,6 +515,7 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+  function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
   var alumnoData = null;
   var archivoSubida = null;
   var grupoDestinoCambio = null;
@@ -531,7 +532,7 @@
     err.style.display = 'none';
     var btn = document.querySelector('.btn-primary');
     btn.textContent = 'Verificando...'; btn.disabled = true;
-    fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email))
+    fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email), { redirect: 'follow' })
       .then(r => r.json())
       .then(data => {
         btn.textContent = 'Entrar'; btn.disabled = false;
@@ -540,7 +541,7 @@
           err.style.display = 'block';
           if (data.error === 'BAJA') {
             err.innerHTML = 'Tu acceso ha sido dado de baja por falta de pago.' +
-              (data.asisNombre ? ' Contacta a tu asistente CE: <a href="https://wa.me/52'+data.asisWhatsapp+'" target="_blank" style="color:#fb923c;font-weight:700">'+data.asisNombre+'</a>.' : '');
+              (data.asisNombre ? ' Contacta a tu asistente CE: <a href="https://wa.me/'+cleanWA(data.asisWhatsapp)+'" target="_blank" style="color:#fb923c;font-weight:700">'+data.asisNombre+'</a>.' : '');
           } else { err.textContent = data.error || 'ID o correo incorrectos.'; }
         }
       })
@@ -578,14 +579,14 @@
       document.getElementById('maestroNombre').textContent = m.nombre || 'Por asignar';
       document.getElementById('maestroId').textContent     = m.id || '—';
       var mWaEl = document.getElementById('maestroWa');
-      if (m.whatsapp) { mWaEl.href='https://wa.me/52'+m.whatsapp; mWaEl.style.display='inline-flex'; } else { mWaEl.style.display='none'; }
+      if (m.whatsapp) { mWaEl.href='https://wa.me/'+cleanWA(m.whatsapp); mWaEl.style.display='inline-flex'; } else { mWaEl.style.display='none'; }
       if (m.foto) { document.getElementById('maestroFoto').src=m.foto; document.getElementById('maestroFoto').style.display='block'; document.getElementById('maestroAvatarFallback').style.display='none'; }
     }
 
     if (s) {
       document.getElementById('asisNombre').textContent = s.nombre;
       document.getElementById('asisId').textContent     = s.id;
-      document.getElementById('asisWa').href            = 'https://wa.me/52'+s.whatsapp;
+      document.getElementById('asisWa').href            = 'https://wa.me/'+cleanWA(s.whatsapp);
       if (s.foto) { document.getElementById('asisFoto').src=s.foto; document.getElementById('asisFoto').style.display='block'; document.getElementById('asisAvatarFallback').style.display='none'; }
     }
 
@@ -608,7 +609,7 @@
     bloqueActual = bd;
     if (!bd) return;
 
-    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno&idAlumno=' + encodeURIComponent(idAlumno))
+    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
       .then(r => r.json())
       .then(data => {
         evalRealizadas = data.evaluaciones || {};
@@ -740,7 +741,7 @@
             if(s&&s.whatsapp){
               var msg=encodeURIComponent('Hola '+s.nombre.split(' ')[0]+' 👋\n\nTe informo que acabo de subir mi comprobante de pago.\n\n👤 Alumno: '+alumnoData.alumno.nombre+'\n🆔 ID: '+alumnoData.alumno.id+'\n📚 Grupo: '+(alumnoData.grupo?alumnoData.grupo.id:'—')+'\n\nQuedo pendiente de tu validación. ¡Gracias! 🙏');
               var btnWA=document.createElement('a');
-              btnWA.href='https://wa.me/52'+s.whatsapp+'?text='+msg;
+              btnWA.href='https://wa.me/'+cleanWA(s.whatsapp)+'?text='+msg;
               btnWA.target='_blank';
               btnWA.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;background:#16a34a;color:#fff;border-radius:100px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;';
               btnWA.innerHTML='📱 Notificar a mi asistente CE por WhatsApp';
@@ -779,7 +780,7 @@
   function cargarGruposCambio() {
     var grid=document.getElementById('gruposCambioGrid');
     grid.innerHTML='<div style="color:#64748b;font-size:13px;text-align:center;padding:20px;grid-column:1/-1;">Verificando disponibilidad...</div>';
-    fetch(APPS_SCRIPT+'?action=getGruposCambioAlumno&idAlumno='+encodeURIComponent(alumnoData.alumno.id))
+    fetch(APPS_SCRIPT+'?action=getGruposCambioAlumno&idAlumno='+encodeURIComponent(alumnoData.alumno.id), { redirect: 'follow' })
       .then(r=>r.json())
       .then(data=>{
         if(!data.ok){ grid.innerHTML='<div style="color:#f87171;font-size:13px;text-align:center;padding:20px;grid-column:1/-1;">'+(data.error||'Error')+'</div>'; return; }
@@ -809,7 +810,7 @@
     if (!grupoDestinoCambio||!alumnoData) return;
     var btn=document.getElementById('btnConfirmarCambio');
     btn.classList.remove('activo'); btn.classList.add('cargando'); btn.textContent='Procesando...';
-    fetch(APPS_SCRIPT+'?action=cambiarGrupoAlumno&idAlumno='+encodeURIComponent(alumnoData.alumno.id)+'&grupoDestino='+encodeURIComponent(grupoDestinoCambio))
+    fetch(APPS_SCRIPT+'?action=cambiarGrupoAlumno&idAlumno='+encodeURIComponent(alumnoData.alumno.id)+'&grupoDestino='+encodeURIComponent(grupoDestinoCambio), { redirect: 'follow' })
       .then(r=>r.json())
       .then(data=>{
         btn.classList.remove('cargando'); btn.textContent='Confirmar cambio';
@@ -869,7 +870,7 @@
   // ── MAPA DEL ALUMNO ──────────────────────────────────────────────
   function cargarMapaAlumno(idAlumno, idGrupo) {
     if (!idGrupo) return;
-    fetch(APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo))
+    fetch(APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo), { redirect: 'follow' })
       .then(r=>r.json()).then(data=>{if(data.success)renderMapaAlumno(data);}).catch(function(){});
   }
 
