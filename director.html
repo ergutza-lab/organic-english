@@ -107,11 +107,12 @@
   .fin-detalle span { color:var(--gray-dk); font-size:12px; }
   .fin-detalle span strong { color:var(--off-white); font-weight:500; }
 
-  .fin-resumen { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--glass); border:1px solid var(--border); border-radius:12px; padding:10px 16px; cursor:pointer; margin-bottom:8px; }
-  .fin-tot { display:flex; flex-direction:column; gap:1px; }
-  .fin-tot-lbl { color:var(--gray); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
-  .fin-tot-val { font-size:14px; font-weight:700; font-family:'JetBrains Mono',monospace; }
-  .fin-sep { color:var(--border); font-size:16px; }
+  .fin-resumen { display:flex; align-items:center; gap:0; flex-wrap:wrap; background:var(--glass); border:1px solid var(--border); border-radius:14px; padding:14px 20px; cursor:pointer; margin-bottom:10px; }
+  .fin-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .fin-item + .fin-item { border-left:1px solid var(--border); padding-left:20px; }
+  .fin-item-lbl { color:var(--gray); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+  .fin-item-val { font-size:18px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:-0.5px; }
+  .fin-expand-hint { color:var(--gray); font-size:11px; margin-left:16px; white-space:nowrap; }
   .fin-detalle-box { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   .balance-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
   .balance-row .fin-val { font-size:26px; }
@@ -256,13 +257,11 @@
     </div>
     <div class="sec-label">Resumen financiero — clic para expandir</div>
     <div class="fin-resumen" id="finResumen" onclick="toggleFinanciero()">
-      <span class="fin-tot"><span class="fin-tot-lbl">Ingresos</span><span class="fin-tot-val green" id="finInc">$—</span></span>
-      <span class="fin-sep">|</span>
-      <span class="fin-tot"><span class="fin-tot-lbl">Comisiones</span><span class="fin-tot-val red" id="finCom">$—</span></span>
-      <span class="fin-sep">|</span>
-      <span class="fin-tot"><span class="fin-tot-lbl">Nómina</span><span class="fin-tot-val orange" id="finNom">$—</span></span>
-      <span class="fin-sep">|</span>
-      <span class="fin-tot"><span class="fin-tot-lbl">Balance</span><span class="fin-tot-val" id="finBal">$—</span></span>
+      <div class="fin-item"><div class="fin-item-lbl">Ingresos</div><div class="fin-item-val green" id="finInc">$—</div></div>
+      <div class="fin-item"><div class="fin-item-lbl">Comisiones</div><div class="fin-item-val red" id="finCom">$—</div></div>
+      <div class="fin-item"><div class="fin-item-lbl">Nómina</div><div class="fin-item-val orange" id="finNom">$—</div></div>
+      <div class="fin-item"><div class="fin-item-lbl">Balance</div><div class="fin-item-val" id="finBal">$—</div></div>
+      <div class="fin-expand-hint">▼ Detalle</div>
     </div>
     <div class="fin-detalle-box" id="finDetalle" style="display:none; margin-bottom:8px;"></div>
 
@@ -438,7 +437,14 @@
 
   function toggleFinanciero() {
     var detail = document.getElementById('finDetalle');
-    detail.style.display = detail.style.display !== 'none' ? 'none' : '';
+    var hint = document.querySelector('.fin-expand-hint');
+    if (detail.style.display !== 'none') {
+      detail.style.display = 'none';
+      hint.textContent = '▼ Detalle';
+    } else {
+      detail.style.display = '';
+      hint.textContent = '▲ Ocultar';
+    }
   }
 
   function tablaPersonal(id, cols, filas) {
