@@ -113,13 +113,13 @@
   .fin-item-lbl { color:var(--gray); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
   .fin-item-val { font-size:18px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:-0.5px; }
   .fin-expand-hint { color:var(--gray); font-size:11px; margin-left:16px; white-space:nowrap; }
-  .fin-detalle-box { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .balance-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-  .balance-row .fin-val { font-size:26px; }
-  .balance-info { display:flex; flex-direction:column; gap:2px; }
-  .balance-info .bal-titulo { color:var(--off-white); font-size:13px; font-weight:600; }
-  .balance-info span { color:var(--gray-dk); font-size:12px; }
-
+  .fin-sub-box { margin-bottom:6px; }
+  .fin-sub-inner { display:flex; align-items:center; gap:16px; flex-wrap:wrap; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:10px 16px; }
+  .fin-sub-titulo { color:var(--gray); font-size:12px; font-weight:600; min-width:140px; }
+  .fin-sub-note { color:var(--gray-dk); font-size:12px; }
+  .fin-nom-breakdown { display:flex; flex-wrap:wrap; gap:16px; }
+  .fin-nom-breakdown span { color:var(--gray-dk); font-size:12px; }
+  .fin-nom-breakdown strong { color:var(--off-white); font-weight:600; }
   .fin-detalle-box { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 
   /* TABS */
@@ -255,15 +255,11 @@
         Histórico
       </button>
     </div>
-    <div class="sec-label">Resumen financiero — clic para expandir</div>
-    <div class="fin-resumen" id="finResumen" onclick="toggleFinanciero()">
-      <div class="fin-item"><div class="fin-item-lbl">Ingresos</div><div class="fin-item-val green" id="finInc">$—</div></div>
-      <div class="fin-item"><div class="fin-item-lbl">Comisiones</div><div class="fin-item-val red" id="finCom">$—</div></div>
-      <div class="fin-item"><div class="fin-item-lbl">Nómina</div><div class="fin-item-val orange" id="finNom">$—</div></div>
-      <div class="fin-item"><div class="fin-item-lbl">Balance</div><div class="fin-item-val" id="finBal">$—</div></div>
-      <div class="fin-expand-hint">▼ Detalle</div>
-    </div>
-    <div class="fin-detalle-box" id="finDetalle" style="display:none; margin-bottom:8px;"></div>
+    <div class="fin-resumen" id="finResumen"><div class="loading" style="text-align:center;padding:20px;color:var(--gray-dk);font-size:13px;">Cargando...</div></div>
+    <div class="fin-sub-box" id="finIncSub" style="display:none"></div>
+    <div class="fin-sub-box" id="finComSub" style="display:none"></div>
+    <div class="fin-sub-box" id="finNomSub" style="display:none"></div>
+    <div class="fin-sub-box" id="finBalSub" style="display:none"></div>
 
     <div class="sec-label">Personal</div>
     <div class="tabs">
@@ -415,36 +411,21 @@
   function renderFinanciero(f) {
     var bal = f.balance || 0;
     var bv = bal >= 0 ? 'green' : 'red';
-    document.getElementById('finInc').textContent = fmt(f.ingresosSemana);
-    document.getElementById('finInc').className = 'fin-tot-val green';
-    document.getElementById('finCom').textContent = fmt(f.comisionesSemana);
-    document.getElementById('finCom').className = 'fin-tot-val red';
-    document.getElementById('finNom').textContent = fmt(f.nominaTotal || 0);
-    document.getElementById('finNom').className = 'fin-tot-val orange';
-    document.getElementById('finBal').textContent = fmt(bal);
-    document.getElementById('finBal').className = 'fin-tot-val ' + bv;
-    document.getElementById('finDetalle').innerHTML =
-      '<div class="fin-card c-green"><div class="fin-top">'+icon('ingresos')+'<span class="fin-titulo">Ingresos semana</span></div><div class="fin-val green">'+fmt(f.ingresosSemana)+'</div></div>'+
-      '<div class="fin-card c-red"><div class="fin-top">'+icon('comision')+'<span class="fin-titulo">Comisiones asesores</span></div><div class="fin-val red">'+fmt(f.comisionesSemana)+'</div></div>'+
-      '<div class="fin-card c-orange"><div class="fin-top">'+icon('nomina')+'<span class="fin-titulo">Nómina total</span></div><div class="fin-val orange">'+fmt(f.nominaTotal||0)+'</div>'+
-        '<div class="fin-detalle">'+
-          '<span>Maestros: <strong>'+fmt(f.nominaMaestros||0)+'</strong></span>'+
-          '<span>Asistentes CE: <strong>'+fmt(f.nominaAsis||0)+'</strong></span>'+
-          '<span>Coord. CE: <strong>'+fmt(f.nominaCE||0)+'</strong></span>'+
-          '<span>Coord. CA: <strong>'+fmt(f.nominaCA||0)+'</strong></span>'+
-        '</div></div>';
+    document.getElementById('finResumen').innerHTML =
+      '<div class="fin-item" onclick="toggleFinDet(\'inc\',this)"><div class="fin-item-lbl">Ingresos</div><div class="fin-item-val green">'+fmt(f.ingresosSemana)+'</div></div>'+
+      '<div class="fin-item" onclick="toggleFinDet(\'com\',this)"><div class="fin-item-lbl">Comisiones</div><div class="fin-item-val red">'+fmt(f.comisionesSemana)+'</div></div>'+
+      '<div class="fin-item" onclick="toggleFinDet(\'nom\',this)"><div class="fin-item-lbl">Nómina</div><div class="fin-item-val orange">'+fmt(f.nominaTotal||0)+'</div></div>'+
+      '<div class="fin-item" onclick="toggleFinDet(\'bal\',this)"><div class="fin-item-lbl">Balance</div><div class="fin-item-val '+bv+'">'+fmt(bal)+'</div></div>';
+    document.getElementById('finIncSub').innerHTML = '<div class="fin-sub-inner"><span class="fin-sub-titulo">Ingresos de la semana</span><span class="fin-sub-note">Pagos de alumnos validados esta semana</span></div>';
+    document.getElementById('finComSub').innerHTML = '<div class="fin-sub-inner"><span class="fin-sub-titulo">Comisiones de asesores</span><span class="fin-sub-note">Por alumnos inscritos esta semana</span></div>';
+    document.getElementById('finNomSub').innerHTML = '<div class="fin-sub-inner"><span class="fin-sub-titulo">Desglose de nómina</span><div class="fin-nom-breakdown"><span>Maestros: <strong>'+fmt(f.nominaMaestros||0)+'</strong></span><span>Asistentes CE: <strong>'+fmt(f.nominaAsis||0)+'</strong></span><span>Coord. CE: <strong>'+fmt(f.nominaCE||0)+'</strong></span><span>Coord. CA: <strong>'+fmt(f.nominaCA||0)+'</strong></span></div></div>';
+    document.getElementById('finBalSub').innerHTML = '<div class="fin-sub-inner"><span class="fin-sub-titulo">Balance neto</span><span class="fin-sub-note">Ingresos − Comisiones − Nómina</span></div>';
   }
 
-  function toggleFinanciero() {
-    var detail = document.getElementById('finDetalle');
-    var hint = document.querySelector('.fin-expand-hint');
-    if (detail.style.display !== 'none') {
-      detail.style.display = 'none';
-      hint.textContent = '▼ Detalle';
-    } else {
-      detail.style.display = '';
-      hint.textContent = '▲ Ocultar';
-    }
+  function toggleFinDet(key, el) {
+    var ids = { inc:'finIncSub', com:'finComSub', nom:'finNomSub', bal:'finBalSub' };
+    var subEl = document.getElementById(ids[key]);
+    subEl.style.display = subEl.style.display !== 'none' ? 'none' : '';
   }
 
   function tablaPersonal(id, cols, filas) {
