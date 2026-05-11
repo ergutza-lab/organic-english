@@ -15,10 +15,10 @@
     --fondo: #0f172a;
     --card: #1e2a4a;
     --verde: #16a34a;
-    --latente:    #78716c;
-    --semilla:    #e5e0d0;
-    --brotando:   #facc15;
-    --floreciendo:#f97316;
+    --rojo: #ef4444;
+    --amarillo: #facc15;
+    --verde-eval: #22c55e;
+    --azul-eval: #3b82f6;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -102,10 +102,10 @@
   .semaforo { display: flex; gap: 5px; }
   .sem-btn { flex: 1; padding: 8px 2px; border-radius: 8px; border: 2px solid transparent; font-size: 16px; cursor: pointer; text-align: center; transition: all 0.15s; background: rgba(255,255,255,0.05); }
   .sem-btn:hover { transform: scale(1.1); }
-  .sem-btn.sel-1 { background: rgba(120,113,108,0.3); border-color: var(--latente); }
-  .sem-btn.sel-2 { background: rgba(229,224,208,0.15); border-color: var(--semilla); }
-  .sem-btn.sel-3 { background: rgba(250,204,21,0.2); border-color: var(--brotando); }
-  .sem-btn.sel-4 { background: rgba(249,115,22,0.25); border-color: var(--floreciendo); }
+  .sem-btn.sel-1 { background: rgba(239,68,68,0.25); border-color: var(--rojo); }
+  .sem-btn.sel-2 { background: rgba(250,204,21,0.2); border-color: var(--amarillo); }
+  .sem-btn.sel-3 { background: rgba(34,197,94,0.2); border-color: var(--verde-eval); }
+  .sem-btn.sel-4 { background: rgba(59,130,246,0.25); border-color: var(--azul-eval); }
 
   .btn-guardar { width: 100%; background: linear-gradient(135deg,var(--verde),#15803d); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 16px; }
   .btn-guardar:hover { opacity: 0.9; }
@@ -204,7 +204,7 @@
       </div>
       <div class="tabs">
         <div class="tab active" id="tabRegistro"  onclick="cambiarTab('Registro')">Registro del día</div>
-        <div class="tab"        id="tabMapa"      onclick="cambiarTab('Mapa')">Jardín del grupo</div>
+        <div class="tab"        id="tabMapa"      onclick="cambiarTab('Mapa')">Progreso del grupo</div>
         <div class="tab"        id="tabChallenge" onclick="cambiarTab('Challenge')">Master Challenge</div>
       </div>
 
@@ -214,11 +214,21 @@
           <label>Fecha de clase:</label>
           <input type="date" id="fechaClase" />
         </div>
-        <div class="leyenda">
-          <div class="ley-item">🟤 Latente</div>
-          <div class="ley-item">⚪ Semilla</div>
-          <div class="ley-item">🟡 Brotando</div>
-          <div class="ley-item">🟠 Floreciendo</div>
+        <div class="leyenda" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+          <div class="ley-item" style="color:#ef4444;">🔴 Rojo — Mejorable</div>
+          <div class="ley-item" style="color:#facc15;">🟡 Amarillo — En proceso</div>
+          <div class="ley-item" style="color:#22c55e;">🟢 Verde — Adecuado</div>
+          <div class="ley-item" style="color:#3b82f6;">🔵 Azul — Destacado</div>
+        </div>
+        <p style="color:var(--gris2);font-size:12px;margin-bottom:12px;">Evalúa si el alumno logró el objetivo comunicativo de la clase.</p>
+        <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:16px;font-size:11px;color:var(--gris);">
+          <div style="font-weight:700;color:var(--blanco);margin-bottom:8px;">Guía rápida:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div><span style="color:#ef4444;">🔴</span> No logra el objetivo ni con apoyo</div>
+            <div><span style="color:#facc15;">🟡</span> Logra parcialmente con apoyo</div>
+            <div><span style="color:#22c55e;">🟢</span> Cumple el objetivo con apoyo mínimo</div>
+            <div><span style="color:#3b82f6;">🔵</span> Supera el objetivo con confianza</div>
+          </div>
         </div>
         <div id="listaAlumnosRegistro"></div>
         <button class="btn-guardar" id="btnGuardar" onclick="guardarRegistro()">Guardar registro del día</button>
@@ -250,12 +260,15 @@
   var grupoActual = null;
   var bloqueActualChallenge = 1;
 
-  const PILARES      = ['participacion','deduccion','fluidez','consistencia'];
-  const PILAR_LABELS = { participacion:'Participación', deduccion:'Deducción', fluidez:'Fluidez', consistencia:'Consistencia' };
-  const PILAR_ICONS  = { participacion:'🌱', deduccion:'🔍', fluidez:'🌊', consistencia:'⚡' };
-  const SEM_EMOJIS   = { 1:'🟤', 2:'⚪', 3:'🟡', 4:'🟠' };
-  const SEM_LABELS   = { 1:'Latente', 2:'Semilla', 3:'Brotando', 4:'Floreciendo' };
-  const SEM_COLORS   = { 1:'#78716c', 2:'#e5e0d0', 3:'#facc15', 4:'#f97316' };
+  const COLORES_EVAL = [
+    { val:1, emoji:'🔴', label:'Mejorable', color:'#ef4444' },
+    { val:2, emoji:'🟡', label:'En proceso', color:'#facc15' },
+    { val:3, emoji:'🟢', label:'Adecuado', color:'#22c55e' },
+    { val:4, emoji:'🔵', label:'Destacado', color:'#3b82f6' }
+  ];
+  const SEM_EMOJIS   = { 1:'🔴', 2:'🟡', 3:'🟢', 4:'🔵' };
+  const SEM_LABELS   = { 1:'Mejorable', 2:'En proceso', 3:'Adecuado', 4:'Destacado' };
+  const SEM_COLORS   = { 1:'#ef4444', 2:'#facc15', 3:'#22c55e', 4:'#3b82f6' };
 
   // ── LOGIN ──────────────────────────────────────────────────────────
   function login() {
@@ -347,29 +360,27 @@
     var lista=document.getElementById('listaAlumnosRegistro');
     if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>'; return; }
     lista.innerHTML=alumnos.map(function(a){
-      var pilares=PILARES.map(function(p){
-        var btns=[1,2,3,4].map(function(v){
-          return '<button class="sem-btn" id="'+p+'-'+v+'-'+a.id+'" onclick="selPilar(\''+a.id+'\',\''+p+'\','+v+')">'+SEM_EMOJIS[v]+'</button>';
-        }).join('');
-        return '<div class="pilar-grupo"><div class="pilar-label">'+PILAR_ICONS[p]+' '+PILAR_LABELS[p]+'</div><div class="semaforo">'+btns+'</div></div>';
+      var btns=COLORES_EVAL.map(function(c){
+        return '<button class="sem-btn" id="eval-'+c.val+'-'+a.id+'" onclick="selColor(\''+a.id+'\','+c.val+')" title="'+c.label+'">'+c.emoji+'</button>';
       }).join('');
       return '<div class="alumno-registro">'+
         '<div class="alumno-reg-header"><span class="alumno-reg-nombre">'+a.nombre+'</span><span class="alumno-reg-id">'+a.id+'</span></div>'+
-        '<div class="pilares-grid">'+pilares+'</div>'+
+        '<div style="margin-bottom:12px;"><div class="semaforo">'+btns+'</div></div>'+
+        '<input type="text" id="obs-'+a.id+'" placeholder="Observación breve (opcional)" style="width:100%;background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:var(--blanco);font-size:12px;outline:none;" />'+
       '</div>';
     }).join('');
   }
 
-  function selPilar(idAlumno, pilar, valor) {
+  function selColor(idAlumno, valor) {
     [1,2,3,4].forEach(function(v){
-      var btn=document.getElementById(pilar+'-'+v+'-'+idAlumno);
+      var btn=document.getElementById('eval-'+v+'-'+idAlumno);
       if (btn) btn.className='sem-btn'+(v===valor?' sel-'+v:'');
     });
   }
 
-  function getPilarVal(idAlumno, pilar) {
+  function getColorVal(idAlumno) {
     for (var v=4;v>=1;v--) {
-      var btn=document.getElementById(pilar+'-'+v+'-'+idAlumno);
+      var btn=document.getElementById('eval-'+v+'-'+idAlumno);
       if (btn&&btn.classList.contains('sel-'+v)) return v;
     }
     return 3;
@@ -393,10 +404,8 @@
     var registros=alumnos.map(function(a){
       return {
         idAlumno:      a.id,
-        participacion: getPilarVal(a.id,'participacion'),
-        deduccion:     getPilarVal(a.id,'deduccion'),
-        fluidez:       getPilarVal(a.id,'fluidez'),
-        consistencia:  getPilarVal(a.id,'consistencia')
+        color:         getColorVal(a.id),
+        observacion:   (document.getElementById('obs-'+a.id)||{}).value||''
       };
     });
     btn.textContent='Guardando...'; btn.disabled=true;
@@ -531,42 +540,40 @@
   svg += '</svg>';
   return svg;
 }
- function renderMapas(resultados) {
+function renderMapas(resultados) {
     var lista=document.getElementById('listaMapas');
     lista.innerHTML=resultados.map(function(r){
       var d=r.data;
-      var p=d.success?d.promedios:{participacion:0,deduccion:0,fluidez:0,consistencia:0};
+      var promGeneral=d.success&&d.promedio?d.promedio:2;
       var clases=d.success?d.totalClases:0;
-      var promGeneral=d.success?(p.participacion+p.deduccion+p.fluidez+p.consistencia)/4:0;
+      var positivos=d.success?d.porcentajePositivos:0;
+      var asistencia=d.success?d.porcentajeAsistencia:0;
       var ng=nivelColor(promGeneral);
-      return '<div class="mapa-card">'+
-        '<div class="mapa-pilares">'+
-          PILARES.map(function(pi){
-            var val=p[pi]||0;
-            var n=nivelColor(val);
-            return '<div class="mapa-pilar">'+
-             '<div style="display:flex;justify-content:center;align-items:flex-end;height:144px;">'+plantaSVG(val, (function(){
-  if (!d.success||!d.challenges) return null;
-  var gran=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Gran';});
-  if (gran) return 'Gran';
-  var mini=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Mini';});
-  if (mini) return 'Mini';
-  return null;
-})())+' </div>'+
-              '<div class="mapa-pilar-label">'+PILAR_LABELS[pi]+'</div>'+
-              '<div class="mapa-pilar-val" style="color:'+n.color+'">'+n.emoji+' '+n.label+'</div>'+
-            '</div>';
-          }).join('')+
+      var nivelEval = promGeneral < 1.5 ? 1 : promGeneral < 2.5 ? 2 : promGeneral < 3.5 ? 3 : 4;
+      return '<div class="mapa-card" style="padding-bottom:16px;">'+
+        '<div style="display:flex;justify-content:center;align-items:flex-end;height:160px;margin-bottom:12px;">'+
+          plantaSVG(nivelEval, (function(){
+   if (!d.success||!d.challenges) return null;
+   var gran=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Gran';});
+   if (gran) return 'Gran';
+   var mini=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Mini';});
+   if (mini) return 'Mini';
+   return null;
+ })())+
         '</div>'+
-        '<div class="mapa-header" style="margin-top:10px;">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">'+
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Promedio</div><div style="font-size:18px;font-weight:700;" style="color:'+ng.color+'">'+ng.emoji+' '+ng.label+'</div></div>'+
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Verde+Azul</div><div style="font-size:18px;font-weight:700;'+(positivos>=70?'color:#22c55e':positivos>=60?'color:#facc15':'color:#ef4444')+'">'+positivos+'%</div></div>'+
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Asistencia</div><div style="font-size:18px;font-weight:700;'+(asistencia>=80?'color:#22c55e':asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+asistencia+'%</div></div>'+
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Clases</div><div style="font-size:18px;font-weight:700;color:var(--blanco)">'+clases+'</div></div>'+
+        '</div>'+
+        '<div class="mapa-header">'+
           '<div>'+
             '<div class="mapa-nombre">'+r.alumno.nombre+'</div>'+
             '<div style="color:var(--gris2);font-size:11px;">'+r.alumno.id+'</div>'+
-            '<div class="mapa-clases">'+clases+' clases registradas</div>'+
           '</div>'+
           '<div style="text-align:right;">'+
-            '<div style="font-size:20px;">'+ng.emoji+'</div>'+
-            '<div style="font-size:11px;color:'+ng.color+';font-weight:700;">'+ng.label+'</div>'+
+            '<div style="font-size:12px;color:'+ng.color+';font-weight:700;">'+ng.label+'</div>'+
           '</div>'+
         '</div>'+
       '</div>';
