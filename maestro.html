@@ -204,7 +204,7 @@
       </div>
       <div class="tabs">
         <div class="tab active" id="tabRegistro"  onclick="cambiarTab('Registro')">Registro del día</div>
-        <div class="tab"        id="tabMapa"      onclick="cambiarTab('Mapa')">Progreso del grupo</div>
+        <div class="tab"        id="tabMapa"      onclick="cambiarTab('Mapa')">Evaluación del grupo</div>
         <div class="tab"        id="tabChallenge" onclick="cambiarTab('Challenge')">Master Challenge</div>
       </div>
 
@@ -246,9 +246,12 @@
         <button class="btn-guardar" id="btnGuardar" onclick="guardarRegistro()">Guardar registro del día</button>
       </div>
 
-      <!-- TAB JARDÍN -->
+      <!-- TAB EVALUACIÓN GRUPO -->
       <div id="contenidoMapa" style="display:none;">
-        <div id="listaMapas"><div class="loading">Cargando jardín...</div></div>
+        <div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#67e8f9;">
+          <strong>💎 Sistema de Evaluación:</strong> El porcentaje global se calcula con: 80% Asistencia + 20% Verde+Azul. Todos comienzan en 100% y bajan según su desempeño.
+        </div>
+        <div id="listaMapas"><div class="loading">Cargando evaluación...</div></div>
       </div>
 
     <!-- TAB MASTER CHALLENGE -->
@@ -494,6 +497,57 @@
     return {color:SEM_COLORS[4],label:SEM_LABELS[4],emoji:SEM_EMOJIS[4]};
   }
 
+  // Gema que cambia color según porcentaje global
+  function gemaSVG(porcentaje) {
+    var colorGema;
+    var colorBrillo;
+    var label;
+    
+    if (porcentaje >= 90) {
+      colorGema = '#06b6d4'; // Azul turquesa
+      colorBrillo = '#67e8f9';
+      label = 'Excelente';
+    } else if (porcentaje >= 80) {
+      colorGema = '#22c55e'; // Verde
+      colorBrillo = '#86efac';
+      label = 'Bueno';
+    } else if (porcentaje >= 70) {
+      colorGema = '#facc15'; // Amarillo
+      colorBrillo = '#fef08a';
+      label = 'Regular';
+    } else if (porcentaje >= 60) {
+      colorGema = '#f97316'; // Naranja
+      colorBrillo = '#fdba74';
+      label = 'Atención';
+    } else {
+      colorGema = '#ef4444'; // Rojo
+      colorBrillo = '#fca5a5';
+      label = 'Crítico';
+    }
+    
+    var svg = '<svg width="100" height="120" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">';
+    
+    // Cadena de la gema
+    svg += '<rect x="46" y="0" width="8" height="20" rx="2" fill="#d4d4d4"/>';
+    svg += '<circle cx="50" cy="22" r="6" fill="#a3a3a3"/>';
+    
+    // Gema - forma de diamante/cristal
+    svg += '<polygon points="50,30 75,55 50,95 25,55" fill="'+colorGema+'" stroke="'+colorBrillo+'" stroke-width="2"/>';
+    
+    // Brillo superior
+    svg += '<polygon points="50,35 65,50 50,60 35,50" fill="'+colorBrillo+'" opacity="0.4"/>';
+    svg += '<circle cx="40" cy="50" r="3" fill="#fff" opacity="0.6"/>';
+    
+    // Porcentaje dentro de la gema
+    svg += '<text x="50" y="72" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">'+Math.round(porcentaje)+'%</text>';
+    
+    // Etiqueta
+    svg += '<text x="50" y="110" text-anchor="middle" fill="'+colorGema+'" font-size="14" font-weight="700">'+label+'</text>';
+    
+    svg += '</svg>';
+    return svg;
+  }
+
   function plantaSVG(val, tipoInsignia) {
   val = val||1;
   var c = nivelColor(val).color;
@@ -574,19 +628,28 @@ function renderMapas(resultados) {
     var lista=document.getElementById('listaMapas');
     lista.innerHTML=resultados.map(function(r){
       var d=r.data;
-      var promGeneral=d.success&&d.promedio?d.promedio:2;
       var clases=d.success?d.totalClases:0;
       var positivos=d.success?d.porcentajePositivos:0;
       var asistencia=d.success?d.porcentajeAsistencia:0;
-      var ng=nivelColor(promGeneral);
-      var nivelEval = promGeneral < 1.5 ? 1 : promGeneral < 2.5 ? 2 : promGeneral < 3.5 ? 3 : 4;
       
-      // Calcular % de cada color
+      // Calcular % global según sistema de evaluación:
+      // - 80% evaluación continua (colores positivos: Verde + Azul)
+      // - 20% proyecto final (simplificado - se asume que si tiene buenos colores, el proyecto va bien)
+      // El % global es: (asistencia * 0.5) + (positivos * 0.5)
+      // Pero como asistencia ya cuenta solo presentes, usamos: asistencia% * 0.8 + positivos% * 0.2
+      var porcentajeGlobal = 0;
+      if (clases > 0) {
+        porcentajeGlobal = Math.round((asistencia * 0.8) + (positivos * 0.2));
+      } else {
+        porcentajeGlobal = 100; // Si no hay registros, empieza al 100%
+      }
+      
+      // Calcular % de cada color (solo presentes)
       var conteoColores = {1:0,2:0,3:0,4:0};
       var totalRegistros = 0;
       if (d.success && d.registros) {
         d.registros.forEach(function(reg) {
-          if (reg.asistencia !== false) { // Solo cuenta los presentes
+          if (reg.asistencia) {
             conteoColores[reg.color] = (conteoColores[reg.color] || 0) + 1;
             totalRegistros++;
           }
@@ -594,21 +657,22 @@ function renderMapas(resultados) {
       }
       var getPorc = function(c) { return totalRegistros > 0 ? Math.round((conteoColores[c]/totalRegistros)*100) : 0; };
       
+      // Determinar estado
+      var estado = '';
+      var estadoColor = '';
+      if (porcentajeGlobal >= 90) { estado = 'Pase asegurado'; estadoColor = '#22c55e'; }
+      else if (porcentajeGlobal >= 80) { estado = 'Pase con refuerzo'; estadoColor = '#facc15'; }
+      else if (porcentajeGlobal >= 70) { estado = 'Pendiente'; estadoColor = '#f97316'; }
+      else { estado = 'No acredita'; estadoColor = '#ef4444'; }
+      
       return '<div class="mapa-card" style="padding-bottom:16px;">'+
-        '<div style="display:flex;justify-content:center;align-items:flex-end;height:160px;margin-bottom:12px;">'+
-          plantaSVG(nivelEval, (function(){
-   if (!d.success||!d.challenges) return null;
-   var gran=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Gran';});
-   if (gran) return 'Gran';
-   var mini=d.challenges.some(function(ch){return ch.aprobado&&ch.tipo==='Mini';});
-   if (mini) return 'Mini';
-   return null;
- })())+
+        '<div style="display:flex;justify-content:center;align-items:center;height:140px;margin-bottom:12px;">'+
+          gemaSVG(porcentajeGlobal)+
         '</div>'+
         '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">'+
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'+
             '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Asistencia</div><div style="font-size:20px;font-weight:700;'+(asistencia>=80?'color:#22c55e':asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+asistencia+'%</div></div>'+
-            '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Clases</div><div style="font-size:20px;font-weight:700;color:var(--blanco)">'+clases+'</div></div>'+
+            '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Verde+Azul</div><div style="font-size:20px;font-weight:700;'+(positivos>=70?'color:#22c55e':positivos>=60?'color:#facc15':'color:#ef4444')+'">'+positivos+'%</div></div>'+
           '</div>'+
           '<div style="font-size:10px;color:var(--gris2);text-transform:uppercase;margin-bottom:6px;text-align:center;">Distribución de colores (solo presentes)</div>'+
           '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;">'+
@@ -621,10 +685,10 @@ function renderMapas(resultados) {
         '<div class="mapa-header">'+
           '<div>'+
             '<div class="mapa-nombre">'+r.alumno.nombre+'</div>'+
-            '<div style="color:var(--gris2);font-size:11px;">'+r.alumno.id+'</div>'+
+            '<div style="color:var(--gris2);font-size:11px;">'+r.alumno.id+' · '+clases+' clases</div>'+
           '</div>'+
           '<div style="text-align:right;">'+
-            '<div style="font-size:12px;color:'+ng.color+';font-weight:700;">'+ng.label+'</div>'+
+            '<div style="font-size:12px;color:'+estadoColor+';font-weight:700;">'+estado+'</div>'+
           '</div>'+
         '</div>'+
       '</div>';
