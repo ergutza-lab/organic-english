@@ -214,11 +214,23 @@
           <label>Fecha de clase:</label>
           <input type="date" id="fechaClase" />
         </div>
-        <div class="leyenda" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
-          <div class="ley-item" style="color:#ef4444;">🔴 Rojo — Mejorable</div>
-          <div class="ley-item" style="color:#facc15;">🟡 Amarillo — En proceso</div>
-          <div class="ley-item" style="color:#22c55e;">🟢 Verde — Adecuado</div>
-          <div class="ley-item" style="color:#3b82f6;">🔵 Azul — Destacado</div>
+        <div class="leyenda" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+          <div class="ley-item" style="color:#ef4444;flex-direction:column;align-items:center;text-align:center;">
+            <div style="font-size:20px;">🔴</div>
+            <div style="font-size:10px;">No logra el objetivo</div>
+          </div>
+          <div class="ley-item" style="color:#facc15;flex-direction:column;align-items:center;text-align:center;">
+            <div style="font-size:20px;">🟡</div>
+            <div style="font-size:10px;">Logra parcialmente</div>
+          </div>
+          <div class="ley-item" style="color:#22c55e;flex-direction:column;align-items:center;text-align:center;">
+            <div style="font-size:20px;">🟢</div>
+            <div style="font-size:10px;">Cumple el objetivo</div>
+          </div>
+          <div class="ley-item" style="color:#3b82f6;flex-direction:column;align-items:center;text-align:center;">
+            <div style="font-size:20px;">🔵</div>
+            <div style="font-size:10px;">Supera el objetivo</div>
+          </div>
         </div>
         <p style="color:var(--gris2);font-size:12px;margin-bottom:12px;">Evalúa si el alumno logró el objetivo comunicativo de la clase.</p>
         <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:16px;font-size:11px;color:var(--gris);">
@@ -365,10 +377,27 @@
       }).join('');
       return '<div class="alumno-registro">'+
         '<div class="alumno-reg-header"><span class="alumno-reg-nombre">'+a.nombre+'</span><span class="alumno-reg-id">'+a.id+'</span></div>'+
-        '<div style="margin-bottom:12px;"><div class="semaforo">'+btns+'</div></div>'+
+        '<div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;">'+
+          '<div style="flex:1;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Asistencia</div>'+
+            '<div class="semaforo" style="gap:4px;">'+
+              '<button class="sem-btn" id="asist-si-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',true)" style="flex:1;padding:10px;font-size:14px;background:rgba(34,197,94,0.15);">✓</button>'+
+              '<button class="sem-btn" id="asist-no-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',false)" style="flex:1;padding:10px;font-size:14px;">✕</button>'+
+            '</div>'+
+          '</div>'+
+          '<div style="flex:2;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Evaluación del día</div><div class="semaforo">'+btns+'</div></div>'+
+        '</div>'+
         '<input type="text" id="obs-'+a.id+'" placeholder="Observación breve (opcional)" style="width:100%;background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:var(--blanco);font-size:12px;outline:none;" />'+
       '</div>';
     }).join('');
+  }
+
+  function selAsistencia(idAlumno, presente) {
+    document.getElementById('asist-si-'+idAlumno).className='sem-btn'+(presente?' sel-3':'');
+    document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' sel-1':'');
+  }
+
+  function getAsistencia(idAlumno) {
+    return document.getElementById('asist-si-'+idAlumno).classList.contains('sel-3');
   }
 
   function selColor(idAlumno, valor) {
@@ -404,6 +433,7 @@
     var registros=alumnos.map(function(a){
       return {
         idAlumno:      a.id,
+        asistencia:    getAsistencia(a.id), // true = presente, false = ausente
         color:         getColorVal(a.id),
         observacion:   (document.getElementById('obs-'+a.id)||{}).value||''
       };
@@ -550,6 +580,20 @@ function renderMapas(resultados) {
       var asistencia=d.success?d.porcentajeAsistencia:0;
       var ng=nivelColor(promGeneral);
       var nivelEval = promGeneral < 1.5 ? 1 : promGeneral < 2.5 ? 2 : promGeneral < 3.5 ? 3 : 4;
+      
+      // Calcular % de cada color
+      var conteoColores = {1:0,2:0,3:0,4:0};
+      var totalRegistros = 0;
+      if (d.success && d.registros) {
+        d.registros.forEach(function(reg) {
+          if (reg.asistencia !== false) { // Solo cuenta los presentes
+            conteoColores[reg.color] = (conteoColores[reg.color] || 0) + 1;
+            totalRegistros++;
+          }
+        });
+      }
+      var getPorc = function(c) { return totalRegistros > 0 ? Math.round((conteoColores[c]/totalRegistros)*100) : 0; };
+      
       return '<div class="mapa-card" style="padding-bottom:16px;">'+
         '<div style="display:flex;justify-content:center;align-items:flex-end;height:160px;margin-bottom:12px;">'+
           plantaSVG(nivelEval, (function(){
@@ -561,11 +605,18 @@ function renderMapas(resultados) {
    return null;
  })())+
         '</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">'+
-          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Promedio</div><div style="font-size:18px;font-weight:700;" style="color:'+ng.color+'">'+ng.emoji+' '+ng.label+'</div></div>'+
-          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Verde+Azul</div><div style="font-size:18px;font-weight:700;'+(positivos>=70?'color:#22c55e':positivos>=60?'color:#facc15':'color:#ef4444')+'">'+positivos+'%</div></div>'+
-          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Asistencia</div><div style="font-size:18px;font-weight:700;'+(asistencia>=80?'color:#22c55e':asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+asistencia+'%</div></div>'+
-          '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Clases</div><div style="font-size:18px;font-weight:700;color:var(--blanco)">'+clases+'</div></div>'+
+        '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'+
+            '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Asistencia</div><div style="font-size:20px;font-weight:700;'+(asistencia>=80?'color:#22c55e':asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+asistencia+'%</div></div>'+
+            '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Clases</div><div style="font-size:20px;font-weight:700;color:var(--blanco)">'+clases+'</div></div>'+
+          '</div>'+
+          '<div style="font-size:10px;color:var(--gris2);text-transform:uppercase;margin-bottom:6px;text-align:center;">Distribución de colores (solo presentes)</div>'+
+          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;">'+
+            '<div style="background:rgba(239,68,68,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🔴</div><div style="font-size:14px;font-weight:700;color:#ef4444">'+getPorc(1)+'%</div></div>'+
+            '<div style="background:rgba(250,204,21,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🟡</div><div style="font-size:14px;font-weight:700;color:#facc15">'+getPorc(2)+'%</div></div>'+
+            '<div style="background:rgba(34,197,94,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🟢</div><div style="font-size:14px;font-weight:700;color:#22c55e">'+getPorc(3)+'%</div></div>'+
+            '<div style="background:rgba(59,130,246,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🔵</div><div style="font-size:14px;font-weight:700;color:#3b82f6">'+getPorc(4)+'%</div></div>'+
+          '</div>'+
         '</div>'+
         '<div class="mapa-header">'+
           '<div>'+
