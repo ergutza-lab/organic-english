@@ -448,10 +448,37 @@
       .then(r=>r.json())
       .then(data=>{
         btn.textContent='Guardar registro del día'; btn.disabled=false;
-        if (data.success) mostrarToast('Registro guardado correctamente','success');
+        if (data.success) {
+          mostrarToast('Registro guardado correctamente','success');
+          limpiarRegistro(); // Limpiar formulario
+        }
         else mostrarToast('Error: '+data.error,'error');
       })
       .catch(()=>{ btn.textContent='Guardar registro del día'; btn.disabled=false; mostrarToast('Error de conexión','error'); });
+  }
+
+  function limpiarRegistro() {
+    var alumnos=grupoActual.alumnos||[];
+    // Resetear todos los selects de color
+    [1,2,3,4].forEach(function(v) {
+      alumnos.forEach(function(a) {
+        var btn=document.getElementById('eval-'+v+'-'+a.id);
+        if(btn) btn.className='sem-btn';
+      });
+    });
+    // Resetear asistencia
+    alumnos.forEach(function(a) {
+      document.getElementById('asist-si-'+a.id).className='sem-btn sel-3';
+      document.getElementById('asist-no-'+a.id).className='sem-btn';
+    });
+    // Limpiar observaciones
+    alumnos.forEach(function(a) {
+      var obs=document.getElementById('obs-'+a.id);
+      if(obs) obs.value='';
+    });
+    // Nueva fecha
+    var hoy=new Date();
+    document.getElementById('fechaClase').value=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
   }
 
   // ── JARDÍN DEL GRUPO ───────────────────────────────────────────────
@@ -504,64 +531,73 @@
     var label;
     
     if (porcentaje >= 90) {
-      colorGema = '#06b6d4'; // Azul turquesa
+      colorGema = '#06b6d4';
       colorBrillo = '#67e8f9';
       label = 'Excelente';
     } else if (porcentaje >= 80) {
-      colorGema = '#22c55e'; // Verde
+      colorGema = '#22c55e';
       colorBrillo = '#86efac';
       label = 'Bueno';
     } else if (porcentaje >= 70) {
-      colorGema = '#facc15'; // Amarillo
+      colorGema = '#facc15';
       colorBrillo = '#fef08a';
       label = 'Regular';
     } else if (porcentaje >= 60) {
-      colorGema = '#f97316'; // Naranja
+      colorGema = '#f97316';
       colorBrillo = '#fdba74';
       label = 'Atención';
     } else {
-      colorGema = '#ef4444'; // Rojo
+      colorGema = '#ef4444';
       colorBrillo = '#fca5a5';
       label = 'Crítico';
     }
     
-    var svg = '<svg width="100" height="150" viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg">';
+    var svg = '<svg width="180" height="150" viewBox="0 0 180 150" xmlns="http://www.w3.org/2000/svg">';
     
-    // Si tiene Gran Challenge = insignia sobre trofeo
+    // === GEMA (centro) ===
+    // Cadena
+    svg += '<rect x="76" y="0" width="8" height="20" rx="2" fill="#d4d4d4"/>';
+    svg += '<circle cx="80" cy="22" r="6" fill="#a3a3a3"/>';
+    // Gema
+    svg += '<polygon points="80,30 105,55 80,95 55,55" fill="'+colorGema+'" stroke="'+colorBrillo+'" stroke-width="2"/>';
+    svg += '<polygon points="80,35 95,50 80,60 65,50" fill="'+colorBrillo+'" opacity="0.4"/>';
+    svg += '<circle cx="70" cy="50" r="3" fill="#fff" opacity="0.6"/>';
+    svg += '<text x="80" y="72" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">'+Math.round(porcentaje)+'%</text>';
+    svg += '<text x="80" y="115" text-anchor="middle" fill="'+colorGema+'" font-size="12" font-weight="700">'+label+'</text>';
+    
+    // === INSIGNIA (derecha de la gema) ===
+    if (tieneMini) {
+      // Insignia real
+      svg += '<circle cx="140" cy="50" r="22" fill="#ffd700" stroke="#b8860b" stroke-width="3"/>';
+      svg += '<circle cx="140" cy="50" r="15" fill="#eab308" stroke="#a16207" stroke-width="1"/>';
+      svg += '<text x="140" y="55" text-anchor="middle" font-size="14" fill="#fff">★</text>';
+    } else {
+      // Silueta vacía
+      svg += '<circle cx="140" cy="50" r="22" fill="none" stroke="#4b5563" stroke-width="2" stroke-dasharray="4,2"/>';
+      svg += '<circle cx="140" cy="50" r="15" fill="none" stroke="#4b5563" stroke-width="1" opacity="0.5"/>';
+    }
+    
+    // === TROFEO (derecha de la insignia) ===
     if (tieneGran) {
-      // Trofeo debajo
-      svg += '<rect x="35" y="120" width="30" height="10" rx="2" fill="#d4a017"/>';
-      svg += '<rect x="40" y="130" width="20" height="15" rx="2" fill="#b8860b"/>';
-      svg += '<path d="M30 110 Q30 95 50 90 Q70 95 70 110 L65 115 L35 115 Z" fill="#ffd700"/>';
-      svg += '<ellipse cx="50" cy="90" rx="12" ry="5" fill="#ffec8b"/>';
-      // Insignia (medalla) sobre el trofeo
-      svg += '<circle cx="50" cy="70" r="18" fill="#ffd700" stroke="#b8860b" stroke-width="2"/>';
-      svg += '<circle cx="50" cy="70" r="12" fill="#eab308" stroke="#a16207" stroke-width="1"/>';
-      svg += '<text x="50" y="75" text-anchor="middle" font-size="14">★</text>';
-    }
-    // Si tiene solo Mini Challenge = insignia/medalla
-    else if (tieneMini) {
-      svg += '<circle cx="50" cy="65" r="28" fill="#ffd700" stroke="#b8860b" stroke-width="3"/>';
-      svg += '<circle cx="50" cy="65" r="20" fill="#eab308" stroke="#a16207" stroke-width="1"/>';
-      svg += '<text x="50" y="70" text-anchor="middle" font-size="16">★</text>';
+      // Trofeo real
+      svg += '<path d="M160 75 Q160 60 170 55 Q180 60 180 75 L177 78 L163 78 Z" fill="#ffd700" stroke="#b8860b" stroke-width="2"/>';
+      svg += '<ellipse cx="170" cy="55" rx="8" ry="4" fill="#ffec8b"/>';
+      svg += '<rect x="165" y="78" width="10" height="3" fill="#d4a017"/>';
+      svg += '<rect x="163" y="81" width="14" height="10" rx="2" fill="#b8860b"/>';
+    } else {
+      // Silueta vacía
+      svg += '<path d="M160 75 Q160 60 170 55 Q180 60 180 75 L177 78 L163 78 Z" fill="none" stroke="#4b5563" stroke-width="2" stroke-dasharray="4,2"/>';
+      svg += '<rect x="165" y="78" width="10" height="3" fill="none" stroke="#4b5563" stroke-width="1"/>';
+      svg += '<rect x="163" y="81" width="14" height="10" rx="2" fill="none" stroke="#4b5563" stroke-width="1" opacity="0.5"/>';
     }
     
-    // Cadena de la gema
-    svg += '<rect x="46" y="0" width="8" height="20" rx="2" fill="#d4d4d4"/>';
-    svg += '<circle cx="50" cy="22" r="6" fill="#a3a3a3"/>';
+    // === ETIQUETAS ===
+    svg += '<text x="80" y="128" text-anchor="middle" fill="#6b7280" font-size="9">GEMA</text>';
+    if (tieneMini) svg += '<text x="140" y="80" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="700">✓ MINI</text>';
+    else svg += '<text x="140" y="80" text-anchor="middle" fill="#4b5563" font-size="9">MINI</text>';
     
-    // Gema - forma de diamante/cristal
-    svg += '<polygon points="50,30 75,55 50,95 25,55" fill="'+colorGema+'" stroke="'+colorBrillo+'" stroke-width="2"/>';
-    
-    // Brillo superior
-    svg += '<polygon points="50,35 65,50 50,60 35,50" fill="'+colorBrillo+'" opacity="0.4"/>';
-    svg += '<circle cx="40" cy="50" r="3" fill="#fff" opacity="0.6"/>';
-    
-    // Porcentaje dentro de la gema
-    svg += '<text x="50" y="72" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">'+Math.round(porcentaje)+'%</text>';
-    
-    // Etiqueta
-    svg += '<text x="50" y="120" text-anchor="middle" fill="'+colorGema+'" font-size="14" font-weight="700">'+label+'</text>';
+    if (tieneGran) svg += '<text x="170" y="100" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="700">✓ GRAN</text>';
+    else svg += '<text x="170" y="100" text-anchor="middle" fill="#4b5563" font-size="9">GRAN</text>';
     
     svg += '</svg>';
     return svg;
@@ -729,7 +765,7 @@ function renderMapas(resultados) {
       }
       
       return '<div class="mapa-card" style="padding-bottom:16px;">'+
-        '<div style="display:flex;justify-content:center;align-items:center;height:180px;margin-bottom:12px;">'+
+        '<div style="display:flex;justify-content:center;align-items:center;height:160px;margin-bottom:12px;">'+
           gemaSVG(porcentajeGlobal, tieneMini, tieneGran)+
         '</div>'+
         '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">'+
