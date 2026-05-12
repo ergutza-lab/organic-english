@@ -498,7 +498,7 @@
   }
 
   // Gema que cambia color según porcentaje global
-  function gemaSVG(porcentaje) {
+  function gemaSVG(porcentaje, tieneMini, tieneGran) {
     var colorGema;
     var colorBrillo;
     var label;
@@ -525,7 +525,26 @@
       label = 'Crítico';
     }
     
-    var svg = '<svg width="100" height="120" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">';
+    var svg = '<svg width="100" height="150" viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg">';
+    
+    // Si tiene Gran Challenge = insignia sobre trofeo
+    if (tieneGran) {
+      // Trofeo debajo
+      svg += '<rect x="35" y="120" width="30" height="10" rx="2" fill="#d4a017"/>';
+      svg += '<rect x="40" y="130" width="20" height="15" rx="2" fill="#b8860b"/>';
+      svg += '<path d="M30 110 Q30 95 50 90 Q70 95 70 110 L65 115 L35 115 Z" fill="#ffd700"/>';
+      svg += '<ellipse cx="50" cy="90" rx="12" ry="5" fill="#ffec8b"/>';
+      // Insignia (medalla) sobre el trofeo
+      svg += '<circle cx="50" cy="70" r="18" fill="#ffd700" stroke="#b8860b" stroke-width="2"/>';
+      svg += '<circle cx="50" cy="70" r="12" fill="#eab308" stroke="#a16207" stroke-width="1"/>';
+      svg += '<text x="50" y="75" text-anchor="middle" font-size="14">★</text>';
+    }
+    // Si tiene solo Mini Challenge = insignia/medalla
+    else if (tieneMini) {
+      svg += '<circle cx="50" cy="65" r="28" fill="#ffd700" stroke="#b8860b" stroke-width="3"/>';
+      svg += '<circle cx="50" cy="65" r="20" fill="#eab308" stroke="#a16207" stroke-width="1"/>';
+      svg += '<text x="50" y="70" text-anchor="middle" font-size="16">★</text>';
+    }
     
     // Cadena de la gema
     svg += '<rect x="46" y="0" width="8" height="20" rx="2" fill="#d4d4d4"/>';
@@ -542,7 +561,7 @@
     svg += '<text x="50" y="72" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">'+Math.round(porcentaje)+'%</text>';
     
     // Etiqueta
-    svg += '<text x="50" y="110" text-anchor="middle" fill="'+colorGema+'" font-size="14" font-weight="700">'+label+'</text>';
+    svg += '<text x="50" y="120" text-anchor="middle" fill="'+colorGema+'" font-size="14" font-weight="700">'+label+'</text>';
     
     svg += '</svg>';
     return svg;
@@ -701,9 +720,17 @@ function renderMapas(resultados) {
       else if (porcentajeGlobal >= 70) { estado = 'Pendiente'; estadoColor = '#f97316'; }
       else { estado = 'No acredita'; estadoColor = '#ef4444'; }
       
+      // Determinar si tiene Mini o Gran challenge
+      var tieneMini = false;
+      var tieneGran = false;
+      if (d.success && d.challenges) {
+        tieneGran = d.challenges.some(function(ch){return ch.aprobado && ch.tipo === 'Gran';});
+        tieneMini = d.challenges.some(function(ch){return ch.aprobado && ch.tipo === 'Mini';});
+      }
+      
       return '<div class="mapa-card" style="padding-bottom:16px;">'+
-        '<div style="display:flex;justify-content:center;align-items:center;height:140px;margin-bottom:12px;">'+
-          gemaSVG(porcentajeGlobal)+
+        '<div style="display:flex;justify-content:center;align-items:center;height:180px;margin-bottom:12px;">'+
+          gemaSVG(porcentajeGlobal, tieneMini, tieneGran)+
         '</div>'+
         '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">'+
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'+
