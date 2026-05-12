@@ -526,236 +526,120 @@
 
   // Gema que cambia color según porcentaje global
   function gemaSVG(porcentaje, tieneMini, tieneGran) {
- 
-  // ── Colores de la gema según porcentaje ──
+
   var gc, gm, gl, label;
-  if (porcentaje >= 90) {
-    gc='#06b6d4'; gm='#0891b2'; gl='#67e8f9'; label='Excelente';
-  } else if (porcentaje >= 80) {
-    gc='#22c55e'; gm='#16a34a'; gl='#86efac'; label='Bueno';
-  } else if (porcentaje >= 70) {
-    gc='#facc15'; gm='#ca8a04'; gl='#fef08a'; label='Regular';
-  } else if (porcentaje >= 60) {
-    gc='#f97316'; gm='#ea580c'; gl='#fdba74'; label='Atención';
-  } else {
-    gc='#ef4444'; gm='#dc2626'; gl='#fca5a5'; label='Crítico';
-  }
- 
-  var svgW = 280, svgH = 200;
-  var svg = '<svg width="'+svgW+'" height="'+svgH+'" viewBox="0 0 '+svgW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg">';
- 
-  // ══════════════ GEMA (izquierda) ══════════════
-  // Centro de la gema en x=70, y=85
-  svg += '<g transform="translate(70,90)">';
- 
-    // --- Caras superiores ---
-    svg += '<polygon points="0,-60 -36,-18 -12,-18" fill="'+gl+'"/>'; // sup-izq brillo
-    svg += '<polygon points="0,-60  36,-18  12,-18" fill="'+gm+'"/>'; // sup-der oscuro
-    svg += '<polygon points="0,-60 -12,-18  12,-18" fill="'+gc+'" opacity="0.9"/>'; // sup-centro
- 
-    // --- Cintura ---
-    svg += '<polygon points="-36,-18 -12,-18 -40,26" fill="'+gc+'"/>'; // cint-izq
-    svg += '<polygon points="-12,-18  12,-18 -16,26" fill="'+gl+'" opacity="0.85"/>'; // cint-c-izq
-    svg += '<polygon points=" 12,-18  36,-18  16,26" fill="'+gm+'"/>'; // cint-c-der
-    svg += '<polygon points="  36,-18  40,26  16,26" fill="'+gm+'" opacity="0.7"/>'; // cint-der
- 
-    // --- Caras inferiores ---
-    svg += '<polygon points="-40,26 -16,26 0,54" fill="'+gc+'"/>'; // inf-izq
-    svg += '<polygon points="-16,26  16,26 0,54" fill="'+gl+'" opacity="0.8"/>'; // inf-centro
-    svg += '<polygon points="  16,26  40,26 0,54" fill="'+gm+'"/>'; // inf-der
- 
-    // --- Contorno ---
-    svg += '<polygon points="0,-60 -36,-18 -40,26 -16,26 0,54 16,26 40,26 36,-18 0,-60" fill="none" stroke="'+gl+'" stroke-width="1.2" opacity="0.7"/>';
- 
-    // --- Brillos ---
-    svg += '<polygon points="0,-60 -12,-18 12,-18" fill="white" opacity="0.3"/>';
-    svg += '<polygon points="-6,-18 6,-18 0,0" fill="white" opacity="0.45"/>';
-    svg += '<line x1="-36" y1="-18" x2="-12" y2="-18" stroke="white" stroke-width="1" opacity="0.4"/>';
- 
+  if (porcentaje >= 90)      { gc='#06b6d4'; gm='#0e7490'; gl='#67e8f9'; label='Excelente'; }
+  else if (porcentaje >= 80) { gc='#22c55e'; gm='#16a34a'; gl='#86efac'; label='Bueno'; }
+  else if (porcentaje >= 70) { gc='#facc15'; gm='#ca8a04'; gl='#fef08a'; label='Regular'; }
+  else if (porcentaje >= 60) { gc='#f97316'; gm='#ea580c'; gl='#fdba74'; label='Atencion'; }
+  else                       { gc='#ef4444'; gm='#dc2626'; gl='#fca5a5'; label='Critico'; }
+
+  var svg = '<svg width="210" height="180" viewBox="0 0 210 180" xmlns="http://www.w3.org/2000/svg">';
+
+  // == GEMA (izquierda, centrada en x=35 y=65) ==
+  svg += '<g transform="translate(35,65)">';
+    svg += '<polygon points="0,-46 -28,-14 -9,-14" fill="'+gl+'"/>';
+    svg += '<polygon points="0,-46  28,-14  9,-14" fill="'+gm+'"/>';
+    svg += '<polygon points="0,-46  -9,-14  9,-14" fill="'+gc+'"/>';
+    svg += '<polygon points="-28,-14 -9,-14 -30,19" fill="'+gc+'"/>';
+    svg += '<polygon points=" -9,-14  9,-14 -11,19" fill="'+gl+'" opacity="0.85"/>';
+    svg += '<polygon points="  9,-14 28,-14  11,19" fill="'+gm+'"/>';
+    svg += '<polygon points="  28,-14 30,19  11,19" fill="'+gm+'" opacity="0.7"/>';
+    svg += '<polygon points="-30,19 -11,19 0,40" fill="'+gc+'"/>';
+    svg += '<polygon points="-11,19  11,19 0,40" fill="'+gl+'" opacity="0.8"/>';
+    svg += '<polygon points="  11,19  30,19 0,40" fill="'+gm+'"/>';
+    svg += '<polygon points="0,-46 -28,-14 -30,19 -11,19 0,40 11,19 30,19 28,-14 0,-46" fill="none" stroke="'+gl+'" stroke-width="0.8" opacity="0.7"/>';
+    svg += '<polygon points="0,-46 -9,-14 9,-14" fill="white" opacity="0.3"/>';
+    svg += '<polygon points="-4,-14 4,-14 0,2" fill="white" opacity="0.45"/>';
   svg += '</g>';
- 
-  // Porcentaje y label bajo la gema
-  svg += '<text x="70" y="160" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="700" fill="#fff">'+Math.round(porcentaje)+'%</text>';
-  svg += '<text x="70" y="178" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="'+gc+'">'+label.toUpperCase()+'</text>';
- 
-  // ══════════════ MEDALLA MILITAR (centro, x=155) ══════════════
-  var mxc = 155; // centro x
-  var myc = 80;  // centro y de la medallón
- 
+  svg += '<text x="35" y="120" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="16" font-weight="700">'+Math.round(porcentaje)+'%</text>';
+  svg += '<text x="35" y="133" text-anchor="middle" fill="'+gc+'" font-family="sans-serif" font-size="9" font-weight="700">'+label.toUpperCase()+'</text>';
+
+  // == MEDALLA (centro x=105, y=78) ==
+  var mxc = 105, myc = 78;
+
   if (tieneMini) {
-    // ── MEDALLA ACTIVA (dorada) ──
- 
-    // Cinta (ribete) arriba
-    svg += '<rect x="'+(mxc-18)+'" y="12" width="36" height="22" rx="3" fill="#1e3a8a"/>'; // fondo cinta
-    svg += '<rect x="'+(mxc-16)+'" y="12" width="10" height="22" fill="#2563eb" opacity="0.85"/>';
-    svg += '<rect x="'+(mxc-4) +'" y="12" width="8"  height="22" fill="#dc2626" opacity="0.85"/>';
-    svg += '<rect x="'+(mxc+6) +'" y="12" width="10" height="22" fill="#2563eb" opacity="0.85"/>';
-    // Clip de la cinta (parte superior)
-    svg += '<rect x="'+(mxc-20)+'" y="8"  width="40" height="10" rx="3" fill="#94a3b8"/>';
-    svg += '<rect x="'+(mxc-20)+'" y="8"  width="40" height="5"  rx="2" fill="#e2e8f0"/>';
- 
-    // Anillo de unión cinta-medallón
-    svg += '<circle cx="'+mxc+'" cy="38" r="7" fill="none" stroke="#f59e0b" stroke-width="4"/>';
-    svg += '<circle cx="'+mxc+'" cy="38" r="4" fill="#fef3c7"/>';
- 
-    // Rayos del medallón (12 rayos dorados)
-    for (var r=0; r<12; r++) {
-      var ang = (r*30) * Math.PI / 180;
-      var x1 = mxc + 50*Math.cos(ang - Math.PI/2);
-      var y1 = myc + 50*Math.sin(ang - Math.PI/2);
-      var x2 = mxc + 60*Math.cos(ang - Math.PI/2);
-      var y2 = myc + 60*Math.sin(ang - Math.PI/2);
-      svg += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#fef3c7" stroke-width="3" stroke-linecap="round"/>';
+    svg += '<rect x="91" y="6" width="28" height="18" rx="2" fill="#1e3a8a"/>';
+    svg += '<rect x="91" y="6" width="8"  height="18" fill="#2563eb" opacity="0.9"/>';
+    svg += '<rect x="100" y="6" width="7" height="18" fill="#dc2626" opacity="0.9"/>';
+    svg += '<rect x="108" y="6" width="11" height="18" fill="#2563eb" opacity="0.9"/>';
+    svg += '<rect x="89" y="3" width="32" height="7" rx="2" fill="#94a3b8"/>';
+    svg += '<rect x="89" y="3" width="32" height="4" rx="2" fill="#e2e8f0"/>';
+    svg += '<circle cx="'+mxc+'" cy="28" r="5" fill="none" stroke="#f59e0b" stroke-width="3"/>';
+    svg += '<circle cx="'+mxc+'" cy="28" r="2.5" fill="#fef3c7"/>';
+    var degs = [0,30,60,90,120,150,180,210,240,270,300,330];
+    for (var i=0; i<degs.length; i++) {
+      var rad = (degs[i] - 90) * Math.PI / 180;
+      var x1 = (mxc + 40*Math.cos(rad)).toFixed(1);
+      var y1 = (myc + 40*Math.sin(rad)).toFixed(1);
+      var x2 = (mxc + 48*Math.cos(rad)).toFixed(1);
+      var y2 = (myc + 48*Math.sin(rad)).toFixed(1);
+      svg += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#fef3c7" stroke-width="2" stroke-linecap="round"/>';
     }
- 
-    // Círculos del medallón
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="50" fill="#f59e0b"/>'; // aro exterior
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="44" fill="#fbbf24"/>'; // aro medio
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="38" fill="#d97706"/>'; // aro interno
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="30" fill="#b45309"/>'; // fondo central
- 
-    // Estrella de 5 puntas en el centro
-    var sp = '';
-    for (var s=0; s<10; s++) {
-      var sa = (s*36 - 90) * Math.PI / 180;
-      var sr = s%2===0 ? 24 : 10;
-      sp += (mxc + sr*Math.cos(sa)).toFixed(1)+','+(myc + sr*Math.sin(sa)).toFixed(1)+' ';
-    }
-    svg += '<polygon points="'+sp+'" fill="#fef3c7"/>';
-    svg += '<polygon points="'+sp+'" fill="none" stroke="#b45309" stroke-width="0.8" opacity="0.7"/>';
- 
-    // Texto OE dentro del medallón (bajo la estrella)
-    svg += '<text x="'+mxc+'" y="'+(myc+46)+'" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#fef3c7" letter-spacing="1">MINI</text>';
- 
-    // Brillo
-    svg += '<ellipse cx="'+(mxc-14)+'" cy="'+(myc-28)+'" rx="10" ry="6" fill="white" opacity="0.2" transform="rotate(-25 '+(mxc-14)+' '+(myc-28)+')" />';
- 
-    // Label bajo la medalla
-    svg += '<text x="'+mxc+'" y="162" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#fbbf24">✓ MINI CHALLENGE</text>';
- 
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="38" fill="#f59e0b"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="32" fill="#fbbf24"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="26" fill="#d97706"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="19" fill="#b45309"/>';
+    svg += '<polygon points="'+mxc+','+(myc-17)+' '+(mxc+5)+','+(myc-5)+' '+(mxc+17)+','+(myc-5)+' '+(mxc+8)+','+(myc+4)+' '+(mxc+11)+','+(myc+16)+' '+mxc+','+(myc+9)+' '+(mxc-11)+','+(myc+16)+' '+(mxc-8)+','+(myc+4)+' '+(mxc-17)+','+(myc-5)+' '+(mxc-5)+','+(myc-5)+'" fill="#fef3c7"/>';
+    svg += '<ellipse cx="'+(mxc-10)+'" cy="'+(myc-20)+'" rx="7" ry="4" fill="white" opacity="0.2" transform="rotate(-25 '+(mxc-10)+' '+(myc-20)+')" />';
+    svg += '<text x="'+mxc+'" y="130" text-anchor="middle" fill="#fbbf24" font-family="sans-serif" font-size="8" font-weight="700">MINI</text>';
   } else {
-    // ── MEDALLA BLOQUEADA (silueta gris) ──
- 
-    // Cinta
-    svg += '<rect x="'+(mxc-18)+'" y="12" width="36" height="22" rx="3" fill="#1e2a3a" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>';
-    svg += '<rect x="'+(mxc-20)+'" y="8"  width="40" height="10" rx="3" fill="#334155"/>';
- 
-    // Anillo
-    svg += '<circle cx="'+mxc+'" cy="38" r="7" fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="4,3"/>';
- 
-    // Rayos tenues
-    for (var r=0; r<12; r++) {
-      var ang = (r*30) * Math.PI / 180;
-      var x1 = mxc + 50*Math.cos(ang - Math.PI/2);
-      var y1 = myc + 50*Math.sin(ang - Math.PI/2);
-      var x2 = mxc + 60*Math.cos(ang - Math.PI/2);
-      var y2 = myc + 60*Math.sin(ang - Math.PI/2);
-      svg += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#334155" stroke-width="2" stroke-linecap="round"/>';
+    svg += '<rect x="91" y="6" width="28" height="18" rx="2" fill="#1e2a3a" stroke="#334155" stroke-width="1" stroke-dasharray="3,2"/>';
+    svg += '<rect x="89" y="3" width="32" height="7" rx="2" fill="#334155"/>';
+    svg += '<circle cx="'+mxc+'" cy="28" r="5" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="3,2"/>';
+    var degs = [0,30,60,90,120,150,180,210,240,270,300,330];
+    for (var i=0; i<degs.length; i++) {
+      var rad = (degs[i] - 90) * Math.PI / 180;
+      var x1 = (mxc + 40*Math.cos(rad)).toFixed(1);
+      var y1 = (myc + 40*Math.sin(rad)).toFixed(1);
+      var x2 = (mxc + 48*Math.cos(rad)).toFixed(1);
+      var y2 = (myc + 48*Math.sin(rad)).toFixed(1);
+      svg += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/>';
     }
- 
-    // Círculos silueta
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="50" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="5,4"/>';
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="38" fill="#0f172a" stroke="#1e2a3a" stroke-width="1"/>';
-    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="30" fill="#1e2a3a"/>';
- 
-    // Estrella silueta
-    var sp = '';
-    for (var s=0; s<10; s++) {
-      var sa = (s*36 - 90) * Math.PI / 180;
-      var sr = s%2===0 ? 24 : 10;
-      sp += (mxc + sr*Math.cos(sa)).toFixed(1)+','+(myc + sr*Math.sin(sa)).toFixed(1)+' ';
-    }
-    svg += '<polygon points="'+sp+'" fill="#1e2a3a" stroke="#334155" stroke-width="1.5" stroke-dasharray="4,3"/>';
- 
-    svg += '<text x="'+mxc+'" y="162" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#475569">MINI CHALLENGE</text>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="38" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4,3"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="26" fill="#0f172a" stroke="#1e2a3a" stroke-width="1"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="19" fill="#1e2a3a"/>';
+    svg += '<polygon points="'+mxc+','+(myc-17)+' '+(mxc+5)+','+(myc-5)+' '+(mxc+17)+','+(myc-5)+' '+(mxc+8)+','+(myc+4)+' '+(mxc+11)+','+(myc+16)+' '+mxc+','+(myc+9)+' '+(mxc-11)+','+(myc+16)+' '+(mxc-8)+','+(myc+4)+' '+(mxc-17)+','+(myc-5)+' '+(mxc-5)+','+(myc-5)+'" fill="#1e2a3a" stroke="#334155" stroke-width="1" stroke-dasharray="3,2"/>';
+    svg += '<text x="'+mxc+'" y="130" text-anchor="middle" fill="#475569" font-family="sans-serif" font-size="8">MINI</text>';
   }
- 
-  // ══════════════ TROFEO (derecha, x=230) ══════════════
-  var txc = 230;
- 
+
+  // == TROFEO (derecha, x=178) ==
+  var txc = 178;
+
   if (tieneGran) {
-    // ── TROFEO ACTIVO (dorado) ──
- 
-    // Base inferior plataforma
-    svg += '<rect x="'+(txc-44)+'" y="153" width="88" height="13" rx="5" fill="#92400e"/>';
-    svg += '<rect x="'+(txc-40)+'" y="150" width="80" height="10" rx="3" fill="#b45309"/>';
-    svg += '<rect x="'+(txc-44)+'" y="148" width="88" height="8"  rx="3" fill="#d97706"/>';
- 
-    // Pedestal (columna)
-    svg += '<rect x="'+(txc-10)+'" y="116" width="20" height="36" rx="3" fill="#d97706"/>';
-    svg += '<rect x="'+(txc-8) +'" y="116" width="6"  height="36" fill="#fcd34d" opacity="0.5"/>';
-    // Pie del pedestal
-    svg += '<rect x="'+(txc-28)+'" y="136" width="56" height="14" rx="4" fill="#b45309"/>';
-    svg += '<rect x="'+(txc-26)+'" y="134" width="52" height="8"  rx="3" fill="#d97706"/>';
- 
-    // Asas (izquierda y derecha)
-    svg += '<path d="M '+(txc-40)+' 30 Q '+(txc-75)+' 20 '+(txc-75)+' 65 Q '+(txc-75)+' 105 '+(txc-42)+' 108" fill="none" stroke="#f59e0b" stroke-width="13" stroke-linecap="round"/>';
-    svg += '<path d="M '+(txc-40)+' 30 Q '+(txc-75)+' 20 '+(txc-75)+' 65 Q '+(txc-75)+' 105 '+(txc-42)+' 108" fill="none" stroke="#fcd34d" stroke-width="6" stroke-linecap="round" opacity="0.55"/>';
-    svg += '<path d="M '+(txc+40)+' 30 Q '+(txc+75)+' 20 '+(txc+75)+' 65 Q '+(txc+75)+' 105 '+(txc+42)+' 108" fill="none" stroke="#f59e0b" stroke-width="13" stroke-linecap="round"/>';
-    svg += '<path d="M '+(txc+40)+' 30 Q '+(txc+75)+' 20 '+(txc+75)+' 65 Q '+(txc+75)+' 105 '+(txc+42)+' 108" fill="none" stroke="#fcd34d" stroke-width="6" stroke-linecap="round" opacity="0.55"/>';
- 
-    // Cuerpo principal de la copa
-    svg += '<path d="M '+(txc-44)+' 8 L '+(txc-44)+' 60 Q '+(txc-44)+' 120 '+txc+' 118 Q '+(txc+44)+' 120 '+(txc+44)+' 60 L '+(txc+44)+' 8 Z" fill="#f59e0b"/>';
-    // Capa interior iluminada
-    svg += '<path d="M '+(txc-36)+' 12 L '+(txc-36)+' 58 Q '+(txc-36)+' 108 '+txc+' 106 Q '+(txc+36)+' 108 '+(txc+36)+' 58 L '+(txc+36)+' 12 Z" fill="#fbbf24"/>';
-    // Capa interior brillante
-    svg += '<path d="M '+(txc-26)+' 14 L '+(txc-26)+' 55 Q '+(txc-26)+' 94 '+txc+' 92 Q '+(txc+26)+' 94 '+(txc+26)+' 55 L '+(txc+26)+' 14 Z" fill="#fcd34d" opacity="0.7"/>';
- 
-    // Borde superior de la copa
-    svg += '<rect x="'+(txc-50)+'" y="2"  width="100" height="14" rx="6" fill="#b45309"/>';
-    svg += '<rect x="'+(txc-48)+'" y="2"  width="96"  height="9"  rx="5" fill="#d97706"/>';
-    svg += '<rect x="'+(txc-46)+'" y="2"  width="92"  height="5"  rx="4" fill="#fcd34d" opacity="0.7"/>';
- 
-    // Estrella grande en la copa
-    var tp = '';
-    for (var st=0; st<10; st++) {
-      var ta = (st*36 - 90) * Math.PI / 180;
-      var tr = st%2===0 ? 28 : 12;
-      tp += (txc + tr*Math.cos(ta)).toFixed(1)+','+(62 + tr*Math.sin(ta)).toFixed(1)+' ';
-    }
-    svg += '<polygon points="'+tp+'" fill="#fef3c7" opacity="0.97"/>';
-    svg += '<polygon points="'+tp+'" fill="none" stroke="#b45309" stroke-width="0.8" opacity="0.5"/>';
-    // Brillo estrella
-    svg += '<circle cx="'+txc+'" cy="52" r="4" fill="white" opacity="0.5"/>';
- 
-    // Líneas decorativas en la copa
-    svg += '<line x1="'+(txc-30)+'" y1="94" x2="'+(txc+30)+'" y2="94" stroke="#d97706" stroke-width="1.5" opacity="0.6"/>';
-    svg += '<line x1="'+(txc-34)+'" y1="102" x2="'+(txc+34)+'" y2="102" stroke="#d97706" stroke-width="1.5" opacity="0.6"/>';
- 
-    // Brillo lateral copa
-    svg += '<ellipse cx="'+(txc-18)+'" cy="42" rx="10" ry="24" fill="white" opacity="0.15" transform="rotate(-10 '+(txc-18)+' 42)"/>';
- 
-    // Label
-    svg += '<text x="'+txc+'" y="180" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#fbbf24">✓ GRAN CHALLENGE</text>';
- 
+    svg += '<rect x="160" y="150" width="36" height="9" rx="3" fill="#92400e"/>';
+    svg += '<rect x="163" y="143" width="30" height="10" rx="2" fill="#b45309"/>';
+    svg += '<rect x="160" y="146" width="36" height="6" rx="2" fill="#d97706"/>';
+    svg += '<rect x="174" y="118" width="8" height="28" rx="2" fill="#d97706"/>';
+    svg += '<rect x="175" y="118" width="3" height="28" fill="#fcd34d" opacity="0.5"/>';
+    svg += '<path d="M 161 28 Q 143 24 143 53 Q 143 82 161 85" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round"/>';
+    svg += '<path d="M 161 28 Q 143 24 143 53 Q 143 82 161 85" fill="none" stroke="#fcd34d" stroke-width="3" stroke-linecap="round" opacity="0.55"/>';
+    svg += '<path d="M 195 28 Q 213 24 213 53 Q 213 82 195 85" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round"/>';
+    svg += '<path d="M 195 28 Q 213 24 213 53 Q 213 82 195 85" fill="none" stroke="#fcd34d" stroke-width="3" stroke-linecap="round" opacity="0.55"/>';
+    svg += '<path d="M 159 7 L 159 52 Q 159 104 '+txc+' 104 Q 197 104 197 52 L 197 7 Z" fill="#f59e0b"/>';
+    svg += '<path d="M 165 10 L 165 51 Q 165 94 '+txc+' 94 Q 191 94 191 51 L 191 10 Z" fill="#fbbf24"/>';
+    svg += '<path d="M 171 12 L 171 50 Q 171 84 '+txc+' 84 Q 185 84 185 50 L 185 12 Z" fill="#fcd34d" opacity="0.7"/>';
+    svg += '<rect x="156" y="3" width="44" height="9" rx="4" fill="#b45309"/>';
+    svg += '<rect x="158" y="3" width="40" height="6" rx="3" fill="#d97706"/>';
+    svg += '<rect x="160" y="3" width="36" height="3" rx="2" fill="#fcd34d" opacity="0.7"/>';
+    svg += '<polygon points="'+txc+',16 '+(txc+5)+',28 '+(txc+17)+',28 '+(txc+8)+',36 '+(txc+11)+',48 '+txc+',40 '+(txc-11)+',48 '+(txc-8)+',36 '+(txc-17)+',28 '+(txc-5)+',28" fill="#fef3c7" opacity="0.97"/>';
+    svg += '<circle cx="'+txc+'" cy="24" r="2.5" fill="white" opacity="0.5"/>';
+    svg += '<line x1="165" y1="82" x2="191" y2="82" stroke="#d97706" stroke-width="1.2" opacity="0.6"/>';
+    svg += '<line x1="163" y1="90" x2="193" y2="90" stroke="#d97706" stroke-width="1.2" opacity="0.6"/>';
+    svg += '<ellipse cx="167" cy="40" rx="5" ry="18" fill="white" opacity="0.13" transform="rotate(-10 167 40)"/>';
+    svg += '<text x="'+txc+'" y="173" text-anchor="middle" fill="#fbbf24" font-family="sans-serif" font-size="8" font-weight="700">GRAN</text>';
   } else {
-    // ── TROFEO BLOQUEADO (silueta gris) ──
- 
-    // Base
-    svg += '<rect x="'+(txc-44)+'" y="153" width="88" height="13" rx="5" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
-    svg += '<rect x="'+(txc-28)+'" y="136" width="56" height="18" rx="4" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
-    svg += '<rect x="'+(txc-10)+'" y="116" width="20" height="22" rx="3" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
- 
-    // Asas silueta
-    svg += '<path d="M '+(txc-40)+' 30 Q '+(txc-75)+' 20 '+(txc-75)+' 65 Q '+(txc-75)+' 105 '+(txc-42)+' 108" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" stroke-dasharray="6,4"/>';
-    svg += '<path d="M '+(txc+40)+' 30 Q '+(txc+75)+' 20 '+(txc+75)+' 65 Q '+(txc+75)+' 105 '+(txc+42)+' 108" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" stroke-dasharray="6,4"/>';
- 
-    // Copa silueta
-    svg += '<path d="M '+(txc-44)+' 8 L '+(txc-44)+' 60 Q '+(txc-44)+' 120 '+txc+' 118 Q '+(txc+44)+' 120 '+(txc+44)+' 60 L '+(txc+44)+' 8 Z" fill="#0f172a" stroke="#334155" stroke-width="2" stroke-dasharray="6,4"/>';
-    svg += '<rect x="'+(txc-50)+'" y="2"  width="100" height="14" rx="6" fill="#1e2a3a" stroke="#334155" stroke-width="1.5" stroke-dasharray="5,4"/>';
- 
-    // Estrella silueta
-    var tp = '';
-    for (var st=0; st<10; st++) {
-      var ta = (st*36 - 90) * Math.PI / 180;
-      var tr = st%2===0 ? 28 : 12;
-      tp += (txc + tr*Math.cos(ta)).toFixed(1)+','+(62 + tr*Math.sin(ta)).toFixed(1)+' ';
-    }
-    svg += '<polygon points="'+tp+'" fill="#1e2a3a" stroke="#334155" stroke-width="1.5" stroke-dasharray="4,3"/>';
- 
-    svg += '<text x="'+txc+'" y="180" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#475569">GRAN CHALLENGE</text>';
+    svg += '<rect x="160" y="150" width="36" height="9" rx="3" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
+    svg += '<rect x="163" y="143" width="30" height="10" rx="2" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
+    svg += '<rect x="174" y="118" width="8" height="28" rx="2" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
+    svg += '<path d="M 161 28 Q 143 24 143 53 Q 143 82 161 85" fill="none" stroke="#334155" stroke-width="6" stroke-linecap="round" stroke-dasharray="5,3"/>';
+    svg += '<path d="M 195 28 Q 213 24 213 53 Q 213 82 195 85" fill="none" stroke="#334155" stroke-width="6" stroke-linecap="round" stroke-dasharray="5,3"/>';
+    svg += '<path d="M 159 7 L 159 52 Q 159 104 '+txc+' 104 Q 197 104 197 52 L 197 7 Z" fill="#0f172a" stroke="#334155" stroke-width="1.5" stroke-dasharray="5,3"/>';
+    svg += '<rect x="156" y="3" width="44" height="9" rx="4" fill="#1e2a3a" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>';
+    svg += '<polygon points="'+txc+',16 '+(txc+5)+',28 '+(txc+17)+',28 '+(txc+8)+',36 '+(txc+11)+',48 '+txc+',40 '+(txc-11)+',48 '+(txc-8)+',36 '+(txc-17)+',28 '+(txc-5)+',28" fill="#1e2a3a" stroke="#334155" stroke-width="1" stroke-dasharray="3,2"/>';
+    svg += '<text x="'+txc+'" y="173" text-anchor="middle" fill="#475569" font-family="sans-serif" font-size="8">GRAN</text>';
   }
- 
+
   svg += '</svg>';
   return svg;
 }
