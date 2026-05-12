@@ -526,81 +526,239 @@
 
   // Gema que cambia color según porcentaje global
   function gemaSVG(porcentaje, tieneMini, tieneGran) {
-    var colorGema;
-    var colorBrillo;
-    var label;
-    
-    if (porcentaje >= 90) {
-      colorGema = '#06b6d4';
-      colorBrillo = '#67e8f9';
-      label = 'Excelente';
-    } else if (porcentaje >= 80) {
-      colorGema = '#22c55e';
-      colorBrillo = '#86efac';
-      label = 'Bueno';
-    } else if (porcentaje >= 70) {
-      colorGema = '#facc15';
-      colorBrillo = '#fef08a';
-      label = 'Regular';
-    } else if (porcentaje >= 60) {
-      colorGema = '#f97316';
-      colorBrillo = '#fdba74';
-      label = 'Atención';
-    } else {
-      colorGema = '#ef4444';
-      colorBrillo = '#fca5a5';
-      label = 'Crítico';
-    }
-    
-    var svg = '<svg width="210" height="150" viewBox="0 0 210 150" xmlns="http://www.w3.org/2000/svg">';
-    
-    // === GEMA (izquierda) ===
-    // Gema forma diamante/cristal flotante
-    svg += '<polygon points="30,15 55,40 30,75 5,40" fill="'+colorGema+'" stroke="'+colorBrillo+'" stroke-width="3"/>';
-    svg += '<polygon points="30,22 45,35 30,45 15,35" fill="'+colorBrillo+'" opacity="0.5"/>';
-    svg += '<circle cx="20" cy="40" r="3" fill="#fff" opacity="0.7"/>';
-    // Porcentaje debajo de la gema
-    svg += '<text x="30" y="95" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">'+Math.round(porcentaje)+'%</text>';
-    svg += '<text x="30" y="110" text-anchor="middle" fill="'+colorGema+'" font-size="10" font-weight="700">'+label+'</text>';
-    svg += '<text x="30" y="125" text-anchor="middle" fill="#6b7280" font-size="7">GEMA</text>';
-    
-    // === MEDALLA (centro) - insignia militar clásica ===
-    var medalFill = tieneMini ? '#ffd700' : 'none';
-    var medalStroke = tieneMini ? '#b8860b' : '#6b7280';
-    var dash = tieneMini ? '' : 'stroke-dasharray="4,3"';
-    var starFill = tieneMini ? '#fff' : '#6b7280';
-    
-    // Soporte de la insignia (rectángulo + círculo)
-    svg += '<rect x="82" y="8" width="16" height="6" rx="1" fill="'+ (tieneMini ? '#b8860b' : '#4b5563') +'" '+dash+'/>';
-    svg += '<circle cx="90" cy="14" r="5" fill="'+ (tieneMini ? '#ffd700' : '#4b5563') +'" stroke="'+medalStroke+'" stroke-width="1.5" '+dash+'/>';
-    // Medalón circular grande
-    svg += '<circle cx="90" cy="50" r="26" fill="'+medalFill+'" stroke="'+medalStroke+'" stroke-width="3" '+dash+'/>';
-    svg += '<circle cx="90" cy="50" r="20" fill="'+ (tieneMini ? '#eab308' : 'none') +'" stroke="'+ (tieneMini ? '#a16207' : '#4b5563') +'" stroke-width="2" '+dash+'/>';
-    svg += '<circle cx="90" cy="50" r="12" fill="'+ (tieneMini ? '#fef08a' : 'none') +'" stroke="'+ (tieneMini ? '#ca8a04' : '#4b5563') +'" stroke-width="1" '+dash+'/>';
-    // Estrella central
-    svg += '<text x="90" y="54" text-anchor="middle" font-size="14" fill="'+starFill+'">★</text>';
-    svg += '<text x="90" y="85" text-anchor="middle" fill="'+ (tieneMini ? '#fbbf24' : '#6b7280') +'" font-size="8" font-weight="'+ (tieneMini ? '700' : '400') +'">'+ (tieneMini ? '✓ MINI' : 'MINI') +'</text>';
-    
-    // === TROFEO (derecha) - copa clásica ===
-    var trophyFill = tieneGran ? '#ffd700' : 'none';
-    var trophyStroke = tieneGran ? '#b8860b' : '#6b7280';
-    var trophyDash = tieneGran ? '' : 'stroke-dasharray="4,3"';
-    
-    // Copa/trofeo forma de cáliz
-    svg += '<path d="M150 20 L150 35 Q150 45 165 45 Q180 45 180 35 L180 20 Z" fill="'+trophyFill+'" stroke="'+trophyStroke+'" stroke-width="2.5" '+trophyDash+'/>';
-    // Base del cáliz
-    svg += '<rect x="162" y="45" width="16" height="4" fill="'+ (tieneGran ? '#d4a017' : '#4b5563') +'" '+trophyDash+'/>';
-    svg += '<rect x="158" y="49" width="24" height="10" rx="2" fill="'+ (tieneGran ? '#b8860b' : '#374151') +'" stroke="'+trophyStroke+'" stroke-width="1.5" '+trophyDash+'/>';
-    // Copa interior
-    svg += '<ellipse cx="165" cy="20" rx="10" ry="4" fill="'+ (tieneGran ? '#ffec8b' : 'none') +'" stroke="'+ (tieneGran ? '#fbbf24' : '#4b5563') +'" stroke-width="1" '+trophyDash+'/>';
-    // Líneas decorativas doradas en la copa
-    svg += '<path d="M155 28 Q165 33 175 28" fill="none" stroke="'+ (tieneGran ? '#b8860b' : '#6b7280') +'" stroke-width="1.5" '+trophyDash+'/>';
-    svg += '<path d="M153 36 Q165 41 177 36" fill="none" stroke="'+ (tieneGran ? '#b8860b' : '#6b7280') +'" stroke-width="1.5" '+trophyDash+'/>';
-    svg += '<text x="165" y="72" text-anchor="middle" fill="'+ (tieneGran ? '#fbbf24' : '#6b7280') +'" font-size="8" font-weight="'+ (tieneGran ? '700' : '400') +'">'+ (tieneGran ? '✓ GRAN' : 'GRAN') +'</text>';
-    
-    svg += '</svg>';
-    return svg;
+ 
+  // ── Colores de la gema según porcentaje ──
+  var gc, gm, gl, label;
+  if (porcentaje >= 90) {
+    gc='#06b6d4'; gm='#0891b2'; gl='#67e8f9'; label='Excelente';
+  } else if (porcentaje >= 80) {
+    gc='#22c55e'; gm='#16a34a'; gl='#86efac'; label='Bueno';
+  } else if (porcentaje >= 70) {
+    gc='#facc15'; gm='#ca8a04'; gl='#fef08a'; label='Regular';
+  } else if (porcentaje >= 60) {
+    gc='#f97316'; gm='#ea580c'; gl='#fdba74'; label='Atención';
+  } else {
+    gc='#ef4444'; gm='#dc2626'; gl='#fca5a5'; label='Crítico';
   }
+ 
+  var svgW = 280, svgH = 200;
+  var svg = '<svg width="'+svgW+'" height="'+svgH+'" viewBox="0 0 '+svgW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg">';
+ 
+  // ══════════════ GEMA (izquierda) ══════════════
+  // Centro de la gema en x=70, y=85
+  svg += '<g transform="translate(70,90)">';
+ 
+    // --- Caras superiores ---
+    svg += '<polygon points="0,-60 -36,-18 -12,-18" fill="'+gl+'"/>'; // sup-izq brillo
+    svg += '<polygon points="0,-60  36,-18  12,-18" fill="'+gm+'"/>'; // sup-der oscuro
+    svg += '<polygon points="0,-60 -12,-18  12,-18" fill="'+gc+'" opacity="0.9"/>'; // sup-centro
+ 
+    // --- Cintura ---
+    svg += '<polygon points="-36,-18 -12,-18 -40,26" fill="'+gc+'"/>'; // cint-izq
+    svg += '<polygon points="-12,-18  12,-18 -16,26" fill="'+gl+'" opacity="0.85"/>'; // cint-c-izq
+    svg += '<polygon points=" 12,-18  36,-18  16,26" fill="'+gm+'"/>'; // cint-c-der
+    svg += '<polygon points="  36,-18  40,26  16,26" fill="'+gm+'" opacity="0.7"/>'; // cint-der
+ 
+    // --- Caras inferiores ---
+    svg += '<polygon points="-40,26 -16,26 0,54" fill="'+gc+'"/>'; // inf-izq
+    svg += '<polygon points="-16,26  16,26 0,54" fill="'+gl+'" opacity="0.8"/>'; // inf-centro
+    svg += '<polygon points="  16,26  40,26 0,54" fill="'+gm+'"/>'; // inf-der
+ 
+    // --- Contorno ---
+    svg += '<polygon points="0,-60 -36,-18 -40,26 -16,26 0,54 16,26 40,26 36,-18 0,-60" fill="none" stroke="'+gl+'" stroke-width="1.2" opacity="0.7"/>';
+ 
+    // --- Brillos ---
+    svg += '<polygon points="0,-60 -12,-18 12,-18" fill="white" opacity="0.3"/>';
+    svg += '<polygon points="-6,-18 6,-18 0,0" fill="white" opacity="0.45"/>';
+    svg += '<line x1="-36" y1="-18" x2="-12" y2="-18" stroke="white" stroke-width="1" opacity="0.4"/>';
+ 
+  svg += '</g>';
+ 
+  // Porcentaje y label bajo la gema
+  svg += '<text x="70" y="160" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="700" fill="#fff">'+Math.round(porcentaje)+'%</text>';
+  svg += '<text x="70" y="178" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="'+gc+'">'+label.toUpperCase()+'</text>';
+ 
+  // ══════════════ MEDALLA MILITAR (centro, x=155) ══════════════
+  var mxc = 155; // centro x
+  var myc = 80;  // centro y de la medallón
+ 
+  if (tieneMini) {
+    // ── MEDALLA ACTIVA (dorada) ──
+ 
+    // Cinta (ribete) arriba
+    svg += '<rect x="'+(mxc-18)+'" y="12" width="36" height="22" rx="3" fill="#1e3a8a"/>'; // fondo cinta
+    svg += '<rect x="'+(mxc-16)+'" y="12" width="10" height="22" fill="#2563eb" opacity="0.85"/>';
+    svg += '<rect x="'+(mxc-4) +'" y="12" width="8"  height="22" fill="#dc2626" opacity="0.85"/>';
+    svg += '<rect x="'+(mxc+6) +'" y="12" width="10" height="22" fill="#2563eb" opacity="0.85"/>';
+    // Clip de la cinta (parte superior)
+    svg += '<rect x="'+(mxc-20)+'" y="8"  width="40" height="10" rx="3" fill="#94a3b8"/>';
+    svg += '<rect x="'+(mxc-20)+'" y="8"  width="40" height="5"  rx="2" fill="#e2e8f0"/>';
+ 
+    // Anillo de unión cinta-medallón
+    svg += '<circle cx="'+mxc+'" cy="38" r="7" fill="none" stroke="#f59e0b" stroke-width="4"/>';
+    svg += '<circle cx="'+mxc+'" cy="38" r="4" fill="#fef3c7"/>';
+ 
+    // Rayos del medallón (12 rayos dorados)
+    for (var r=0; r<12; r++) {
+      var ang = (r*30) * Math.PI / 180;
+      var x1 = mxc + 50*Math.cos(ang - Math.PI/2);
+      var y1 = myc + 50*Math.sin(ang - Math.PI/2);
+      var x2 = mxc + 60*Math.cos(ang - Math.PI/2);
+      var y2 = myc + 60*Math.sin(ang - Math.PI/2);
+      svg += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#fef3c7" stroke-width="3" stroke-linecap="round"/>';
+    }
+ 
+    // Círculos del medallón
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="50" fill="#f59e0b"/>'; // aro exterior
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="44" fill="#fbbf24"/>'; // aro medio
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="38" fill="#d97706"/>'; // aro interno
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="30" fill="#b45309"/>'; // fondo central
+ 
+    // Estrella de 5 puntas en el centro
+    var sp = '';
+    for (var s=0; s<10; s++) {
+      var sa = (s*36 - 90) * Math.PI / 180;
+      var sr = s%2===0 ? 24 : 10;
+      sp += (mxc + sr*Math.cos(sa)).toFixed(1)+','+(myc + sr*Math.sin(sa)).toFixed(1)+' ';
+    }
+    svg += '<polygon points="'+sp+'" fill="#fef3c7"/>';
+    svg += '<polygon points="'+sp+'" fill="none" stroke="#b45309" stroke-width="0.8" opacity="0.7"/>';
+ 
+    // Texto OE dentro del medallón (bajo la estrella)
+    svg += '<text x="'+mxc+'" y="'+(myc+46)+'" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#fef3c7" letter-spacing="1">MINI</text>';
+ 
+    // Brillo
+    svg += '<ellipse cx="'+(mxc-14)+'" cy="'+(myc-28)+'" rx="10" ry="6" fill="white" opacity="0.2" transform="rotate(-25 '+(mxc-14)+' '+(myc-28)+')" />';
+ 
+    // Label bajo la medalla
+    svg += '<text x="'+mxc+'" y="162" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#fbbf24">✓ MINI CHALLENGE</text>';
+ 
+  } else {
+    // ── MEDALLA BLOQUEADA (silueta gris) ──
+ 
+    // Cinta
+    svg += '<rect x="'+(mxc-18)+'" y="12" width="36" height="22" rx="3" fill="#1e2a3a" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>';
+    svg += '<rect x="'+(mxc-20)+'" y="8"  width="40" height="10" rx="3" fill="#334155"/>';
+ 
+    // Anillo
+    svg += '<circle cx="'+mxc+'" cy="38" r="7" fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="4,3"/>';
+ 
+    // Rayos tenues
+    for (var r=0; r<12; r++) {
+      var ang = (r*30) * Math.PI / 180;
+      var x1 = mxc + 50*Math.cos(ang - Math.PI/2);
+      var y1 = myc + 50*Math.sin(ang - Math.PI/2);
+      var x2 = mxc + 60*Math.cos(ang - Math.PI/2);
+      var y2 = myc + 60*Math.sin(ang - Math.PI/2);
+      svg += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#334155" stroke-width="2" stroke-linecap="round"/>';
+    }
+ 
+    // Círculos silueta
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="50" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="5,4"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="38" fill="#0f172a" stroke="#1e2a3a" stroke-width="1"/>';
+    svg += '<circle cx="'+mxc+'" cy="'+myc+'" r="30" fill="#1e2a3a"/>';
+ 
+    // Estrella silueta
+    var sp = '';
+    for (var s=0; s<10; s++) {
+      var sa = (s*36 - 90) * Math.PI / 180;
+      var sr = s%2===0 ? 24 : 10;
+      sp += (mxc + sr*Math.cos(sa)).toFixed(1)+','+(myc + sr*Math.sin(sa)).toFixed(1)+' ';
+    }
+    svg += '<polygon points="'+sp+'" fill="#1e2a3a" stroke="#334155" stroke-width="1.5" stroke-dasharray="4,3"/>';
+ 
+    svg += '<text x="'+mxc+'" y="162" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#475569">MINI CHALLENGE</text>';
+  }
+ 
+  // ══════════════ TROFEO (derecha, x=230) ══════════════
+  var txc = 230;
+ 
+  if (tieneGran) {
+    // ── TROFEO ACTIVO (dorado) ──
+ 
+    // Base inferior plataforma
+    svg += '<rect x="'+(txc-44)+'" y="153" width="88" height="13" rx="5" fill="#92400e"/>';
+    svg += '<rect x="'+(txc-40)+'" y="150" width="80" height="10" rx="3" fill="#b45309"/>';
+    svg += '<rect x="'+(txc-44)+'" y="148" width="88" height="8"  rx="3" fill="#d97706"/>';
+ 
+    // Pedestal (columna)
+    svg += '<rect x="'+(txc-10)+'" y="116" width="20" height="36" rx="3" fill="#d97706"/>';
+    svg += '<rect x="'+(txc-8) +'" y="116" width="6"  height="36" fill="#fcd34d" opacity="0.5"/>';
+    // Pie del pedestal
+    svg += '<rect x="'+(txc-28)+'" y="136" width="56" height="14" rx="4" fill="#b45309"/>';
+    svg += '<rect x="'+(txc-26)+'" y="134" width="52" height="8"  rx="3" fill="#d97706"/>';
+ 
+    // Asas (izquierda y derecha)
+    svg += '<path d="M '+(txc-40)+' 30 Q '+(txc-75)+' 20 '+(txc-75)+' 65 Q '+(txc-75)+' 105 '+(txc-42)+' 108" fill="none" stroke="#f59e0b" stroke-width="13" stroke-linecap="round"/>';
+    svg += '<path d="M '+(txc-40)+' 30 Q '+(txc-75)+' 20 '+(txc-75)+' 65 Q '+(txc-75)+' 105 '+(txc-42)+' 108" fill="none" stroke="#fcd34d" stroke-width="6" stroke-linecap="round" opacity="0.55"/>';
+    svg += '<path d="M '+(txc+40)+' 30 Q '+(txc+75)+' 20 '+(txc+75)+' 65 Q '+(txc+75)+' 105 '+(txc+42)+' 108" fill="none" stroke="#f59e0b" stroke-width="13" stroke-linecap="round"/>';
+    svg += '<path d="M '+(txc+40)+' 30 Q '+(txc+75)+' 20 '+(txc+75)+' 65 Q '+(txc+75)+' 105 '+(txc+42)+' 108" fill="none" stroke="#fcd34d" stroke-width="6" stroke-linecap="round" opacity="0.55"/>';
+ 
+    // Cuerpo principal de la copa
+    svg += '<path d="M '+(txc-44)+' 8 L '+(txc-44)+' 60 Q '+(txc-44)+' 120 '+txc+' 118 Q '+(txc+44)+' 120 '+(txc+44)+' 60 L '+(txc+44)+' 8 Z" fill="#f59e0b"/>';
+    // Capa interior iluminada
+    svg += '<path d="M '+(txc-36)+' 12 L '+(txc-36)+' 58 Q '+(txc-36)+' 108 '+txc+' 106 Q '+(txc+36)+' 108 '+(txc+36)+' 58 L '+(txc+36)+' 12 Z" fill="#fbbf24"/>';
+    // Capa interior brillante
+    svg += '<path d="M '+(txc-26)+' 14 L '+(txc-26)+' 55 Q '+(txc-26)+' 94 '+txc+' 92 Q '+(txc+26)+' 94 '+(txc+26)+' 55 L '+(txc+26)+' 14 Z" fill="#fcd34d" opacity="0.7"/>';
+ 
+    // Borde superior de la copa
+    svg += '<rect x="'+(txc-50)+'" y="2"  width="100" height="14" rx="6" fill="#b45309"/>';
+    svg += '<rect x="'+(txc-48)+'" y="2"  width="96"  height="9"  rx="5" fill="#d97706"/>';
+    svg += '<rect x="'+(txc-46)+'" y="2"  width="92"  height="5"  rx="4" fill="#fcd34d" opacity="0.7"/>';
+ 
+    // Estrella grande en la copa
+    var tp = '';
+    for (var st=0; st<10; st++) {
+      var ta = (st*36 - 90) * Math.PI / 180;
+      var tr = st%2===0 ? 28 : 12;
+      tp += (txc + tr*Math.cos(ta)).toFixed(1)+','+(62 + tr*Math.sin(ta)).toFixed(1)+' ';
+    }
+    svg += '<polygon points="'+tp+'" fill="#fef3c7" opacity="0.97"/>';
+    svg += '<polygon points="'+tp+'" fill="none" stroke="#b45309" stroke-width="0.8" opacity="0.5"/>';
+    // Brillo estrella
+    svg += '<circle cx="'+txc+'" cy="52" r="4" fill="white" opacity="0.5"/>';
+ 
+    // Líneas decorativas en la copa
+    svg += '<line x1="'+(txc-30)+'" y1="94" x2="'+(txc+30)+'" y2="94" stroke="#d97706" stroke-width="1.5" opacity="0.6"/>';
+    svg += '<line x1="'+(txc-34)+'" y1="102" x2="'+(txc+34)+'" y2="102" stroke="#d97706" stroke-width="1.5" opacity="0.6"/>';
+ 
+    // Brillo lateral copa
+    svg += '<ellipse cx="'+(txc-18)+'" cy="42" rx="10" ry="24" fill="white" opacity="0.15" transform="rotate(-10 '+(txc-18)+' 42)"/>';
+ 
+    // Label
+    svg += '<text x="'+txc+'" y="180" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#fbbf24">✓ GRAN CHALLENGE</text>';
+ 
+  } else {
+    // ── TROFEO BLOQUEADO (silueta gris) ──
+ 
+    // Base
+    svg += '<rect x="'+(txc-44)+'" y="153" width="88" height="13" rx="5" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
+    svg += '<rect x="'+(txc-28)+'" y="136" width="56" height="18" rx="4" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
+    svg += '<rect x="'+(txc-10)+'" y="116" width="20" height="22" rx="3" fill="#1e2a3a" stroke="#334155" stroke-width="1"/>';
+ 
+    // Asas silueta
+    svg += '<path d="M '+(txc-40)+' 30 Q '+(txc-75)+' 20 '+(txc-75)+' 65 Q '+(txc-75)+' 105 '+(txc-42)+' 108" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" stroke-dasharray="6,4"/>';
+    svg += '<path d="M '+(txc+40)+' 30 Q '+(txc+75)+' 20 '+(txc+75)+' 65 Q '+(txc+75)+' 105 '+(txc+42)+' 108" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" stroke-dasharray="6,4"/>';
+ 
+    // Copa silueta
+    svg += '<path d="M '+(txc-44)+' 8 L '+(txc-44)+' 60 Q '+(txc-44)+' 120 '+txc+' 118 Q '+(txc+44)+' 120 '+(txc+44)+' 60 L '+(txc+44)+' 8 Z" fill="#0f172a" stroke="#334155" stroke-width="2" stroke-dasharray="6,4"/>';
+    svg += '<rect x="'+(txc-50)+'" y="2"  width="100" height="14" rx="6" fill="#1e2a3a" stroke="#334155" stroke-width="1.5" stroke-dasharray="5,4"/>';
+ 
+    // Estrella silueta
+    var tp = '';
+    for (var st=0; st<10; st++) {
+      var ta = (st*36 - 90) * Math.PI / 180;
+      var tr = st%2===0 ? 28 : 12;
+      tp += (txc + tr*Math.cos(ta)).toFixed(1)+','+(62 + tr*Math.sin(ta)).toFixed(1)+' ';
+    }
+    svg += '<polygon points="'+tp+'" fill="#1e2a3a" stroke="#334155" stroke-width="1.5" stroke-dasharray="4,3"/>';
+ 
+    svg += '<text x="'+txc+'" y="180" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#475569">GRAN CHALLENGE</text>';
+  }
+ 
+  svg += '</svg>';
+  return svg;
+}
 
   function plantaSVG(val, tipoInsignia) {
   val = val||1;
