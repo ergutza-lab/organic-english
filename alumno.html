@@ -330,8 +330,21 @@
         <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
       </div>
       <div class="card">
-        <div class="card-header"><div class="card-icon icon-califs">📊</div><span class="card-title">Mis calificaciones</span></div>
-        <div id="progresoCurso"></div>
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="card-icon icon-califs">📊</div>
+            <span class="card-title">Mis calificaciones</span>
+          </div>
+          <button onclick="abrirInfoEvaluacion()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            💎 ¿Cómo me evalúan?
+          </button>
+        </div>
+        
+        <!-- Evaluación del alumno -->
+        <div id="evaluacionAlumno">
+          <div style="text-align:center;padding:20px;color:#64748b;">Cargando...</div>
+        </div>
+        
         <div class="field-row"><span class="field-label">Nivel actual</span><span class="field-val" id="nivelActual">—</span></div>
         <div class="field-row"><span class="field-label">Duracion del nivel</span><span class="field-val">16 semanas</span></div>
       </div>
@@ -533,6 +546,69 @@
   </div>
 </div>
 
+<!-- MODAL SISTEMA DE EVALUACIÓN -->
+<div id="modalInfoEvaluacion" class="modal-overlay" onclick="if(event.target===this)cerrarInfoEvaluacion()" style="display:none;">
+  <div class="modal-box" style="max-width:520px;width:100%;padding:24px;max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:36px;margin-bottom:8px;">💎</div>
+      <div style="font-size:20px;font-weight:700;color:#f1f5f9;">Sistema de Evaluación</div>
+    </div>
+    
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Cada clase recibes un color:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:rgba(239,68,68,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🔴</div><div style="font-size:11px;color:#ef4444;font-weight:600;">Rojo</div><div style="font-size:10px;color:#94a3b8;">No logra el objetivo</div></div>
+        <div style="background:rgba(250,204,21,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🟡</div><div style="font-size:11px;color:#facc15;font-weight:600;">Amarillo</div><div style="font-size:10px;color:#94a3b8;">Logra parcialmente</div></div>
+        <div style="background:rgba(34,197,94,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🟢</div><div style="font-size:11px;color:#22c55e;font-weight:600;">Verde</div><div style="font-size:10px;color:#94a3b8;">Cumple el objetivo</div></div>
+        <div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🔵</div><div style="font-size:11px;color:#3b82f6;font-weight:600;">Azul</div><div style="font-size:10px;color:#94a3b8;">Supera el objetivo</div></div>
+      </div>
+    </div>
+    
+    <div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:14px;margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#67e8f9;margin-bottom:8px;">¿Cómo se calcula mi progreso?</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.5;">
+        <strong>80% Evaluación continua</strong> (asistencia + colores) + <strong>20% Proyectos finales</strong><br><br>
+        Empiezas con <strong>100%</strong> y va bajando según tu desempeño. Si asistes y participas bien, mantienes tu porcentaje. Cada falta o color rojo baja tu porcentaje.
+      </div>
+    </div>
+    
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">¿Qué necesito para pasar?</div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#94a3b8;"><span>✅ Pase asegurado</span><span style="color:#22c55e;">80%+ asistencia + 70%+ Verde/Azul</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#94a3b8;"><span>⚠️ Pase con refuerzo</span><span style="color:#facc15;">80%+ asistencia + 60%+ Verde/Azul</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#94a3b8;"><span>🔶 Pendiente</span><span style="color:#f97316;">75%+ asistencia u otra combinación</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;"><span>❌ No acredita</span><span style="color:#ef4444;">Menos del mínimo requerido</span></div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Proyectos finales (20% de tu calificación)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:18px;">⭐</div>
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;">Mini Challenge</div>
+          <div style="font-size:10px;color:#94a3b8;">Semana 4 del bloque</div>
+          <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-top:4px;">5%</div>
+        </div>
+        <div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:18px;">🏆</div>
+          <div style="font-size:12px;font-weight:700;color:#f97316;">Grand Challenge</div>
+          <div style="font-size:10px;color:#94a3b8;">Semana 8 del bloque</div>
+          <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-top:4px;">15%</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:11px;color:#f87171;font-weight:600;margin-bottom:4px;">⚠️ Importante</div>
+      <div style="font-size:11px;color:#94a3b8;line-height:1.5;">Los challenges pueden ayudarte en casos dudosos, pero <strong>no borran 7 semanas de desempeño</strong>. Si tienes buena asistencia y colores positivos, los proyectos confirman tu nivel. Si tienes bajo desempeño constante, los proyectos no te pueden salvar por sí solos.</div>
+    </div>
+    
+    <button onclick="cerrarInfoEvaluacion()" style="width:100%;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
   function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
@@ -546,6 +622,8 @@
   // ── INFORMACIÓN BANCARIA ─────────────────────────────────────────
   function abrirInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='flex'; }
   function cerrarInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='none'; }
+  function abrirInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='flex'; }
+  function cerrarInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='none'; }
 
   // ── LOGIN ────────────────────────────────────────────────────────
   function login() {
@@ -597,6 +675,7 @@
       document.getElementById('grupoFecha').textContent = fi.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][fi.getMonth()]+' '+fi.getFullYear();
       var dr = Math.ceil((fi - new Date()) / (1000*60*60*24));
       document.getElementById('grupoDiasRestantes').textContent = dr > 0 ? dr+' dias restantes' : 'En curso';
+      cargarEvaluacionAlumno(a.id, g.id);
     }
 
     if (m) {
@@ -928,6 +1007,82 @@
   function formatFechaMini(f){if(!f)return'—';var d=new Date(f),m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return d.getDate()+' '+m[d.getMonth()];}
 
   // ── LOGOUT ───────────────────────────────────────────────────────
+  // ── EVALUACIÓN DEL ALUMNO ───────────────────────────────────────────
+  function cargarEvaluacionAlumno(idAlumno, idGrupo) {
+    fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo))
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.success) renderEvaluacionAlumno(d);
+        else document.getElementById('evaluacionAlumno').innerHTML='<div style="text-align:center;padding:20px;color:#64748b;">Sin registros aún</div>';
+      })
+      .catch(()=>{
+        document.getElementById('evaluacionAlumno').innerHTML='<div style="text-align:center;padding:20px;color:#64748b;">Error al cargar</div>';
+      });
+  }
+
+  function renderEvaluacionAlumno(d) {
+    var html = '';
+    
+    // Gema con porcentaje
+    var gemaColor = d.porcentajeGlobal >= 90 ? '#06b6d4' : d.porcentajeGlobal >= 80 ? '#22c55e' : d.porcentajeGlobal >= 70 ? '#facc15' : d.porcentajeGlobal >= 60 ? '#f97316' : '#ef4444';
+    var gemaLabel = d.porcentajeGlobal >= 90 ? 'Excelente' : d.porcentajeGlobal >= 80 ? 'Bueno' : d.porcentajeGlobal >= 70 ? 'Regular' : d.porcentajeGlobal >= 60 ? 'Atención' : 'Crítico';
+    
+    html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">';
+    html += '<div style="width:70px;height:70px;display:flex;align-items:center;justify-content:center;">';
+    html += '<svg width="60" height="70" viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg">';
+    html += '<polygon points="30,5 55,30 30,65 5,30" fill="'+gemaColor+'" stroke="'+gemaColor+'" stroke-width="2" opacity="0.8"/>';
+    html += '<polygon points="30,12 45,27 30,35 15,27" fill="#fff" opacity="0.3"/>';
+    html += '<text x="30" y="42" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">'+d.porcentajeGlobal+'%</text>';
+    html += '</svg></div>';
+    html += '<div><div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+d.estado+'</div>';
+    html += '<div style="font-size:11px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div></div></div>';
+    
+    // Estadísticas
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">';
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;text-align:center;">';
+    html += '<div style="font-size:20px;font-weight:700;'+(d.asistencia>=80?'color:#22c55e':d.asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+d.asistencia+'%</div>';
+    html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Asistencia</div></div>';
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;text-align:center;">';
+    html += '<div style="font-size:20px;font-weight:700;'+(d.positivos>=70?'color:#22c55e':d.positivos>=60?'color:#facc15':'color:#ef4444')+'">'+d.positivos+'%</div>';
+    html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div></div>';
+    html += '</div>';
+    
+    // Distribución de colores
+    var total = d.totalClases || 0;
+    var getPorc = function(c) { return total > 0 ? Math.round((d.colores[c]/total)*100) : 0; };
+    html += '<div style="margin-bottom:16px;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Colores obtenidos</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+    html += '<div style="background:rgba(239,68,68,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🔴</div><div style="font-size:12px;font-weight:700;color:#ef4444">'+getPorc(1)+'%</div></div>';
+    html += '<div style="background:rgba(250,204,21,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🟡</div><div style="font-size:12px;font-weight:700;color:#facc15">'+getPorc(2)+'%</div></div>';
+    html += '<div style="background:rgba(34,197,94,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🟢</div><div style="font-size:12px;font-weight:700;color:#22c55e">'+getPorc(3)+'%</div></div>';
+    html += '<div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+getPorc(4)+'%</div></div>';
+    html += '</div></div>';
+    
+    // Recomendaciones
+    if(d.recommendations && d.recommendations.length > 0) {
+      html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
+      html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Recomendaciones</div>';
+      d.recommendations.forEach(function(rec) {
+        html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px;line-height:1.4;">'+rec+'</div>';
+      });
+      html += '</div>';
+    }
+    
+    // Challenges
+    var tieneMini = d.challenges && d.challenges.some(function(c){return c.tipo==='Mini' && c.aprobado;});
+    var tieneGran = d.challenges && d.challenges.some(function(c){return c.tipo==='Grand' && c.aprobado;});
+    html += '<div style="display:flex;gap:8px;">';
+    html += '<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.2)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid #facc15':'1px solid rgba(255,255,255,0.08)')+';border-radius:8px;padding:10px;text-align:center;">';
+    html += '<div style="font-size:14px;">'+(tieneMini?'⭐':'○')+'</div><div style="font-size:9px;color:'+(tieneMini?'#facc15':'#64748b')+'">Mini Challenge</div></div>';
+    html += '<div style="flex:1;background:'+(tieneGran?'rgba(249,115,22,0.2)':'rgba(255,255,255,0.03)')+';border:'+(tieneGran?'1px solid #f97316':'1px solid rgba(255,255,255,0.08)')+';border-radius:8px;padding:10px;text-align:center;">';
+    html += '<div style="font-size:14px;">'+(tieneGran?'🏆':'○')+'</div><div style="font-size:9px;color:'+(tieneGran?'#f97316':'#64748b')+'">Grand Challenge</div></div>';
+    html += '</div>';
+    
+    html += '<div style="font-size:10px;color:#475569;text-align:center;margin-top:12px;">'+d.totalClases+' clases registradas en el bloque</div>';
+    
+    document.getElementById('evaluacionAlumno').innerHTML = html;
+  }
+
   function logout(){
     alumnoData=null;archivoSubida=null;grupoDestinoCambio=null;
     document.getElementById('inputId').value='';document.getElementById('inputEmail').value='';
