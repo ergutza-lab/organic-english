@@ -633,15 +633,51 @@ function renderMapas(resultados) {
       var asistencia=d.success?d.porcentajeAsistencia:0;
       
       // Calcular % global según sistema de evaluación:
-      // - 80% evaluación continua (colores positivos: Verde + Azul)
-      // - 20% proyecto final (simplificado - se asume que si tiene buenos colores, el proyecto va bien)
-      // El % global es: (asistencia * 0.5) + (positivos * 0.5)
-      // Pero como asistencia ya cuenta solo presentes, usamos: asistencia% * 0.8 + positivos% * 0.2
+      // Sistema: 80% evaluación continua (colores) + 20% proyecto final
+      // Para aprobación se necesita: 80% asistencia mínima + 70% verde+azul
       var porcentajeGlobal = 0;
-      if (clases > 0) {
-        porcentajeGlobal = Math.round((asistencia * 0.8) + (positivos * 0.2));
+      var primeraFecha = null;
+      var clasesProgramadas = 0;
+      
+      if (d.success && d.registros && d.registros.length > 0) {
+        // Encontrar la fecha más antigua del registro del alumno
+        d.registros.forEach(function(reg) {
+          var fechaReg = new Date(reg.fecha);
+          if (!primeraFecha || fechaReg < primeraFecha) {
+            primeraFecha = fechaReg;
+          }
+        });
+        
+        if (primeraFecha) {
+          // Calcular clases programadas desde primer registro hasta hoy
+          // 4 clases por semana (lunes-jueves)
+          var hoy = new Date();
+          var diffDias = Math.floor((hoy - primeraFecha) / (1000*60*60*24));
+          var semanas = Math.max(1, Math.ceil((diffDias + 1) / 7));
+          clasesProgramadas = Math.min(32, semanas * 4); // Max 32 clases por bloque
+        }
+      }
+      
+      // Si no hay registros, empieza con 100%
+      var asistenciaReal = 100; // Default para nuevos alumnos sin registros
+      if (clasesProgramadas > 0 && clases > 0) {
+        asistenciaReal = Math.min(100, Math.round((asistencia / clasesProgramadas) * 100));
+        // Porcentaje global: 80% asistencia + 20% colores positivos
+        // (Según el sistema: 80% evaluación continua + 20% proyecto final)
+        porcentajeGlobal = Math.round((asistenciaReal * 0.8) + (positivos * 0.2));
+      }
+      
+      // Etiqueta de estado según el sistema de evaluación
+      var estado = '';
+      var estadoColor = '';
+      if (asistencia >= 80 && positivos >= 70) {
+        estado = 'Pase asegurado'; estadoColor = '#22c55e'; // Verde - 70%+ positivos + 80%+ asistencia
+      } else if (asistencia >= 80 && positivos >= 60) {
+        estado = 'Pase con refuerzo'; estadoColor = '#facc15'; // Amarillo
+      } else if (asistencia >= 75 || positivos >= 60) {
+        estado = 'Pendiente'; estadoColor = '#f97316'; // Naranja
       } else {
-        porcentajeGlobal = 100; // Si no hay registros, empieza al 100%
+        estado = 'No acredita'; estadoColor = '#ef4444'; // Rojo
       }
       
       // Calcular % de cada color (solo presentes)
@@ -688,7 +724,8 @@ function renderMapas(resultados) {
             '<div style="color:var(--gris2);font-size:11px;">'+r.alumno.id+' · '+clases+' clases</div>'+
           '</div>'+
           '<div style="text-align:right;">'+
-            '<div style="font-size:12px;color:'+estadoColor+';font-weight:700;">'+estado+'</div>'+
+            '<div style="font-size:11px;color:var(--gris2);">Asist: '+asistenciaReal+'% | Positivos: '+positivos+'%</div>'+
+            '<div style="font-size:13px;color:'+estadoColor+';font-weight:700;">'+estado+'</div>'+
           '</div>'+
         '</div>'+
       '</div>';
