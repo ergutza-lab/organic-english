@@ -480,6 +480,18 @@
     if (e.target === this) document.getElementById('countryPicker').classList.remove('open');
   });
 
+  // ── CORRECCIÓN: limpiar número del asesor correctamente ──
+  function limpiarNumeroWA(raw) {
+    // Quitar todo lo que no sea dígito
+    var digits = String(raw).replace(/\D/g, '');
+    // Si ya tiene 12 dígitos y empieza con 52, está bien
+    if (digits.length === 12 && digits.startsWith('52')) return digits;
+    // Si tiene 10 dígitos (número local mexicano), agregar 52
+    if (digits.length === 10) return '52' + digits;
+    // Si tiene 11 dígitos y empieza con 1 (ej. USA), devolver tal cual
+    return digits;
+  }
+
   async function cargarAsesor() {
     try {
       const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=ASESORES&t=${Date.now()}`;
@@ -489,8 +501,8 @@
       json.table.rows.forEach(r => {
         const id = String(r.c[0]?.v || '').trim();
         if (id === asesorId) {
-          var wa = String(r.c[2]?.v || r.c[2]?.f || '').replace(/\s+/g,'');
-WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
+          const raw = String(r.c[2]?.v || r.c[2]?.f || '');
+          WHATSAPP = limpiarNumeroWA(raw);
         }
       });
     } catch(e) { WHATSAPP = ''; }
@@ -558,15 +570,14 @@ WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
     const hoy = new Date(); hoy.setHours(0,0,0,0);
 
     const fechasSet = {};
-    const fechasLlenas = {}; // fechas donde todos los grupos están llenos
+    const fechasLlenas = {};
     grupos.forEach(g => {
       if (!g.fechaObj) return;
       const iso = fechaISO(g.fechaObj);
       if (!fechasSet[iso]) {
         fechasSet[iso] = g.fechaObj;
-        fechasLlenas[iso] = true; // empezar como potencialmente llena
+        fechasLlenas[iso] = true;
       }
-      // Si al menos un grupo tiene plazas, la fecha NO está llena
       if (g.libres > 0) {
         fechasLlenas[iso] = false;
       }
@@ -584,7 +595,6 @@ WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
       </div>
     </div>`;
 
-    // Solo mostrar grupos si hay filtro activo o se pidió ver todos
     let seccionesHtml = '';
     if (!fechaFiltro && !mostrarTodos) {
       seccionesHtml = `<div class="sin-fecha-msg">
@@ -771,10 +781,10 @@ WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
     const btn = document.getElementById('btn-submit');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-top-color:#fff"></div>&nbsp;Reservando...';
-    const nombre   = document.getElementById('nombre').value.trim();
+    const nombre        = document.getElementById('nombre').value.trim();
     const whatsappLocal = document.getElementById('whatsapp').value.trim();
-    const whatsapp = paisActual.dial.replace('+','') + whatsappLocal;
-    const email    = document.getElementById('email').value.trim();
+    const whatsapp      = paisActual.dial.replace('+','') + whatsappLocal;
+    const email         = document.getElementById('email').value.trim();
     try {
       await fetch(APPS_SCRIPT, {
         method: 'POST',
@@ -791,7 +801,8 @@ WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
       <div class="confirm-row"><span class="confirm-row-label">Inicio de cursos el</span><span class="confirm-row-value">${formatLarga(grupoSel.fechaObj)}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Correo</span><span class="confirm-row-value">${email}</span></div>`;
     const msgWA = `Hola, acabo de reservar mi lugar en Organic English.\n\nNombre: ${nombre}\nGrupo: ${grupoSel.id}\nHorario: ${grupoSel.horario} (hora CDMX)\n\nQuisiera recibir las instrucciones de pago.`;
-    var waNum = WHATSAPP.replace(/\D/g,''); document.getElementById('btn-whatsapp').href = `https://wa.me/${waNum.slice(-10)}?text=${encodeURIComponent(msgWA)}`;
+    // ── CORRECCIÓN: usar número completo sin slice(-10) ──
+    document.getElementById('btn-whatsapp').href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msgWA)}`;
     btn.disabled = false;
     btn.innerHTML = 'Reservar mi lugar';
     goToPanel(3);
@@ -830,14 +841,14 @@ WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
     document.getElementById('modal-col-info').style.display = 'block';
   }
   function enviarCol() {
-    const nombre   = document.getElementById('col-nombre').value.trim();
+    const nombre        = document.getElementById('col-nombre').value.trim();
     const whatsappLocal = document.getElementById('col-whatsapp').value.trim();
-    const whatsapp = paisActual.dial.replace('+','') + whatsappLocal;
-    const email    = document.getElementById('col-email').value.trim();
-    const errDiv   = document.getElementById('col-error');
-    const errMsg   = document.getElementById('col-error-msg');
-    if (!nombre||!whatsappLocal||!email)        { errMsg.textContent='Completa todos los campos.'; errDiv.style.display='block'; return; }
-    if (!/^\d{7,15}$/.test(whatsappLocal))     { errMsg.textContent='WhatsApp: 7 a 15 dígitos.'; errDiv.style.display='block'; return; }
+    const whatsapp      = paisActual.dial.replace('+','') + whatsappLocal;
+    const email         = document.getElementById('col-email').value.trim();
+    const errDiv        = document.getElementById('col-error');
+    const errMsg        = document.getElementById('col-error-msg');
+    if (!nombre||!whatsappLocal||!email)            { errMsg.textContent='Completa todos los campos.'; errDiv.style.display='block'; return; }
+    if (!/^\d{7,15}$/.test(whatsappLocal))         { errMsg.textContent='WhatsApp: 7 a 15 dígitos.'; errDiv.style.display='block'; return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errMsg.textContent='Correo inválido.'; errDiv.style.display='block'; return; }
     errDiv.style.display = 'none';
     const btn = document.getElementById('col-btn');
@@ -853,7 +864,8 @@ WHATSAPP = wa.startsWith('52') ? wa : '52' + wa;
         document.getElementById('modal-col-form').style.display    = 'none';
         document.getElementById('modal-col-confirm').style.display = 'block';
         const msg = `Hola, acabo de registrarme para evaluación de colocación en Organic English.\n\nMi nombre es ${nombre}.\n\nQuedo en espera de los próximos pasos.`;
-        var waNum = WHATSAPP.replace(/\D/g,''); document.getElementById('btn-whatsapp-col').href = `https://wa.me/${waNum.slice(-10)}?text=${encodeURIComponent(msg)}`;
+        // ── CORRECCIÓN: usar número completo sin slice(-10) ──
+        document.getElementById('btn-whatsapp-col').href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
       } else {
         errMsg.textContent = data.error || 'Error al enviar. Intenta de nuevo.';
         errDiv.style.display = 'block';
