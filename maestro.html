@@ -972,7 +972,78 @@ function cargarDatos() {
       .catch(()=>mostrarToast('Error de conexión','error'));
   }
   
- document.getElementById('inputClave').addEventListener
+ document.getElementById('inputClave').addEventListener('keypress',function(e){if(e.key==='Enter')login();});
+
+  var grupoZoomActual = null;
+  var grupoGrabActual = null;
+
+  function abrirModalZoom(idGrupo) {
+    var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
+    if (!g) return;
+    grupoZoomActual = idGrupo;
+    document.getElementById('zoomGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
+    document.getElementById('zoomInput').value = g.linkZoom || '';
+    document.getElementById('zoomStatus').textContent = '';
+    document.getElementById('modalZoom').style.display = 'flex';
+  }
+  function cerrarModalZoom() {
+    document.getElementById('modalZoom').style.display = 'none';
+    grupoZoomActual = null;
+  }
+  function guardarZoom() {
+    if (!grupoZoomActual) return;
+    var link = document.getElementById('zoomInput').value.trim();
+    document.getElementById('zoomStatus').textContent = 'Guardando...';
+    fetch(APPS_SCRIPT+'?action=actualizarLinkGrupo&idGrupo='+encodeURIComponent(grupoZoomActual)+'&linkZoom='+encodeURIComponent(link), {redirect:'follow'})
+      .then(r=>r.json())
+      .then(d=>{
+        if (d.success) {
+          var g = panelData.grupos.find(function(x){ return x.id===grupoZoomActual; });
+          if (g) g.linkZoom = link;
+          document.getElementById('zoomStatus').textContent = '✅ Guardado';
+          setTimeout(cerrarModalZoom, 1500);
+          mostrarToast('Enlace Zoom actualizado','success');
+        } else {
+          document.getElementById('zoomStatus').textContent = '❌ Error: '+(d.error||'');
+        }
+      })
+      .catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
+  }
+  function abrirModalGrabacion(idGrupo) {
+    var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
+    if (!g) return;
+    grupoGrabActual = idGrupo;
+    document.getElementById('grabGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
+    document.getElementById('grabInput').value = g.grabacion || '';
+    document.getElementById('grabStatus').textContent = '';
+    document.getElementById('modalGrabacion').style.display = 'flex';
+  }
+  function cerrarModalGrabacion() {
+    document.getElementById('modalGrabacion').style.display = 'none';
+    grupoGrabActual = null;
+  }
+  function guardarGrabacion() {
+    if (!grupoGrabActual) return;
+    var link = document.getElementById('grabInput').value.trim();
+    document.getElementById('grabStatus').textContent = 'Guardando...';
+    fetch(APPS_SCRIPT+'?action=actualizarGrabacionGrupo&idGrupo='+encodeURIComponent(grupoGrabActual)+'&grabacion='+encodeURIComponent(link), {redirect:'follow'})
+      .then(r=>r.json())
+      .then(d=>{
+        if (d.success) {
+          var g = panelData.grupos.find(function(x){ return x.id===grupoGrabActual; });
+          if (g) g.grabacion = link;
+          document.getElementById('grabStatus').textContent = '✅ Guardado';
+          setTimeout(cerrarModalGrabacion, 1500);
+          mostrarToast('Grabación actualizada','success');
+        } else {
+          document.getElementById('grabStatus').textContent = '❌ Error: '+(d.error||'');
+        }
+      })
+      .catch(()=>{ document.getElementById('grabStatus').textContent = '❌ Error de conexión'; });
+  }
+
+</script>
+
 <!-- MODAL ZOOM -->
 <div id="modalZoom" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#1a2540;border-radius:20px;padding:28px 24px;width:100%;max-width:420px;border:1px solid rgba(249,115,22,0.4);">
@@ -985,6 +1056,7 @@ function cargarDatos() {
     <button onclick="cerrarModalZoom()" style="width:100%;background:transparent;color:#475569;border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:11px;font-size:13px;cursor:pointer;">Cancelar</button>
   </div>
 </div>
+
 <!-- MODAL GRABACIÓN -->
 <div id="modalGrabacion" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#1a2540;border-radius:20px;padding:28px 24px;width:100%;max-width:420px;border:1px solid rgba(124,29,111,0.6);">
@@ -998,77 +1070,5 @@ function cargarDatos() {
   </div>
 </div>
 
-var grupoZoomActual = null;
-var grupoGrabActual = null;
-function abrirModalZoom(idGrupo) {
-var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
-if (!g) return;
-grupoZoomActual = idGrupo;
-document.getElementById('zoomGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
-document.getElementById('zoomInput').value = g.linkZoom || '';
-document.getElementById('zoomStatus').textContent = '';
-document.getElementById('modalZoom').style.display = 'flex';
-}
-function cerrarModalZoom() {
-document.getElementById('modalZoom').style.display = 'none';
-grupoZoomActual = null;
-}
-function guardarZoom() {
-if (!grupoZoomActual) return;
-var link = document.getElementById('zoomInput').value.trim();
-document.getElementById('zoomStatus').textContent = 'Guardando...';
-fetch(APPS_SCRIPT+'?action=actualizarLinkGrupo&idGrupo='+encodeURIComponent(grupoZoomActual)+'&linkZoom='+encodeURIComponent(link), {redirect:'follow'})
-.then(r=>r.json())
-.then(d=>{
-if (d.success) {
-var g = panelData.grupos.find(function(x){ return x.id===grupoZoomActual; });
-if (g) g.linkZoom = link;
-document.getElementById('zoomStatus').textContent = '✅ Guardado';
-setTimeout(cerrarModalZoom, 1500);
-mostrarToast('Enlace Zoom actualizado','success');
-} else {
-document.getElementById('zoomStatus').textContent = '❌ Error: '+(d.error||'');
-}
-})
-.catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
-}
-function abrirModalGrabacion(idGrupo) {
-var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
-if (!g) return;
-grupoGrabActual = idGrupo;
-document.getElementById('grabGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
-document.getElementById('grabInput').value = g.grabacion || '';
-document.getElementById('grabStatus').textContent = '';
-document.getElementById('modalGrabacion').style.display = 'flex';
-}
-function cerrarModalGrabacion() {
-document.getElementById('modalGrabacion').style.display = 'none';
-grupoGrabActual = null;
-}
-function guardarGrabacion() {
-if (!grupoGrabActual) return;
-var link = document.getElementById('grabInput').value.trim();
-document.getElementById('grabStatus').textContent = 'Guardando...';
-fetch(APPS_SCRIPT+'?action=actualizarGrabacionGrupo&idGrupo='+encodeURIComponent(grupoGrabActual)+'&grabacion='+encodeURIComponent(link), {redirect:'follow'})
-.then(r=>r.json())
-.then(d=>{
-if (d.success) {
-var g = panelData.grupos.find(function(x){ return x.id===grupoGrabActual; });
-if (g) g.grabacion = link;
-document.getElementById('grabStatus').textContent = '✅ Guardado';
-setTimeout(cerrarModalGrabacion, 1500);
-mostrarToast('Grabación actualizada','success');
-} else {
-document.getElementById('grabStatus').textContent = '❌ Error: '+(d.error||'');
-}
-})
-.catch(()=>{ document.getElementById('grabStatus').textContent = '❌ Error de conexión'; });
-}
-
-  
- </script>
-     
 </body>
 </html>
-          
-      
