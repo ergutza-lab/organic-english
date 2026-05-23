@@ -408,24 +408,87 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     var alumnos=grupoActual.alumnos||[];
     var lista=document.getElementById('listaAlumnosRegistro');
     if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>'; return; }
+    
+    var OBS = {
+      1: [
+        'Necesita más apoyo para lograr el objetivo comunicativo de la clase.',
+        'Participó muy poco durante las actividades del día.',
+        'Aún presenta dificultad para usar el lenguaje objetivo.',
+        'Requiere más práctica y participación en clase.',
+        'Necesita mejorar asistencia, atención o participación para avanzar.'
+      ],
+      2: [
+        'Logró parcialmente el objetivo con apoyo constante.',
+        'Mostró esfuerzo, pero aún necesita más confianza al comunicarse.',
+        'Participó y comprendió parte del objetivo de la clase.',
+        'Va avanzando, pero necesita practicar más de forma independiente.',
+        'Mostró mejora durante la clase, aunque todavía requiere apoyo frecuente.'
+      ],
+      3: [
+        'Cumplió el objetivo comunicativo de la clase correctamente.',
+        'Participó activamente y se comunicó de forma comprensible.',
+        'Mostró buena comprensión y uso del lenguaje objetivo.',
+        'Trabajó de manera constante y con poca ayuda.',
+        'Participó bien en práctica y breakout rooms.'
+      ],
+      4: [
+        'Superó el objetivo de la clase con confianza.',
+        'Participó espontáneamente y agregó información extra.',
+        'Mostró excelente iniciativa comunicativa durante la clase.',
+        'Se comunicó con seguridad y apoyó activamente en actividades.',
+        'Demostró muy buen desempeño e independencia al usar el inglés.'
+      ]
+    };
+
+    var COLORES_LABEL = {1:'Rojo — Mejorable', 2:'Amarillo — En proceso', 3:'Verde — Adecuado', 4:'Azul — Destacado'};
+
     lista.innerHTML=alumnos.map(function(a){
       var btns=COLORES_EVAL.map(function(c){
         return '<button class="sem-btn" id="eval-'+c.val+'-'+a.id+'" onclick="selColor(\''+a.id+'\','+c.val+')" title="'+c.label+'">'+c.emoji+'</button>';
       }).join('');
-      return '<div class="alumno-registro">'+
-        '<div class="alumno-reg-header"><span class="alumno-reg-nombre">'+a.nombre+'</span><span class="alumno-reg-id">'+a.id+'</span></div>'+
-        '<div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;">'+
-          '<div style="flex:1;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Asistencia</div>'+
-            '<div class="semaforo" style="gap:4px;">'+
-              '<button class="sem-btn" id="asist-si-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',true)" style="flex:1;padding:10px;font-size:14px;background:rgba(34,197,94,0.15);">✓</button>'+
-              '<button class="sem-btn" id="asist-no-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',false)" style="flex:1;padding:10px;font-size:14px;">✕</button>'+
-            '</div>'+
-          '</div>'+
-          '<div style="flex:2;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Evaluación del día</div><div class="semaforo">'+btns+'</div></div>'+
-        '</div>'+
-        '<input type="text" id="obs-'+a.id+'" placeholder="Observación breve (opcional)" style="width:100%;background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:var(--blanco);font-size:12px;outline:none;" />'+
-      '</div>';
+      
+      var opts=Object.keys(OBS).map(function(color){
+        return OBS[color].map(function(txt,i){
+          return '<option value="'+txt+'" data-color="'+color+'">'+COLORES_LABEL[color]+': '+txt+'</option>';
+        }).join('');
+      }).join('');
+
+      return '<div class="alumno-registro">'
+        +'<div class="alumno-reg-header"><span class="alumno-reg-nombre">'+a.nombre+'</span><span class="alumno-reg-id">'+a.id+'</span></div>'
+        +'<div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;">'
+          +'<div style="flex:1;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Asistencia</div>'
+            +'<div class="semaforo" style="gap:4px;">'
+              +'<button class="sem-btn" id="asist-si-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',true)" style="flex:1;padding:10px;font-size:14px;background:rgba(34,197,94,0.15);">✓</button>'
+              +'<button class="sem-btn" id="asist-no-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',false)" style="flex:1;padding:10px;font-size:14px;">✕</button>'
+            +'</div>'
+          +'</div>'
+          +'<div style="flex:2;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Evaluación del día</div><div class="semaforo">'+btns+'</div></div>'
+        +'</div>'
+        +'<div style="margin-bottom:8px;">'
+          +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Observación</div>'
+          +'<select id="obs-sel-'+a.id+'" onchange="selObservacion(\''+a.id+'\')" style="width:100%;background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:var(--blanco);font-size:12px;outline:none;">'
+            +'<option value="">— Selecciona una observación —</option>'
+            +opts
+          +'</select>'
+        +'</div>'
+        +'<div id="nota-wrap-'+a.id+'" style="display:none;">'
+          +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Nota adicional (opcional)</div>'
+          +'<input type="text" id="obs-'+a.id+'" placeholder="Escribe una nota adicional..." style="width:100%;background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:var(--blanco);font-size:12px;outline:none;" />'
+        +'</div>'
+        +'<button onclick="toggleNota(\''+a.id+'\')" style="background:transparent;border:none;color:var(--gris2);font-size:11px;cursor:pointer;margin-top:4px;padding:0;">+ Agregar nota adicional</button>'
+      +'</div>';
     }).join('');
+  }
+
+  function selObservacion(idAlumno) {
+    var sel = document.getElementById('obs-sel-'+idAlumno);
+    var color = sel.options[sel.selectedIndex].getAttribute('data-color');
+    if (color) selColor(idAlumno, parseInt(color));
+  }
+
+  function toggleNota(idAlumno) {
+    var wrap = document.getElementById('nota-wrap-'+idAlumno);
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
   }
 
   function selAsistencia(idAlumno, presente) {
@@ -472,7 +535,12 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
         idAlumno:      a.id,
         asistencia:    getAsistencia(a.id), // true = presente, false = ausente
         color:         getColorVal(a.id),
-        observacion:   (document.getElementById('obs-'+a.id)||{}).value||''
+        observacion: (function(){
+          var sel = document.getElementById('obs-sel-'+a.id);
+          var nota = (document.getElementById('obs-'+a.id)||{}).value||'';
+          var base = sel ? sel.value : '';
+          return nota ? base+' | '+nota : base;
+        })()
       };
     });
     btn.textContent='Guardando...'; btn.disabled=true;
