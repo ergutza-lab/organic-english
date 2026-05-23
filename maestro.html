@@ -351,7 +351,7 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     var esAdolescente = nombre.toLowerCase().includes('adolescente');
     return '<div style="margin-bottom:16px;background:var(--card);border-radius:14px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;">'
       +'<div style="display:flex;align-items:center;padding:16px 20px;gap:12px;">'
-        +'<div style="flex:1;cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'
+        +'<div style="flex:1;cursor:pointer;" id="grupo-link-'+g.id+'">'
           +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
             +'<span class="grupo-chip">'+g.id+'</span>'
             +'<span style="color:'+nivelColor+';font-size:12px;font-weight:700;">'+g.nivel+'</span>'
@@ -369,16 +369,19 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
 
   // Asignar eventos DESPUÉS de renderizar
   grupos.forEach(function(g){
+    var gl = document.getElementById('grupo-link-'+g.id);
     var zb = document.getElementById('zoom-btn-'+g.id);
     var gb = document.getElementById('grab-btn-'+g.id);
+    if(gl) gl.addEventListener('click', function(e){
+      abrirGrupo(g.id);
+    });
     if(zb) zb.addEventListener('click', function(e){
       e.stopPropagation();
       abrirModalZoom(g.id);
     });
-    if(zb) zb.addEventListener('click', function(e){
+    if(gb) gb.addEventListener('click', function(e){
       e.stopPropagation();
-      console.log('ZOOM BTN CLICK:', g.id);
-      abrirModalZoom(g.id);
+      abrirModalGrabacion(g.id);
     });
   });
 }
