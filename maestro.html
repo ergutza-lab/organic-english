@@ -263,8 +263,7 @@
         </div>
         <p style="color:var(--gris);font-size:13px;margin-bottom:16px;">Escribe el feedback personalizado para cada alumno y marca si completó el challenge.</p>
         <div id="listaChallenges"></div>
-        <button class="btn-guardar" onclick="guardarChallenge()">Guardar Challenge</button>
-      </div>
+        </div>
 
 <div class="toast" id="toast"></div>
 
@@ -861,15 +860,39 @@ function renderMapas(resultados) {
       return '<div class="challenge-alumno">'+
         '<div class="challenge-nombre">'+a.nombre+' <span style="color:var(--gris2);font-size:11px;">'+a.id+'</span></div>'+
         '<textarea class="challenge-feedback" id="fb-'+a.id+'" placeholder="Escribe sus logros, avances y áreas de oportunidad..."></textarea>'+
-        '<div class="challenge-aprobado">'+
-'<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Completó</div>'+
-'<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 Necesita refuerzo</div>'+
-'<div class="apr-btn" id="apr-nr-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'nr\')">⛔ No realizó</div>'+
-'</div>'+
+       '<div class="challenge-aprobado">'+
+          '<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Completó</div>'+
+          '<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 Necesita refuerzo</div>'+
+          '<div class="apr-btn" id="apr-nr-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'nr\')">⛔ No realizó</div>'+
+        '</div>'+
+        '<button class="btn-guardar" style="margin-top:10px;" onclick="guardarChallengeAlumno(\''+a.id+'\')">Guardar</button>'+
       '</div>';
     }).join('');
   }
 
+function guardarChallengeAlumno(idAlumno) {
+  var fecha = new Date().toISOString().split('T')[0];
+  var bw    = calcularBloqueySemana();
+  var aprobado = document.getElementById('apr-si-'+idAlumno).classList.contains('sel-si');
+  var noRealizo = document.getElementById('apr-nr-'+idAlumno).classList.contains('sel-nr');
+  var data = [{
+    idAlumno:  idAlumno,
+    feedback:  document.getElementById('fb-'+idAlumno).value,
+    aprobado:  aprobado,
+    noRealizo: noRealizo
+  }];
+  fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+
+    '&bloque='+bw.bloque+'&fecha='+fecha+
+    '&tipo='+encodeURIComponent(tipoChallenge)+
+    '&alumnos='+encodeURIComponent(JSON.stringify(data)), {redirect:'follow'})
+    .then(r=>r.json())
+    .then(d=>{
+      if (d.success) mostrarToast('Challenge guardado para '+idAlumno,'success');
+      else mostrarToast('Error: '+d.error,'error');
+    })
+    .catch(()=>mostrarToast('Error de conexión','error'));
+}
+  
   function selAprobado(idAlumno, estado) {
 document.getElementById('apr-si-'+idAlumno).className='apr-btn'+(estado==='si'?' sel-si':'');
 document.getElementById('apr-no-'+idAlumno).className='apr-btn'+(estado==='no'?' sel-no':'');
