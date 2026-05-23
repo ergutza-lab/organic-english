@@ -1259,25 +1259,15 @@ Por:
         btnC.style.display = 'flex';
 
 
-── CAMBIO 3: Apps Script — enviar observaciones ─────────────────
-En tu código.gs, en la función getEvaluacionAlumno,
-después de calcular los challenges agrega esto
-antes del return final:
-
-    // Últimas 3 observaciones del maestro
-    var observaciones = [];
-    for (var r = 1; r < dataClases.length; r++) {
-      if (String(dataClases[r][0]).trim() === String(idAlumno).trim() &&
-          String(dataClases[r][1]).trim() === String(idGrupo).trim()) {
-        var obs = String(dataClases[r][7] || '').trim(); // columna Observación
-        if (obs) {
-          observaciones.push({
-            fecha: Utilities.formatDate(new Date(dataClases[r][2]), 'America/Mexico_City', 'dd/MM'),
-            texto: obs
-          });
-        }
-      }
-    }
+var yaM = evalRealizadas[bd] && evalRealizadas[bd].maestro;
+        var yaC = evalRealizadas[bd] && evalRealizadas[bd].ce;
+        if (yaM) { btnM.textContent='✅ Maestro evaluado — Bloque '+bd; btnM.classList.add('ya-evaluado'); btnM.disabled=true; }
+        else     { btnM.textContent='⭐ Evaluar a mi maestro — Bloque '+bd; btnM.disabled=false; btnM.classList.remove('ya-evaluado'); }
+        if (yaC) { btnC.textContent='✅ CE evaluada — Bloque '+bd; btnC.classList.add('ya-evaluado'); btnC.disabled=true; }
+        else     { btnC.textContent='⭐ Evaluar a mi asistente CE — Bloque '+bd; btnC.disabled=false; btnC.classList.remove('ya-evaluado'); }
+      })
+      .catch(function(){});
+  }
     // Solo las últimas 3
     observaciones = observaciones.slice(-3);
 
