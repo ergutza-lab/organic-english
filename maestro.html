@@ -367,8 +367,8 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     +'</div>';
   }).join('');
 
-  // Asignar eventos DESPUÉS de renderizar
-  grupos.forEach(function(g){
+ // Asignar eventos DESPUÉS de renderizar
+ grupos.forEach(function(g){
     var gl = document.getElementById('grupo-link-'+g.id);
     var zb = document.getElementById('zoom-btn-'+g.id);
     var gb = document.getElementById('grab-btn-'+g.id);
@@ -377,10 +377,12 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
       abrirGrupo(g.id);
     });
     if(zb) zb.addEventListener('click', function(e){
+      e.preventDefault();
       e.stopPropagation();
       abrirModalZoom(g.id);
     });
     if(gb) gb.addEventListener('click', function(e){
+      e.preventDefault();
       e.stopPropagation();
       abrirModalGrabacion(g.id);
     });
@@ -1001,21 +1003,20 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
   var grupoGrabActual = null;
 
  function abrirModalZoom(idGrupo) {
-    setTimeout(function(){
-      var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
-      if (!g) return;
-      grupoZoomActual = idGrupo;
-      document.getElementById('zoomGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
-      document.getElementById('zoomInput').value = g.linkZoom || '';
-      document.getElementById('zoomStatus').textContent = '';
-      document.getElementById('modalZoom').style.display = 'flex';
-    }, 50);
+    var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
+    if (!g) return;
+    grupoZoomActual = idGrupo;
+    document.getElementById('zoomGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
+    document.getElementById('zoomInput').value = g.linkZoom || '';
+    document.getElementById('zoomStatus').textContent = '';
+    document.getElementById('modalZoom').style.display = 'flex';
   }
-  
+
   function cerrarModalZoom() {
     document.getElementById('modalZoom').style.display = 'none';
     grupoZoomActual = null;
   }
+
   function guardarZoom() {
     if (!grupoZoomActual) return;
     var link = document.getElementById('zoomInput').value.trim();
@@ -1035,22 +1036,22 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       })
       .catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
   }
+
   function abrirModalGrabacion(idGrupo) {
-    setTimeout(function(){
-      var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
-      if (!g) return;
-      grupoGrabActual = idGrupo;
-      document.getElementById('grabGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
-      document.getElementById('grabInput').value = g.grabacion || '';
-      document.getElementById('grabStatus').textContent = '';
-      document.getElementById('modalGrabacion').style.display = 'flex';
-    }, 50);
+    var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
+    if (!g) return;
+    grupoGrabActual = idGrupo;
+    document.getElementById('grabGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
+    document.getElementById('grabInput').value = g.grabacion || '';
+    document.getElementById('grabStatus').textContent = '';
+    document.getElementById('modalGrabacion').style.display = 'flex';
   }
-  
+
   function cerrarModalGrabacion() {
     document.getElementById('modalGrabacion').style.display = 'none';
     grupoGrabActual = null;
   }
+
   function guardarGrabacion() {
     if (!grupoGrabActual) return;
     var link = document.getElementById('grabInput').value.trim();
