@@ -389,10 +389,13 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
   });
 }
   
+  var modalAbierto = false;
+
   function abrirGrupo(idGrupo) {
+    if (modalAbierto) return;
     grupoActual=panelData.grupos.find(function(g){return g.id===idGrupo;});
     if (!grupoActual) return;
-    console.log('Grupo actual:', JSON.stringify(grupoActual)); // ← AGREGA ESTA LÍNEA
+    console.log('Grupo actual:', JSON.stringify(grupoActual));
     document.getElementById('vistaGrupos').style.display='none';
     document.getElementById('vistaDetalle').style.display='block';
     document.getElementById('detalleGrupoId').textContent=grupoActual.id+' — '+grupoActual.nombre;
@@ -1002,7 +1005,10 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
   var grupoZoomActual = null;
   var grupoGrabActual = null;
 
- function abrirModalZoom(idGrupo) {
+ var modalAbierto = false;
+
+  function abrirModalZoom(idGrupo) {
+    modalAbierto = true;
     var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
     if (!g) return;
     grupoZoomActual = idGrupo;
@@ -1011,12 +1017,11 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     document.getElementById('zoomStatus').textContent = '';
     document.getElementById('modalZoom').style.display = 'flex';
   }
-
   function cerrarModalZoom() {
+    modalAbierto = false;
     document.getElementById('modalZoom').style.display = 'none';
     grupoZoomActual = null;
   }
-
   function guardarZoom() {
     if (!grupoZoomActual) return;
     var link = document.getElementById('zoomInput').value.trim();
@@ -1036,8 +1041,8 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       })
       .catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
   }
-
   function abrirModalGrabacion(idGrupo) {
+    modalAbierto = true;
     var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
     if (!g) return;
     grupoGrabActual = idGrupo;
@@ -1046,12 +1051,11 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     document.getElementById('grabStatus').textContent = '';
     document.getElementById('modalGrabacion').style.display = 'flex';
   }
-
   function cerrarModalGrabacion() {
+    modalAbierto = false;
     document.getElementById('modalGrabacion').style.display = 'none';
     grupoGrabActual = null;
   }
-
   function guardarGrabacion() {
     if (!grupoGrabActual) return;
     var link = document.getElementById('grabInput').value.trim();
