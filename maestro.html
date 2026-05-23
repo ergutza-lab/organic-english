@@ -340,29 +340,30 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
 
   // ── GRUPOS ─────────────────────────────────────────────────────────
  function renderGrupos(grupos) {
-var lista=document.getElementById('listaGrupos');
-if (!grupos||!grupos.length) { lista.innerHTML='<div class="empty-state"><p>No tienes grupos asignados.</p></div>'; return; }
-lista.innerHTML=grupos.map(function(g){
-var inicio=g.fechaInicio?new Date(g.fechaInicio):null;
-var inicioStr=inicio?inicio.getDate()+'/'+(inicio.getMonth()+1)+'/'+inicio.getFullYear():'—';
-var esBloque2 = g.nivel && g.nivel.toLowerCase().includes('bloque 2');
-var nivelColor = esBloque2 ? '#67e8f9' : '#facc15';
-return '<div class="grupo-card" style="display:flex;align-items:center;gap:16px;">'+
-'<div style="flex:1;cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'+
-'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+
-'<span class="grupo-chip">'+g.id+'</span>'+
-'<span style="color:'+nivelColor+';font-size:12px;font-weight:700;">'+g.nivel+'</span>'+
-'</div>'+
-'<div style="color:'+(g.nombre.toLowerCase().includes('adolescente')?'#fbbf24':'#fff')+';font-size:18px;font-weight:700;margin-bottom:4px;">'+g.nombre+'</div>'+
-'<div style="color:var(--gris2);font-size:13px;">'+g.horario+' · Inicio '+inicioStr+' · <span style="color:#fff;font-weight:700;">'+(g.inscritos||0)+' alumnos</span></div>'+
-'</div>'+
-'<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">'+
-'<button onclick="event.stopPropagation();abrirModalZoom(\''+g.id+'\')" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>'+
-'<button onclick="event.stopPropagation();abrirModalGrabacion(\''+g.id+'\')" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>'+
-'</div>'+
-'</div>';
-}).join('');
+  var lista=document.getElementById('listaGrupos');
+  if (!grupos||!grupos.length) { lista.innerHTML='<div class="empty-state"><p>No tienes grupos asignados.</p></div>'; return; }
+  lista.innerHTML=grupos.map(function(g){
+    var inicio=g.fechaInicio?new Date(g.fechaInicio):null;
+    var inicioStr=inicio?inicio.getDate()+'/'+(inicio.getMonth()+1)+'/'+inicio.getFullYear():'—';
+    var esBloque2 = g.nivel && g.nivel.toLowerCase().includes('bloque 2');
+    var nivelColor = esBloque2 ? '#67e8f9' : '#facc15';
+    return '<div style="margin-bottom:12px;">'
+      +'<div class="grupo-card" style="margin-bottom:6px;cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'
+        +'<div class="gc-header">'
+          +'<span class="grupo-chip">'+g.id+'</span>'
+          +'<span style="color:'+nivelColor+';font-size:12px;font-weight:700;">'+g.nivel+'</span>'
+        +'</div>'
+        +'<div style="color:'+(g.nombre.toLowerCase().includes('adolescente')?'#fbbf24':'#fff')+';font-size:18px;font-weight:700;margin-bottom:4px;">'+g.nombre+'</div>'
+        +'<div style="color:var(--gris2);font-size:13px;">'+g.horario+' · Inicio '+inicioStr+' · <span style="color:#fff;font-weight:700;">'+(g.inscritos||0)+' alumnos</span></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;">'
+        +'<button onclick="abrirModalZoom(\''+g.id+'\')" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;">🔗 Enlace Zoom</button>'
+        +'<button onclick="abrirModalGrabacion(\''+g.id+'\')" style="flex:1;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;">🎥 Grabación</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
 }
+  
   function abrirGrupo(idGrupo) {
     grupoActual=panelData.grupos.find(function(g){return g.id===idGrupo;});
     if (!grupoActual) return;
@@ -836,7 +837,7 @@ function renderMapas(resultados) {
         +'<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>'
           +'<div style="font-size:9px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;">Mini Challenge</div>'
-          +'<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Completado ✓':'Pendiente')+'</div>'
+         +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#1e293b')+'">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
           +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Mini';})&&r.challenges.find(function(c){return c.tipo==='Mini';}).feedback
             ?'<div style="margin-top:6px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px;text-align:left;">'
               +'<div style="font-size:8px;font-weight:700;color:#facc15;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
@@ -847,7 +848,7 @@ function renderMapas(resultados) {
         +'<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneGrand?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>'
           +'<div style="font-size:9px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;">Grand Challenge</div>'
-          +'<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Completado ✓':'Pendiente')+'</div>'
+         +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#1e293b')+'">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
           +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';})&&r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';}).feedback
             ?'<div style="margin-top:6px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px;text-align:left;">'
               +'<div style="font-size:8px;font-weight:700;color:#f97316;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
