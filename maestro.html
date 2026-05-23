@@ -308,16 +308,11 @@
       .catch(()=>{ btn.textContent='Entrar'; btn.disabled=false; err.style.display='block'; err.textContent='Error de conexión.'; });
   }
 
-  function mostrarPanel() {
+ function mostrarPanel() {
     document.getElementById('screenLogin').classList.remove('active');
     document.getElementById('screenPanel').classList.add('active');
     document.getElementById('maestroNombre').textContent=maestroData.nombre;
-document.getElementById('maestroNombrePanel').textContent=maestroData.nombre;
-if (data.fotoMaestro) {
-var fotoEl = document.getElementById('maestroFotoTop');
-fotoEl.src = data.fotoMaestro;
-fotoEl.style.display = 'block';
-}
+    document.getElementById('maestroNombrePanel').textContent=maestroData.nombre;
     cargarDatos();
   }
 
@@ -326,7 +321,15 @@ fotoEl.style.display = 'block';
       .then(r=>r.json())
       .then(data=>{
         console.log('DATOS MAESTRO:', JSON.stringify(data));
-        if (data.success) { panelData=data; renderGrupos(data.grupos); }
+        if (data.success) {
+          panelData=data;
+          renderGrupos(data.grupos);
+          if (data.fotoMaestro) {
+            var fotoEl = document.getElementById('maestroFotoTop');
+            fotoEl.src = data.fotoMaestro;
+            fotoEl.style.display = 'block';
+          }
+        }
         else mostrarToast('Error al cargar datos','error');
       })
       .catch(()=>mostrarToast('Error de conexión','error'));
