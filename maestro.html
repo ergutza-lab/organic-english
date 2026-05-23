@@ -861,8 +861,8 @@ function renderMapas(resultados) {
         '<div class="challenge-nombre">'+a.nombre+' <span style="color:var(--gris2);font-size:11px;">'+a.id+'</span></div>'+
         '<textarea class="challenge-feedback" id="fb-'+a.id+'" placeholder="Escribe sus logros, avances y áreas de oportunidad..."></textarea>'+
        '<div class="challenge-aprobado">'+
-          '<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Completó</div>'+
-          '<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 Necesita refuerzo</div>'+
+          '<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Aprobó</div>'+
+          '<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 No Aprobó</div>'+
           '<div class="apr-btn" id="apr-nr-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'nr\')">⛔ No realizó</div>'+
         '</div>'+
         '<button class="btn-guardar" style="margin-top:10px;" onclick="guardarChallengeAlumno(\''+a.id+'\')">Guardar</button>'+
@@ -935,7 +935,20 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     document.getElementById('screenLogin').classList.add('active');
   }
 
+function cargarDatos() {
+    fetch(APPS_SCRIPT+'?action=getDatosMaestro&id='+encodeURIComponent(maestroData.id))
+      .then(r=>r.json())
+      .then(data=>{
+        console.log('DATOS MAESTRO:', JSON.stringify(data));
+        if (data.success) { panelData=data; renderGrupos(data.grupos); }
+        else mostrarToast('Error al cargar datos','error');
+      })
+      .catch(()=>mostrarToast('Error de conexión','error'));
+  }
+  
   document.getElementById('inputClave').addEventListener('keypress',function(e){if(e.key==='Enter')login();});
 </script>
 </body>
 </html>
+          
+      
