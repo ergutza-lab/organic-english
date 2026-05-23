@@ -1198,67 +1198,6 @@ function renderEvaluacionAlumno(d) {
 }
 
 
-/* ================================================================
-   PATCH v3 — OTROS CAMBIOS
-   ================================================================
-
-── CAMBIO 1: Centrar maestro y CE en sus cards ──────────────────
-En el HTML busca la card "MI MAESTRO" y agrega text-align:center
-al div principal. Reemplaza:
-
-  <div class="card">
-    <div class="card-header"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
-    <img id="maestroFoto" ...
-
-Por:
-
-  <div class="card" style="text-align:center;">
-    <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
-    <img id="maestroFoto" ...
-
-Igual para la card "MI ASISTENTE CE":
-
-  <div class="card" style="text-align:center;">
-    <div class="card-header" style="justify-content:center;"><div class="card-icon icon-asist">🎓</div><span class="card-title">Mi asistente CE</span></div>
-
-
-── CAMBIO 2: Ocultar evaluaciones hasta semana 4 y 8 ────────────
-En la función verificarEvaluaciones, reemplaza:
-
-    if (!bd) return;
-
-    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno& ...
-      .then(r => r.json())
-      .then(data => {
-        evalRealizadas = data.evaluaciones || {};
-        var btnM = document.getElementById('btnEvaluarMaestro');
-        var btnC = document.getElementById('btnEvaluarCE');
-        btnM.style.display = 'flex';
-        btnC.style.display = 'flex';
-
-Por:
-
-    if (!bd) return;
-
-    /* Solo mostrar botones en semana 4 y semana 8 */
-    var semanaActual = semana || 0;
-    var esSemanaDEval = (semanaActual === 4 || semanaActual === 8);
-
-    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
-      .then(r => r.json())
-      .then(data => {
-        evalRealizadas = data.evaluaciones || {};
-        var btnM = document.getElementById('btnEvaluarMaestro');
-        var btnC = document.getElementById('btnEvaluarCE');
-        if (!esSemanaDEval) {
-          btnM.style.display = 'none';
-          btnC.style.display = 'none';
-          return;
-        }
-        btnM.style.display = 'flex';
-        btnC.style.display = 'flex';
-
-
 var yaM = evalRealizadas[bd] && evalRealizadas[bd].maestro;
         var yaC = evalRealizadas[bd] && evalRealizadas[bd].ce;
         if (yaM) { btnM.textContent='✅ Maestro evaluado — Bloque '+bd; btnM.classList.add('ya-evaluado'); btnM.disabled=true; }
@@ -1268,21 +1207,13 @@ var yaM = evalRealizadas[bd] && evalRealizadas[bd].maestro;
       })
       .catch(function(){});
   }
-    // Solo las últimas 3
-    observaciones = observaciones.slice(-3);
 
-Y en el objeto que retornas agrega:
-    observaciones: observaciones,
-
-================================================================ */
-    
-   function logout(){
+  function logout(){
     alumnoData=null;archivoSubida=null;grupoDestinoCambio=null;
     document.getElementById('inputId').value='';document.getElementById('inputEmail').value='';
     document.getElementById('screenPanel').classList.remove('active');document.getElementById('screenLogin').classList.add('active');
     document.getElementById('modalPago').classList.remove('visible');document.getElementById('modalCambioGrupo').classList.remove('visible');
   }
-
   document.addEventListener('DOMContentLoaded',function(){document.getElementById('inputEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});});
 </script>
 </body>
