@@ -91,6 +91,7 @@
   .fecha-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
   .fecha-row label { color: var(--gris); font-size: 12px; font-weight: 600; text-transform: uppercase; }
   .fecha-row input[type="date"] { background: var(--fondo); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 12px; color: var(--blanco); font-size: 13px; outline: none; }
+  .fecha-row input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(1) saturate(5) hue-rotate(0deg); cursor: pointer; }
 
   .alumno-registro { background: #1a2540; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px; margin-bottom: 10px; }
   .alumno-reg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -225,8 +226,9 @@
       <div id="contenidoRegistro">
         <div class="fecha-row">
           <label>Fecha de clase:</label>
-          <input type="date" id="fechaClase" />
+          <input type="date" id="fechaClase" onchange="actualizarEstadoFecha(this.value)" />
         </div>
+        <div id="avisoFecha" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 12px;color:#f87171;font-size:12px;margin-bottom:12px;"></div>
         <div class="leyenda" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
           <div class="ley-item" style="color:#ef4444;flex-direction:column;align-items:center;text-align:center;">
             <div style="font-size:20px;">🔴</div>
@@ -286,6 +288,8 @@
   var panelData   = null;
   var grupoActual = null;
   var bloqueActualChallenge = 1;
+  var modalAbierto = false;
+  var fechasRegistradas = [];
   
   
   const COLORES_EVAL = [
@@ -372,19 +376,38 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
 }
   
   function abrirGrupo(idGrupo) {
-      grupoActual=panelData.grupos.find(function(g){return g.id===idGrupo;});
+    grupoActual=panelData.grupos.find(function(g){return g.id===idGrupo;});
     if (!grupoActual) return;
-    console.log('Grupo actual:', JSON.stringify(grupoActual));
     document.getElementById('vistaGrupos').style.display='none';
     document.getElementById('vistaDetalle').style.display='block';
     document.getElementById('detalleGrupoId').textContent=grupoActual.id+' — '+grupoActual.nombre;
     document.getElementById('detalleGrupoInfo').textContent=grupoActual.horario+' · '+grupoActual.nivel;
     var hoy=new Date();
-    document.getElementById('fechaClase').value=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    document.getElementById('fechaClase').value=hoyStr;
+    fechasRegistradas=[];
+    fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+      .then(r=>r.json())
+      .then(function(d){
+        if(d.success) {
+          fechasRegistradas=d.fechas||[];
+          actualizarEstadoFecha(hoyStr);
+        }
+      });
     cambiarTab('Registro');
   }
 
-
+function actualizarEstadoFecha(fechaStr) {
+    var input = document.getElementById('fechaClase');
+    var aviso = document.getElementById('avisoFecha');
+    if (fechasRegistradas.indexOf(fechaStr) !== -1) {
+      input.style.borderColor = '#ef4444';
+      if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'; }
+    } else {
+      input.style.borderColor = 'rgba(255,255,255,0.1)';
+      if (aviso) aviso.style.display='none';
+    }
+  }
   
   function volverGrupos() {
     document.getElementById('vistaDetalle').style.display='none';
@@ -465,11 +488,9 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
           +'<div style="flex:2;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Evaluación del día</div><div class="semaforo">'+btns+'</div></div>'
         +'</div>'
         +'<div style="margin-bottom:8px;">'
-          +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Observación</div>'
-          +'<select id="obs-sel-'+a.id+'" onchange="selObservacion(\''+a.id+'\')" style="width:100%;background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:var(--blanco);font-size:12px;outline:none;">'
-            +'<option value="">— Selecciona una observación —</option>'
-            +opts
-          +'</select>'
+          +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Observación seleccionada</div>'
+          +'<div id="obs-'+a.id+'-display" style="background:var(--fondo);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:#64748b;font-size:12px;min-height:36px;">— Selecciona un color para ver opciones —</div>'
+          +'<input type="hidden" id="obs-'+a.id+'" value="" />'
         +'</div>'
         +'<div id="nota-wrap-'+a.id+'" style="display:none;">'
           +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Nota adicional (opcional)</div>'
@@ -525,6 +546,9 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
   }
 
   function guardarRegistro() {
+    var fecha=document.getElementById('fechaClase').value;
+    if (!fecha) { mostrarToast('Selecciona la fecha de la clase','error'); return; }
+    if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro','error'); return; }
     var alumnos=grupoActual.alumnos||[];
     var fecha=document.getElementById('fechaClase').value;
     var btn=document.getElementById('btnGuardar');
@@ -1171,7 +1195,9 @@ var OBS_OPCIONES = {
     var libre = document.getElementById('obsLibre').value.trim();
     var texto = libre || obsSeleccionada || '';
     if (texto && obsAlumnoActual) {
-      document.getElementById('obs-'+obsAlumnoActual).value = texto;
+     document.getElementById('obs-'+obsAlumnoActual).value = texto;
+      var disp = document.getElementById('obs-'+obsAlumnoActual+'-display');
+      if (disp) { disp.textContent = texto; disp.style.color = '#f1f5f9'; }
     }
     cerrarModalObs();
   }
