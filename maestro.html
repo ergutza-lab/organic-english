@@ -484,39 +484,18 @@
 
   // ── JARDÍN DEL GRUPO ───────────────────────────────────────────────
   function cargarMapas() {
-    var lista=document.getElementById('listaMapas');
-    var alumnos=grupoActual.alumnos||[];
-    if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos.</p></div>'; return; }
-    lista.innerHTML='<div class="loading">Cargando jardín...</div>';
-    var resultados=[], pendientes=alumnos.length;
-    alumnos.forEach(function(a){
-     fetch(APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(a.id)+'&idGrupo='+encodeURIComponent(grupoActual.id), {redirect:'follow'})
-        .then(r=>r.json())
-        .then(data=>{
-          resultados.push({alumno:a,data:data});
-          pendientes--;
-          if(pendientes===0){
-            resultados.sort(function(x,y){
-              var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
-              var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
-              return numX-numY;
-            });
-            renderMapas(resultados);
-          }
-        })
-        .catch(()=>{
-          pendientes--;
-          if(pendientes===0){
-            resultados.sort(function(x,y){
-              var numX=parseInt(x.alumno.id.replace('OE-',''))||0;
-              var numY=parseInt(y.alumno.id.replace('OE-',''))||0;
-              return numX-numY;
-            });
-            renderMapas(resultados);
-          }
-        });
-    });
-  }
+  var lista = document.getElementById('listaMapas');
+  lista.innerHTML = '<div class="loading">Cargando evaluación...</div>';
+  fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoActual.id), {redirect:'follow'})
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) { lista.innerHTML='<div class="empty-state"><p>Error al cargar.</p></div>'; return; }
+      var resultados = data.resultados || [];
+      if (!resultados.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos.</p></div>'; return; }
+      renderMapas(resultados);
+    })
+    .catch(() => { lista.innerHTML='<div class="empty-state"><p>Error de conexión.</p></div>'; });
+}
 
   function nivelColor(val) {
     if (!val||val<1.5) return {color:SEM_COLORS[1],label:SEM_LABELS[1],emoji:SEM_EMOJIS[1]};
@@ -740,7 +719,7 @@
 function renderMapas(resultados) {
     var lista=document.getElementById('listaMapas');
     lista.innerHTML=resultados.map(function(r){
-      var d=r.data;
+      var d=r;
       var clases=d.success?d.totalClases:0;
       var positivos=d.success?d.porcentajePositivos:0;
       var asistencia=d.success?d.porcentajeAsistencia:0;
