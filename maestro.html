@@ -327,10 +327,11 @@
           panelData=data;
           renderGrupos(data.grupos);
          if (data.fotoMaestro) {
-            var fotoEl = document.getElementById('maestroFotoBienvenida');
-            fotoEl.src = data.fotoMaestro;
-            fotoEl.style.display = 'block';
-          }
+setTimeout(function(){
+var fotoEl = document.getElementById('maestroFotoBienvenida');
+if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
+}, 100);
+}
         }
         else mostrarToast('Error al cargar datos','error');
       })
@@ -346,21 +347,22 @@ var inicio=g.fechaInicio?new Date(g.fechaInicio):null;
 var inicioStr=inicio?inicio.getDate()+'/'+(inicio.getMonth()+1)+'/'+inicio.getFullYear():'—';
 var esBloque2 = g.nivel && g.nivel.toLowerCase().includes('bloque 2');
 var nivelColor = esBloque2 ? '#67e8f9' : '#facc15';
-return '<div class="grupo-card">'+
-'<div class="gc-header" onclick="abrirGrupo(\''+g.id+'\')">'+
+return '<div class="grupo-card" style="display:flex;align-items:center;gap:16px;">'+
+'<div style="flex:1;cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'+
+'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+
 '<span class="grupo-chip">'+g.id+'</span>'+
 '<span style="color:'+nivelColor+';font-size:12px;font-weight:700;">'+g.nivel+'</span>'+
 '</div>'+
-'<div class="grupo-nombre" style="color:'+(g.nombre&&g.nombre.toLowerCase().includes('adolescente')?'#fbbf24':'#fff')+';cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'+g.nombre+'</div>'+
-'<div class="grupo-detalle" style="cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'+g.horario+' · Inicio '+inicioStr+' · <span style="color:#fff;font-weight:700;">'+(g.inscritos||0)+' alumnos</span></div>'+
-'<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">'+
-          '<button onclick="event.stopPropagation();abrirModalZoom(\''+g.id+'\')" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;">🔗 Enlace Zoom</button>'+
-          '<button onclick="event.stopPropagation();abrirModalGrabacion(\''+g.id+'\')" style="width:100%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;">🎥 Grabación</button>'+
-        '</div>'+
+'<div style="color:'+(g.nombre.toLowerCase().includes('adolescente')?'#fbbf24':'#fff')+';font-size:18px;font-weight:700;margin-bottom:4px;">'+g.nombre+'</div>'+
+'<div style="color:var(--gris2);font-size:13px;">'+g.horario+' · Inicio '+inicioStr+' · <span style="color:#fff;font-weight:700;">'+(g.inscritos||0)+' alumnos</span></div>'+
+'</div>'+
+'<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">'+
+'<button onclick="event.stopPropagation();abrirModalZoom(\''+g.id+'\')" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>'+
+'<button onclick="event.stopPropagation();abrirModalGrabacion(\''+g.id+'\')" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>'+
+'</div>'+
 '</div>';
 }).join('');
 }
-
   function abrirGrupo(idGrupo) {
     grupoActual=panelData.grupos.find(function(g){return g.id===idGrupo;});
     if (!grupoActual) return;
@@ -763,10 +765,12 @@ function renderMapas(resultados) {
 
     var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
     var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
-
-    function medalSVG(lit){
+    var miniNoAprobo  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado===false; });
+    var grandNoAprobo = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado===false; });
+    
+    function medalSVG(lit, noAprobo){
       var rc=lit?'#facc15':'#334155',mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
-      var gl=lit?'filter:drop-shadow(0 0 5px #facc15);':'';
+      var gl=lit?'filter:drop-shadow(0 0 5px #facc15);':noAprobo?'filter:drop-shadow(0 0 5px #ef4444);':'';
       return '<svg width="38" height="52" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
         +'<rect x="17" y="2" width="10" height="22" rx="2" fill="'+rc+'"/>'
         +'<rect x="12" y="0" width="20" height="5" rx="2" fill="'+mc+'"/>'
@@ -777,9 +781,9 @@ function renderMapas(resultados) {
         +'</svg>';
     }
 
-    function trophySVG(lit){
+    function trophySVG(lit, noAprobo){
       var cc=lit?'#fbbf24':'#334155',cd=lit?'#d97706':'#1e293b',sc=lit?'#fff':'#475569';
-      var gl=lit?'filter:drop-shadow(0 0 6px #fbbf24);':'';
+      var gl=lit?'filter:drop-shadow(0 0 6px #fbbf24);':noAprobo?'filter:drop-shadow(0 0 6px #ef4444);':'';
       return '<svg width="42" height="52" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
         +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
         +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
@@ -830,7 +834,7 @@ function renderMapas(resultados) {
       +'</div>'
       +'<div style="display:flex;gap:8px;margin-bottom:10px;">'
         +'<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
-          +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini)+'</div>'
+          +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>'+
           +'<div style="font-size:9px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;">Mini Challenge</div>'
           +'<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Completado ✓':'Pendiente')+'</div>'
           +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Mini';})&&r.challenges.find(function(c){return c.tipo==='Mini';}).feedback
@@ -841,7 +845,7 @@ function renderMapas(resultados) {
             :'')
         +'</div>'
         +'<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneGrand?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
-          +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand)+'</div>'
+          +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>'+
           +'<div style="font-size:9px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;">Grand Challenge</div>'
           +'<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Completado ✓':'Pendiente')+'</div>'
           +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';})&&r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';}).feedback
