@@ -717,120 +717,119 @@
   return svg;
 }
 function renderMapas(resultados) {
-    var lista=document.getElementById('listaMapas');
-    lista.innerHTML=resultados.map(function(r){
-      var d=r;
-      var clases=d.success?d.totalClases:0;
-      var positivos=d.success?d.porcentajePositivos:0;
-      var asistencia=d.success?d.porcentajeAsistencia:0;
-      
-      // Calcular % global según sistema de evaluación:
-      // Sistema: 80% evaluación continua (colores) + 20% proyecto final
-      // Para aprobación se necesita: 80% asistencia mínima + 70% verde+azul
-      var porcentajeGlobal = 0;
-      var primeraFecha = null;
-      var clasesProgramadas = 0;
-      
-      if (d.success && d.registros && d.registros.length > 0) {
-        // Encontrar la fecha más antigua del registro del alumno
-        d.registros.forEach(function(reg) {
-          var fechaReg = new Date(reg.fecha);
-          if (!primeraFecha || fechaReg < primeraFecha) {
-            primeraFecha = fechaReg;
-          }
-        });
-        
-        if (primeraFecha) {
-          // Calcular clases programadas desde primer registro hasta hoy
-          // 4 clases por semana (lunes-jueves)
-          var hoy = new Date();
-          var diffDias = Math.floor((hoy - primeraFecha) / (1000*60*60*24));
-          var semanas = Math.max(1, Math.ceil((diffDias + 1) / 7));
-          clasesProgramadas = Math.min(32, semanas * 4); // Max 32 clases por bloque
-        }
-      }
-      
-      // Si no hay registros, empieza con 100%
-      var asistenciaReal = 100; // Default para nuevos alumnos sin registros
-      if (clasesProgramadas > 0 && clases > 0) {
-        asistenciaReal = Math.min(100, Math.round((asistencia / clasesProgramadas) * 100));
-        // Porcentaje global: 80% asistencia + 20% colores positivos
-        // (Según el sistema: 80% evaluación continua + 20% proyecto final)
-        porcentajeGlobal = Math.round((asistenciaReal * 0.8) + (positivos * 0.2));
-      }
-      
-      // Etiqueta de estado según el sistema de evaluación
-      var estado = '';
-      var estadoColor = '';
-      if (asistencia >= 80 && positivos >= 70) {
-        estado = 'Pase asegurado'; estadoColor = '#22c55e'; // Verde - 70%+ positivos + 80%+ asistencia
-      } else if (asistencia >= 80 && positivos >= 60) {
-        estado = 'Pase con refuerzo'; estadoColor = '#facc15'; // Amarillo
-      } else if (asistencia >= 75 || positivos >= 60) {
-        estado = 'Pendiente'; estadoColor = '#f97316'; // Naranja
-      } else {
-        estado = 'No acredita'; estadoColor = '#ef4444'; // Rojo
-      }
-      
-      // Calcular % de cada color (solo presentes)
-      var conteoColores = {1:0,2:0,3:0,4:0};
-      var totalRegistros = 0;
-      if (d.success && d.registros) {
-        d.registros.forEach(function(reg) {
-          if (reg.asistencia) {
-            conteoColores[reg.color] = (conteoColores[reg.color] || 0) + 1;
-            totalRegistros++;
-          }
-        });
-      }
-      var getPorc = function(c) { return totalRegistros > 0 ? Math.round((conteoColores[c]/totalRegistros)*100) : 0; };
-      
-      // Determinar estado
-      var estado = '';
-      var estadoColor = '';
-      if (porcentajeGlobal >= 90) { estado = 'Pase asegurado'; estadoColor = '#22c55e'; }
-      else if (porcentajeGlobal >= 80) { estado = 'Pase con refuerzo'; estadoColor = '#facc15'; }
-      else if (porcentajeGlobal >= 70) { estado = 'Pendiente'; estadoColor = '#f97316'; }
-      else { estado = 'No acredita'; estadoColor = '#ef4444'; }
-      
-      // Determinar si tiene Mini o Gran challenge
-      var tieneMini = false;
-      var tieneGran = false;
-      if (d.success && d.challenges) {
-        tieneGran = d.challenges.some(function(ch){return ch.aprobado && ch.tipo === 'Gran';});
-        tieneMini = d.challenges.some(function(ch){return ch.aprobado && ch.tipo === 'Mini';});
-      }
-      
-      return '<div class="mapa-card" style="padding-bottom:16px;">'+
-        '<div style="display:flex;justify-content:center;align-items:center;height:155px;margin-bottom:12px;">'+
-          gemaSVG(porcentajeGlobal, tieneMini, tieneGran)+
-        '</div>'+
-        '<div style="background:#1a2540;border-radius:10px;padding:12px;margin-bottom:10px;">'+
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'+
-            '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Asistencia</div><div style="font-size:20px;font-weight:700;'+(asistencia>=80?'color:#22c55e':asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+asistencia+'%</div></div>'+
-            '<div style="text-align:center;"><div style="font-size:11px;color:var(--gris2);">Verde+Azul</div><div style="font-size:20px;font-weight:700;'+(positivos>=70?'color:#22c55e':positivos>=60?'color:#facc15':'color:#ef4444')+'">'+positivos+'%</div></div>'+
-          '</div>'+
-          '<div style="font-size:10px;color:var(--gris2);text-transform:uppercase;margin-bottom:6px;text-align:center;">Distribución de colores (solo presentes)</div>'+
-          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;">'+
-            '<div style="background:rgba(239,68,68,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🔴</div><div style="font-size:14px;font-weight:700;color:#ef4444">'+getPorc(1)+'%</div></div>'+
-            '<div style="background:rgba(250,204,21,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🟡</div><div style="font-size:14px;font-weight:700;color:#facc15">'+getPorc(2)+'%</div></div>'+
-            '<div style="background:rgba(34,197,94,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🟢</div><div style="font-size:14px;font-weight:700;color:#22c55e">'+getPorc(3)+'%</div></div>'+
-            '<div style="background:rgba(59,130,246,0.15);border-radius:6px;padding:6px;"><div style="font-size:16px;">🔵</div><div style="font-size:14px;font-weight:700;color:#3b82f6">'+getPorc(4)+'%</div></div>'+
-          '</div>'+
-        '</div>'+
-        '<div class="mapa-header">'+
-          '<div>'+
-            '<div class="mapa-nombre">'+r.alumno.nombre+'</div>'+
-            '<div style="color:var(--gris2);font-size:11px;">'+r.alumno.id+' · '+clases+' clases</div>'+
-          '</div>'+
-          '<div style="text-align:right;">'+
-            '<div style="font-size:11px;color:var(--gris2);">Asist: '+asistenciaReal+'% | Positivos: '+positivos+'%</div>'+
-            '<div style="font-size:13px;color:'+estadoColor+';font-weight:700;">'+estado+'</div>'+
-          '</div>'+
-        '</div>'+
-      '</div>';
-    }).join('');
-  }
+  var lista = document.getElementById('listaMapas');
+  lista.innerHTML = resultados.map(function(r) {
+    var pc        = r.porcentajeGlobal || 0;
+    var gemaColor = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
+    var gemaLabel = pc>=90?'Excelente':pc>=80?'Bueno':pc>=70?'Regular':pc>=60?'Atención':'Crítico';
+
+    var gemSVG = '<svg width="60" height="68" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
+      +'<defs><linearGradient id="gF'+r.alumno.id+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/></linearGradient></defs>'
+      +'<polygon points="30,4 44,18 30,14 16,18" fill="url(#gF'+r.alumno.id+')" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+      +'<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+      +'<polygon points="30,4 44,18 52,18 42,4" fill="'+gemaColor+'" opacity="0.85" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+      +'<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="'+gemaColor+'" opacity="0.6" stroke="'+gemaColor+'" stroke-width="0.4"/>'
+      +'<polygon points="8,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+      +'<polygon points="52,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+      +'<polygon points="8,22 16,20 30,63" fill="url(#gF'+r.alumno.id+')" opacity="0.3"/>'
+      +'<polygon points="52,22 44,20 30,63" fill="url(#gF'+r.alumno.id+')" opacity="0.2"/>'
+      +'<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
+      +'<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
+      +'</svg>';
+
+    var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
+    var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
+
+    function medalSVG(lit){
+      var rc=lit?'#facc15':'#334155',mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
+      var gl=lit?'filter:drop-shadow(0 0 5px #facc15);':'';
+      return '<svg width="38" height="52" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+        +'<rect x="17" y="2" width="10" height="22" rx="2" fill="'+rc+'"/>'
+        +'<rect x="12" y="0" width="20" height="5" rx="2" fill="'+mc+'"/>'
+        +'<circle cx="22" cy="44" r="16" fill="'+mc+'"/>'
+        +'<circle cx="22" cy="44" r="14" fill="'+md+'"/>'
+        +'<circle cx="22" cy="44" r="11" fill="none" stroke="'+mc+'" stroke-width="2" opacity="0.7"/>'
+        +'<polygon points="22,34 24.4,40.6 31.5,40.6 25.8,44.9 28,51.5 22,47.2 16,51.5 18.2,44.9 12.5,40.6 19.6,40.6" fill="'+sc+'" opacity="'+(lit?'0.9':'0.2')+'"/>'
+        +'</svg>';
+    }
+
+    function trophySVG(lit){
+      var cc=lit?'#fbbf24':'#334155',cd=lit?'#d97706':'#1e293b',sc=lit?'#fff':'#475569';
+      var gl=lit?'filter:drop-shadow(0 0 6px #fbbf24);':'';
+      return '<svg width="42" height="52" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+        +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
+        +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
+        +'<path d="M12,8 L38,8 Q38,36 25,42 Q12,36 12,8 Z" fill="'+cc+'"/>'
+        +'<rect x="10" y="6" width="30" height="5" rx="2" fill="'+cd+'"/>'
+        +'<rect x="21" y="42" width="8" height="8" fill="'+cc+'"/>'
+        +'<rect x="13" y="50" width="24" height="6" rx="3" fill="'+cc+'"/>'
+        +'<polygon points="25,14 26.5,18.5 31.5,18.5 27.5,21.2 29,25.7 25,23 21,25.7 22.5,21.2 18.5,18.5 23.5,18.5" fill="'+sc+'" opacity="'+(lit?'0.85':'0.15')+'"/>'
+        +'</svg>';
+    }
+
+    var total = r.totalClases || 1;
+    var gp = function(c){ return total>0?Math.round((r.colores[c]/total)*100):0; };
+
+    return '<div class="mapa-card" style="padding-bottom:16px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+        +'<div>'
+          +'<div style="font-size:15px;font-weight:700;color:#f1f5f9;">'+r.alumno.nombre+'</div>'
+          +'<div style="font-size:11px;color:#64748b;">'+r.alumno.id+' · '+r.totalClases+' clases · Bloque '+r.bloque+'</div>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:'+r.estadoColor+';">'+r.estado+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">'
+        +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+          +gemSVG
+          +'<div style="font-size:13px;font-weight:800;color:'+gemaColor+';">'+pc+'%</div>'
+        +'</div>'
+        +'<div>'
+          +'<div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+r.estado+'</div>'
+          +'<div style="font-size:11px;color:'+r.estadoColor+';">'+gemaLabel+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
+        +'<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;text-align:center;">'
+          +'<div style="font-size:18px;font-weight:700;'+(r.asistencia>=80?'color:#22c55e':r.asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+r.asistencia+'%</div>'
+          +'<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Asistencia</div>'
+        +'</div>'
+        +'<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;text-align:center;">'
+          +'<div style="font-size:18px;font-weight:700;'+(r.positivos>=70?'color:#22c55e':r.positivos>=60?'color:#facc15':'color:#ef4444')+'">'+r.positivos+'%</div>'
+          +'<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px;">'
+        +'<div style="background:rgba(239,68,68,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🔴</div><div style="font-size:12px;font-weight:700;color:#ef4444">'+gp(1)+'%</div></div>'
+        +'<div style="background:rgba(250,204,21,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🟡</div><div style="font-size:12px;font-weight:700;color:#facc15">'+gp(2)+'%</div></div>'
+        +'<div style="background:rgba(34,197,94,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🟢</div><div style="font-size:12px;font-weight:700;color:#22c55e">'+gp(3)+'%</div></div>'
+        +'<div style="background:rgba(59,130,246,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+gp(4)+'%</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:10px;">'
+        +'<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
+          +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini)+'</div>'
+          +'<div style="font-size:9px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;">Mini Challenge</div>'
+          +'<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Completado ✓':'Pendiente')+'</div>'
+        +'</div>'
+        +'<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneGrand?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
+          +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand)+'</div>'
+          +'<div style="font-size:9px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;">Grand Challenge</div>'
+          +'<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Completado ✓':'Pendiente')+'</div>'
+        +'</div>'
+      +'</div>'
+      +(r.observaciones && r.observaciones.length > 0
+        ? '<div style="background:rgba(6,182,212,0.08);border-radius:8px;padding:10px;">'
+          +'<div style="font-size:10px;font-weight:700;color:#67e8f9;margin-bottom:6px;text-transform:uppercase;">📋 Observaciones recientes</div>'
+          +r.observaciones.slice().reverse().map(function(o){
+            return '<div style="display:flex;gap:8px;margin-bottom:4px;">'
+              +'<span style="font-size:10px;color:#475569;flex-shrink:0;">'+o.fecha+'</span>'
+              +'<span style="font-size:11px;color:#94a3b8;line-height:1.4;">'+o.texto+'</span>'
+              +'</div>';
+          }).join('')
+          +'</div>'
+        : '')
+    +'</div>';
+  }).join('');
+}
 
  // ── MASTER CHALLENGE ───────────────────────────────────────────────
   var tipoChallenge = 'Mini';
