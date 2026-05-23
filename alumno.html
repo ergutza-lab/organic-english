@@ -359,8 +359,8 @@
       </div>
 
       <!-- MI MAESTRO -->
-      <div class="card">
-        <div class="card-header"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
         <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none" />
         <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro">M</div>
         <div class="persona-nombre" id="maestroNombre">—</div>
@@ -374,8 +374,8 @@
       </div>
 
       <!-- MI ASISTENTE CE -->
-      <div class="card">
-        <div class="card-header"><div class="card-icon icon-asist">🎓</div><span class="card-title">Mi asistente CE</span></div>
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-asist">🎓</div><span class="card-title">Mi asistente CE</span></div>
         <img id="asisFoto" class="persona-foto foto-asistente" src="" alt="" style="display:none" />
         <div id="asisAvatarFallback" class="persona-avatar-fallback avatar-asistente">CE</div>
         <div class="persona-nombre" id="asisNombre">—</div>
@@ -710,7 +710,9 @@
     if (semana >= 16 && semana <= 20) bd = 3;
     if (semana > 20)                  bd = 4;
     bloqueActual = bd;
-    if (!bd) return;
+   if (!bd) return;
+
+    var esSemanaDEval = (semana === 4 || semana === 8);
 
     fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
       .then(r => r.json())
@@ -718,6 +720,11 @@
         evalRealizadas = data.evaluaciones || {};
         var btnM = document.getElementById('btnEvaluarMaestro');
         var btnC = document.getElementById('btnEvaluarCE');
+        if (!esSemanaDEval) {
+          btnM.style.display = 'none';
+          btnC.style.display = 'none';
+          return;
+        }
         btnM.style.display = 'flex';
         btnC.style.display = 'flex';
         var yaM = evalRealizadas[bd] && evalRealizadas[bd].maestro;
@@ -1021,26 +1028,14 @@
       });
   }
 
-  /* ================================================================
-   PATCH ALUMNO.HTML — apply by replacing the matching sections
-   ================================================================ */
+  
 
-/* ── PATCH 1: Text fixes in HTML (find & replace manually)
-   OLD: <span class="field-label">Nivel actual</span>
-   NEW: <span class="field-label">Bloque Actual</span>
-
-   OLD: <span class="field-label">Duracion del nivel</span>
-   NEW: <span class="field-label">Duración del Bloque</span>
-
-   OLD: <span class="field-val">16 semanas</span>
-   NEW: <span class="field-val">8 semanas</span>
-   ────────────────────────────────────────────────────────────── */
-
-/* ── PATCH 2: Replace the renderEvaluacionAlumno function entirely ── */
- 
 /* ================================================================
-   PATCH v2 — renderEvaluacionAlumno
-   Fixes: Grand Challenge detection + comentario del maestro
+   PATCH v3 — renderEvaluacionAlumno
+   - Gema mejorada: porcentaje DEBAJO, brillo si 95-100%
+   - Últimas 3 observaciones del maestro en Recomendaciones
+   - Grand fix (Gran/Grand)
+   - Feedback de challenges
    ================================================================ */
 
 function renderEvaluacionAlumno(d) {
@@ -1050,8 +1045,21 @@ function renderEvaluacionAlumno(d) {
   var pc = d.porcentajeGlobal || 0;
   var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
   var gemaLabel = pc >= 90 ? 'Excelente' : pc >= 80 ? 'Bueno' : pc >= 70 ? 'Regular' : pc >= 60 ? 'Atención' : 'Crítico';
+  var brillar   = pc >= 95;
 
-  var gemSVG = '<svg width="60" height="70" viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg">'
+  var glowStyle = brillar
+    ? 'filter:drop-shadow(0 0 8px '+gemaColor+') drop-shadow(0 0 16px '+gemaColor+');animation:gemGlow 1.8s ease-in-out infinite alternate;'
+    : '';
+
+  /* Inject keyframes once */
+  if (!document.getElementById('gemGlowStyle')) {
+    var st = document.createElement('style');
+    st.id = 'gemGlowStyle';
+    st.textContent = '@keyframes gemGlow{from{filter:drop-shadow(0 0 6px '+gemaColor+') drop-shadow(0 0 12px '+gemaColor+');}to{filter:drop-shadow(0 0 14px '+gemaColor+') drop-shadow(0 0 28px '+gemaColor+');}}';
+    document.head.appendChild(st);
+  }
+
+  var gemSVG = '<svg width="60" height="68" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg" style="'+glowStyle+'">'
     + '<defs>'
     + '<linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/></linearGradient>'
     + '</defs>'
@@ -1059,17 +1067,19 @@ function renderEvaluacionAlumno(d) {
     + '<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
     + '<polygon points="30,4 44,18 52,18 42,4" fill="'+gemaColor+'" opacity="0.85" stroke="'+gemaColor+'" stroke-width="0.5"/>'
     + '<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="'+gemaColor+'" opacity="0.6" stroke="'+gemaColor+'" stroke-width="0.4"/>'
-    + '<polygon points="8,22 30,22 30,64" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-    + '<polygon points="52,22 30,22 30,64" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-    + '<polygon points="8,22 16,20 30,64" fill="url(#gF)" opacity="0.3"/>'
-    + '<polygon points="52,22 44,20 30,64" fill="url(#gF)" opacity="0.2"/>'
+    + '<polygon points="8,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="52,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="8,22 16,20 30,63" fill="url(#gF)" opacity="0.3"/>'
+    + '<polygon points="52,22 44,20 30,63" fill="url(#gF)" opacity="0.2"/>'
     + '<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
-    + '<circle cx="30" cy="64" r="2.5" fill="#fff" opacity="0.55"/>'
-    + '<text x="30" y="38" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Sora,sans-serif">'+pc+'%</text>'
+    + '<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
     + '</svg>';
 
   html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">';
-  html += '<div style="width:62px;height:72px;display:flex;align-items:center;justify-content:center;">'+gemSVG+'</div>';
+  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">';
+  html += gemSVG;
+  html += '<div style="font-size:13px;font-weight:800;color:'+gemaColor+';">'+pc+'%</div>';
+  html += '</div>';
   html += '<div><div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+d.estado+'</div>';
   html += '<div style="font-size:11px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div></div></div>';
 
@@ -1094,34 +1104,38 @@ function renderEvaluacionAlumno(d) {
   html += '<div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+gp(4)+'%</div></div>';
   html += '</div></div>';
 
-  /* ── Recommendations ── */
-  if(d.recommendations && d.recommendations.length > 0) {
+  /* ── Últimas 3 observaciones del maestro ── */
+  var obs = d.observaciones || [];
+  if (obs.length > 0) {
+    html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Observaciones recientes del maestro</div>';
+    obs.slice(-3).reverse().forEach(function(o) {
+      html += '<div style="display:flex;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+      html += '<span style="font-size:10px;color:#475569;flex-shrink:0;padding-top:1px;">'+o.fecha+'</span>';
+      html += '<span style="font-size:11px;color:#94a3b8;line-height:1.4;">'+o.texto+'</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  } else if (d.recommendations && d.recommendations.length > 0) {
+    /* fallback: recomendaciones automáticas si no hay observaciones */
     html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
     html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Recomendaciones</div>';
     d.recommendations.forEach(function(rec){ html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px;line-height:1.4;">'+rec+'</div>'; });
     html += '</div>';
   }
 
-  /* ── Challenges ──
-     FIX: acepta 'Grand' Y 'Gran' por si el Apps Script guarda sin d
-  ── */
-  var tieneMini  = d.challenges && d.challenges.some(function(c){
-    return (c.tipo==='Mini') && c.aprobado;
-  });
-  var tieneGrand = d.challenges && d.challenges.some(function(c){
-    return (c.tipo==='Grand' || c.tipo==='Gran') && c.aprobado;
-  });
+  /* ── Challenges ── */
+  var tieneMini  = d.challenges && d.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
+  var tieneGrand = d.challenges && d.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
 
-  /* Buscar comentarios del maestro */
-  var miniChallenge  = d.challenges && d.challenges.find(function(c){ return c.tipo==='Mini'; });
-  var grandChallenge = d.challenges && d.challenges.find(function(c){ return c.tipo==='Grand' || c.tipo==='Gran'; });
-  var comentarioMini  = miniChallenge  && miniChallenge.feedback  ? miniChallenge.feedback  : '';
-  var comentarioGrand = grandChallenge && grandChallenge.feedback ? grandChallenge.feedback : '';
+  var miniCh  = d.challenges && d.challenges.find(function(c){ return c.tipo==='Mini'; });
+  var grandCh = d.challenges && d.challenges.find(function(c){ return c.tipo==='Grand'||c.tipo==='Gran'; });
+  var fbMini  = miniCh  && miniCh.feedback  ? miniCh.feedback  : '';
+  var fbGrand = grandCh && grandCh.feedback ? grandCh.feedback : '';
 
-  /* Military medal SVG */
   function medalSVG(lit){
-    var rc=lit?'#facc15':'#334155', s1=lit?'#f97316':'#1e293b', s2=lit?'#ef4444':'#1e293b';
-    var mc=lit?'#fde047':'#334155', md=lit?'#ca8a04':'#1e293b', sc=lit?'#fff':'#475569';
+    var rc=lit?'#facc15':'#334155',s1=lit?'#f97316':'#1e293b',s2=lit?'#ef4444':'#1e293b';
+    var mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
     var gl=lit?'filter:drop-shadow(0 0 6px #facc15);':'';
     return '<svg width="44" height="60" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
       +'<rect x="17" y="2" width="10" height="22" rx="2" fill="'+rc+'"/>'
@@ -1136,10 +1150,9 @@ function renderEvaluacionAlumno(d) {
       +'</svg>';
   }
 
-  /* Gold trophy SVG */
   function trophySVG(lit){
-    var cc=lit?'#fbbf24':'#334155', cd=lit?'#d97706':'#1e293b', bc=lit?'#f59e0b':'#1e293b';
-    var sc=lit?'#fff':'#475569', gl=lit?'filter:drop-shadow(0 0 8px #fbbf24);':'';
+    var cc=lit?'#fbbf24':'#334155',cd=lit?'#d97706':'#1e293b',bc=lit?'#f59e0b':'#1e293b';
+    var sc=lit?'#fff':'#475569',gl=lit?'filter:drop-shadow(0 0 8px #fbbf24);':'';
     return '<svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
       +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
       +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
@@ -1156,44 +1169,122 @@ function renderEvaluacionAlumno(d) {
 
   html += '<div style="display:flex;gap:12px;margin-bottom:8px;">';
 
-  /* Mini Challenge card */
-  html += '<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';'
-        + 'border:'+(tieneMini?'1px solid rgba(251,191,36,0.45)':'1px solid rgba(255,255,255,0.07)')+';'
-        + 'border-radius:12px;padding:14px 10px;text-align:center;">';
+  html += '<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid rgba(251,191,36,0.45)':'1px solid rgba(255,255,255,0.07)')+';border-radius:12px;padding:14px 10px;text-align:center;">';
   html += '<div style="display:flex;justify-content:center;margin-bottom:6px;">'+medalSVG(tieneMini)+'</div>';
   html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Mini Challenge</div>';
   html += '<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Completado ✓':'Pendiente')+'</div>';
-  /* Comentario maestro Mini */
-  if(comentarioMini) {
+  if(fbMini){
     html += '<div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:left;">';
-    html += '<div style="font-size:9px;font-weight:700;color:#facc15;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px;">💬 Retroalimentación</div>';
-    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+comentarioMini+'</div>';
-    html += '</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:#facc15;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbMini+'</div></div>';
   }
   html += '</div>';
 
-  /* Grand Challenge card */
-  html += '<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';'
-        + 'border:'+(tieneGrand?'1px solid rgba(251,191,36,0.45)':'1px solid rgba(255,255,255,0.07)')+';'
-        + 'border-radius:12px;padding:14px 10px;text-align:center;">';
+  html += '<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneGrand?'1px solid rgba(251,191,36,0.45)':'1px solid rgba(255,255,255,0.07)')+';border-radius:12px;padding:14px 10px;text-align:center;">';
   html += '<div style="display:flex;justify-content:center;margin-bottom:6px;">'+trophySVG(tieneGrand)+'</div>';
   html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Grand Challenge</div>';
   html += '<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Completado ✓':'Pendiente')+'</div>';
-  /* Comentario maestro Grand */
-  if(comentarioGrand) {
+  if(fbGrand){
     html += '<div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:left;">';
-    html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px;">💬 Retroalimentación</div>';
-    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+comentarioGrand+'</div>';
-    html += '</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbGrand+'</div></div>';
   }
   html += '</div>';
 
   html += '</div>';
-
   html += '<div style="font-size:10px;color:#475569;text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
 
   document.getElementById('evaluacionAlumno').innerHTML = html;
 }
+
+
+/* ================================================================
+   PATCH v3 — OTROS CAMBIOS
+   ================================================================
+
+── CAMBIO 1: Centrar maestro y CE en sus cards ──────────────────
+En el HTML busca la card "MI MAESTRO" y agrega text-align:center
+al div principal. Reemplaza:
+
+  <div class="card">
+    <div class="card-header"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
+    <img id="maestroFoto" ...
+
+Por:
+
+  <div class="card" style="text-align:center;">
+    <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
+    <img id="maestroFoto" ...
+
+Igual para la card "MI ASISTENTE CE":
+
+  <div class="card" style="text-align:center;">
+    <div class="card-header" style="justify-content:center;"><div class="card-icon icon-asist">🎓</div><span class="card-title">Mi asistente CE</span></div>
+
+
+── CAMBIO 2: Ocultar evaluaciones hasta semana 4 y 8 ────────────
+En la función verificarEvaluaciones, reemplaza:
+
+    if (!bd) return;
+
+    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno& ...
+      .then(r => r.json())
+      .then(data => {
+        evalRealizadas = data.evaluaciones || {};
+        var btnM = document.getElementById('btnEvaluarMaestro');
+        var btnC = document.getElementById('btnEvaluarCE');
+        btnM.style.display = 'flex';
+        btnC.style.display = 'flex';
+
+Por:
+
+    if (!bd) return;
+
+    /* Solo mostrar botones en semana 4 y semana 8 */
+    var semanaActual = semana || 0;
+    var esSemanaDEval = (semanaActual === 4 || semanaActual === 8);
+
+    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno& ...
+      .then(r => r.json())
+      .then(data => {
+        evalRealizadas = data.evaluaciones || {};
+        var btnM = document.getElementById('btnEvaluarMaestro');
+        var btnC = document.getElementById('btnEvaluarCE');
+        if (!esSemanaDEval) {
+          btnM.style.display = 'none';
+          btnC.style.display = 'none';
+          return;
+        }
+        btnM.style.display = 'flex';
+        btnC.style.display = 'flex';
+
+
+── CAMBIO 3: Apps Script — enviar observaciones ─────────────────
+En tu código.gs, en la función getEvaluacionAlumno,
+después de calcular los challenges agrega esto
+antes del return final:
+
+    // Últimas 3 observaciones del maestro
+    var observaciones = [];
+    for (var r = 1; r < dataClases.length; r++) {
+      if (String(dataClases[r][0]).trim() === String(idAlumno).trim() &&
+          String(dataClases[r][1]).trim() === String(idGrupo).trim()) {
+        var obs = String(dataClases[r][7] || '').trim(); // columna Observación
+        if (obs) {
+          observaciones.push({
+            fecha: Utilities.formatDate(new Date(dataClases[r][2]), 'America/Mexico_City', 'dd/MM'),
+            texto: obs
+          });
+        }
+      }
+    }
+    // Solo las últimas 3
+    observaciones = observaciones.slice(-3);
+
+Y en el objeto que retornas agrega:
+    observaciones: observaciones,
+
+================================================================ */
     
    function logout(){
     alumnoData=null;archivoSubida=null;grupoDestinoCambio=null;
