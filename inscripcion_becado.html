@@ -465,7 +465,18 @@
 
   function renderGrupos() {
     const contenedor = document.getElementById('grupos-container');
-    const disponibles = grupos.filter(g => g.inscritos < g.cupoMax);
+    const hoy = new Date();
+const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+const finProximo  = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0);
+
+const disponibles = grupos.filter(g => {
+  if (g.inscritos >= g.cupoMax) return false;
+  if (!g.fechaInicio) return true;
+  const m = g.fechaInicio.match(/Date\((\d+),(\d+),(\d+)\)/);
+  if (!m) return true;
+  const fechaGrupo = new Date(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
+  return fechaGrupo >= mesAnterior && fechaGrupo <= finProximo;
+});
     const agrupados   = {};
     disponibles.forEach(g => {
       const f = g.fechaInicio;
