@@ -525,8 +525,14 @@
         inscritos: r.c[6]?.v ?? 0,
         libres:    r.c[7]?.v ?? 0,
         estado:    r.c[8]?.v || '',
-      })).filter(g => g.id && String(g.estado).trim() !== 'Cancelado'
-                           && g.nivel === 'NIVEL A1.1');
+      })).filter(g => {
+  if (!g.id || String(g.estado).trim() === 'Cancelado') return false;
+  if (!g.fechaObj) return true;
+  const hoy = new Date();
+  const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const finProximo  = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0);
+  return g.fechaObj >= mesAnterior && g.fechaObj <= finProximo;
+});
       renderTodo();
     } catch(e) {
       document.getElementById('grupos-loading').style.display = 'none';
