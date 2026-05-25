@@ -8,21 +8,19 @@
   <style>
     :root {
       --bg:          #111827;
-      --navy:        #2e2318;
-      --navy-deep:   #221a10;
-      --surface:     #3a2d1e;
-      --surface2:    #48392a;
+      --navy:        #2a2318;
+      --navy-deep:   #1a1610;
+      --surface:     #2e2618;
+      --surface2:    #3a3020;
       --border:      rgba(255,255,255,0.1);
-      --gold:        #c4956a;
-      --gold2:       #d4aa82;
-      --gold-dark:   #a07550;
-      --gold-light:  #e8c8a0;
+      --gold:        #c8a96e;
+      --gold2:       #d4bc8a;
+      --gold-dark:   #a8893e;
+      --gold-light:  #e8d5a8;
       --danger:      #ef4444;
-      --text:        #f1e8d8;
-      --text-muted:  #b8a888;
-      --text-subtle: #806848;
-    }
-    }
+      --text:        #f1f5f9;
+      --text-muted:  #94a3b8;
+      --text-subtle: #64748b;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
@@ -80,9 +78,9 @@
     .leyenda-items{display:flex;flex-direction:column;gap:8px}
     .leyenda-row{display:flex;align-items:center;gap:10px}
     .chip-s{border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
-    .chip-s.disp   {background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.35)}
-    .chip-s.curso  {background:rgba(202,138,4,0.15);color:#fbbf24;border:1px solid rgba(202,138,4,0.4)}
-    .chip-s.lleno  {background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
+    .chip-s.disp  {background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.35)}
+    .chip-s.curso {background:rgba(202,138,4,0.15);color:#fbbf24;border:1px solid rgba(202,138,4,0.4)}
+    .chip-s.lleno {background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
 
     /* ── CALENDARIO ── */
     .cal-wrap{background:var(--surface);border:1px solid rgba(200,169,110,0.2);border-radius:14px;padding:18px;margin-bottom:24px}
@@ -104,14 +102,26 @@
     .cal-day.con-inicio.sel{background:var(--gold);color:#1a1610;border-color:var(--gold)}
     .cal-day.con-inicio::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--gold2)}
     .cal-day.con-inicio.sel::after{background:rgba(26,22,16,0.5)}
+    .cal-day.con-inicio.llena{background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);color:var(--gold2);opacity:0.9}
+    .cal-day.con-inicio.llena:hover{background:rgba(200,169,110,0.2);opacity:0.8}
+    .cal-day.con-inicio.llena::after{display:none}
     .cal-filtro-activo{display:inline-flex;align-items:center;gap:8px;background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.3);border-radius:8px;padding:5px 11px;margin-top:10px;font-size:0.75rem;color:var(--gold2)}
     .cal-filtro-activo button{background:none;border:none;color:var(--gold);cursor:pointer;font-size:13px;line-height:1;padding:0;margin-left:4px}
 
-    /* ── GRUPOS ── */
+    /* ── MENSAJE SIN FECHA ── */
+    .sin-fecha-msg{text-align:center;padding:40px 20px;color:var(--text-muted);background:rgba(255,255,255,0.02);border-radius:12px;border:1px dashed rgba(200,169,110,0.15)}
+    .sin-fecha-msg p{font-size:0.9rem;line-height:1.7}
+    .sin-fecha-msg span{color:var(--gold2);font-weight:600}
+
+    /* ── SECCIÓN FECHA ── */
     .fecha-section{margin-bottom:36px}
     .fecha-titulo{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:4px;letter-spacing:-0.02em}
     .fecha-subtitulo{font-size:0.78rem;color:var(--text-muted);margin-bottom:14px}
+
+    /* ── GRUPOS GRID ── */
     .grupos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+
+    /* ── GRUPO CARD ── */
     .grupo-card{border-radius:12px;padding:1rem;cursor:pointer;transition:all 0.22s;position:relative;overflow:hidden;background:var(--surface);border:1px solid rgba(200,169,110,0.15)}
     .grupo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));opacity:0;transition:opacity 0.22s}
     .grupo-card.clickable:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 10px 28px rgba(200,169,110,0.15)}
@@ -121,25 +131,32 @@
     .grupo-horario{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;color:#fff;line-height:1}
     .grupo-hora-sub{font-size:0.6rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;margin-top:2px}
     .chip-estado{font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:100px;text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0}
-    .chip-disp{background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.35)}
+    .chip-disp {background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.35)}
     .chip-lleno{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
+    .chip-curso{background:rgba(202,138,4,0.15);color:#fbbf24;border:1px solid rgba(202,138,4,0.4)}
     .grupo-info{display:flex;flex-direction:column;gap:0.28rem;margin-bottom:0.75rem}
     .grupo-info-row{display:flex;align-items:center;gap:0.45rem;font-size:0.73rem;color:var(--text-muted)}
     .grupo-nivel-tag{font-size:0.65rem;color:var(--gold2);font-weight:600;margin-top:2px}
     .grupo-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
     .plazas-num{font-weight:700;color:var(--gold2)}
+    .plazas-curso-num{font-weight:700;color:#fbbf24}
+    .plazas-lleno{color:#f87171;font-weight:600;font-size:0.75rem}
     .plazas-bar{display:flex;gap:3px;margin-top:0.28rem;flex-wrap:wrap}
     .plaza-dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
     .plaza-dot.ocupada{background:var(--surface2);border:1px solid var(--border)}
     .btn-elegir{background:var(--gold);color:#1a1610;border:none;padding:0.4rem 0.85rem;border-radius:6px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap}
     .btn-elegir:hover{background:var(--gold-dark);color:#fff}
+    .btn-elegir.curso{background:#ca8a04;color:#fff}
+    .btn-elegir.curso:hover{background:#a16207}
+
+    /* ── SECCIÓN VACÍA ── */
+    .seccion-vacia{text-align:center;padding:28px 20px;color:var(--text-subtle);font-size:0.83rem;background:rgba(255,255,255,0.02);border-radius:10px}
 
     /* ── LOADING / ERROR ── */
     .loading{text-align:center;padding:4rem 2rem;color:var(--text-muted)}
     .spinner{width:30px;height:30px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem}
     @keyframes spin{to{transform:rotate(360deg)}}
     .error-msg{text-align:center;padding:2.5rem 1.5rem;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px}
-    .seccion-vacia{text-align:center;padding:28px 20px;color:var(--text-subtle);font-size:0.83rem;background:rgba(255,255,255,0.02);border-radius:10px}
 
     /* ── FORMULARIO ── */
     .form-container{max-width:540px;margin:0 auto}
@@ -200,10 +217,15 @@
     .country-dial{font-size:0.78rem;color:var(--text-muted)}
 
     /* ── RESPONSIVE ── */
-    @media(max-width:640px){
+    @media(max-width:700px){
       .hero-inner{grid-template-columns:1fr}
-      .beca-card{min-width:unset;width:100%}
-      .phone-flag-btn span{display:none}
+      .beca-card{display:none}
+      .steps-wrap{padding:0.65rem 1rem}
+      .step-label{display:none}
+      .grupos-grid{grid-template-columns:1fr}
+      .container{padding:1.25rem 1rem 4rem}
+      .cal-months{flex-direction:column}
+      .fecha-titulo{font-size:1.3rem}
     }
   </style>
 </head>
@@ -211,7 +233,7 @@
 
 <header>
   <a class="logo" href="#">
-    <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" class="logo-img" alt="Organic English" />
+    <img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logoblanco.png" class="logo-img" alt="Organic English" />
   </a>
   <div class="beca-badge-nav">⭐ Registro de Becado</div>
 </header>
@@ -239,26 +261,16 @@
 
 <div class="steps-wrap">
   <div class="steps">
-    <div class="step active" id="step1">
-      <div class="step-num">1</div>
-      <div class="step-label">Grupo</div>
-    </div>
-    <div class="step" id="step2">
-      <div class="step-num">2</div>
-      <div class="step-label">Datos</div>
-    </div>
-    <div class="step" id="step3">
-      <div class="step-num">3</div>
-      <div class="step-label">Confirmación</div>
-    </div>
+    <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Grupo</div></div>
+    <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Datos</div></div>
+    <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Confirmación</div></div>
   </div>
 </div>
 
 <div class="container">
 
-  <!-- PANEL 1: SELECCIÓN DE GRUPO -->
+  <!-- PANEL 1 -->
   <div class="panel active" id="panel1">
-
     <div class="aviso-beca">
       <div class="aviso-beca-titulo">⭐ Condiciones para mantener la beca</div>
       <ul>
@@ -268,23 +280,21 @@
         <li>La beca es <strong>intransferible</strong> y de uso personal exclusivo.</li>
       </ul>
     </div>
-
-    <div id="grupos-container">
-      <div class="loading"><div class="spinner"></div>Cargando grupos disponibles...</div>
-    </div>
+    <div id="grupos-loading" class="loading"><div class="spinner"></div><p>Cargando grupos...</p></div>
+    <div id="grupos-content" style="display:none"></div>
+    <div id="grupos-error" class="error-msg" style="display:none"><p>No se pudieron cargar los grupos. Intenta más tarde.</p></div>
   </div>
 
-  <!-- PANEL 2: DATOS DEL BECADO -->
+  <!-- PANEL 2 -->
   <div class="panel" id="panel2">
     <div class="form-container">
-
-      <div class="grupo-sel-box" id="grupo-sel-box">
+      <div class="grupo-sel-box">
         <div>
           <div class="grupo-sel-lbl">Grupo seleccionado</div>
           <div class="grupo-sel-val" id="grupo-sel-val">—</div>
           <div class="grupo-sel-sub" id="grupo-sel-sub">—</div>
         </div>
-        <a class="grupo-sel-chg" onclick="goToPanel(1)">Cambiar</a>
+        <a class="grupo-sel-chg" onclick="goToPanel(1)">← Cambiar</a>
       </div>
 
       <div class="aviso-beca" style="margin-bottom:1.75rem;">
@@ -345,22 +355,17 @@
     </div>
   </div>
 
-  <!-- PANEL 3: CONFIRMACIÓN -->
+  <!-- PANEL 3 -->
   <div class="panel" id="panel3">
     <div class="confirmacion">
       <div class="confirm-icon">⭐</div>
       <h2>¡Becado <em>registrado!</em></h2>
       <p>El registro se ha completado exitosamente. El becado podrá acceder a su panel con el correo registrado.</p>
-
-      <div class="confirm-card">
-        <div id="confirm-resumen"></div>
-      </div>
-
+      <div class="confirm-card"><div id="confirm-resumen"></div></div>
       <div class="compromiso-beca">
         <strong>Recuerda informar al becado:</strong><br><br>
         Para mantener la beca debe cumplir con <strong>mínimo 80% de asistencia</strong> y <strong>80% de aprovechamiento</strong> durante cada bloque. El incumplimiento puede resultar en la cancelación de la beca.
       </div>
-
       <button class="btn-submit" onclick="nuevoRegistro()" style="margin-top:0;">
         Registrar otro becado
       </button>
@@ -382,11 +387,11 @@
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
   const SHEET_ID    = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
 
-  let grupos      = [];
-  let grupoSel    = null;
-  let fechaFiltro = null;
+  let grupos       = [];
+  let grupoSel     = null;
+  let fechaFiltro  = null;
   let mostrarTodos = false;
-  let paisActual  = {flag:'🇲🇽', dial:'+52', name:'México'};
+  let paisActual   = {flag:'🇲🇽', dial:'+52', name:'México'};
 
   const PAISES = [
     {flag:'🇲🇽',dial:'+52',name:'México'},{flag:'🇺🇸',dial:'+1',name:'Estados Unidos'},{flag:'🇬🇹',dial:'+502',name:'Guatemala'},{flag:'🇸🇻',dial:'+503',name:'El Salvador'},{flag:'🇭🇳',dial:'+504',name:'Honduras'},{flag:'🇳🇮',dial:'+505',name:'Nicaragua'},{flag:'🇨🇷',dial:'+506',name:'Costa Rica'},{flag:'🇵🇦',dial:'+507',name:'Panamá'},{flag:'🇨🇴',dial:'+57',name:'Colombia'},{flag:'🇻🇪',dial:'+58',name:'Venezuela'},{flag:'🇵🇪',dial:'+51',name:'Perú'},{flag:'🇧🇴',dial:'+591',name:'Bolivia'},{flag:'🇨🇱',dial:'+56',name:'Chile'},{flag:'🇦🇷',dial:'+54',name:'Argentina'},{flag:'🇪🇸',dial:'+34',name:'España'},{flag:'🇪🇨',dial:'+593',name:'Ecuador'},{flag:'🇵🇾',dial:'+595',name:'Paraguay'},{flag:'🇺🇾',dial:'+598',name:'Uruguay'},{flag:'🇨🇺',dial:'+53',name:'Cuba'},{flag:'🇩🇴',dial:'+1',name:'República Dominicana'}
@@ -434,122 +439,248 @@
       const res  = await fetch(url);
       const text = await res.text();
       const json = JSON.parse(text.substring(47, text.length - 2));
-      const rows = json.table.rows;
-      grupos = rows.map(r => {
-        const c = r.c;
-        return {
-          id:          c[0]?.v || '',
-          nombre:      c[1]?.v || '',
-          horario:     c[2]?.v || '',
-          fechaInicio: c[3]?.v || '',
-          nivel:       c[4]?.v || '',
-          cupoMax:     parseInt(c[5]?.v) || 0,
-          inscritos:   parseInt(c[6]?.v) || 0,
-          estado:      c[8]?.v || 'Activo',
-        };
-      }).filter(g => g.id && g.estado !== 'Cancelado');
-      renderGrupos();
+      grupos = json.table.rows.map(r => ({
+        id:        r.c[0]?.v || '',
+        nombre:    r.c[1]?.v || '',
+        horario:   r.c[2]?.v || '',
+        fechaCell: r.c[3]    || null,
+        fechaObj:  r.c[3]    ? parseFecha(r.c[3]) : null,
+        nivel:     String(r.c[4]?.v || '').trim(),
+        cupoMax:   r.c[5]?.v ?? 10,
+        inscritos: r.c[6]?.v ?? 0,
+        libres:    r.c[7]?.v ?? 0,
+        estado:    r.c[8]?.v || '',
+      })).filter(g => g.id && String(g.estado).trim() !== 'Cancelado');
+      renderTodo();
     } catch(e) {
-      document.getElementById('grupos-container').innerHTML =
-        '<div class="error-msg">Error al cargar grupos. Recarga la página.</div>';
+      document.getElementById('grupos-loading').style.display = 'none';
+      document.getElementById('grupos-error').style.display  = 'block';
     }
   }
 
-  function formatFecha(raw) {
-    if (!raw) return '—';
-    const m = raw.match(/Date\((\d+),(\d+),(\d+)\)/);
-    if (!m) return raw;
-    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    return `${parseInt(m[3])} ${meses[parseInt(m[2])]} ${m[1]}`;
+  function parseFecha(cell) {
+    if (!cell) return null;
+    const v = typeof cell === 'object' ? cell.v : cell;
+    if (!v) return null;
+    if (typeof v === 'string' && v.startsWith('Date(')) {
+      const p = v.replace('Date(','').replace(')','').split(',').map(Number);
+      return new Date(p[0], p[1], p[2]);
+    }
+    const d = new Date(v);
+    return isNaN(d) ? null : d;
   }
 
-  function renderGrupos() {
-    const contenedor = document.getElementById('grupos-container');
-    const hoy = new Date();
-const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
-const finProximo  = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0);
+  function fechaISO(f) { return f ? f.toISOString().split('T')[0] : ''; }
 
-const disponibles = grupos.filter(g => {
-  if (g.inscritos >= g.cupoMax) return false;
-  if (!g.fechaInicio) return true;
-  const m = g.fechaInicio.match(/Date\((\d+),(\d+),(\d+)\)/);
-  if (!m) return true;
-  const fechaGrupo = new Date(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
-  return fechaGrupo >= mesAnterior && fechaGrupo <= finProximo;
-});
-    const agrupados   = {};
-    disponibles.forEach(g => {
-      const f = g.fechaInicio;
-      if (!agrupados[f]) agrupados[f] = [];
-      agrupados[f].push(g);
+  function formatLarga(f) {
+    if (!f) return 'Sin fecha';
+    const D=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return `${D[f.getDay()]} ${f.getDate()} de ${M[f.getMonth()]} del ${f.getFullYear()}`;
+  }
+
+  function formatFechaTitulo(f) {
+    if (!f) return 'Sin fecha';
+    const M=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const D=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    return `${D[f.getDay()]} ${f.getDate()} de ${M[f.getMonth()]}`;
+  }
+
+  function renderTodo() {
+    document.getElementById('grupos-loading').style.display = 'none';
+    const content = document.getElementById('grupos-content');
+    content.style.display = 'block';
+
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    const fechasSet    = {};
+    const fechasLlenas = {};
+    grupos.forEach(g => {
+      if (!g.fechaObj) return;
+      const iso = fechaISO(g.fechaObj);
+      if (!fechasSet[iso]) { fechasSet[iso] = g.fechaObj; fechasLlenas[iso] = true; }
+      if (g.libres > 0) fechasLlenas[iso] = false;
     });
 
-    if (!disponibles.length) {
-      contenedor.innerHTML = '<div class="seccion-vacia">No hay grupos con lugares disponibles en este momento.</div>';
-      return;
-    }
+    const calHtml = renderCalendario(fechasSet, fechasLlenas, hoy);
 
-    const leyenda = `
-      <div class="leyenda-box">
-        <div class="leyenda-titulo">Disponibilidad</div>
-        <div class="leyenda-items">
-          <div class="leyenda-row"><span class="chip-s disp">Disponible</span><span style="font-size:12px;color:var(--text-muted)">Hay lugares libres</span></div>
-          <div class="leyenda-row"><span class="chip-s lleno">Sin lugares</span><span style="font-size:12px;color:var(--text-muted)">Grupo lleno</span></div>
-        </div>
+    const leyendaHtml = `
+    <div class="leyenda-box">
+      <div class="leyenda-titulo">Guía de disponibilidad</div>
+      <div class="leyenda-items">
+        <div class="leyenda-row"><span class="chip-s disp">Disponible</span><span style="color:var(--text-muted);font-size:12px;">Grupo que aún no ha iniciado con lugares libres.</span></div>
+        <div class="leyenda-row"><span class="chip-s curso">En curso</span><span style="color:var(--text-muted);font-size:12px;">Grupo ya iniciado con lugares disponibles.</span></div>
+        <div class="leyenda-row"><span class="chip-s lleno">Lleno</span><span style="color:var(--text-muted);font-size:12px;">Sin lugares disponibles.</span></div>
+      </div>
+    </div>`;
+
+    let seccionesHtml = '';
+    if (!fechaFiltro && !mostrarTodos) {
+      seccionesHtml = `<div class="sin-fecha-msg">
+        <p>👆 Selecciona una <span>fecha de inicio</span> en el calendario para ver los grupos disponibles,<br>o da clic en <span>Ver todos los grupos</span>.</p>
       </div>`;
+    } else {
+      const gruposFiltrados = fechaFiltro
+        ? grupos.filter(g => g.fechaObj && fechaISO(g.fechaObj) === fechaFiltro)
+        : grupos;
 
-    let html = leyenda;
-    Object.entries(agrupados).sort().forEach(([fecha, gs]) => {
-      html += `<div class="fecha-section">
-        <div class="fecha-titulo">Inicio ${formatFecha(fecha)}</div>
-        <div class="fecha-subtitulo">Lunes a Jueves · Selecciona el horario</div>
-        <div class="grupos-grid">`;
-      gs.forEach(g => {
-        const libres = g.cupoMax - g.inscritos;
-        const dots   = Array.from({length: g.cupoMax}, (_,i) =>
-          `<div class="plaza-dot${i >= libres ? ' ocupada' : ''}"></div>`).join('');
-        html += `
-          <div class="grupo-card clickable" onclick="seleccionarGrupo('${g.id}')">
-            <div class="grupo-header">
-              <div>
-                <div class="grupo-horario">${g.horario}</div>
-                <div class="grupo-hora-sub">hora CDMX</div>
-              </div>
-              <span class="chip-estado chip-disp">Disponible</span>
-            </div>
-            <div class="grupo-info">
-              <div class="grupo-info-row">📅 Lunes a Jueves</div>
-              <div class="grupo-info-row">🏫 ${g.nombre}</div>
-              <div class="grupo-nivel-tag">${g.nivel}</div>
-            </div>
-            <div class="grupo-footer">
-              <div>
-                <div style="font-size:0.72rem;color:var(--text-muted)">${libres} lugar${libres!==1?'es':''} libre${libres!==1?'s':''}</div>
-                <div class="plazas-bar">${dots}</div>
-              </div>
-              <button class="btn-elegir" onclick="event.stopPropagation();seleccionarGrupo('${g.id}')">Elegir</button>
-            </div>
-          </div>`;
+      const porFecha = {};
+      gruposFiltrados.forEach(g => {
+        const iso = g.fechaObj ? fechaISO(g.fechaObj) : 'sin-fecha';
+        if (!porFecha[iso]) porFecha[iso] = { fechaObj: g.fechaObj, lista: [] };
+        porFecha[iso].lista.push(g);
       });
-      html += '</div></div>';
-    });
 
-    contenedor.innerHTML = html;
+      Object.keys(porFecha).sort().forEach(iso => {
+        const { fechaObj, lista } = porFecha[iso];
+        const yaInicio    = fechaObj && fechaObj <= hoy;
+        const disponibles = lista.filter(g => g.libres > 0 && (!g.fechaObj || g.fechaObj > hoy)).length;
+        const subtitulo   = yaInicio
+          ? 'Grupo en curso · Lugares disponibles'
+          : `${disponibles} grupo${disponibles!==1?'s':''} disponible${disponibles!==1?'s':''}`;
+
+        lista.sort((a,b) => a.horario > b.horario ? 1 : -1);
+
+        seccionesHtml += `
+        <div class="fecha-section">
+          <div class="fecha-titulo">Inicio de cursos el ${formatFechaTitulo(fechaObj)}</div>
+          <div class="fecha-subtitulo">${subtitulo}</div>
+          <div class="grupos-grid">
+            ${lista.map(g => renderCard(g, hoy)).join('')}
+          </div>
+        </div>`;
+      });
+
+      if (!seccionesHtml) {
+        seccionesHtml = `<div class="seccion-vacia">No hay grupos para la fecha seleccionada.</div>`;
+      }
+    }
+
+    content.innerHTML = leyendaHtml + calHtml + `<div id="secciones">${seccionesHtml}</div>`;
   }
 
-  function seleccionarGrupo(id) {
+  function renderCalendario(fechasSet, fechasLlenas, hoy) {
+    const DIAS  = ['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    const mesesMostrar = [-1, 0, 1].map(offset => {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() + offset, 1);
+      return { year: d.getFullYear(), month: d.getMonth() };
+    });
+
+    let mesesHtml = '';
+    mesesMostrar.forEach(({ year, month }) => {
+      const primerDia = new Date(year, month, 1).getDay();
+      const diasMes   = new Date(year, month + 1, 0).getDate();
+      let diasHtml = DIAS.map(d => `<div class="cal-dh">${d}</div>`).join('');
+      for (let i = 0; i < primerDia; i++) diasHtml += `<div class="cal-day vacio"></div>`;
+      for (let d = 1; d <= diasMes; d++) {
+        const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        if (fechasSet[iso]) {
+          const sel   = fechaFiltro === iso ? 'sel' : '';
+          const llena = fechasLlenas[iso] ? 'llena' : '';
+          diasHtml += `<div class="cal-day con-inicio ${sel} ${llena}" onclick="seleccionarFecha('${iso}')">${d}</div>`;
+        } else {
+          diasHtml += `<div class="cal-day normal">${d}</div>`;
+        }
+      }
+      mesesHtml += `<div class="cal-month">
+        <div class="cal-month-title">${MESES[month]} ${year}</div>
+        <div class="cal-grid">${diasHtml}</div>
+      </div>`;
+    });
+
+    const filtroHtml = fechaFiltro
+      ? `<div class="cal-filtro-activo">📅 Mostrando: ${formatFechaTitulo(new Date(fechaFiltro+'T12:00:00'))}<button onclick="limpiarFiltro()">✕</button></div>`
+      : '';
+
+    return `<div class="cal-wrap">
+      <div class="cal-top-row">
+        <div>
+          <div class="cal-titulo">Selecciona una fecha de inicio</div>
+          <div class="cal-hint">Las fechas marcadas tienen grupos disponibles</div>
+        </div>
+        <button class="btn-ver-todas" onclick="verTodosGrupos()">Ver todos los grupos</button>
+      </div>
+      <div class="cal-months">${mesesHtml}</div>
+      ${filtroHtml}
+    </div>`;
+  }
+
+  function renderCard(g, hoy) {
+    const yaInicio  = g.fechaObj && g.fechaObj <= hoy;
+    const sinPlazas = g.libres <= 0;
+    const enCurso   = yaInicio && !sinPlazas;
+    const lleno     = sinPlazas;
+
+    const inscritos = Math.max(0, Math.min(g.cupoMax, g.inscritos));
+    const dots = Array.from({length: g.cupoMax}, (_,i) =>
+      `<div class="plaza-dot${i < inscritos ? ' ocupada' : ''}"></div>`).join('');
+
+    let cardClase, chipClase, chipTexto, plazasHtml, btnHtml, clickAttr;
+
+    if (enCurso) {
+      cardClase  = 'grupo-card clickable';
+      chipClase  = 'chip-estado chip-curso';
+      chipTexto  = 'En curso';
+      plazasHtml = `<div><span class="plazas-curso-num">${g.libres}</span> <span style="font-size:0.72rem;color:var(--text-muted)">lugar${g.libres!==1?'es':''} libre${g.libres!==1?'s':''}</span></div>`;
+      btnHtml    = `<button class="btn-elegir curso" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>`;
+      clickAttr  = `onclick="elegirGrupo('${g.id}')"`;
+    } else if (lleno) {
+      cardClase  = 'grupo-card no-disp';
+      chipClase  = 'chip-estado chip-lleno';
+      chipTexto  = 'Lleno';
+      plazasHtml = `<div class="plazas-lleno">Sin lugares disponibles</div>`;
+      btnHtml    = '';
+      clickAttr  = '';
+    } else {
+      cardClase  = 'grupo-card clickable';
+      chipClase  = 'chip-estado chip-disp';
+      chipTexto  = 'Disponible';
+      plazasHtml = `<div><span class="plazas-num">${g.libres}</span> <span style="font-size:0.72rem;color:var(--text-muted)">lugar${g.libres!==1?'es':''} libre${g.libres!==1?'s':''}</span></div>`;
+      btnHtml    = `<button class="btn-elegir" onclick="elegirGrupo('${g.id}');event.stopPropagation()">Elegir →</button>`;
+      clickAttr  = `onclick="elegirGrupo('${g.id}')"`;
+    }
+
+    return `<div class="${cardClase}" ${clickAttr}>
+      <div class="grupo-header">
+        <div>
+          <div class="grupo-horario">${g.horario}</div>
+          <div class="grupo-hora-sub">hora CDMX</div>
+        </div>
+        <div class="${chipClase}">${chipTexto}</div>
+      </div>
+      <div class="grupo-info">
+        <div class="grupo-info-row">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Grupo ${g.id} · Lun–Jue
+        </div>
+        <div class="grupo-nivel-tag">${g.nivel}</div>
+      </div>
+      <div class="grupo-footer">
+        <div>${plazasHtml}<div class="plazas-bar">${dots}</div></div>
+        ${btnHtml}
+      </div>
+    </div>`;
+  }
+
+  function seleccionarFecha(iso) { fechaFiltro = iso; mostrarTodos = false; renderTodo(); }
+  function limpiarFiltro()       { fechaFiltro = null; mostrarTodos = false; renderTodo(); }
+  function verTodosGrupos()      { fechaFiltro = null; mostrarTodos = true;  renderTodo(); }
+
+  function elegirGrupo(id) {
     grupoSel = grupos.find(g => g.id === id);
     if (!grupoSel) return;
-    document.getElementById('grupo-sel-val').textContent  = `${grupoSel.id} · ${grupoSel.horario} · Lun-Jue`;
-    document.getElementById('grupo-sel-sub').textContent  = `${grupoSel.nombre} · ${grupoSel.nivel} · Inicio ${formatFecha(grupoSel.fechaInicio)}`;
+    document.getElementById('grupo-sel-val').textContent = `${grupoSel.id} · ${grupoSel.horario} · Lun-Jue`;
+    document.getElementById('grupo-sel-sub').textContent = `${grupoSel.nombre} · ${grupoSel.nivel} · Inicio ${formatLarga(grupoSel.fechaObj)}`;
     goToPanel(2);
   }
 
   function showError(id, show) {
     const input = document.getElementById(id);
     const err   = document.getElementById('err-' + id);
-    if (input)  input.classList.toggle('error', show);
-    if (err)    err.classList.toggle('visible', show);
+    if (input) input.classList.toggle('error', show);
+    if (err)   err.classList.toggle('visible', show);
   }
 
   function validateForm() {
@@ -559,11 +690,11 @@ const disponibles = grupos.filter(g => {
     const e  = document.getElementById('email').value.trim();
     const r  = document.getElementById('relacion').value;
     const ce = document.getElementById('idCE').value.trim();
-    if (n.length < 3)                            { showError('nombre',   true); ok=false; } else showError('nombre',   false);
-    if (!/^\d{7,15}$/.test(w))                  { showError('whatsapp', true); ok=false; } else showError('whatsapp', false);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))  { showError('email',    true); ok=false; } else showError('email',    false);
-    if (!r)                                      { showError('relacion', true); ok=false; } else showError('relacion', false);
-    if (ce.length < 2)                           { showError('idCE',     true); ok=false; } else showError('idCE',     false);
+    if (n.length < 3)                           { showError('nombre',   true); ok=false; } else showError('nombre',   false);
+    if (!/^\d{7,15}$/.test(w))                 { showError('whatsapp', true); ok=false; } else showError('whatsapp', false);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { showError('email',    true); ok=false; } else showError('email',    false);
+    if (!r)                                     { showError('relacion', true); ok=false; } else showError('relacion', false);
+    if (ce.length < 2)                          { showError('idCE',     true); ok=false; } else showError('idCE',     false);
     return ok;
   }
 
@@ -588,8 +719,7 @@ const disponibles = grupos.filter(g => {
           nombre, whatsapp, email,
           idGrupo:  grupoSel.id,
           estatus:  'Becado',
-          relacion,
-          idCE,
+          relacion, idCE,
           tipo:     'becado',
           fecha:    new Date().toISOString()
         })
@@ -602,7 +732,7 @@ const disponibles = grupos.filter(g => {
       <div class="confirm-row"><span class="confirm-row-label">Correo</span><span class="confirm-row-value">${email}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Grupo</span><span class="confirm-row-value">${grupoSel.id} · ${grupoSel.horario}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Nivel</span><span class="confirm-row-value">${grupoSel.nivel}</span></div>
-      <div class="confirm-row"><span class="confirm-row-label">Inicio</span><span class="confirm-row-value">${formatFecha(grupoSel.fechaInicio)}</span></div>
+      <div class="confirm-row"><span class="confirm-row-label">Inicio</span><span class="confirm-row-value">${formatLarga(grupoSel.fechaObj)}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Relación</span><span class="confirm-row-value">${relacion}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Estatus</span><span class="confirm-row-value" style="color:var(--gold2)">⭐ Becado</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Registrado por</span><span class="confirm-row-value">${idCE}</span></div>`;
@@ -613,7 +743,9 @@ const disponibles = grupos.filter(g => {
   }
 
   function nuevoRegistro() {
-    grupoSel = null;
+    grupoSel     = null;
+    fechaFiltro  = null;
+    mostrarTodos = false;
     document.getElementById('nombre').value   = '';
     document.getElementById('whatsapp').value = '';
     document.getElementById('email').value    = '';
