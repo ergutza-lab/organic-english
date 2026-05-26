@@ -392,6 +392,15 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
     document.getElementById('fechaClase').value=hoyStr;
     fechasRegistradas=[];
+
+    // Deshabilitar botones hasta que lleguen los datos
+    var btnWa    = document.getElementById('btnInvitarWhats');
+    var btnZoomM = document.getElementById('btnEntrarZoomMaestro');
+    btnWa.textContent    = '⏳ Cargando...';
+    btnWa.disabled       = true;
+    btnZoomM.textContent = '⏳ Cargando...';
+    btnZoomM.disabled    = true;
+
     fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
       .then(r=>r.json())
       .then(function(d){
@@ -400,7 +409,7 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
           actualizarEstadoFecha(hoyStr);
         }
       });
-    // Precargar datos del grupo — links y mapas
+
     grupoActual._mapaData = null;
     fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
       .then(r=>r.json())
@@ -409,19 +418,20 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
           grupoActual._mapaData = d.resultados || [];
           grupoActual.linkZoom  = d.linkZoom  || '';
           grupoActual.linkWhats = d.linkWhats || '';
-          var btnZoom = document.getElementById('btnEntrarZoomMaestro');
-          var btnWa   = document.getElementById('btnInvitarWhats');
-          if (d.linkZoom) {
-            btnZoom.href = d.linkZoom;
-          }
+          btnWa.textContent    = '💬 Invitar a la clase';
+          btnWa.disabled       = false;
+          btnZoomM.textContent = '🖥️ Entrar a Zoom';
+          btnZoomM.disabled    = false;
           if (!d.linkWhats) {
             btnWa.style.opacity = '0.5';
+          } else {
+            btnWa.style.opacity = '1';
           }
         }
       });
+
     cambiarTab('Registro');
   }
-
 function actualizarEstadoFecha(fechaStr) {
     var input = document.getElementById('fechaClase');
     var aviso = document.getElementById('avisoFecha');
