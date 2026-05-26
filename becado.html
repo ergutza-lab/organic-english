@@ -76,7 +76,7 @@
   .grupo-label { font-size: 12px; color: #475569; margin-bottom: 6px; }
   .grupo-val { font-size: 18px; font-weight: 700; color: #f1e8d8; }
   .grupo-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
-  .zoom-btn { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 4px 18px rgba(249,115,22,0.3); white-space: nowrap; }
+  .zoom-btn { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #2D8CFF, #1a6fd4); color: #fff; border: none; border-radius: 100px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 4px 18px rgba(249,115,22,0.3); white-space: nowrap; }
   .zoom-btn:hover { opacity: 0.9; }
   .btn-club { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; border: none; border-radius: 100px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 18px rgba(124,58,237,0.3); }
   .btn-club:hover { opacity: 0.9; }
@@ -111,7 +111,7 @@
   .avatar-asistente { background: rgba(147,51,234,0.15); color: #c084fc; border: 2px solid rgba(147,51,234,0.3); }
   .persona-nombre { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 3px; }
   .persona-rol { font-size: 12px; color: #64748b; margin-bottom: 14px; }
-  .btn-wa-naranja { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#f97316,#ea580c); color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .btn-wa-naranja { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#25D366,#128C7E); color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
   .btn-wa-verde { display: inline-flex; align-items: center; gap: 7px; background: #16a34a; color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
 
   /* EVALUACIONES */
@@ -605,7 +605,7 @@
   function renderEvaluacionAlumno(d) {
     var html = '';
     var pc = d.porcentajeGlobal || 0;
-    var gemaColor = pc >= 90 ? '#c4956a' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
+    var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
     var gemaLabel = pc >= 90 ? 'Excelente' : pc >= 80 ? 'Bueno' : pc >= 70 ? 'Regular' : pc >= 60 ? 'Atención' : 'Crítico';
 
     var gemSVG = '<svg width="60" height="68" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
@@ -630,7 +630,7 @@
     html += '</div>';
 
     // Alerta de beca si el desempeño está bajo
-    if (d.asistencia < 80 || d.positivos < 80) {
+    if (d.totalClases > 0 && (d.asistencia < 80 || d.positivos < 80)) {
       html += '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#f87171;line-height:1.5;">⚠️ <strong>Atención:</strong> Tu desempeño actual está por debajo del mínimo requerido para mantener tu beca (80%). Esfuérzate en las próximas clases.</div>';
     }
 
@@ -653,7 +653,86 @@
       html += '</div>';
     }
 
-    document.getElementById('evaluacionAlumno').innerHTML = html;
+    /* ── Challenges ── */
+  var tieneMini  = d.challenges && d.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
+  var tieneGrand = d.challenges && d.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
+  var miniCh  = d.challenges && d.challenges.find(function(c){ return c.tipo==='Mini'; });
+  var grandCh = d.challenges && d.challenges.find(function(c){ return c.tipo==='Grand'||c.tipo==='Gran'; });
+  var fbMini  = miniCh  && miniCh.feedback  ? miniCh.feedback  : '';
+  var fbGrand = grandCh && grandCh.feedback ? grandCh.feedback : '';
+
+  function medalSVG(lit, noAprobo){
+    var rc=lit?'#facc15':'#334155',s1=lit?'#f97316':'#1e293b',s2=lit?'#ef4444':'#1e293b';
+    var mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
+    var gl=lit?'filter:drop-shadow(0 0 8px #fbbf24);':noAprobo?'filter:drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);':'';
+    return '<svg width="44" height="60" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+      +'<rect x="17" y="2" width="10" height="22" rx="2" fill="'+rc+'"/>'
+      +'<rect x="17" y="2" width="3" height="22" fill="'+s1+'" opacity="0.85"/>'
+      +'<rect x="24" y="2" width="3" height="22" fill="'+s2+'" opacity="0.85"/>'
+      +'<rect x="12" y="0" width="20" height="5" rx="2" fill="'+mc+'"/>'
+      +'<circle cx="22" cy="44" r="16" fill="'+mc+'"/>'
+      +'<circle cx="22" cy="44" r="14" fill="'+md+'"/>'
+      +'<circle cx="22" cy="44" r="11" fill="none" stroke="'+mc+'" stroke-width="2" opacity="0.7"/>'
+      +'<polygon points="22,34 24.4,40.6 31.5,40.6 25.8,44.9 28,51.5 22,47.2 16,51.5 18.2,44.9 12.5,40.6 19.6,40.6" fill="'+sc+'" opacity="'+(lit?'0.9':'0.2')+'"/>'
+      +(lit?'<circle cx="15" cy="38" r="3" fill="#fff" opacity="0.3"/>':'')
+      +'</svg>';
+  }
+
+  function trophySVG(lit, noAprobo){
+    var cc=lit?'#fbbf24':'#334155',cd=lit?'#d97706':'#1e293b',bc=lit?'#f59e0b':'#1e293b';
+    var sc=lit?'#fff':'#475569';
+    var gl=lit?'filter:drop-shadow(0 0 8px #fbbf24);':noAprobo?'filter:drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);':'';
+    return '<svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+      +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
+      +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
+      +'<path d="M12,8 L38,8 Q38,36 25,42 Q12,36 12,8 Z" fill="'+cc+'"/>'
+      +'<path d="M18,8 L22,8 Q22,36 25,42 Q22,38 18,8 Z" fill="'+cd+'" opacity="0.45"/>'
+      +'<rect x="10" y="6" width="30" height="5" rx="2" fill="'+cd+'"/>'
+      +'<rect x="21" y="42" width="8" height="8" fill="'+cc+'"/>'
+      +'<rect x="13" y="50" width="24" height="6" rx="3" fill="'+bc+'"/>'
+      +'<rect x="10" y="54" width="30" height="4" rx="2" fill="'+cd+'"/>'
+      +'<polygon points="25,14 26.5,18.5 31.5,18.5 27.5,21.2 29,25.7 25,23 21,25.7 22.5,21.2 18.5,18.5 23.5,18.5" fill="'+sc+'" opacity="'+(lit?'0.85':'0.15')+'"/>'
+      +(lit?'<ellipse cx="19" cy="14" rx="3" ry="5" fill="#fff" opacity="0.28"/>':'')
+      +'</svg>';
+  }
+
+  html += '<div style="display:flex;gap:12px;margin-bottom:8px;">';
+
+  var miniExiste = miniCh !== undefined;
+  var miniNoAprobo = miniExiste && !tieneMini;
+  var miniBg = tieneMini ? 'rgba(251,191,36,0.12)' : miniNoAprobo ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)';
+  var miniBorder = tieneMini ? '1px solid rgba(251,191,36,0.45)' : miniNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
+  html += '<div style="flex:1;background:'+miniBg+';border:'+miniBorder+';border-radius:12px;padding:14px 10px;text-align:center;">';
+  html += '<div style="display:flex;justify-content:center;margin-bottom:6px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Mini Challenge</div>';
+  html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 4</div>';
+  html += '<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':miniNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+  if(fbMini){
+    html += '<div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:left;">';
+    html += '<div style="font-size:9px;font-weight:700;color:#facc15;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbMini+'</div></div>';
+  }
+  html += '</div>';
+
+  var grandExiste = grandCh !== undefined;
+  var grandNoAprobo = grandExiste && !tieneGrand;
+  var grandBg = tieneGrand ? 'rgba(251,191,36,0.12)' : grandNoAprobo ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)';
+  var grandBorder = tieneGrand ? '1px solid rgba(251,191,36,0.45)' : grandNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
+  html += '<div style="flex:1;background:'+grandBg+';border:'+grandBorder+';border-radius:12px;padding:14px 10px;text-align:center;">';
+  html += '<div style="display:flex;justify-content:center;margin-bottom:6px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Grand Challenge</div>';
+  html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 8</div>';
+  html += '<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':grandNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+  if(fbGrand){
+    html += '<div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:left;">';
+    html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbGrand+'</div></div>';
+  }
+  html += '</div>';
+  html += '</div>';
+  html += '<div style="font-size:10px;color:#475569;text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
+
+  document.getElementById('evaluacionAlumno').innerHTML = html;
   }
 
   // ── CLUB ──
