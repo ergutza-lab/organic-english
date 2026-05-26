@@ -593,6 +593,9 @@ function renderGruposPorNivel(nivelFiltro){
               ${nNuevos?`<span class="gstat nuevo">+${nNuevos} nuevos</span>`:''}
               ${nSinPago?`<span class="gstat sinpago">${nSinPago} sin pago</span>`:''}
             </div>
+            <button onclick="event.stopPropagation();subirLinkWhats('${g.id}')" style="background:${g.linkWhats?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)'};color:#fff;border:none;border-radius:100px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+              ${g.linkWhats?'✅ WhatsApp':'📵 Sin WhatsApp'}
+            </button>
             <span class="grupo-chevron">›</span>
           </div>
           <div class="grupo-progress-bar"><div class="grupo-progress-fill${lleno?' lleno':''}" style="width:${pct}%"></div></div>
@@ -895,6 +898,29 @@ function notificarAlumnoPago(){
   cerrarModalNotifPago();
 }
 
+function subirLinkWhats(idGrupo) {
+  const link = prompt('Pega el link del grupo de WhatsApp para ' + idGrupo + ':');
+  if (!link || !link.trim()) return;
+  if (!link.includes('chat.whatsapp.com') && !link.includes('wa.me')) {
+    mostrarToast('El link no parece ser de WhatsApp','error');
+    return;
+  }
+  fetch(`${APPS_SCRIPT}?action=actualizarLinkWhatsGrupo&idGrupo=${encodeURIComponent(idGrupo)}&linkWhats=${encodeURIComponent(link.trim())}`, {redirect:'follow'})
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.success){
+        mostrarToast('✅ Link de WhatsApp guardado','success');
+        // Actualizar localmente
+        const g = (datosPanel?.grupos||[]).find(g=>g.id===idGrupo);
+        if(g) g.linkWhats = link.trim();
+        renderGrupos();
+      } else {
+        mostrarToast('Error: '+(data.error||'Intenta de nuevo'),'error');
+      }
+    })
+    .catch(()=>mostrarToast('Error de conexión','error'));
+}
+  
 function mostrarToast(msg,tipo=''){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast '+tipo;t.classList.add('show');
