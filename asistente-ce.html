@@ -502,7 +502,7 @@ function cambiarTab(tab,el){
 function renderResumen(){
   if(!datosPanel)return;
   const{grupos=[],pagos_pendientes=[],alumnos_nuevos=[],sin_pago=[]}=datosPanel;
-  const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.filter(al=>al.a.Estatus_Pago === 'VALIDADO').length||0),0);
+  const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.length||0),0);
   const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
   bn.textContent=alumnos_nuevos.length;bn.className='tab-badge'+(alumnos_nuevos.length?'':' cero');
@@ -613,7 +613,7 @@ function abrirModalGrupo(idx){
   if(!g)return;
   const sinPagoIds=new Set((datosPanel.sin_pago||[]).map(a=>a.id));
   const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
-  const alumnos=(g.alumnos||[]).filter(a=>a.Estatus_Pago === 'VALIDADO');
+  const alumnos=(g.alumnos||[]);
   const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
   const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
   const nOk=alumnos.filter(a=>a.pago_ok).length;
