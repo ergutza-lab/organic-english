@@ -1253,9 +1253,15 @@ function invitarClase() {
       return;
     }
     var maestroNombre = panelData.maestro ? panelData.maestro.nombre : 'tu maestro';
-    var horario = grupoActual.horario || '';
-    var msg = encodeURIComponent('🎓 ¡Hola! Les recuerdo que nuestra clase de inglés está a punto de comenzar.\n\n⏰ Horario: ' + horario + '\n\nPor favor únanse al Zoom:\n' + (grupoActual.linkZoom || '') + '\n\n¡Los esperamos! 😊\n— ' + maestroNombre);
-    window.open(grupoActual.linkWhats + '?text=' + msg, '_blank');
+    var msg = '🎓 ¡Hola! Les recuerdo que nuestra clase de inglés está por comenzar.\n\n⏰ Horario: ' + (grupoActual.horario || '') + '\n\nPor favor únanse al Zoom:\n' + (grupoActual.linkZoom || '') + '\n\n¡Los esperamos! 😊\n— ' + maestroNombre;
+    navigator.clipboard.writeText(msg).then(function() {
+      mostrarToast('✅ Mensaje copiado. Pégalo en el grupo de WhatsApp.','success');
+      setTimeout(function() {
+        window.open(grupoActual.linkWhats, '_blank');
+      }, 1000);
+    }).catch(function() {
+      window.open(grupoActual.linkWhats, '_blank');
+    });
   }
   
   function cerrarModalObs() {
