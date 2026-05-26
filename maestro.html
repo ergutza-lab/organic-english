@@ -214,6 +214,8 @@
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
           <button onclick="abrirModalZoom(grupoActual.id)" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>
           <button onclick="abrirModalGrabacion(grupoActual.id)" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>
+          <a id="btnEntrarZoomMaestro" href="#" target="_blank" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none;text-align:center;">🖥️ Entrar a Zoom</a>
+          <button id="btnInvitarWhats" onclick="invitarClase()" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">💬 Invitar a la clase</button>
         </div>
       </div>
       <div class="tabs">
@@ -392,6 +394,34 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
         if(d.success) {
           fechasRegistradas=d.fechas||[];
           actualizarEstadoFecha(hoyStr);
+        }
+      });
+    // Precargar datos del grupo — links y mapas
+    grupoActual._mapaData = null;
+    fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+      .then(r=>r.json())
+      .then(function(d){
+        if(d.success) {
+          grupoActual._mapaData = d.resultados || [];
+          grupoActual.linkZoom  = d.linkZoom  || '';
+          grupoActual.linkWhats = d.linkWhats || '';
+          var btnZoom = document.getElementById('btnEntrarZoomMaestro');
+          var btnWa   = document.getElementById('btnInvitarWhats');
+          if (d.linkZoom) {
+            btnZoom.href = d.linkZoom;
+            btnZoom.style.opacity = '1';
+            btnZoom.style.pointerEvents = 'auto';
+          } else {
+            btnZoom.style.opacity = '0.4';
+            btnZoom.style.pointerEvents = 'none';
+          }
+          if (d.linkWhats) {
+            btnWa.style.opacity = '1';
+            btnWa.style.pointerEvents = 'auto';
+          } else {
+            btnWa.style.opacity = '0.4';
+            btnWa.style.pointerEvents = 'none';
+          }
         }
       });
     cambiarTab('Registro');
@@ -616,21 +646,24 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
     actualizarEstadoFecha(nuevaFecha);
   }
 
-  // ── JARDÍN DEL GRUPO ───────────────────────────────────────────────
   function cargarMapas() {
-  var lista = document.getElementById('listaMapas');
-  lista.innerHTML = '<div class="loading">Cargando evaluación...</div>';
-  fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoActual.id), {redirect:'follow'})
-    .then(r => r.json())
-    .then(data => {
-        console.log('MAPA DATA:', JSON.stringify(data));
-      if (!data.success) { lista.innerHTML='<div class="empty-state"><p>Error al cargar.</p></div>'; return; }
-      var resultados = data.resultados || [];
-      if (!resultados.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos.</p></div>'; return; }
-      renderMapas(resultados);
-    })
-    .catch(() => { lista.innerHTML='<div class="empty-state"><p>Error de conexión.</p></div>'; });
-}
+    var lista = document.getElementById('listaMapas');
+    if (grupoActual._mapaData) {
+      renderMapas(grupoActual._mapaData);
+      return;
+    }
+    lista.innerHTML = '<div class="loading">Cargando evaluación...</div>';
+    fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoActual.id), {redirect:'follow'})
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) { lista.innerHTML='<div class="empty-state"><p>Error al cargar.</p></div>'; return; }
+        grupoActual._mapaData = data.resultados || [];
+        grupoActual.linkZoom  = data.linkZoom  || grupoActual.linkZoom  || '';
+        grupoActual.linkWhats = data.linkWhats || grupoActual.linkWhats || '';
+        renderMapas(grupoActual._mapaData);
+      })
+      .catch(() => { lista.innerHTML='<div class="empty-state"><p>Error de conexión.</p></div>'; });
+  }
 
   function nivelColor(val) {
     if (!val||val<1.5) return {color:SEM_COLORS[1],label:SEM_LABELS[1],emoji:SEM_EMOJIS[1]};
@@ -1211,6 +1244,17 @@ var OBS_OPCIONES = {
     cerrarModalObs();
   }
 
+function invitarClase() {
+    if (!grupoActual || !grupoActual.linkWhats) {
+      mostrarToast('No hay link de WhatsApp configurado para este grupo','error');
+      return;
+    }
+    var maestroNombre = panelData.maestro ? panelData.maestro.nombre : 'tu maestro';
+    var horario = grupoActual.horario || '';
+    var msg = encodeURIComponent('🎓 ¡Hola! Les recuerdo que nuestra clase de inglés está a punto de comenzar.\n\n⏰ Horario: ' + horario + '\n\nPor favor únanse al Zoom:\n' + (grupoActual.linkZoom || '') + '\n\n¡Los esperamos! 😊\n— ' + maestroNombre);
+    window.open(grupoActual.linkWhats + '?text=' + msg, '_blank');
+  }
+  
   function cerrarModalObs() {
     document.getElementById('modalObs').style.display = 'none';
     obsAlumnoActual = null;
