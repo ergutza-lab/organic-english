@@ -585,6 +585,11 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
 
   function limpiarRegistro() {
     var alumnos=grupoActual.alumnos||[];
+    // Agregar fecha guardada a fechasRegistradas para bloquear doble registro
+    var fechaGuardada=document.getElementById('fechaClase').value;
+    if (fechaGuardada && fechasRegistradas.indexOf(fechaGuardada)===-1) {
+      fechasRegistradas.push(fechaGuardada);
+    }
     // Resetear todos los selects de color
     [1,2,3,4].forEach(function(v) {
       alumnos.forEach(function(a) {
@@ -592,10 +597,12 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
         if(btn) btn.className='sem-btn';
       });
     });
-    // Resetear asistencia
+    // Resetear asistencia — sin clase activa por default
     alumnos.forEach(function(a) {
-      document.getElementById('asist-si-'+a.id).className='sem-btn sel-3';
-      document.getElementById('asist-no-'+a.id).className='sem-btn';
+      var si=document.getElementById('asist-si-'+a.id);
+      var no=document.getElementById('asist-no-'+a.id);
+      if(si) si.className='sem-btn';
+      if(no) no.className='sem-btn';
     });
     // Limpiar observaciones
     alumnos.forEach(function(a) {
@@ -604,7 +611,9 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
     });
     // Nueva fecha
     var hoy=new Date();
-    document.getElementById('fechaClase').value=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    var nuevaFecha=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    document.getElementById('fechaClase').value=nuevaFecha;
+    actualizarEstadoFecha(nuevaFecha);
   }
 
   // ── JARDÍN DEL GRUPO ───────────────────────────────────────────────
