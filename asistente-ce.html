@@ -14,6 +14,7 @@
       --verde:#16a34a;--verde-10:#dcfce7;--verde-text:#14532d;
       --rojo:#dc2626;--rojo-10:#fee2e2;--rojo-text:#7f1d1d;
       --amarillo:#d97706;--amarillo-10:#fef3c7;--amarillo-text:#78350f;
+      --oro:#c8a96e;--oro-10:#fdf6ec;--oro-text:#78460f;
       --shadow-sm:0 1px 3px rgba(0,0,0,0.07);--shadow-md:0 4px 14px rgba(0,0,0,0.09);--shadow-lg:0 12px 32px rgba(0,0,0,0.14);
       --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;
     }
@@ -94,6 +95,8 @@
     .gstat.total{background:var(--azul-50);color:var(--azul)}
     .gstat.nuevo{background:var(--verde-10);color:var(--verde-text)}
     .gstat.sinpago{background:var(--rojo-10);color:var(--rojo-text)}
+    /* FIX: badge especial para becados en la fila de grupo */
+    .gstat.becado{background:var(--oro-10);color:var(--oro-text)}
     .grupo-chevron{color:var(--gris-300);font-size:16px;flex-shrink:0;transition:color .18s,transform .18s;line-height:1}
     .grupo-progress-bar{height:3px;background:var(--gris-100)}
     .grupo-progress-fill{height:100%;background:var(--naranja);transition:width .4s ease}
@@ -122,6 +125,8 @@
     .modal-stat.ok .num{color:var(--verde)}
     .modal-stat.warn .num{color:var(--amarillo)}
     .modal-stat.danger .num{color:var(--rojo)}
+    /* FIX: stat para becados en el modal */
+    .modal-stat.becado .num{color:var(--oro)}
     .modal-divider{height:1px;background:var(--gris-100);margin:0 0 14px}
     .modal-subtitle{font-size:11px;font-weight:700;color:var(--gris-400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
 
@@ -132,12 +137,16 @@
     .pip-ok{background:var(--verde)}
     .pip-pendiente{background:var(--amarillo)}
     .pip-sinpago{background:var(--rojo)}
+    /* FIX: pip y label para becados */
+    .pip-becado{background:var(--oro)}
     .alumno-id-chip{background:var(--gris-100);color:var(--azul);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0}
     .alumno-nombre-row{font-size:13px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .alumno-pago-label{font-size:11px;font-weight:600;border-radius:20px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
     .lbl-ok{background:var(--verde-10);color:var(--verde-text)}
     .lbl-pendiente{background:var(--amarillo-10);color:var(--amarillo-text)}
     .lbl-sinpago{background:var(--rojo-10);color:var(--rojo-text)}
+    /* FIX: label dorado para becados */
+    .lbl-becado{background:var(--oro-10);color:var(--oro-text);border:1px solid rgba(200,169,110,0.4)}
     .badge-nuevo{background:var(--verde-10);color:var(--verde-text);font-size:9px;font-weight:700;border-radius:20px;padding:2px 6px;flex-shrink:0}
     .btn-wa-mini{display:flex;align-items:center;gap:5px;background:#25d366;color:#fff;border:none;border-radius:var(--r-sm);padding:5px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;flex-shrink:0;transition:opacity .18s}
     .btn-wa-mini:hover{opacity:.88}
@@ -237,7 +246,6 @@
     .modal-visor{width:100%;min-height:240px;border-radius:var(--r-md);background:var(--gris-50);border:1px solid var(--gris-100);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:16px}
     .modal-visor img{max-width:100%;max-height:380px;object-fit:contain;border-radius:8px;display:block}
     .modal-visor iframe{width:100%;height:380px;border:none;border-radius:8px}
-    /* Campo monto */
     .monto-field{margin-bottom:14px}
     .monto-field label{display:block;font-size:11px;font-weight:700;color:var(--gris-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
     .monto-field input{width:100%;padding:10px 14px;border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;outline:none;color:var(--gris-800);transition:border-color .18s}
@@ -267,7 +275,6 @@
     .nivel-btn.active{border-color:var(--naranja);background:var(--naranja);color:#fff}
     .nivel-btn span{font-size:11px;font-weight:700;border-radius:20px;padding:2px 7px;background:var(--gris-100);color:var(--gris-500)}
     .nivel-btn.active span{background:rgba(255,255,255,.25);color:#fff}
-
     .grupo-nombre-row.nombre-adolescentes{color:var(--naranja)!important}
   </style>
 </head>
@@ -438,6 +445,10 @@
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
+
+// ── FIX: helper para detectar si un alumno es becado ──
+function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
+
 let asistente=null,datosPanel=null;
 let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null;
@@ -503,15 +514,19 @@ function renderResumen(){
   if(!datosPanel)return;
   const{grupos=[],pagos_pendientes=[],alumnos_nuevos=[],sin_pago=[]}=datosPanel;
   const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.length||0),0);
+
+  // FIX: excluir becados del conteo sin_pago en el resumen
+  const sinPagoReales = sin_pago.filter(a => !esBecado(a));
+
   const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
   bn.textContent=alumnos_nuevos.length;bn.className='tab-badge'+(alumnos_nuevos.length?'':' cero');
-  ba.textContent=sin_pago.length;ba.className='tab-badge'+(sin_pago.length?'':' cero');
+  ba.textContent=sinPagoReales.length;ba.className='tab-badge'+(sinPagoReales.length?'':' cero');
   document.getElementById('resumen-cards').innerHTML=`
     <div class="summary-card"><div class="ic">📋</div><div class="num">${grupos.length}</div><div class="lbl">Mis grupos</div></div>
     <div class="summary-card"><div class="ic">👥</div><div class="num">${totalAlumnos}</div><div class="lbl">Alumnos activos</div></div>
     <div class="summary-card warn"><div class="ic">🧾</div><div class="num">${pagos_pendientes.length}</div><div class="lbl">Por validar</div></div>
-    <div class="summary-card danger"><div class="ic">⚠️</div><div class="num">${sin_pago.length}</div><div class="lbl">Sin pago</div></div>`;
+    <div class="summary-card danger"><div class="ic">⚠️</div><div class="num">${sinPagoReales.length}</div><div class="lbl">Sin pago</div></div>`;
 }
 
 function renderGrupos(){
@@ -552,8 +567,11 @@ function renderGruposPorNivel(nivelFiltro){
   const grupos=datosPanel?.grupos||[];
   const filtrados=grupos.filter(g=>g.nivel===nivelFiltro);
   if(!filtrados.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin grupos en este nivel</h3></div>`;return;}
-  const sinPagoIds=new Set((datosPanel.sin_pago||[]).map(a=>a.id));
+
+  // FIX: separar becados de alumnos sin pago real
+  const sinPagoIds=new Set((datosPanel.sin_pago||[]).filter(a=>!esBecado(a)).map(a=>a.id));
   const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
+
   const porFecha={};
   filtrados.forEach(g=>{
     const fecha=g.fecha_inicio||'Sin fecha';
@@ -576,9 +594,11 @@ function renderGruposPorNivel(nivelFiltro){
       ${gruposFecha.map(g=>{
         const pct=Math.round((g.inscritos/g.cupo_max)*100);
         const lleno=g.inscritos>=g.cupo_max;
-       const alumnos=(g.alumnos||[]);
+        const alumnos=(g.alumnos||[]);
+        // FIX: contar becados y sin pago por separado
         const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
         const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
+        const nBecados=alumnos.filter(a=>esBecado(a)).length;
         const esAdolescentes=g.nombre?.toLowerCase().includes('adolescentes');
         return `
         <div class="grupo-row" onclick="abrirModalGrupoPorNombre('${g.id}')" style="margin-bottom:6px">
@@ -591,6 +611,7 @@ function renderGruposPorNivel(nivelFiltro){
             <div class="grupo-stats">
               <span class="gstat total">${alumnos.length}/${g.cupo_max}</span>
               ${nNuevos?`<span class="gstat nuevo">+${nNuevos} nuevos</span>`:''}
+              ${nBecados?`<span class="gstat becado">⭐ ${nBecados} becado${nBecados>1?'s':''}</span>`:''}
               ${nSinPago?`<span class="gstat sinpago">${nSinPago} sin pago</span>`:''}
             </div>
             <button onclick="event.stopPropagation();subirLinkWhats('${g.id}')" style="background:${g.linkWhats?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)'};color:#fff;border:none;border-radius:100px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
@@ -614,12 +635,16 @@ function abrirModalGrupoPorNombre(idGrupo){
 function abrirModalGrupo(idx){
   const g=(datosPanel?.grupos||[])[idx];
   if(!g)return;
-  const sinPagoIds=new Set((datosPanel.sin_pago||[]).map(a=>a.id));
+
+  // FIX: separar becados de sin_pago al abrir el modal
+  const sinPagoIds=new Set((datosPanel.sin_pago||[]).filter(a=>!esBecado(a)).map(a=>a.id));
   const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
   const alumnos=(g.alumnos||[]);
   const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
   const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
-  const nOk=alumnos.filter(a=>a.pago_ok).length;
+  const nOk=alumnos.filter(a=>a.pago_ok && !esBecado(a)).length;
+  const nBecados=alumnos.filter(a=>esBecado(a)).length;
+
   document.getElementById('modal-grupo-header').innerHTML=`
     <div>
       <span class="modal-grupo-id">${g.id}</span>
@@ -627,21 +652,39 @@ function abrirModalGrupo(idx){
       <div class="modal-grupo-sub">${g.horario} · Inicio: ${g.fecha_inicio}</div>
     </div>
     <button class="modal-cerrar" onclick="cerrarModalGrupo()">✕</button>`;
+
+  // FIX: añadir stat de becados al modal
   document.getElementById('modal-grupo-stats').innerHTML=`
     <div class="modal-stat"><div class="num">${alumnos.length}</div><div class="lbl">Inscritos</div></div>
     <div class="modal-stat ok"><div class="num">${nOk}</div><div class="lbl">Al corriente</div></div>
     <div class="modal-stat warn"><div class="num">${nNuevos}</div><div class="lbl">Nuevos</div></div>
-    <div class="modal-stat danger"><div class="num">${nSinPago}</div><div class="lbl">Sin pago</div></div>`;
+    <div class="modal-stat danger"><div class="num">${nSinPago}</div><div class="lbl">Sin pago</div></div>
+    ${nBecados?`<div class="modal-stat becado"><div class="num">${nBecados}</div><div class="lbl">Becados</div></div>`:''}`;
+
   if(!alumnos.length){
     document.getElementById('modal-grupo-alumnos').innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><h3>Sin alumnos</h3></div>`;
   }else{
     document.getElementById('modal-grupo-alumnos').innerHTML=alumnos.map(a=>{
-      const esSinPago=sinPagoIds.has(a.id),esNuevo=nuevosIds.has(a.id);
+      const esSinPago=sinPagoIds.has(a.id);
+      const esNuevo=nuevosIds.has(a.id);
+      const esBec=esBecado(a);
+
+      // FIX: lógica de pip y label — becado va ANTES de sin pago
       let pip,lbl,lclass;
-      if(a.pago_ok){pip='pip-ok';lbl='Al corriente';lclass='lbl-ok';}
-      else if(a.pago_pendiente){pip='pip-pendiente';lbl='Comprobante enviado';lclass='lbl-pendiente';}
-      else{pip='pip-sinpago';lbl='Sin pago';lclass='lbl-sinpago';}
-      const waBtn=esSinPago&&a.whatsapp?`<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${encodeURIComponent(`Hola ${a.nombre}, te recuerdo que tu pago de Organic English está pendiente. 😊`)}" target="_blank">WhatsApp</a>`:'';
+      if(esBec){
+        pip='pip-becado'; lbl='⭐ Becado'; lclass='lbl-becado';
+      } else if(a.pago_ok){
+        pip='pip-ok'; lbl='Al corriente'; lclass='lbl-ok';
+      } else if(a.pago_pendiente){
+        pip='pip-pendiente'; lbl='Comprobante enviado'; lclass='lbl-pendiente';
+      } else {
+        pip='pip-sinpago'; lbl='Sin pago'; lclass='lbl-sinpago';
+      }
+
+      // WhatsApp solo para sin pago reales (no becados)
+      const waBtn=esSinPago&&!esBec&&a.whatsapp
+        ?`<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${encodeURIComponent(`Hola ${a.nombre}, te recuerdo que tu pago de Organic English está pendiente. 😊`)}" target="_blank">WhatsApp</a>`
+        :'';
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
       return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}</div>`;
     }).join('');
@@ -690,9 +733,7 @@ function renderPagos(){
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
   const nuevos=datosPanel?.alumnos_nuevos||[];
-  // Cargar presentados del storage
   const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
-  // Filtrar los que ya se presentaron
   const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
   if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
@@ -726,8 +767,12 @@ function marcarPresentado(idAlumno){
 function renderAlertas(){
   const cont=document.getElementById('lista-alertas');
   const lista=datosPanel?.sin_pago||[];
-  if(!lista.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
-  cont.innerHTML=lista.map(a=>{
+
+  // FIX: filtrar becados — no deben aparecer en alertas de sin pago
+  const listaFiltrada = lista.filter(a => !esBecado(a));
+
+  if(!listaFiltrada.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
+  cont.innerHTML=listaFiltrada.map(a=>{
     const fechaLimite = a.fecha_limite || '';
     const msg = encodeURIComponent(`Hola ${a.nombre} 👋 Te recuerdo que tu pago en Organic English vence el ${fechaLimite}. Por favor realiza tu pago antes de esa fecha para no perder tu vigencia. ¿Necesitas ayuda? 😊`);
     const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
@@ -823,7 +868,6 @@ async function ejecutarCambioGrupo(){
   finally{btn.textContent='Confirmar Cambio';btn.disabled=false;}
 }
 
-// MODAL COMPROBANTE
 function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
   pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;
   document.getElementById('input-monto-validar').value=monto>0?monto:'';
@@ -835,7 +879,6 @@ function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
   if(!cUrl){
     visor.innerHTML='<p style="color:var(--gris-400);font-size:13px">Sin comprobante adjunto</p>';
   } else if(cUrl.toLowerCase().includes('.pdf')||cUrl.includes('drive.google.com')){
-    // Para archivos de Drive usar enlace directo en lugar de iframe
     visor.innerHTML=`<div style="text-align:center;padding:20px"><p style="color:var(--gris-500);font-size:13px;margin-bottom:12px">Archivo en Google Drive</p><a href="${cUrl}" target="_blank" style="background:var(--naranja);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Abrir comprobante →</a></div>`;
   } else {
     visor.innerHTML=`<img src="${cUrl}" alt="Comprobante" style="max-width:100%;max-height:380px;object-fit:contain;border-radius:8px;display:block" onerror="this.parentElement.innerHTML='<div style=\\'text-align:center;padding:20px\\'><p style=\\'color:var(--gris-500);font-size:13px;margin-bottom:12px\\'>No se pudo cargar la imagen</p><a href=\\'${cUrl}\\' target=\\'_blank\\' style=\\'background:var(--naranja);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px\\'>Abrir en nueva pestaña →</a></div>'">`;
@@ -870,12 +913,8 @@ async function validarPago(idAlumno,fechaPago,monto){
     const data=await resp.json();
     if(data.status==='ok'){
       mostrarToast('✓ Pago validado correctamente','success');
-      // Guardar datos para posible notificación
       const pago = (datosPanel?.pagos_pendientes || []).find(p => p.id_alumno === idAlumno);
-      if (pago) {
-        pagoActivoNombre = pago.nombre;
-        pagoActivoWA = pago.whatsapp;
-      }
+      if (pago) { pagoActivoNombre = pago.nombre; pagoActivoWA = pago.whatsapp; }
       document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
       document.getElementById('modal-notif-pago').classList.add('open');
       await cargarDatos();
@@ -886,8 +925,7 @@ async function validarPago(idAlumno,fechaPago,monto){
 
 function cerrarModalNotifPago(){
   document.getElementById('modal-notif-pago').classList.remove('open');
-  pagoActivoNombre=null;
-  pagoActivoWA=null;
+  pagoActivoNombre=null; pagoActivoWA=null;
 }
 
 function notificarAlumnoPago(){
@@ -910,7 +948,6 @@ function subirLinkWhats(idGrupo) {
     .then(data=>{
       if(data.success){
         mostrarToast('✅ Link de WhatsApp guardado','success');
-        // Actualizar localmente
         const g = (datosPanel?.grupos||[]).find(g=>g.id===idGrupo);
         if(g) g.linkWhats = link.trim();
         renderGrupos();
@@ -920,7 +957,7 @@ function subirLinkWhats(idGrupo) {
     })
     .catch(()=>mostrarToast('Error de conexión','error'));
 }
-  
+
 function mostrarToast(msg,tipo=''){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast '+tipo;t.classList.add('show');
