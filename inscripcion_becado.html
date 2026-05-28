@@ -444,9 +444,13 @@
       const json = JSON.parse(text.substring(47, text.length - 2));
       const fila = json.table.rows.find(r => String(r.c[0]?.v || '').trim() === String(idAsistente).trim());
       if (!fila) return null;
+      // Tomar el número tal como está en el sheet, solo quitar espacios y guiones
+      // pero conservar dígitos completos con código de país
+      const waRaw = String(fila.c[2]?.v || '');
+      const wa    = waRaw.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
       return {
-        nombre:    fila.c[1]?.v || '',
-        whatsapp:  String(fila.c[2]?.v || '').replace(/\D/g, '')
+        nombre:   fila.c[1]?.v || '',
+        whatsapp: wa
       };
     } catch(e) {
       return null;
@@ -741,8 +745,8 @@
       const msgFinal = asistente && asistente.nombre
         ? 'Hola ' + asistente.nombre + ' 👋, te informo que el alumno ' + nombre + ' ha sido inscrito como becado en el Grupo ' + grupoSel.id + ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel + '. Inicio: ' + inicio + '. Por favor, dale la Bienvenida.'
         : 'Hola 👋, te informo que el alumno ' + nombre + ' ha sido inscrito como becado en el Grupo ' + grupoSel.id + ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel + '. Inicio: ' + inicio + '. Por favor, dale la Bienvenida.';
-      const wa = asistente && asistente.whatsapp ? asistente.whatsapp : '';
-      btnWa.href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msgFinal);
+      const waNum = asistente && asistente.whatsapp ? '52' + asistente.whatsapp : '';
+      btnWa.href = 'https://wa.me/' + waNum + '?text=' + encodeURIComponent(msgFinal);
     });
 
     btn.disabled = false;
