@@ -23,6 +23,10 @@
   --borde:      #e2e8f0;
   --texto:      #1e293b;
   --blanco:     #ffffff;
+  /* FIX: color oro para becados */
+  --oro:        #c8a96e;
+  --oro-cl:     #fdf6ec;
+  --oro-text:   #78460f;
   --sombra:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
   --sombra-md:  0 4px 12px rgba(0,0,0,.10);
 }
@@ -91,11 +95,14 @@ body {
 .resumen-card.peligro { border-left-color: var(--rojo); }
 .resumen-card.ok      { border-left-color: var(--verde); }
 .resumen-card.fusion  { border-left-color: var(--amarillo); }
+/* FIX: tarjeta dorada para becados */
+.resumen-card.becado  { border-left-color: var(--oro); }
 .resumen-num { font-size: 1.8rem; font-weight: 700; color: var(--azul); line-height: 1; margin-bottom: .25rem; }
 .resumen-card.alerta  .resumen-num { color: var(--naranja); }
 .resumen-card.peligro .resumen-num { color: var(--rojo); }
 .resumen-card.ok      .resumen-num { color: var(--verde); }
 .resumen-card.fusion  .resumen-num { color: var(--amarillo); }
+.resumen-card.becado  .resumen-num { color: var(--oro); }
 .resumen-label { font-size: .78rem; font-weight: 600; color: var(--gris); text-transform: uppercase; letter-spacing: .04em; }
 .resumen-hint  { font-size: .72rem; color: var(--gris); opacity: .7; margin-top: .2rem; }
 
@@ -104,28 +111,14 @@ body {
 .alerta-banner .icono { font-size: 1.1rem; flex-shrink: 0; margin-top: .05rem; }
 .alerta-banner strong { display: block; margin-bottom: .2rem; }
 
-/* TABLAS — títulos fijos */
+/* TABLAS */
 .card { background: var(--blanco); border-radius: 12px; box-shadow: var(--sombra); margin-bottom: 1.25rem; overflow: hidden; }
 .card-header { padding: 1rem 1.25rem; border-bottom: 1.5px solid var(--borde); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .card-titulo { font-size: .95rem; font-weight: 700; color: var(--azul); }
 .card-sub { font-size: .78rem; color: var(--gris); margin-top: .1rem; }
 .tabla-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-thead th {
-  background: var(--gris-cl);
-  padding: .65rem 1rem;
-  text-align: left;
-  font-size: .75rem;
-  font-weight: 700;
-  color: var(--gris);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  border-bottom: 1.5px solid var(--borde);
-}
+thead th { background: var(--gris-cl); padding: .65rem 1rem; text-align: left; font-size: .75rem; font-weight: 700; color: var(--gris); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; position: sticky; top: 0; z-index: 2; border-bottom: 1.5px solid var(--borde); }
 tbody tr { border-bottom: 1px solid var(--borde); transition: background .15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--gris-cl); }
@@ -139,6 +132,8 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .chip-verde    { background: var(--verde-cl);    color: var(--verde); }
 .chip-amarillo { background: var(--amarillo-cl); color: var(--amarillo); }
 .chip-gris     { background: #f1f5f9;            color: var(--gris); }
+/* FIX: chip dorado para becados */
+.chip-oro      { background: var(--oro-cl); color: var(--oro-text); border: 1px solid rgba(200,169,110,0.4); }
 
 /* BOTONES */
 .btn { padding: .4rem .85rem; border-radius: 7px; border: none; font-family: 'DM Sans', sans-serif; font-size: .8rem; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
@@ -328,6 +323,12 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
             <div class="resumen-label">Pago vencido</div>
             <div class="resumen-hint">Ver alumnos →</div>
           </div>
+          <!-- FIX: tarjeta de becados -->
+          <div class="resumen-card becado" onclick="irATabFiltrado('seguimiento','becado')">
+            <div class="resumen-num" id="r-becados">—</div>
+            <div class="resumen-label">⭐ Becados</div>
+            <div class="resumen-hint">Ver alumnos →</div>
+          </div>
           <div class="resumen-card fusion" onclick="irATab('alertas')">
             <div class="resumen-num" id="r-fusion">—</div>
             <div class="resumen-label">Grupos para fusión</div>
@@ -365,15 +366,8 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <table>
             <thead>
               <tr>
-                <th>Grupo</th>
-                <th>Nivel</th>
-                <th>Nombre</th>
-                <th>Horario</th>
-                <th>Inicio</th>
-                <th>Inscritos</th>
-                <th>Estado</th>
-                <th>Asistente CE</th>
-                <th>Acciones</th>
+                <th>Grupo</th><th>Nivel</th><th>Nombre</th><th>Horario</th><th>Inicio</th>
+                <th>Inscritos</th><th>Estado</th><th>Asistente CE</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody id="tbody-grupos">
@@ -388,10 +382,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <div id="sec-nuevo-grupo" class="seccion" style="display:none;">
       <div class="card">
         <div class="card-header">
-          <div>
-            <div class="card-titulo">Crear nuevo grupo</div>
-            <div class="card-sub">Los campos marcados con * son obligatorios</div>
-          </div>
+          <div><div class="card-titulo">Crear nuevo grupo</div><div class="card-sub">Los campos marcados con * son obligatorios</div></div>
         </div>
         <div class="form-nuevo-grupo">
           <div class="form-grid">
@@ -474,6 +465,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
               <option value="proximo">Próximo a vencer</option>
               <option value="vencido">Pago vencido</option>
               <option value="pendiente">Pendiente inscripción</option>
+              <option value="becado">⭐ Becado</option>
               <option value="baja">Baja</option>
             </select>
           </div>
@@ -483,19 +475,16 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <div class="leyenda-item"><span class="chip chip-amarillo">Próximo</span> Vence en 1 día</div>
           <div class="leyenda-item"><span class="chip chip-rojo">Vencido</span> Sin pago vigente</div>
           <div class="leyenda-item"><span class="chip chip-naranja">Pendiente</span> Sin pago de inscripción</div>
+          <!-- FIX: leyenda becado -->
+          <div class="leyenda-item"><span class="chip chip-oro">⭐ Becado</span> Beca autorizada — no paga</div>
           <div class="leyenda-item"><span class="chip chip-gris">Baja</span> Baja últimos 14 días</div>
         </div>
         <div class="tabla-wrap">
           <table>
             <thead>
               <tr>
-                <th>ID Alumno</th>
-                <th>Nombre</th>
-                <th>Grupo</th>
-                <th>Estatus</th>
-                <th>Pago hasta</th>
-                <th>Situación</th>
-                <th>Acción</th>
+                <th>ID Alumno</th><th>Nombre</th><th>Grupo</th><th>Estatus</th>
+                <th>Pago hasta</th><th>Situación</th><th>Acción</th>
               </tr>
             </thead>
             <tbody id="tbody-seguimiento">
@@ -533,6 +522,16 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <table>
             <thead><tr><th>Grupo</th><th>Nivel</th><th>Nombre</th><th>Horario</th><th>Inicio</th><th>Inscritos</th><th>Acción</th></tr></thead>
             <tbody id="tbody-sin-asistente"><tr><td colspan="7" class="cargando">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- FIX: nueva sección de becados en alertas -->
+      <div class="card">
+        <div class="card-header"><div><div class="card-titulo">⭐ Alumnos Becados</div><div class="card-sub">Beca autorizada por dirección — no generan pago</div></div></div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>ID Alumno</th><th>Nombre</th><th>Grupo</th><th>Nivel</th></tr></thead>
+            <tbody id="tbody-becados"><tr><td colspan="4" class="cargando">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -650,7 +649,6 @@ function api(params) {
   return fetch(url, { redirect:'follow' }).then(function(r) { return r.json(); });
 }
 
-// ── HELPERS ──
 function nombreColor(nombre) {
   return (nombre||'').toLowerCase().includes('adolescente') ? 'color:#f97316;font-weight:700;' : '';
 }
@@ -722,34 +720,40 @@ function actualizarDatos() {
   setTimeout(function() { btn.classList.remove('girando'); btn.disabled=false; }, 1200);
 }
 
-// ── SITUACIÓN ──
+// ── FIX 1: calcularSituacion con caso Becado ──
 function calcularSituacion(alumno) {
   var hoy = new Date(); hoy.setHours(0,0,0,0);
-  if (alumno.estatus === 'Baja')      return { clave:'baja',      etiqueta:'Baja',                  chipClass:'chip-gris' };
-  if (alumno.estatus === 'Pendiente') return { clave:'pendiente', etiqueta:'Pendiente inscripción',  chipClass:'chip-naranja' };
+  if (alumno.estatus === 'Baja')    return { clave:'baja',    etiqueta:'Baja',                 chipClass:'chip-gris' };
+  if (alumno.estatus === 'Becado')  return { clave:'becado',  etiqueta:'⭐ Becado',             chipClass:'chip-oro'  };
+  if (alumno.estatus === 'Pendiente') return { clave:'pendiente', etiqueta:'Pendiente inscripción', chipClass:'chip-naranja' };
   if (alumno.estatus === 'Validado') {
     if (!alumno.periodoFin) return { clave:'vencido', etiqueta:'Sin pago registrado', chipClass:'chip-rojo' };
     var fin = new Date(alumno.periodoFin); fin.setHours(0,0,0,0);
     var dias = Math.ceil((fin - hoy) / 86400000);
-    if (dias < 0)  return { clave:'vencido', etiqueta:'Pago vencido',                 chipClass:'chip-rojo' };
-    if (dias <= 1) return { clave:'proximo', etiqueta:'Vence en '+dias+' día(s)',      chipClass:'chip-amarillo' };
+    if (dias < 0)  return { clave:'vencido', etiqueta:'Pago vencido',           chipClass:'chip-rojo' };
+    if (dias <= 1) return { clave:'proximo', etiqueta:'Vence en '+dias+' día(s)', chipClass:'chip-amarillo' };
     return { clave:'vigente', etiqueta:'Vigente', chipClass:'chip-verde' };
   }
   return { clave:'otro', etiqueta:alumno.estatus, chipClass:'chip-gris' };
 }
 
-// ── RENDER RESUMEN ──
+// ── FIX 2: renderResumen cuenta becados y los excluye de vencidos ──
 function renderResumen() {
   var total   = estado.grupos.length;
   var sinAsi  = estado.sinAsistente.length;
   var fusion  = estado.alertasFusion.length;
   var totalAl = estado.todosAlumnos.length;
-  var vencidos = 0;
-  estado.todosAlumnos.forEach(function(a) { if(calcularSituacion(a).clave==='vencido') vencidos++; });
+  var vencidos = 0, becados = 0;
+  estado.todosAlumnos.forEach(function(a) {
+    var sit = calcularSituacion(a);
+    if (sit.clave === 'vencido') vencidos++;
+    if (sit.clave === 'becado')  becados++;
+  });
   document.getElementById('r-grupos-total').textContent   = total;
   document.getElementById('r-grupos-sin-asi').textContent = sinAsi;
   document.getElementById('r-total-alumnos').textContent  = totalAl;
   document.getElementById('r-sin-pago').textContent       = vencidos;
+  document.getElementById('r-becados').textContent        = becados;
   document.getElementById('r-fusion').textContent         = fusion;
   var bannerSin = document.getElementById('banner-sin-asistente');
   if (sinAsi>0) { bannerSin.style.display='flex'; document.getElementById('banner-sin-asistente-texto').textContent=' '+sinAsi+' grupo(s) no tienen asistente CE asignado.'; }
@@ -786,7 +790,6 @@ function renderGrupos(filtro) {
     var btnWA = inscritos===0
       ? ' <button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+g.id+'\')">Notificar al Coord. IT</button>'
       : '';
-    /* ── CORRECCIÓN: Nivel correcto + Nombre con color naranja si es Adolescentes ── */
     var colorNombre = nombreColor(g.nombre);
     return '<tr>'+
       '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+g.id+'</strong></td>'+
@@ -830,20 +833,39 @@ function renderAsistentes() {
   }).join('');
 }
 
-// ── RENDER SEGUIMIENTO ──
+// ── FIX 3: renderSeguimiento — becado con chip dorado y sin acción de cobro ──
 function renderSeguimiento(filtroTexto, filtroSit) {
   var lista = estado.todosAlumnos;
-  if (filtroTexto) { var f=filtroTexto.toLowerCase(); lista=lista.filter(function(a){return a.idAlumno.toLowerCase().includes(f)||a.nombre.toLowerCase().includes(f)||a.idGrupo.toLowerCase().includes(f);}); }
-  if (filtroSit)   { lista=lista.filter(function(a){return calcularSituacion(a).clave===filtroSit;}); }
+  if (filtroTexto) {
+    var f = filtroTexto.toLowerCase();
+    lista = lista.filter(function(a){ return a.idAlumno.toLowerCase().includes(f)||a.nombre.toLowerCase().includes(f)||a.idGrupo.toLowerCase().includes(f); });
+  }
+  if (filtroSit) { lista = lista.filter(function(a){ return calcularSituacion(a).clave===filtroSit; }); }
   var tbody = document.getElementById('tbody-seguimiento');
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="7" class="vacio">Sin alumnos con ese criterio</td></tr>'; return; }
   tbody.innerHTML = lista.map(function(a) {
     var sit = calcularSituacion(a);
-    var chipEstatus = a.estatus==='Validado'?'<span class="chip chip-azul">Validado</span>':a.estatus==='Pendiente'?'<span class="chip chip-naranja">Pendiente</span>':a.estatus==='Baja'?'<span class="chip chip-gris">Baja</span>':'<span class="chip chip-gris">'+a.estatus+'</span>';
-    var pagoHasta = a.periodoFin ? formatFecha(a.periodoFin) : '—';
+    var esBecado = sit.clave === 'becado';
+    var chipEstatus;
+    if (esBecado) {
+      chipEstatus = '<span class="chip chip-oro">⭐ Becado</span>';
+    } else if (a.estatus==='Validado') {
+      chipEstatus = '<span class="chip chip-azul">Validado</span>';
+    } else if (a.estatus==='Pendiente') {
+      chipEstatus = '<span class="chip chip-naranja">Pendiente</span>';
+    } else if (a.estatus==='Baja') {
+      chipEstatus = '<span class="chip chip-gris">Baja</span>';
+    } else {
+      chipEstatus = '<span class="chip chip-gris">'+a.estatus+'</span>';
+    }
+    // Becados no tienen fecha de vencimiento
+    var pagoHasta = esBecado ? '<span style="color:var(--oro-text);font-size:.78rem">Beca vigente</span>' : (a.periodoFin ? formatFecha(a.periodoFin) : '—');
     var chipSit = '<span class="chip '+sit.chipClass+'">'+sit.etiqueta+'</span>';
+    // FIX: becados no tienen acción de cobro — solo cambio de grupo si aplica
     var accion = '';
-    if (sit.clave==='vencido'||sit.clave==='proximo'||sit.clave==='pendiente') {
+    if (esBecado) {
+      accion = '<span style="font-size:.75rem;color:var(--gris);font-style:italic">Sin acción requerida</span>';
+    } else if (sit.clave==='vencido'||sit.clave==='proximo'||sit.clave==='pendiente') {
       var wa=(a.whatsappCE||'').replace(/\D/g,'');
       var msg=encodeURIComponent('Hola, te contacto sobre el alumno '+a.nombre+' ('+a.idAlumno+') del grupo '+a.idGrupo+'. Su situación de pago requiere atención.');
       if (wa) accion='<a href="https://wa.me/'+cleanWA(wa)+'?text='+msg+'" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
@@ -851,14 +873,22 @@ function renderSeguimiento(filtroTexto, filtroSit) {
     } else if (sit.clave==='vigente') {
       accion='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
     }
-    return '<tr><td><span class="chip chip-azul">'+a.idAlumno+'</span></td><td><strong>'+a.nombre+'</strong></td><td><span class="chip chip-gris">'+a.idGrupo+'</span></td><td>'+chipEstatus+'</td><td style="font-size:.82rem;color:var(--gris)">'+pagoHasta+'</td><td>'+chipSit+'</td><td>'+accion+'</td></tr>';
+    return '<tr>'+
+      '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
+      '<td><strong>'+a.nombre+'</strong></td>'+
+      '<td><span class="chip chip-gris">'+a.idGrupo+'</span></td>'+
+      '<td>'+chipEstatus+'</td>'+
+      '<td style="font-size:.82rem;color:var(--gris)">'+pagoHasta+'</td>'+
+      '<td>'+chipSit+'</td>'+
+      '<td>'+accion+'</td>'+
+    '</tr>';
   }).join('');
 }
 function filtrarSeguimiento() { renderSeguimiento(document.getElementById('filtro-seguimiento').value, document.getElementById('filtro-situacion').value); }
 
-// ── RENDER ALERTAS ──
+// ── FIX 4: renderAlertas — sección de becados + excluir de fusión ──
 function renderAlertas() {
-  // Fusión
+  // Fusión — excluir becados del conteo
   var tbodyF = document.getElementById('tbody-alertas');
   if (!estado.alertasFusion.length) {
     tbodyF.innerHTML='<tr><td colspan="8" class="vacio">Sin grupos candidatos a fusión</td></tr>';
@@ -916,6 +946,23 @@ function renderAlertas() {
         '<td>'+g.horario+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
         '<td><strong>'+g.inscritos+'</strong> / '+g.cupoMax+'</td>'+
         '<td><button class="btn btn-naranja btn-sm" onclick="abrirModalAsignar(\''+g.id+'\')">Asignar ahora</button></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  // FIX: sección de becados
+  var tbodyB = document.getElementById('tbody-becados');
+  var becados = estado.todosAlumnos.filter(function(a){ return calcularSituacion(a).clave === 'becado'; });
+  if (!becados.length) {
+    tbodyB.innerHTML='<tr><td colspan="4" class="vacio">Sin alumnos becados registrados</td></tr>';
+  } else {
+    tbodyB.innerHTML = becados.map(function(a) {
+      var grupo = estado.grupos.find(function(g){ return g.id === a.idGrupo; });
+      return '<tr>'+
+        '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
+        '<td><strong>'+a.nombre+'</strong></td>'+
+        '<td><span class="chip chip-gris">'+a.idGrupo+'</span></td>'+
+        '<td>'+(grupo?grupo.nivel:'—')+'</td>'+
       '</tr>';
     }).join('');
   }
@@ -1065,9 +1112,9 @@ function setEstrella(tipo, val) {
 }
 function confirmarEvaluacion() {
   var msgEl=document.getElementById('modal-evaluar-msg'), fecha=document.getElementById('eval-fecha').value;
-  if (!fecha)               { msgEl.textContent='Selecciona una fecha.';           msgEl.className='modal-msg error'; return; }
-  if (!estado.evalActitud)  { msgEl.textContent='Califica Actitud.';               msgEl.className='modal-msg error'; return; }
-  if (!estado.evalServicio) { msgEl.textContent='Califica Servicio.';              msgEl.className='modal-msg error'; return; }
+  if (!fecha)               { msgEl.textContent='Selecciona una fecha.';  msgEl.className='modal-msg error'; return; }
+  if (!estado.evalActitud)  { msgEl.textContent='Califica Actitud.';      msgEl.className='modal-msg error'; return; }
+  if (!estado.evalServicio) { msgEl.textContent='Califica Servicio.';     msgEl.className='modal-msg error'; return; }
   var comentarios=document.getElementById('eval-comentarios').value.trim();
   var btnGuardar=document.querySelector('#modal-evaluar .btn-naranja'); btnGuardar.textContent='Guardando...'; btnGuardar.disabled=true;
   api({ action:'guardarEvaluacionCE', idAsistente:estado.asisEvalEnModal, fecha:fecha, actitud:estado.evalActitud, servicio:estado.evalServicio, comentarios:comentarios, idCE:estado.idCE }).then(function(res) {
