@@ -791,7 +791,7 @@ function renderGrupos(filtro) {
       ? ' <button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+g.id+'\')">Notificar al Coord. IT</button>'
       : '';
     var colorNombre = nombreColor(g.nombre);
-    return '<tr>'+
+    return '<tr style="cursor:pointer" onclick="abrirModalAlumnosGrupo(\''+g.id+'\')" title="Ver alumnos del grupo">'+
       '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+g.id+'</strong></td>'+
       '<td>'+g.nivel+'</td>'+
       '<td><span style="'+colorNombre+'">'+g.nombre+'</span></td>'+
@@ -1154,11 +1154,110 @@ function abrirWhatsCoordIT(idGrupo) {
   }).catch(function(err){ btn.textContent=originalText; btn.disabled=false; alert('Error: '+err.message); });
 }
 
+
+// ── MODAL ALUMNOS DEL GRUPO ──────────────────────────────────────────
+function abrirModalAlumnosGrupo(idGrupo) {
+  var grupo = estado.grupos.find(function(g){ return g.id === idGrupo; });
+  if (!grupo) return;
+
+  var alumnos = estado.todosAlumnos.filter(function(a){ return a.idGrupo === idGrupo; });
+
+  // Header del modal
+  document.getElementById('modal-grupo-chip-id').textContent = grupo.id;
+  document.getElementById('modal-grupo-titulo').textContent  = grupo.nombre + ' · ' + grupo.nivel;
+  document.getElementById('modal-grupo-sub').textContent     = grupo.horario + ' · Inicio: ' + formatFecha(grupo.fechaInicio);
+
+  // Stats rápidos
+  var nVigente  = alumnos.filter(function(a){ return calcularSituacion(a).clave === 'vigente'; }).length;
+  var nVencido  = alumnos.filter(function(a){ return calcularSituacion(a).clave === 'vencido'; }).length;
+  var nBecado   = alumnos.filter(function(a){ return calcularSituacion(a).clave === 'becado'; }).length;
+  var nProximo  = alumnos.filter(function(a){ return calcularSituacion(a).clave === 'proximo'; }).length;
+
+  document.getElementById('modal-grupo-stats').innerHTML = [
+    { num: alumnos.length, lbl: 'Total',    color: 'var(--azul)' },
+    { num: nVigente,       lbl: 'Vigentes', color: 'var(--verde)' },
+    { num: nProximo,       lbl: 'Próximos', color: 'var(--amarillo)' },
+    { num: nVencido,       lbl: 'Vencidos', color: 'var(--rojo)' },
+    { num: nBecado,        lbl: 'Becados',  color: 'var(--oro)' }
+  ].map(function(s) {
+    return '<div style="flex:1;text-align:center;padding:.75rem .5rem;border-right:1px solid var(--borde)">' +
+      '<div style="font-size:1.4rem;font-weight:700;color:' + s.color + ';font-family:'DM Mono',monospace">' + s.num + '</div>' +
+      '<div style="font-size:.7rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em">' + s.lbl + '</div>' +
+    '</div>';
+  }).join('').replace(/border-right:1px solid var\(--borde\)"><\/div>$/, 'border-right:none"></div>');
+
+  // Tabla de alumnos
+  var tbody = document.getElementById('modal-grupo-alumnos');
+  if (!alumnos.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="vacio">Sin alumnos inscritos</td></tr>';
+  } else {
+    tbody.innerHTML = alumnos.map(function(a) {
+      var sit = calcularSituacion(a);
+      var esBecado = sit.clave === 'becado';
+      var chipEstatus = esBecado
+        ? '<span class="chip chip-oro">⭐ Becado</span>'
+        : a.estatus === 'Validado' ? '<span class="chip chip-azul">Validado</span>'
+        : a.estatus === 'Pendiente' ? '<span class="chip chip-naranja">Pendiente</span>'
+        : a.estatus === 'Baja' ? '<span class="chip chip-gris">Baja</span>'
+        : '<span class="chip chip-gris">' + a.estatus + '</span>';
+      var pagoHasta = esBecado
+        ? '<span style="color:var(--oro-text);font-size:.78rem">Beca vigente</span>'
+        : (a.periodoFin ? formatFecha(a.periodoFin) : '—');
+      var chipSit = '<span class="chip ' + sit.chipClass + '">' + sit.etiqueta + '</span>';
+      var rowBg = sit.clave === 'vencido' ? 'background:rgba(220,38,38,0.04)'
+        : sit.clave === 'proximo' ? 'background:rgba(217,119,6,0.04)'
+        : sit.clave === 'becado' ? 'background:rgba(200,169,110,0.06)'
+        : '';
+      return '<tr style="border-bottom:1px solid var(--borde);' + rowBg + '">' +
+        '<td style="padding:.65rem 1rem"><span class="chip chip-azul">' + a.idAlumno + '</span></td>' +
+        '<td style="padding:.65rem 1rem"><strong>' + a.nombre + '</strong></td>' +
+        '<td style="padding:.65rem 1rem">' + chipEstatus + '</td>' +
+        '<td style="padding:.65rem 1rem;font-size:.82rem;color:var(--gris)">' + pagoHasta + '</td>' +
+        '<td style="padding:.65rem 1rem">' + chipSit + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('modal-alumnos-grupo').classList.add('abierto');
+}
+
 function cerrarSesion() {
   estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
 </script>
+
+<!-- MODAL: ALUMNOS DEL GRUPO -->
+<div class="modal-overlay" id="modal-alumnos-grupo" onclick="if(event.target===this)cerrarModal('modal-alumnos-grupo')">
+  <div class="modal" style="max-width:680px;padding:0;overflow:hidden">
+    <div style="padding:1.25rem 1.5rem;border-bottom:1.5px solid var(--borde);display:flex;align-items:center;justify-content:space-between;background:var(--azul);">
+      <div>
+        <div style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem" id="modal-grupo-chip-id">—</div>
+        <div style="font-size:1rem;font-weight:700;color:#fff" id="modal-grupo-titulo">—</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.6);margin-top:.15rem" id="modal-grupo-sub">—</div>
+      </div>
+      <button class="btn-cerrar" onclick="cerrarModal('modal-alumnos-grupo')" style="flex-shrink:0">✕</button>
+    </div>
+    <div style="display:flex;gap:0;border-bottom:1.5px solid var(--borde);background:var(--gris-cl)" id="modal-grupo-stats"></div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+        <thead>
+          <tr>
+            <th style="background:var(--gris-cl);padding:.6rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2;border-bottom:1.5px solid var(--borde);white-space:nowrap">ID</th>
+            <th style="background:var(--gris-cl);padding:.6rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2;border-bottom:1.5px solid var(--borde)">Nombre</th>
+            <th style="background:var(--gris-cl);padding:.6rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2;border-bottom:1.5px solid var(--borde)">Estatus</th>
+            <th style="background:var(--gris-cl);padding:.6rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2;border-bottom:1.5px solid var(--borde);white-space:nowrap">Pago hasta</th>
+            <th style="background:var(--gris-cl);padding:.6rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2;border-bottom:1.5px solid var(--borde)">Situación</th>
+          </tr>
+        </thead>
+        <tbody id="modal-grupo-alumnos"></tbody>
+      </table>
+    </div>
+    <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-alumnos-grupo')">Cerrar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
