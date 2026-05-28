@@ -735,24 +735,38 @@
       <div class="confirm-row"><span class="confirm-row-label">Registrado por</span><span class="confirm-row-value">${idCE}</span></div>`;
 
     // ── LINK BOTÓN WHATSAPP ASISTENTE CE ──
+    const btnWa = document.getElementById('btn-wa-ce');
+    const lblWa = document.getElementById('btn-wa-ce-label');
+    lblWa.textContent = 'Buscando asistente CE...';
+
     const idAsistente = grupoSel.idAsistente || '';
+    console.log('ID Asistente del grupo:', idAsistente);
+
     obtenerWaAsistente(idAsistente).then(function(asistente) {
-      const btnWa   = document.getElementById('btn-wa-ce');
-      const lblWa   = document.getElementById('btn-wa-ce-label');
-      const nomAsis = asistente && asistente.nombre ? asistente.nombre : '';
-      const waNum   = asistente && asistente.whatsapp ? '52' + asistente.whatsapp.replace(/\D/g,'') : '';
-      const msgFinal = encodeURIComponent(
-        'Hola ' + nomAsis + ' 👋, te informo que el alumno ' + nombre +
-        ' ha sido inscrito como becado en el Grupo ' + grupoSel.id +
-        ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel +
-        '. Inicio: ' + inicio +
-        '. Por favor, dalo de alta al grupo de WhatsApp correspondiente y dale la Bienvenida.'
-      );
-      if (waNum) {
+      console.log('Asistente encontrado:', asistente);
+      if (asistente && asistente.whatsapp) {
+        const waNum    = '52' + asistente.whatsapp.replace(/\D/g,'');
+        const nomAsis  = asistente.nombre || '';
+        const msgFinal = encodeURIComponent(
+          'Hola ' + nomAsis + ' 👋, te informo que el alumno ' + nombre +
+          ' ha sido inscrito como becado en el Grupo ' + grupoSel.id +
+          ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel +
+          '. Inicio: ' + inicio +
+          '. Por favor, dalo de alta al grupo de WhatsApp correspondiente y dale la Bienvenida.'
+        );
         btnWa.href = 'https://wa.me/' + waNum + '?text=' + msgFinal;
-        if (lblWa && nomAsis) lblWa.textContent = 'Notificar a ' + nomAsis + ' por WhatsApp';
+        lblWa.textContent = 'Notificar a ' + nomAsis + ' por WhatsApp';
       } else {
-        btnWa.style.display = 'none';
+        lblWa.textContent = 'Notificar al Asistente CE por WhatsApp';
+        // Si no se encontró número, abrir WhatsApp sin número destino
+        const msgFinal = encodeURIComponent(
+          'Hola 👋, te informo que el alumno ' + nombre +
+          ' ha sido inscrito como becado en el Grupo ' + grupoSel.id +
+          ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel +
+          '. Inicio: ' + inicio +
+          '. Por favor, dalo de alta al grupo de WhatsApp correspondiente y dale la Bienvenida.'
+        );
+        btnWa.href = 'https://wa.me/?text=' + msgFinal;
       }
     });
 
