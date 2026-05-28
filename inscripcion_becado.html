@@ -722,6 +722,7 @@
     } catch(e) {}
 
     // ── RESUMEN DE CONFIRMACIÓN ──
+    const inicio = formatLarga(grupoSel.fechaObj);
     document.getElementById('confirm-resumen').innerHTML = `
       <div class="confirm-row"><span class="confirm-row-label">Nombre</span><span class="confirm-row-value">${nombre}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">WhatsApp</span><span class="confirm-row-value">${paisActual.flag} ${paisActual.dial} ${whatsappLocal}</span></div>
@@ -733,22 +734,15 @@
       <div class="confirm-row"><span class="confirm-row-label">Estatus</span><span class="confirm-row-value" style="color:var(--gold2)">⭐ Becado</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Registrado por</span><span class="confirm-row-value">${idCE}</span></div>`;
 
-    // ── LINK SIMPLE AL ASISTENTE CE ──
-    const inicio = formatLarga(grupoSel.fechaObj);
-    const msg = encodeURIComponent(
-      'Hola 👋, te informo que el alumno ' + nombre + ' ha sido inscrito como becado en el Grupo ' + grupoSel.id + ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel + '. Inicio: ' + inicio + '. Por favor, dale la Bienvenida.'
-    );
+    // ── LINK BOTÓN WHATSAPP ASISTENTE CE ──
     const idAsistente = grupoSel.idAsistente || '';
     obtenerWaAsistente(idAsistente).then(function(asistente) {
       const btnWa = document.getElementById('btn-wa-ce');
-      if (asistente && asistente.whatsapp) {
-        const msgFinal = encodeURIComponent(
-          'Hola ' + asistente.nombre + ' 👋, te informo que el alumno ' + nombre + ' ha sido inscrito como becado en el Grupo ' + grupoSel.id + ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel + '. Inicio: ' + inicio + '. Por favor, dale la Bienvenida.'
-        );
-        btnWa.href = 'https://wa.me/' + asistente.whatsapp + '?text=' + msgFinal;
-      } else {
-        btnWa.href = 'https://wa.me/?text=' + msg;
-      }
+      const msgFinal = asistente && asistente.nombre
+        ? 'Hola ' + asistente.nombre + ' 👋, te informo que el alumno ' + nombre + ' ha sido inscrito como becado en el Grupo ' + grupoSel.id + ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel + '. Inicio: ' + inicio + '. Por favor, dale la Bienvenida.'
+        : 'Hola 👋, te informo que el alumno ' + nombre + ' ha sido inscrito como becado en el Grupo ' + grupoSel.id + ' — ' + grupoSel.horario + ' · ' + grupoSel.nivel + '. Inicio: ' + inicio + '. Por favor, dale la Bienvenida.';
+      const wa = asistente && asistente.whatsapp ? asistente.whatsapp : '';
+      btnWa.href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msgFinal);
     });
 
     btn.disabled = false;
