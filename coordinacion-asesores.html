@@ -591,19 +591,30 @@ function mandarReporte(){
     '*Total:*  '+totalGrupos+' grupos  |  *'+totalVacantes+' vacantes*\n'+
     '_Organic English - organicenglish1.com_';
 
-  navigator.clipboard.writeText(reporte).then(function(){
-    alert('Reporte copiado. Ahora pega el mensaje en WhatsApp.');
-    window.open('https://wa.me/'+numero,'_blank');
-  }).catch(function(){
-    var ta=document.createElement('textarea');
-    ta.value=reporte;
-    ta.style.position='fixed';ta.style.opacity='0';
-    document.body.appendChild(ta);ta.focus();ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('Reporte copiado. Ahora pega el mensaje en WhatsApp.');
-    window.open('https://wa.me/'+numero,'_blank');
-  });
+  // Copiar al portapapeles sin pasar por URL
+  var ta=document.createElement('textarea');
+  ta.value=reporte;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();ta.select();
+  var copiado=false;
+  try{copiado=document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+  if(copiado){
+    // Mostrar modal de confirmacion en lugar de alert
+    var overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML='<div style="background:#1e2a4a;border:1px solid rgba(249,115,22,0.4);border-radius:16px;padding:28px 32px;text-align:center;max-width:340px;width:90%;">'+
+      '<div style="font-size:32px;margin-bottom:12px;">&#x2705;</div>'+
+      '<p style="color:#fff;font-size:16px;font-weight:600;margin:0 0 8px;">Reporte copiado</p>'+
+      '<p style="color:#64748b;font-size:13px;margin:0 0 20px;">Abre WhatsApp y pega el mensaje con Ctrl+V o manteniendo presionado.</p>'+
+      '<button onclick="window.open('https://wa.me/'+numero+'','_blank');this.parentElement.parentElement.remove();" style="background:#f97316;color:#fff;border:none;border-radius:999px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;">Abrir WhatsApp</button>'+
+      '<button onclick="this.parentElement.parentElement.remove();" style="background:transparent;color:#64748b;border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:12px 20px;font-size:14px;cursor:pointer;">Cerrar</button>'+
+    '</div>';
+    document.body.appendChild(overlay);
+  } else {
+    window.open('https://wa.me/'+numero+'?text='+encodeURIComponent(reporte),'_blank');
+  }
 }
 </script>
 </body>
