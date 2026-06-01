@@ -538,21 +538,26 @@ function mandarReporte(){
   var ampm=hh>=12?'PM':'AM';hh=hh%12||12;
   var horaStr=hh+':'+mm+' '+ampm;
 
-  // Agrupar grupos con vacantes por fecha de inicio
+  function vacEmoji(ll){
+    if(ll>=10)return '\ud83d\udd35';
+    if(ll>=7)return '\ud83d\udfe2';
+    if(ll>=5)return '\ud83d\udfe0';
+    if(ll>=3)return '\ud83d\udfe1';
+    return '\ud83d\udd34';
+  }
+
   var porFecha={};
   dataMeses.forEach(function(mes){
     mes.grupos.forEach(function(g){
       if((g.lugaresLibres||0)===0)return;
-      var fi=g.fechaInicio; // DD/MM/YYYY
+      var fi=g.fechaInicio;
       if(!porFecha[fi])porFecha[fi]=[];
       porFecha[fi].push(g);
     });
   });
 
   var fechasOrdenadas=Object.keys(porFecha).sort(function(a,b){
-    var pa=a.split('/').reverse().join('');
-    var pb=b.split('/').reverse().join('');
-    return pa.localeCompare(pb);
+    return a.split('/').reverse().join('').localeCompare(b.split('/').reverse().join(''));
   });
 
   if(!fechasOrdenadas.length){
@@ -566,19 +571,25 @@ function mandarReporte(){
   fechasOrdenadas.forEach(function(fecha){
     var parts=fecha.split('/');
     var mesAbr=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'][parseInt(parts[1])-1];
-    lineas.push('--- Inicio '+parts[0]+' '+mesAbr+' ---');
+    lineas.push('');
+    lineas.push('*INICIO '+parts[0]+' '+mesAbr+'*');
     porFecha[fecha].forEach(function(g){
       var ll=g.lugaresLibres||0;
-      lineas.push('*'+g.id+'* '+g.nombre+' '+g.horario+' ('+ll+')');
+      var emoji=vacEmoji(ll);
+      lineas.push(emoji+' *'+g.id+'*  _'+g.nombre+'_  |  '+g.horario+'  ->  *'+ll+' lugar'+(ll!==1?'es':'')+'*');
       totalGrupos++;totalVacantes+=ll;
     });
   });
 
+  var sep='━━━━━━━━━━━━━━━━━━━━━━';
   var reporte=
     '*REPORTE DE DISPONIBILIDAD*\n'+
-    'Organic English | '+fechaStr+' '+horaStr+'\n\n'+
+    '*Organic English*  |  _'+fechaStr+'_  |  _'+horaStr+'_\n'+
+    sep+
     lineas.join('\n')+'\n\n'+
-    'Total: '+totalGrupos+' grupos | '+totalVacantes+' vacantes';
+    sep+'\n'+
+    '*Total:*  '+totalGrupos+' grupos  |  *'+totalVacantes+' vacantes*\n'+
+    '_Organic English - organicenglish1.com_';
 
   window.open('https://wa.me/'+numero+'?text='+encodeURIComponent(reporte),'_blank');
 }
