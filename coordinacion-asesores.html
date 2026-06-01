@@ -44,6 +44,8 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.82);z-
 .top-right{display:flex;align-items:center;gap:10px;}
 .avatar{width:34px;height:34px;border-radius:50%;background:#1c2b5e;border:2px solid var(--orange);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
 .btn-logout{font-size:13px;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:6px 13px;background:transparent;cursor:pointer;}
+.btn-reporte{font-size:13px;font-weight:700;color:#fff;background:var(--orange);border:none;border-radius:8px;padding:8px 16px;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;gap:6px;}
+.btn-reporte:hover{opacity:.88;}
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;}
@@ -160,6 +162,7 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.82);z-
         <span class="logo-text">Coordinación de Asesores</span>
       </div>
       <div class="top-right">
+        <button class="btn-reporte" onclick="mandarReporte()">📊 Mandar reporte</button>
         <div class="avatar" id="avatarIni">CA</div>
         <button class="btn-logout" onclick="logout()">Salir</button>
       </div>
@@ -286,7 +289,13 @@ function renderMeses(){
   var cont=document.getElementById('contenidoMeses');
   if(!dataMeses.length){cont.innerHTML='<div class="loading-state">Sin grupos en el período.</div>';return;}
   cont.innerHTML='';
-  dataMeses.forEach(function(mes){
+  // Orden: próximo → actual → anterior
+  var ordenado=[].concat(dataMeses).sort(function(a,b){
+    var pa=a.key>mesActualKey?0:(a.key===mesActualKey?1:2);
+    var pb=b.key>mesActualKey?0:(b.key===mesActualKey?1:2);
+    return pa-pb;
+  });
+  ordenado.forEach(function(mes){
     var esActual=mes.key===mesActualKey;
     var esSiguiente=mes.key>mesActualKey;
     var tipoBadge=esActual?'actual':(esSiguiente?'siguiente':'');
@@ -302,10 +311,14 @@ function renderMeses(){
       var llText=ll===0?'Lleno':(ll+' libre'+(ll!==1?'s':''));
       var card=document.createElement('div');
       card.className='grupo-card';
+      // Grupos llenos: tono tenue
+      if(ll===0) card.style.cssText='opacity:0.38;filter:saturate(0.3);';
       card.innerHTML=
         '<div class="grupo-top">'+
           '<span class="grupo-id">'+g.id+'</span>'+
-          '<span class="lugares-badge '+llClass+'">'+llText+'</span>'+
+          '<span class="lugares-badge '+llClass+'" style="font-size:14px;padding:5px 14px;font-weight:800;">'+
+            (ll===0?'Sin lugares':'<strong>'+ll+'</strong> lugar'+(ll!==1?'es':''))+
+          '</span>'+
         '</div>'+
         '<div class="grupo-nombre">'+g.nombre+'</div>'+
         '<div class="grupo-meta">'+
@@ -314,7 +327,7 @@ function renderMeses(){
         '</div>'+
         '<div class="grupo-footer">'+
           '<span>👨‍🏫 <strong>'+g.maestro+'</strong></span>'+
-          '<span>'+g.inscritos+' / '+g.cupoMax+' alumnos</span>'+
+          '<span style="color:#64748b;">'+g.inscritos+'/'+g.cupoMax+'</span>'+
         '</div>';
       card.onclick=function(){abrirGrupo(g);};
       grid.appendChild(card);
@@ -369,6 +382,82 @@ function abrirGrupo(g){
 function closeModal(){document.getElementById('modalGrupo').classList.remove('open');}
 function closeMbg(e){if(e.target===document.getElementById('modalGrupo'))closeModal();}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+/* ── REPORTE WHATSAPP ── */
+function mandarReporte(){
+  var numero='522721564694'; // Número de prueba — ajustar al grupo de ventas
+  var ahora=new Date();
+  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var diasSem=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var fechaStr=diasSem[ahora.getDay()]+' '+('0'+ahora.getDate()).slice(-2)+'/'+meses[ahora.getMonth()]+'/'+ahora.getFullYear();
+  var hh=ahora.getHours();var mm=('0'+ahora.getMinutes()).slice(-2);
+  var ampm=hh>=12?'PM':'AM';hh=hh%12||12;
+  var horaStr=hh+':'+mm+' '+ampm;
+
+  // Recopilar grupos con vacantes ordenados: siguiente→actual→anterior
+  var ordenado=[].concat(dataMeses).sort(function(a,b){
+    var pa=a.key>mesActualKey?0:(a.key===mesActualKey?1:2);
+    var pb=b.key>mesActualKey?0:(b.key===mesActualKey?1:2);
+    return pa-pb;
+  });
+
+  var lineas=[];
+  var totalGrupos=0,totalVacantes=0;
+
+  ordenado.forEach(function(mes){
+    var conVacantes=mes.grupos.filter(function(g){return (g.lugaresLibres||0)>0;});
+    if(!conVacantes.length) return;
+
+    // Agrupar por fecha de inicio dentro del mes
+    var porFecha={};
+    conVacantes.forEach(function(g){
+      if(!porFecha[g.fechaInicio]) porFecha[g.fechaInicio]=[];
+      porFecha[g.fechaInicio].push(g);
+    });
+
+    Object.keys(porFecha).sort(function(a,b){
+      return new Date(a.split('/').reverse().join('-'))-new Date(b.split('/').reverse().join('-'));
+    }).forEach(function(fecha){
+      // Formato fecha: "01 JUN"
+      var parts=fecha.split('/');
+      var mesNomCorto=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'][parseInt(parts[1])-1];
+      lineas.push('');
+      lineas.push('📅 INICIO '+parts[0]+' '+mesNomCorto);
+      porFecha[fecha].forEach(function(g){
+        var ll=g.lugaresLibres||0;
+        lineas.push('  • '+g.id+' · '+g.nombre+' · '+g.horario+' → '+ll+' lugar'+(ll!==1?'es':''));
+        totalGrupos++;totalVacantes+=ll;
+      });
+    });
+  });
+
+  if(!totalGrupos){
+    alert('No hay grupos con vacantes disponibles en este momento.');
+    return;
+  }
+
+  var reporte=
+    '📊 *REPORTE DE DISPONIBILIDAD*
+'+
+    'Organic English · '+fechaStr+' · '+horaStr+'
+
+'+
+    '🟢 *GRUPOS CON VACANTES DISPONIBLES*'+
+    lineas.join('
+')+'
+
+'+
+    '─────────────────────
+'+
+    'Total grupos: '+totalGrupos+'  |  Total vacantes: '+totalVacantes+'
+'+
+    '─────────────────────
+'+
+    'Organic English · organicenglish1.com';
+
+  var url='https://wa.me/'+numero+'?text='+encodeURIComponent(reporte);
+  window.open(url,'_blank');
+}
 </script>
 </body>
 </html>
