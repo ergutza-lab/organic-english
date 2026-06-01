@@ -444,7 +444,7 @@
 
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-function cleanWA(p){var raw=(p||'').toString().trim();var n=raw.replace(/\D/g,'');if(n.length===11&&n.startsWith('1'))return n;if(n.length===12&&n.startsWith('52'))return n;if(n.length===13&&n.startsWith('521'))return n;if(n.length===10)return '52'+n;return n.slice(-10).length===10?'52'+n.slice(-10):n;}
+function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
 // ── FIX: helper para detectar si un alumno es becado ──
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
@@ -751,19 +751,44 @@ function renderNuevos(){
       </div>
       <div style="display:flex;gap:8px">
         <a class="btn-whats" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank">👋 Presentarse</a>
-        <button class="btn-confirmado" onclick="marcarPresentado('${a.id}')" style="padding:9px 14px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✓ Listo</button>
+        <button class="btn-confirmado" onclick="marcarPresentado('${a.id}',this)" style="padding:9px 14px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✓ Listo</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function marcarPresentado(idAlumno){
+function marcarPresentado(idAlumno, btn){
   const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
   if(!presentados.includes(idAlumno)){
     presentados.push(idAlumno);
     localStorage.setItem('nuevos_presentados', JSON.stringify(presentados));
   }
-  renderNuevos();
+  // Desaparecer la tarjeta con animacion suave
+  const card = btn ? btn.closest('.nuevo-card') : null;
+  if(card){
+    card.style.transition='opacity 0.35s ease, transform 0.35s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
+    card.style.opacity='0';
+    card.style.transform='translateX(40px)';
+    card.style.maxHeight=card.offsetHeight+'px';
+    setTimeout(function(){
+      card.style.maxHeight='0';
+      card.style.marginBottom='0';
+      card.style.padding='0';
+      card.style.overflow='hidden';
+    }, 340);
+    setTimeout(function(){
+      card.remove();
+      // Actualizar badge y resumen
+      renderResumen();
+      // Si no quedan tarjetas, mostrar estado vacio
+      var lista = document.getElementById('lista-nuevos');
+      if(lista && !lista.querySelector('.nuevo-card')){
+        lista.innerHTML='<div style="text-align:center;color:var(--gris-400);padding:24px;font-size:13px;">Sin alumnos nuevos pendientes de presentacion.</div>';
+      }
+    }, 750);
+  } else {
+    renderNuevos();
+  }
   mostrarToast('Alumno marcado como presentado','success');
 }
 
