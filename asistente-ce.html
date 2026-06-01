@@ -515,12 +515,16 @@ function renderResumen(){
   const{grupos=[],pagos_pendientes=[],alumnos_nuevos=[],sin_pago=[]}=datosPanel;
   const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.length||0),0);
 
-  // FIX: excluir becados del conteo sin_pago en el resumen
+  // Excluir becados del conteo sin_pago
   const sinPagoReales = sin_pago.filter(a => !esBecado(a));
+
+  // Excluir presentados del conteo de nuevos (se guardan en localStorage)
+  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
+  const nuevosPendientes = alumnos_nuevos.filter(a => !presentados.includes(a.id));
 
   const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
-  bn.textContent=alumnos_nuevos.length;bn.className='tab-badge'+(alumnos_nuevos.length?'':' cero');
+  bn.textContent=nuevosPendientes.length;bn.className='tab-badge'+(nuevosPendientes.length?'':' cero');
   ba.textContent=sinPagoReales.length;ba.className='tab-badge'+(sinPagoReales.length?'':' cero');
   document.getElementById('resumen-cards').innerHTML=`
     <div class="summary-card"><div class="ic">📋</div><div class="num">${grupos.length}</div><div class="lbl">Mis grupos</div></div>
