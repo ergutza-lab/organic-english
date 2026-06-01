@@ -341,11 +341,9 @@ function renderCalendarios(){
   var wrap=document.getElementById('calsWrap');
   wrap.innerHTML='';
 
-  // Ordenar meses: siguiente -> actual -> anterior
+  // Ordenar meses: anterior -> actual -> siguiente
   var ordenado=[].concat(dataMeses).sort(function(a,b){
-    var pa=a.key>mesActualKey?0:(a.key===mesActualKey?1:2);
-    var pb=b.key>mesActualKey?0:(b.key===mesActualKey?1:2);
-    return pa-pb;
+    return a.key.localeCompare(b.key);
   });
 
   // Mostrar siempre 3 meses aunque no tengan grupos
@@ -356,11 +354,9 @@ function renderCalendarios(){
     var mesData=dataMeses.find(function(m){return m.key===k;})||{key:k,nombre:MESES_NOM[d.getMonth()]+' '+d.getFullYear(),grupos:[]};
     mesesMostrar.push({mesData:mesData,fecha:d});
   }
-  // Reordenar: siguiente, actual, anterior
+  // Ordenar: anterior, actual, siguiente
   mesesMostrar.sort(function(a,b){
-    var pa=a.mesData.key>mesActualKey?0:(a.mesData.key===mesActualKey?1:2);
-    var pb=b.mesData.key>mesActualKey?0:(b.mesData.key===mesActualKey?1:2);
-    return pa-pb;
+    return a.mesData.key.localeCompare(b.mesData.key);
   });
 
   mesesMostrar.forEach(function(item){
@@ -576,7 +572,7 @@ function mandarReporte(){
     porFecha[fecha].forEach(function(g){
       var ll=g.lugaresLibres||0;
       var emoji=vacEmoji(ll);
-      var nom=g.nombre.replace(/ADOLESCENTES/gi,'ADOLES');lineas.push(emoji+'*'+g.id+'*  '+nom+' '+g.horario+'-> *'+ll+'Vac.*');
+      var nom=g.nombre.replace(/ADOLESCENTES/gi,'JOVENES');lineas.push(emoji+'*'+g.id+'*  '+nom+' '+g.horario+'-> *'+ll+'Vac.*');
       totalGrupos++;totalVacantes+=ll;
     });
   });
