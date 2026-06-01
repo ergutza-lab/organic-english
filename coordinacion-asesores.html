@@ -19,7 +19,7 @@ body{
 }
 body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.82);z-index:0;pointer-events:none;}
 .screen,.login-wrap{position:relative;z-index:1;}
-/* ── LOGIN ── */
+/* == LOGIN == */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
 .login-box{background:#1e2a4a;border-radius:20px;padding:32px 28px;width:100%;max-width:400px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:6px;}
 .login-box img{width:220px;margin-bottom:6px;}
@@ -215,7 +215,7 @@ var APPS = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp
 var caData = null;
 var dataMeses = [];
 
-/* ── LOGIN ── */
+/* == LOGIN == */
 function login(){
   var id    = document.getElementById('inputId').value.trim().toUpperCase();
   var clave = document.getElementById('inputClave').value.trim();
@@ -230,7 +230,7 @@ function login(){
       if(d.status==='ok'){caData=d;mostrarPanel();}
       else{err.style.display='block';err.textContent=d.mensaje||'ID o clave incorrectos.';}
     })
-    .catch(function(e){btn.textContent='Entrar';btn.disabled=false;err.style.display='block';err.textContent='Error de conexión.';});
+    .catch(function(e){btn.textContent='Entrar';btn.disabled=false;err.style.display='block';err.textContent='Error de conexion.';});
 }
 
 function mostrarPanel(){
@@ -251,7 +251,7 @@ function logout(){
 
 document.getElementById('inputClave').addEventListener('keypress',function(e){if(e.key==='Enter')login();});
 
-/* ── DATOS ── */
+/* == DATOS == */
 function cargarDatos(){
   document.getElementById('contenidoMeses').innerHTML='<div class="loading-state">Cargando grupos...</div>';
   fetch(APPS+'?action=getDatosCoordinadorAsesores',{redirect:'follow'})
@@ -265,7 +265,7 @@ function cargarDatos(){
     .catch(function(e){document.getElementById('contenidoMeses').innerHTML='<div class="loading-state">Error de conexión.</div>';});
 }
 
-/* ── STATS GLOBALES ── */
+/* == STATS GLOBALES == */
 function renderStats(){
   var totalGrupos=0,totalAlumnos=0,totalLugares=0,totalVencidos=0;
   dataMeses.forEach(function(mes){
@@ -282,14 +282,14 @@ function renderStats(){
   document.getElementById('stVencidos').textContent=totalVencidos;
 }
 
-/* ── RENDER MESES ── */
+/* == RENDER MESES == */
 var mesActualKey=(function(){var h=new Date();return h.getFullYear()+'-'+('0'+(h.getMonth()+1)).slice(-2);})();
 
 function renderMeses(){
   var cont=document.getElementById('contenidoMeses');
   if(!dataMeses.length){cont.innerHTML='<div class="loading-state">Sin grupos en el período.</div>';return;}
   cont.innerHTML='';
-  // Orden: próximo → actual → anterior
+  // Orden: proximo -> actual -> anterior
   var ordenado=[].concat(dataMeses).sort(function(a,b){
     var pa=a.key>mesActualKey?0:(a.key===mesActualKey?1:2);
     var pb=b.key>mesActualKey?0:(b.key===mesActualKey?1:2);
@@ -299,10 +299,10 @@ function renderMeses(){
     var esActual=mes.key===mesActualKey;
     var esSiguiente=mes.key>mesActualKey;
     var tipoBadge=esActual?'actual':(esSiguiente?'siguiente':'');
-    var tipoLabel=esActual?'Mes actual':(esSiguiente?'Próximo mes':'Mes anterior');
+    var tipoLabel=esActual?'Mes actual':(esSiguiente?'Proximo mes':'Mes anterior');
     var sec=document.createElement('div');
     sec.className='mes-section';
-    sec.innerHTML='<div class="mes-header"><span class="mes-title">'+mes.nombre+'</span><span class="mes-badge '+tipoBadge+'">'+tipoLabel+' · '+mes.grupos.length+' grupo'+(mes.grupos.length!==1?'s':'')+'</span></div><div class="grupos-grid" id="grid-'+mes.key+'"></div>';
+    sec.innerHTML='<div class="mes-header"><span class="mes-title">'+mes.nombre+'</span><span class="mes-badge '+tipoBadge+'">'+tipoLabel+' - '+mes.grupos.length+' grupo'+(mes.grupos.length!==1?'s':'')+'</span></div><div class="grupos-grid" id="grid-'+mes.key+'"></div>';
     cont.appendChild(sec);
     var grid=document.getElementById('grid-'+mes.key);
     mes.grupos.forEach(function(g){
@@ -335,10 +335,10 @@ function renderMeses(){
   });
 }
 
-/* ── MODAL GRUPO ── */
+/* == MODAL GRUPO == */
 function abrirGrupo(g){
   document.getElementById('mGrupoNombre').textContent=g.nombre;
-  document.getElementById('mGrupoSub').textContent=g.id+' · '+g.fechaInicio+' · '+g.horario;
+  document.getElementById('mGrupoSub').textContent=g.id+' | '+g.fechaInicio+' | '+g.horario;
 
   // Personal
   document.getElementById('mPersonal').innerHTML=
@@ -383,18 +383,18 @@ function closeModal(){document.getElementById('modalGrupo').classList.remove('op
 function closeMbg(e){if(e.target===document.getElementById('modalGrupo'))closeModal();}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 
-/* ── REPORTE WHATSAPP ── */
+/* == REPORTE WHATSAPP == */
 function mandarReporte(){
-  var numero='522721564694'; // Número de prueba — ajustar al grupo de ventas
+  var numero='522721564694'; // Numero de prueba - ajustar al grupo de ventas
   var ahora=new Date();
   var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  var diasSem=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var diasSem=['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
   var fechaStr=diasSem[ahora.getDay()]+' '+('0'+ahora.getDate()).slice(-2)+'/'+meses[ahora.getMonth()]+'/'+ahora.getFullYear();
   var hh=ahora.getHours();var mm=('0'+ahora.getMinutes()).slice(-2);
   var ampm=hh>=12?'PM':'AM';hh=hh%12||12;
   var horaStr=hh+':'+mm+' '+ampm;
 
-  // Recopilar grupos con vacantes ordenados: siguiente→actual→anterior
+  // Recopilar grupos con vacantes ordenados: siguiente->actual->anterior
   var ordenado=[].concat(dataMeses).sort(function(a,b){
     var pa=a.key>mesActualKey?0:(a.key===mesActualKey?1:2);
     var pb=b.key>mesActualKey?0:(b.key===mesActualKey?1:2);
@@ -447,11 +447,11 @@ function mandarReporte(){
 ')+'
 
 '+
-    '─────────────────────
+    '-----------------------
 '+
     'Total grupos: '+totalGrupos+'  |  Total vacantes: '+totalVacantes+'
 '+
-    '─────────────────────
+    '-----------------------
 '+
     'Organic English · organicenglish1.com';
 
