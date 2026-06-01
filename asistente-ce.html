@@ -3,966 +3,1527 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel CE — Organic English</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <title>Coordinador IT - Organic English</title>
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --azul:#1c2b5e;--azul-medio:#243570;--azul-claro:#2d4494;--azul-50:#eef2ff;--azul-100:#c7d4f8;
-      --naranja:#f97316;--naranja-h:#ea6a0c;--naranja-10:#fff4ed;--naranja-20:#fed7aa;
-      --gris-50:#f8fafc;--gris-100:#f1f5f9;--gris-200:#e2e8f0;--gris-300:#cbd5e1;
-      --gris-400:#94a3b8;--gris-500:#64748b;--gris-600:#475569;--gris-700:#334155;--gris-800:#1e293b;
-      --verde:#16a34a;--verde-10:#dcfce7;--verde-text:#14532d;
-      --rojo:#dc2626;--rojo-10:#fee2e2;--rojo-text:#7f1d1d;
-      --amarillo:#d97706;--amarillo-10:#fef3c7;--amarillo-text:#78350f;
-      --oro:#c8a96e;--oro-10:#fdf6ec;--oro-text:#78460f;
-      --shadow-sm:0 1px 3px rgba(0,0,0,0.07);--shadow-md:0 4px 14px rgba(0,0,0,0.09);--shadow-lg:0 12px 32px rgba(0,0,0,0.14);
-      --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;
+    :root { --bg:#0f172a; --surface:#1e293b; --border:#334155; --text:#f1f5f9; --muted:#94a3b8; --orange:#f97316; --orange-dark:#ea580c; --blue:#3b82f6; --green:#22c55e; --red:#ef4444; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'DM Sans',sans-serif; background-color:#0f172a; background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp'); background-size:cover; background-position:center; background-attachment:fixed; color:var(--text); min-height:100vh; position:relative; }
+    body::before { content:''; position:fixed; inset:0; background:rgba(15,23,42,0.3); z-index:-1; }
+    .screen { display:none; }
+    .screen.active { display:block; }
+    .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1rem; }
+.login-box { background: #1e2a4a; border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; }
+  .login-box img { width: 340px; height: auto; }
+  .login-box h1 { color: #fff; font-size: 22px; font-weight: 600; margin: 10px 0 0 0; }
+  .login-box p { color: #64748b; font-size: 13px; margin: 4px 0 16px 0; }
+    .field { margin-bottom:1rem; text-align:left; }
+    .field label { display:block; font-size:0.85rem; color:var(--muted); margin-bottom:0.4rem; }
+    .field input { width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:1rem; }
+    .btn-primary { width:100%; background:var(--orange); color:#fff; border:none; padding:0.9rem; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer; }
+    .btn-primary:hover:not(:disabled) { background:var(--orange-dark); }
+    .btn-primary:disabled { opacity:0.6; }
+    .error-msg { color:var(--red); font-size:0.85rem; margin-top:0.8rem; display:none; }
+    .panel-root { max-width:1200px; margin:0 auto; padding:2rem; }
+    .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; }
+    .logo-area { display:flex; align-items:center; gap:12px; }
+    .logo-area img { height:40px; }
+    .logo-text { font-size:18px; font-weight:700; }
+    .top-right { display:flex; align-items:center; gap:12px; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+    .btn-logout { padding:8px 16px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem; }
+    .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+    .card-title { font-size:14px; font-weight:700; color:var(--muted); text-transform:uppercase; }
+    .btn-add { background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px; }
+    table { width:100%; border-collapse:collapse; }
+    th { text-align:left; font-size:12px; color:var(--muted); padding:12px 8px; border-bottom:1px solid var(--border); }
+    td { padding:12px 8px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle; }
+    .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+    .badge-activo { background:rgba(34,197,94,0.2); color:var(--green); }
+    .badge-inactivo { background:rgba(239,68,68,0.2); color:var(--red); }
+    .btn-action { padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
+    .btn-edit { background:var(--blue); color:#fff; }
+    .btn-delete { background:var(--red); color:#fff; }
+    .btn-wa { background:#25D366; color:#fff; padding:6px 10px; }
+    .form-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; }
+    .form-group { margin-bottom:0.5rem; }
+    .form-group label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .form-group input { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:14px; }
+    .form-group input:disabled { opacity:0.5; cursor:not-allowed; }
+    .form-group select { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:14px; }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:100; padding:1rem; }
+    .modal.active { display:flex; }
+    .modal-content { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem; width:100%; max-width:560px; max-height:92vh; overflow-y:auto; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+    .modal-title { font-size:1.2rem; font-weight:700; }
+    .modal-close { background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer; line-height:1; }
+    .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:1.5rem; flex-wrap:wrap; }
+    .btn-cancel { padding:10px 18px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+    .btn-save { background:var(--orange); color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px; }
+    .btn-wa { background:#25D366; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px; }
+    .botones-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:2rem; }
+    .btn-seccion { padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+    .btn-seccion:hover { background:var(--orange); border-color:var(--orange); }
+    .btn-seccion.active { background:var(--orange); border-color:var(--orange); }
+    .mensaje-vacio { text-align:center; padding:3rem; color:var(--muted); font-size:16px; }
+    .tab-content { display:none; }
+    .info-row td { text-align:center; color:var(--muted); padding:2rem !important; }
+    @media(max-width:768px) {
+      .botones-grid { grid-template-columns:repeat(2,1fr); }
+      .form-grid { grid-template-columns:1fr; }
+      .panel-root { padding:1rem; }
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background-color:#0f172a;background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp');background-size:cover;background-position:center;background-attachment:fixed;font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;}
-    body::before{content:'';position:fixed;inset:0;background:rgba(15,23,42,0.3);z-index:0;}
-    #login-screen,#panel-screen{position:relative;z-index:1;}
-
-    /* LOGIN */
-    #login-screen{min-height:100vh;background:transparent;display:flex;align-items:center;justify-content:center;padding:20px}
-    .login-card{background:#1e2a4a;border-radius:20px;padding:20px;width:100%;max-width:400px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center}
-    .login-logo{text-align:center;margin-bottom:0}
-    .login-logo img{width:340px;height:auto}
-    .login-logo h2{font-size:22px;font-weight:600;color:#fff;margin:10px 0 0 0}
-    .login-logo p{font-size:13px;color:#64748b;margin:4px 0 16px 0}
-    .login-field{margin-bottom:12px}
-    .login-field label{display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
-    .login-field input{width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:10px;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;transition:border-color .18s;outline:none;color:#fff;background:#0f172a}
-    .login-field input:focus{border-color:#f97316}
-    .btn-login{width:100%;padding:14px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .18s}
-    .btn-login:hover{opacity:0.9}
-    .login-error{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px 16px;font-size:13px;margin-top:14px;display:none}
-
-    /* HEADER */
-    #panel-screen{display:none}
-    .header{background:var(--azul);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.2)}
-    .header-left{display:flex;align-items:center;gap:12px}
-    .header-logo{height:50px;width:auto;object-fit:contain}
-    .header-title{color:#fff;font-size:14px;font-weight:700;letter-spacing:-.2px}
-    .header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:500}
-    .header-right{display:flex;align-items:center;gap:10px}
-    .header-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.25)}
-    .header-name{color:rgba(255,255,255,.85);font-size:13px;font-weight:600}
-    .btn-salir{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:var(--r-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:background .18s}
-    .btn-salir:hover{background:rgba(255,255,255,.22)}
-
-    /* TABS */
-    .tabs{background:#fff;border-bottom:1.5px solid var(--gris-200);display:flex;overflow-x:auto;padding:0 16px;gap:2px;position:sticky;top:58px;z-index:190}
-    .tabs::-webkit-scrollbar{display:none}
-    .tab{padding:13px 16px;font-size:12px;font-weight:700;color:var(--gris-400);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:color .18s,border-color .18s;margin-bottom:-1.5px;letter-spacing:.1px}
-    .tab:hover{color:var(--azul)}
-    .tab.active{color:var(--naranja);border-bottom-color:var(--naranja)}
-    .tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--naranja);color:#fff;border-radius:20px;font-size:10px;font-weight:700;min-width:16px;height:16px;padding:0 4px;margin-left:5px}
-    .tab-badge.cero{background:var(--gris-200);color:var(--gris-500)}
-
-    /* CONTENIDO */
-    .content{padding:20px 16px;max-width:960px;margin:0 auto}
-    .section{display:none}
-    .section.active{display:block}
-
-    /* RESUMEN CARDS */
-    .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
-    @media(max-width:600px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
-    .summary-card{background:#fff;border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow-sm);border:1px solid var(--gris-100)}
-    .summary-card .num{font-size:28px;font-weight:700;color:var(--azul);font-family:'JetBrains Mono',monospace;line-height:1}
-    .summary-card .lbl{font-size:11px;color:var(--gris-400);font-weight:600;margin-top:5px;text-transform:uppercase;letter-spacing:.4px}
-    .summary-card .ic{font-size:16px;margin-bottom:6px}
-    .summary-card.warn .num{color:var(--amarillo)}
-    .summary-card.danger .num{color:var(--rojo)}
-    .summary-card.ok .num{color:var(--verde)}
-
-    /* SECTION HEADER */
-    .sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-    .sec-title{font-size:16px;font-weight:700;color:var(--azul);letter-spacing:-.2px}
-    .sec-hint{font-size:12px;color:var(--gris-400);font-weight:500}
-
-    /* FILA GRUPO */
-    .grupo-row{background:#fff;border-radius:var(--r-lg);padding:0;box-shadow:var(--shadow-sm);margin-bottom:8px;border:1px solid var(--gris-100);overflow:hidden;transition:box-shadow .18s,border-color .18s;cursor:pointer}
-    .grupo-row:hover{box-shadow:var(--shadow-md);border-color:var(--gris-200)}
-    .grupo-row:hover .grupo-chevron{color:var(--naranja);transform:translateX(2px)}
-    .grupo-row-inner{display:flex;align-items:center;padding:12px 16px;gap:12px}
-    .grupo-chip{background:var(--azul);color:#fff;border-radius:var(--r-sm);padding:4px 10px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;flex-shrink:0}
-    .grupo-info{flex:1;min-width:0}
-    .grupo-nombre-row{font-size:13px;font-weight:700;color:var(--gris-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .grupo-horario-row{font-size:11px;color:var(--gris-400);font-weight:500;margin-top:1px}
-    .grupo-stats{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
-    .gstat{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;border-radius:20px;padding:3px 8px;white-space:nowrap}
-    .gstat.total{background:var(--azul-50);color:var(--azul)}
-    .gstat.nuevo{background:var(--verde-10);color:var(--verde-text)}
-    .gstat.sinpago{background:var(--rojo-10);color:var(--rojo-text)}
-    /* FIX: badge especial para becados en la fila de grupo */
-    .gstat.becado{background:var(--oro-10);color:var(--oro-text)}
-    .grupo-chevron{color:var(--gris-300);font-size:16px;flex-shrink:0;transition:color .18s,transform .18s;line-height:1}
-    .grupo-progress-bar{height:3px;background:var(--gris-100)}
-    .grupo-progress-fill{height:100%;background:var(--naranja);transition:width .4s ease}
-    .grupo-progress-fill.lleno{background:var(--rojo)}
-
-    /* MODAL GRUPO */
-    .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:1000;display:none;align-items:flex-end;justify-content:center;padding:0;backdrop-filter:blur(3px)}
-    .modal-overlay.open{display:flex}
-    @media(min-width:600px){.modal-overlay{align-items:center;padding:20px}}
-    .modal-box{background:#fff;border-radius:var(--r-xl) var(--r-xl) 0 0;padding:22px 20px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;animation:slideUp .25s ease}
-    @media(min-width:600px){.modal-box{border-radius:var(--r-xl);animation:fadeIn .2s ease}}
-    @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-    @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
-    .modal-handle{width:36px;height:4px;background:var(--gris-200);border-radius:4px;margin:0 auto 18px}
-    @media(min-width:600px){.modal-handle{display:none}}
-    .modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
-    .modal-grupo-id{background:var(--azul);color:#fff;border-radius:var(--r-sm);padding:4px 11px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;display:inline-block;margin-bottom:6px}
-    .modal-grupo-nombre{font-size:17px;font-weight:700;color:var(--gris-800);letter-spacing:-.3px}
-    .modal-grupo-sub{font-size:12px;color:var(--gris-400);font-weight:500;margin-top:3px}
-    .modal-cerrar{width:30px;height:30px;border-radius:50%;background:var(--gris-100);border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .18s;flex-shrink:0;color:var(--gris-500)}
-    .modal-cerrar:hover{background:var(--gris-200)}
-    .modal-stats-row{display:flex;gap:8px;margin-bottom:16px}
-    .modal-stat{background:var(--gris-50);border:1px solid var(--gris-100);border-radius:var(--r-md);padding:10px 14px;flex:1;text-align:center}
-    .modal-stat .num{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--azul)}
-    .modal-stat .lbl{font-size:10px;font-weight:700;color:var(--gris-400);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
-    .modal-stat.ok .num{color:var(--verde)}
-    .modal-stat.warn .num{color:var(--amarillo)}
-    .modal-stat.danger .num{color:var(--rojo)}
-    /* FIX: stat para becados en el modal */
-    .modal-stat.becado .num{color:var(--oro)}
-    .modal-divider{height:1px;background:var(--gris-100);margin:0 0 14px}
-    .modal-subtitle{font-size:11px;font-weight:700;color:var(--gris-400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
-
-    /* FILA ALUMNO EN MODAL */
-    .alumno-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r-md);transition:background .15s;border:1px solid transparent}
-    .alumno-row:hover{background:var(--gris-50);border-color:var(--gris-100)}
-    .status-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-    .pip-ok{background:var(--verde)}
-    .pip-pendiente{background:var(--amarillo)}
-    .pip-sinpago{background:var(--rojo)}
-    /* FIX: pip y label para becados */
-    .pip-becado{background:var(--oro)}
-    .alumno-id-chip{background:var(--gris-100);color:var(--azul);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0}
-    .alumno-nombre-row{font-size:13px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .alumno-pago-label{font-size:11px;font-weight:600;border-radius:20px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
-    .lbl-ok{background:var(--verde-10);color:var(--verde-text)}
-    .lbl-pendiente{background:var(--amarillo-10);color:var(--amarillo-text)}
-    .lbl-sinpago{background:var(--rojo-10);color:var(--rojo-text)}
-    /* FIX: label dorado para becados */
-    .lbl-becado{background:var(--oro-10);color:var(--oro-text);border:1px solid rgba(200,169,110,0.4)}
-    .badge-nuevo{background:var(--verde-10);color:var(--verde-text);font-size:9px;font-weight:700;border-radius:20px;padding:2px 6px;flex-shrink:0}
-    .btn-wa-mini{display:flex;align-items:center;gap:5px;background:#25d366;color:#fff;border:none;border-radius:var(--r-sm);padding:5px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;flex-shrink:0;transition:opacity .18s}
-    .btn-wa-mini:hover{opacity:.88}
-
-    /* PAGO CARDS */
-    .pago-card{background:#fff;border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:10px;border:1px solid var(--gris-100);border-left:3px solid var(--amarillo);transition:box-shadow .18s}
-    .pago-card:hover{box-shadow:var(--shadow-md)}
-    .pago-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-    .pago-alumno{display:flex;align-items:center;gap:8px}
-    .pago-right{display:flex;align-items:center;gap:7px}
-    .pago-monto{background:var(--gris-100);border-radius:var(--r-sm);padding:3px 10px;font-size:13px;font-weight:700;color:var(--gris-800);font-family:'JetBrains Mono',monospace}
-    .pago-semanas{background:var(--azul-50);color:var(--azul);border-radius:20px;padding:3px 9px;font-size:11px;font-weight:700}
-    .pago-meta{font-size:11px;color:var(--gris-400);font-weight:500;margin-bottom:10px}
-    .comprobante-btn{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--gris-200);border-radius:var(--r-md);padding:10px 13px;cursor:pointer;transition:border-color .18s,background .18s;margin-bottom:10px}
-    .comprobante-btn:hover{border-color:var(--naranja);background:var(--naranja-10)}
-    .comp-icon{width:36px;height:36px;border-radius:var(--r-sm);background:var(--gris-100);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-    .comp-info{flex:1}
-    .comp-nombre{font-size:12px;font-weight:700;color:var(--gris-700)}
-    .comp-tipo{font-size:11px;color:var(--gris-400);margin-top:1px}
-    .comp-ver{font-size:11px;font-weight:700;color:var(--naranja);flex-shrink:0}
-    .pago-actions{display:flex;gap:8px}
-    .btn-validar{flex:1;padding:9px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .18s,transform .1s}
-    .btn-validar:hover{opacity:.88}
-    .btn-validar:active{transform:scale(.98)}
-    .btn-rechazar{padding:9px 14px;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background .18s}
-    .btn-rechazar:hover{background:var(--rojo-10)}
-
-    /* NUEVOS CARDS */
-    .nuevo-card{background:#fff;border-radius:var(--r-lg);padding:15px 18px;box-shadow:var(--shadow-sm);margin-bottom:9px;border:1px solid var(--gris-100);border-left:3px solid var(--azul-claro);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-    .nuevo-info{flex:1;min-width:160px}
-    .nuevo-nombre{font-size:14px;font-weight:700;color:var(--gris-800)}
-    .nuevo-sub{font-size:11px;color:var(--gris-400);font-weight:500;margin-top:2px}
-    .nuevo-chip{display:inline-flex;align-items:center;gap:4px;background:var(--azul-50);color:var(--azul);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;margin-top:5px}
-    .btn-whats{display:flex;align-items:center;gap:6px;background:#25d366;color:#fff;border:none;border-radius:var(--r-md);padding:9px 15px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity .18s,transform .1s}
-    .btn-whats:hover{opacity:.88}
-    .btn-whats:active{transform:scale(.98)}
-
-    /* ALERTA CARDS */
-    .alerta-card{background:#fff;border-radius:var(--r-lg);padding:13px 16px;box-shadow:var(--shadow-sm);margin-bottom:8px;border:1px solid var(--gris-100);border-left:3px solid var(--rojo);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .alerta-icon{width:36px;height:36px;border-radius:50%;background:var(--rojo-10);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-    .alerta-info{flex:1}
-    .alerta-nombre{font-size:13px;font-weight:700;color:var(--gris-800)}
-    .alerta-sub{font-size:11px;color:var(--gris-400);font-weight:500;margin-top:2px}
-    .alerta-badge{background:var(--rojo-10);color:var(--rojo-text);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;flex-shrink:0}
-
-    /* CAMBIO GRUPO */
-    .cambio-box{background:#fff;border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-sm);margin-bottom:18px;border:1px solid var(--gris-100)}
-    .cambio-box label{font-size:11px;font-weight:700;color:var(--gris-500);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
-    .cambio-box select{width:100%;padding:9px 12px;border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;outline:none;transition:border-color .18s;margin-bottom:14px;color:var(--gris-800)}
-    .cambio-box select:focus{border-color:var(--naranja)}
-    .alumno-info-box{background:var(--gris-50);border:1px solid var(--gris-100);border-radius:var(--r-md);padding:10px 13px;font-size:12px;margin-bottom:14px;display:none}
-    .alumno-info-box strong{color:var(--gris-800);font-weight:700}
-    .alumno-info-box span{color:var(--gris-400);margin-left:6px}
-    .grupos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px;margin-top:2px}
-    .grupo-opcion{border:1.5px solid var(--gris-200);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;transition:border-color .18s,background .18s}
-    .grupo-opcion:hover{border-color:var(--naranja);background:var(--naranja-10)}
-    .grupo-opcion.selected{border-color:var(--naranja);background:var(--naranja-10)}
-    .go-id{font-size:11px;font-weight:700;color:var(--azul);font-family:'JetBrains Mono',monospace}
-    .go-nombre{font-size:13px;font-weight:700;color:var(--gris-800);margin:3px 0 2px}
-    .go-horario{font-size:11px;color:var(--gris-400)}
-    .go-plazas{font-size:11px;font-weight:700;color:var(--verde);margin-top:5px}
-    .go-plazas.pocas{color:var(--amarillo)}
-    .go-plazas.lleno{color:var(--rojo)}
-    .grupo-opcion.go-lleno{opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)}
-    .btn-confirmar{width:100%;padding:11px;background:var(--azul);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;transition:opacity .18s}
-    .btn-confirmar:hover{opacity:.88}
-    .btn-confirmar:disabled{opacity:.35;cursor:not-allowed}
-
-    /* MODAL CONFIRMACION CAMBIO */
-    .modal-confirm-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
-    .modal-confirm-overlay.open{display:flex}
-    .modal-confirm-box{background:#fff;border-radius:var(--r-xl);padding:26px 24px;width:100%;max-width:420px;animation:fadeIn .2s ease}
-    .modal-confirm-titulo{font-size:16px;font-weight:700;color:var(--azul);margin-bottom:4px}
-    .modal-confirm-sub{font-size:12px;color:var(--gris-400);margin-bottom:18px}
-    .modal-confirm-data{background:var(--gris-50);border:1px solid var(--gris-100);border-radius:var(--r-md);padding:14px 16px;margin-bottom:18px}
-    .modal-confirm-data .row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--gris-100)}
-    .modal-confirm-data .row:last-child{border-bottom:none;padding-bottom:0}
-    .modal-confirm-data .row span:first-child{color:var(--gris-400);font-weight:500}
-    .modal-confirm-data .row span:last-child{color:var(--gris-800);font-weight:700}
-    .modal-confirm-acciones{display:flex;gap:8px}
-    .btn-confirm-ok{flex:1;padding:11px;background:var(--azul);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .18s}
-    .btn-confirm-ok:hover{opacity:.88}
-    .btn-confirm-cancel{padding:11px 18px;background:#fff;color:var(--gris-600);border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .18s}
-    .btn-confirm-cancel:hover{background:var(--gris-50)}
-
-    /* MODAL COMPROBANTE */
-    .modal-comp-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
-    .modal-comp-overlay.open{display:flex}
-    .modal-comp-box{background:#fff;border-radius:var(--r-xl);padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fadeIn .2s ease}
-    .modal-comp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .modal-comp-titulo{font-size:16px;font-weight:700;color:var(--azul)}
-    .modal-alumno-data{background:var(--gris-50);border:1px solid var(--gris-100);border-radius:var(--r-md);padding:12px 15px;margin-bottom:14px}
-    .modal-alumno-data .row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
-    .modal-alumno-data .row:last-child{margin-bottom:0}
-    .modal-alumno-data .row span:first-child{color:var(--gris-400);font-weight:500}
-    .modal-alumno-data .row span:last-child{color:var(--gris-800);font-weight:700}
-    .modal-visor{width:100%;min-height:240px;border-radius:var(--r-md);background:var(--gris-50);border:1px solid var(--gris-100);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:16px}
-    .modal-visor img{max-width:100%;max-height:380px;object-fit:contain;border-radius:8px;display:block}
-    .modal-visor iframe{width:100%;height:380px;border:none;border-radius:8px}
-    .monto-field{margin-bottom:14px}
-    .monto-field label{display:block;font-size:11px;font-weight:700;color:var(--gris-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-    .monto-field input{width:100%;padding:10px 14px;border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;outline:none;color:var(--gris-800);transition:border-color .18s}
-    .monto-field input:focus{border-color:var(--verde)}
-    .monto-hint{font-size:11px;color:var(--gris-400);margin-top:4px}
-    .modal-actions{display:flex;gap:8px}
-
-    /* EMPTY / LOADING */
-    .empty-state{text-align:center;padding:40px 20px;color:var(--gris-400)}
-    .empty-icon{font-size:36px;margin-bottom:10px}
-    .empty-state h3{font-size:14px;font-weight:700;color:var(--gris-500);margin-bottom:4px}
-    .empty-state p{font-size:12px}
-    .loading-state{text-align:center;padding:40px 20px;color:var(--gris-400)}
-    .spinner{width:30px;height:30px;border:2.5px solid var(--gris-200);border-top-color:var(--naranja);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* TOAST */
-    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gris-800);color:#fff;border-radius:var(--r-md);padding:10px 20px;font-size:13px;font-weight:600;z-index:3000;transition:transform .28s ease;white-space:nowrap;box-shadow:var(--shadow-lg)}
-    .toast.show{transform:translateX(-50%) translateY(0)}
-    .toast.success{background:#15803d}
-    .toast.error{background:#dc2626}
-
-    @media(max-width:560px){.header-name{display:none}.gstat{font-size:10px;padding:2px 6px}}
-
-    .nivel-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--r-md);border:2px solid var(--gris-200);background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--gris-600);cursor:pointer;transition:border-color .18s,background .18s,color .18s}
-    .nivel-btn:hover{border-color:var(--naranja);color:var(--naranja)}
-    .nivel-btn.active{border-color:var(--naranja);background:var(--naranja);color:#fff}
-    .nivel-btn span{font-size:11px;font-weight:700;border-radius:20px;padding:2px 7px;background:var(--gris-100);color:var(--gris-500)}
-    .nivel-btn.active span{background:rgba(255,255,255,.25);color:#fff}
-    .grupo-nombre-row.nombre-adolescentes{color:var(--naranja)!important}
   </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English">
-      <h2>Panel de Asistente</h2>
-      <p>Ingresa tus credenciales para acceder</p>
-    </div>
-    <div class="login-field">
-      <label>ID de Asistente</label>
-      <input type="text" id="input-id" placeholder="ASI-01" autocomplete="off">
-    </div>
-    <div class="login-field">
-      <label>Clave de acceso</label>
-      <input type="password" id="input-clave" placeholder="••••••••">
-    </div>
-    <button class="btn-login" onclick="iniciarLogin()">Entrar al panel</button>
-    <div class="login-error" id="login-error">ID o clave incorrectos.</div>
-  </div>
-</div>
-
-<!-- PANEL -->
-<div id="panel-screen">
-  <div class="header">
-    <div class="header-left">
-      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" class="header-logo" alt="OE" onerror="this.src='https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png'">
-      <div>
-        <div class="header-title">Organic English</div>
-        <div class="header-sub">Asistente CE</div>
-      </div>
-    </div>
-    <div class="header-right">
-      <img id="header-avatar" class="header-avatar" src="" alt="" onerror="this.style.display='none'">
-      <span class="header-name" id="header-name"></span>
-      <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" onclick="cambiarTab('grupos',this)">Mis Grupos</div>
-    <div class="tab" onclick="cambiarTab('pagos',this)">Pagos por validar <span class="tab-badge cero" id="badge-pagos">0</span></div>
-    <div class="tab" onclick="cambiarTab('nuevos',this)">Nuevos <span class="tab-badge cero" id="badge-nuevos">0</span></div>
-    <div class="tab" onclick="cambiarTab('alertas',this)">Sin Pago <span class="tab-badge cero" id="badge-alertas">0</span></div>
-    <div class="tab" onclick="cambiarTab('cambios',this)">Cambios de Grupo</div>
-  </div>
-
-  <div class="content">
-    <div id="sec-grupos" class="section active">
-      <div class="summary-grid" id="resumen-cards"></div>
-      <div class="sec-header">
-        <h2 class="sec-title">Mis Grupos</h2>
-        <span class="sec-hint" id="sec-hint-texto">Toca un nivel para ver sus grupos</span>
-      </div>
-      <div id="nivel-selector" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;"></div>
-      <div id="lista-grupos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
-    </div>
-
-    <div id="sec-pagos" class="section">
-      <div class="sec-header"><h2 class="sec-title">Pagos por validar</h2></div>
-      <div id="lista-pagos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
-    </div>
-
-    <div id="sec-nuevos" class="section">
-      <div class="sec-header"><h2 class="sec-title">Alumnos nuevos — Presentación pendiente</h2></div>
-      <div id="lista-nuevos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
-    </div>
-
-    <div id="sec-alertas" class="section">
-      <div class="sec-header"><h2 class="sec-title">Alumnos sin pago esta semana</h2></div>
-      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">La baja es automática cada sábado. Listado informativo para dar seguimiento.</p>
-      <div id="lista-alertas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
-    </div>
-
-    <div id="sec-cambios" class="section">
-      <div class="sec-header"><h2 class="sec-title">Cambio de Grupo</h2></div>
-      <div class="cambio-box">
-        <label>Selecciona el alumno</label>
-        <select id="select-alumno-cambio" onchange="seleccionarAlumnoCambio()">
-          <option value="">— Elige un alumno —</option>
-        </select>
-        <div class="alumno-info-box" id="alumno-cambio-info">
-          <strong id="cambio-alumno-nombre"></strong>
-          <span id="cambio-alumno-grupo"></span>
+  <!-- LOGIN -->
+  <div id="screenLogin" class="screen active">
+    <div class="login-wrap">
+      <div class="login-box">
+        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
+        <h1>Coordinador IT</h1>
+        <p>Ingresa tus credenciales</p>
+        <div class="field">
+          <label>ID de Coordinador IT</label>
+          <input type="text" id="inputId" placeholder="Ej. IT-01" onkeypress="loginEnter(event)" />
         </div>
-        <label>Grupos disponibles del mismo nivel</label>
-        <div class="grupos-grid" id="grupos-disponibles-cambio">
-          <p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>
+        <div class="field">
+          <label>Clave de acceso</label>
+          <input type="password" id="inputClave" placeholder="Tu contraseña" onkeypress="loginEnter(event)" />
         </div>
-        <button class="btn-confirmar" id="btn-confirmar-cambio" onclick="confirmarCambioGrupo()" disabled>Confirmar Cambio</button>
+        <button class="btn-primary" id="btnLogin" onclick="login()">Entrar</button>
+        <div class="error-msg" id="errorMsg"></div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- MODAL DETALLE GRUPO -->
-<div class="modal-overlay" id="modal-grupo" onclick="cerrarModalGrupoClick(event)">
-  <div class="modal-box" id="modal-grupo-box">
-    <div class="modal-handle"></div>
-    <div class="modal-header" id="modal-grupo-header"></div>
-    <div class="modal-stats-row" id="modal-grupo-stats"></div>
-    <div class="modal-divider"></div>
-    <div class="modal-subtitle">Alumnos del grupo</div>
-    <div id="modal-grupo-alumnos"></div>
+  <!-- PANEL -->
+  <div id="screenPanel" class="screen">
+    <div class="panel-root">
+      <div class="top-bar">
+        <div class="logo-area">
+<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
+          <span class="logo-text">Organic English - IT</span>
+        </div>
+        <div class="top-right">
+          <div class="avatar" id="avatarInitials">IT</div>
+          <button class="btn-logout" onclick="logout()">Salir</button>
+        </div>
+      </div>
+
+      <div class="botones-grid">
+        <button class="btn-seccion" onclick="switchTab('direccion',this)">Dirección</button>
+        <button class="btn-seccion" onclick="switchTab('academica',this)">Coordinación Académica</button>
+        <button class="btn-seccion" onclick="switchTab('maestros',this)">Maestros</button>
+        <button class="btn-seccion" onclick="switchTab('escolar',this)">Coordinación Escolar</button>
+        <button class="btn-seccion" onclick="switchTab('asistentes',this)">Asistentes CE</button>
+        <button class="btn-seccion" onclick="switchTab('ventas',this)">Coordinación Ventas</button>
+        <button class="btn-seccion" onclick="switchTab('asesores',this)">Asesores Venta</button>
+        <button class="btn-seccion" onclick="switchTab('grupos',this)" style="background:var(--green);border-color:var(--green);color:#fff;">Mantenimiento Grupos</button>
+      </div>
+
+      <div id="contenidoVacio" class="mensaje-vacio">Selecciona una sección para ver el personal</div>
+
+      <!-- DIRECCIÓN -->
+      <div id="tabDireccion" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Directores</span>
+            <button class="btn-add" onclick="openAgregarModal('direccion')">+ Agregar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nómina</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaDireccion"><tr class="info-row"><td colspan="8">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACADÉMICA -->
+      <div id="tabAcademica" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Coordinadores Académicos</span>
+            <button class="btn-add" onclick="openAgregarModal('academica')">+ Agregar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nómina</th><th>Cuenta Bancaria</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAcademica"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAESTROS -->
+      <div id="tabMaestros" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Maestros</span>
+            <div style="display:flex;gap:8px;">
+              <button id="btnActualizarGrupos" class="btn-add" style="background:var(--blue);" onclick="actualizarGruposAsignados()">🔄 Actualizar grupos</button>
+              <button class="btn-add" onclick="openAgregarModal('maestros')">+ Agregar</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Rol</th><th>Activo</th><th>Clave</th><th>Costo</th><th>Info Bancaria</th><th>Banco</th><th style="text-align:center;">Grupos</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMaestros"><tr class="info-row"><td colspan="13">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESCOLAR -->
+      <div id="tabEscolar" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Coordinadores Escolares</span>
+            <button class="btn-add" onclick="openAgregarModal('escolar')">+ Agregar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Clave</th><th>Nómina</th><th>Info Bancaria</th><th>Banco</th><th>Email</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaEscolar"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASISTENTES -->
+      <div id="tabAsistentes" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Asistentes CE</span>
+            <button class="btn-add" onclick="openAgregarModal('asistentes')">+ Agregar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Clave</th><th>Email</th><th>Nómina</th><th>Info Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsistentes"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VENTAS -->
+      <div id="tabVentas" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Coordinadores de Ventas</span>
+            <button class="btn-add" onclick="openAgregarModal('ventas')">+ Agregar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Clave</th><th>Nómina</th><th>Cuenta Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaVentas"><tr class="info-row"><td colspan="10">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASESORES -->
+      <div id="tabAsesores" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Asesores de Venta</span>
+            <button class="btn-add" onclick="openAgregarModal('asesores')">+ Agregar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Activo</th><th>Comisión</th><th>Clave</th><th>Link</th><th>Info Bancaria</th><th>Banco</th><th>Email</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsesores"><tr class="info-row"><td colspan="12">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- NUEVO GRUPO -->
+      <div id="tabGrupos" class="tab-content">
+        <div style="display:flex;gap:10px;margin-bottom:20px;">
+          <button class="tab-sub" id="sub-alta" onclick="switchSubTab('alta')" style="background:var(--green);color:#fff;border:none;padding:10px 24px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;">Alta de Grupos</button>
+          <button class="tab-sub" id="sub-baja" onclick="switchSubTab('baja')" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-bottom:none;padding:10px 24px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;">Baja de Grupos</button>
+        </div>
+
+        <!-- ALTA DE GRUPOS -->
+        <div id="subAlta" class="sub-tab-content">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Crear nuevo grupo</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:16px;">
+              <div class="form-group">
+                <label>ID Grupo *</label>
+                <input type="text" id="ng-id" placeholder="Ej: AC-01" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Nombre *</label>
+                <input type="text" id="ng-nombre" placeholder="Nombre del grupo" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Horario *</label>
+                <select id="ng-horario" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);">
+                  <option value="">Seleccionar</option>
+                  <option value="7:00 AM">7:00 AM</option>
+                  <option value="8:00 AM">8:00 AM</option>
+                  <option value="9:00 AM">9:00 AM</option>
+                  <option value="10:00 AM">10:00 AM</option>
+                  <option value="11:00 AM">11:00 AM</option>
+                  <option value="12:00 PM">12:00 PM</option>
+                  <option value="1:00 PM">1:00 PM</option>
+                  <option value="2:00 PM">2:00 PM</option>
+                  <option value="3:00 PM">3:00 PM</option>
+                  <option value="4:00 PM">4:00 PM</option>
+                  <option value="5:00 PM">5:00 PM</option>
+                  <option value="6:00 PM">6:00 PM</option>
+                  <option value="7:00 PM">7:00 PM</option>
+                  <option value="8:00 PM">8:00 PM</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Fecha Inicio *</label>
+                <input type="date" id="ng-fecha" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Nivel *</label>
+                <select id="ng-nivel" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);">
+                  <option value="">Seleccionar</option>
+                  <option value="A1.1">A1.1 - Beginner</option>
+                  <option value="A1.2">A1.2 - Elementary</option>
+                  <option value="B1.1">B1.1 - Intermediate</option>
+                  <option value="B1.2">B1.2 - Upper Intermediate</option>
+                  <option value="C1.1">C1.1 - Advanced</option>
+                  <option value="C1.2">C1.2 - Advanced</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Cupo *</label>
+                <input type="number" id="ng-cupo" placeholder="10" min="1" max="30" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Link Zoom *</label>
+                <input type="text" id="ng-zoom" placeholder="https://zoom.us/..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);" />
+              </div>
+              <div class="form-group">
+                <label>Asistente CE *</label>
+                <select id="ng-asistente" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);">
+                  <option value="">Seleccionar</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:20px;">
+              <button onclick="crearGrupoIT()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;">💾 Crear grupo</button>
+              <button onclick="notificarCoordEscolar()" id="btn-notif-ce" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Coord. Escolar</button>
+              <button onclick="notificarAsistente()" id="btn-notif-asi" style="background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:100px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-left:10px;">📩 Notificar Asistente</button>
+              <span id="msg-grupo" style="margin-left:16px;display:none;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BAJA DE GRUPOS -->
+        <div id="subBaja" class="sub-tab-content" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Grupos Existentes</span>
+              <button onclick="cargarGruposExistentes()" style="background:var(--surface);border:1px solid var(--border);padding:8px 16px;border-radius:6px;cursor:pointer;">🔄 Actualizar</button>
+            </div>
+            <div id="tabla-grupos-container" style="margin-top:16px;overflow-x:auto;">
+              <p style="color:var(--text-muted);">Cargando grupos...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
-</div>
 
-<!-- MODAL COMPROBANTE -->
-<div class="modal-comp-overlay" id="modal-comprobante">
-  <div class="modal-comp-box">
-    <div class="modal-comp-header">
-      <h3 class="modal-comp-titulo">Revisar comprobante</h3>
-      <button class="modal-cerrar" onclick="cerrarModalComp()">✕</button>
-    </div>
-    <div class="modal-alumno-data" id="modal-alumno-info"></div>
-    <div class="modal-visor" id="modal-visor">
-      <p style="color:var(--gris-400);font-size:13px;">Sin comprobante adjunto</p>
-    </div>
-    <div class="monto-field">
-      <label>Monto del comprobante (MXN)</label>
-      <input type="number" id="input-monto-validar" placeholder="Ej. 150 o 570" min="1" />
-      <p class="monto-hint">Ingresa el monto que aparece en el comprobante. Pago semanal: $150 · 4 semanas: $570</p>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-validar" style="flex:1" onclick="validarDesdeModal()">✓ Validar pago</button>
-      <button class="btn-rechazar" onclick="rechazarDesdeModal()">✗ Rechazar</button>
+  <!-- MODAL -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle">Agregar</span>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="modalBody"></div>
     </div>
   </div>
-</div>
-
-<!-- MODAL CONFIRMACION CAMBIO DE GRUPO -->
-<div class="modal-confirm-overlay" id="modal-confirm-cambio">
-  <div class="modal-confirm-box">
-    <div class="modal-confirm-titulo">Confirmar cambio de grupo</div>
-    <div class="modal-confirm-sub">Revisa los datos antes de confirmar</div>
-    <div class="modal-confirm-data">
-      <div class="row"><span>Alumno</span><span id="confirm-alumno-nombre">—</span></div>
-      <div class="row"><span>ID</span><span id="confirm-alumno-id">—</span></div>
-      <div class="row"><span>Grupo actual</span><span id="confirm-grupo-origen">—</span></div>
-      <div class="row"><span>Nuevo grupo</span><span id="confirm-grupo-destino">—</span></div>
-      <div class="row"><span>Horario nuevo</span><span id="confirm-horario-destino">—</span></div>
-    </div>
-    <div class="modal-confirm-acciones">
-      <button class="btn-confirm-cancel" onclick="cerrarModalConfirm()">Cancelar</button>
-      <button class="btn-confirm-ok" onclick="ejecutarCambioGrupo()">Confirmar cambio</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL NOTIFICACIÓN PAGO VALIDADO -->
-<div class="modal-confirm-overlay" id="modal-notif-pago">
-  <div class="modal-confirm-box">
-    <div class="modal-confirm-titulo">✓ Pago validado</div>
-    <div class="modal-confirm-sub" id="notif-pago-mensaje">El pago ha sido registrado correctamente.</div>
-    <div class="modal-confirm-acciones">
-      <button class="btn-confirm-ok" style="background:var(--verde)" onclick="notificarAlumnoPago()">📱 Notificar al alumno</button>
-      <button class="btn-confirm-cancel" onclick="cerrarModalNotifPago()">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
+  /* ═══════════════════════════════════════════════════════════
+     CONFIGURACIÓN
+  ═══════════════════════════════════════════════════════════ */
+  var APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
-// ── FIX: helper para detectar si un alumno es becado ──
-function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
+  var itData = null;
+  window.datosTemporal = {};
+  var datosCargados = { direccion:false, academica:false, maestros:false, escolar:false, asistentes:false, ventas:false, asesores:false, grupos:false };
+  var mapeoTab = { direccion:'Direccion', academica:'Academica', maestros:'Maestros', escolar:'Escolar', asistentes:'Asistentes', ventas:'Ventas', asesores:'Asesores', grupos:'Grupos' };
 
-let asistente=null,datosPanel=null;
-let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
-let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null;
+  /* ═══════════════════════════════════════════════════════════
+     JSONP — única forma de llamar Apps Script sin CORS
+     Agrega ?callback=NOMBRE al URL y espera que el servidor
+     responda: NOMBRE({...json...})
+  ═══════════════════════════════════════════════════════════ */
+  function jsonp(url, callback) {
+    var id     = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 99999);
+    var script = document.createElement('script');
+    var done   = false;
 
-setTimeout(()=>{
-  const c=document.getElementById('input-clave');
-  if(c) c.addEventListener('keydown',e=>{if(e.key==='Enter')iniciarLogin();});
-},500);
+    function cleanup() {
+      done = true;
+      delete window[id];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
 
-function iniciarLogin(){
-  const id=document.getElementById('input-id').value.trim().toUpperCase();
-  const clave=document.getElementById('input-clave').value.trim();
-  const err=document.getElementById('login-error');
-  err.style.display='none';
-  if(!id||!clave){err.textContent='Ingresa tu ID y clave.';err.style.display='block';return;}
-  const btn=document.querySelector('.btn-login');
-  btn.textContent='Verificando…';btn.disabled=true;
-  fetch(`${APPS_SCRIPT}?action=loginAsistente&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`)
-    .then(r=>r.json())
-    .then(data=>{
-      btn.textContent='Entrar al panel';btn.disabled=false;
-      if(data.status==='ok'){asistente=data.asistente;mostrarPanel();}
-      else{err.textContent=data.mensaje||'ID o clave incorrectos.';err.style.display='block';}
-    })
-    .catch(()=>{btn.textContent='Entrar al panel';btn.disabled=false;err.textContent='Error de conexión.';err.style.display='block';});
-}
+    window[id] = function(data) {
+      if (done) return;
+      cleanup();
+      callback(null, data);
+    };
 
-function mostrarPanel(){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('panel-screen').style.display='block';
-  document.getElementById('header-name').textContent=asistente.nombre||'';
-  const av=document.getElementById('header-avatar');
-  if(asistente.foto_url){av.src=asistente.foto_url;av.style.display='block';}
-  else av.style.display='none';
-  cargarDatos();
-}
+    script.onerror = function() {
+      if (done) return;
+      cleanup();
+      callback(new Error('Error de red. Verifica tu conexión.'));
+    };
 
-function cerrarSesion(){
-  asistente=null;datosPanel=null;nivelActivo=null;
-  document.getElementById('nivel-selector').innerHTML='';
-  document.getElementById('panel-screen').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('input-id').value='';
-  document.getElementById('input-clave').value='';
-}
-
-async function cargarDatos(){
-  try{
-    const resp=await fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(asistente.id)}`);
-    datosPanel=await resp.json();
-    renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderCambios();
-  }catch(e){mostrarToast('Error al cargar datos.','error');}
-}
-
-function cambiarTab(tab,el){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('sec-'+tab).classList.add('active');
-}
-
-function renderResumen(){
-  if(!datosPanel)return;
-  const{grupos=[],pagos_pendientes=[],alumnos_nuevos=[],sin_pago=[]}=datosPanel;
-  const totalAlumnos=grupos.reduce((a,g)=>a+(g.alumnos?.length||0),0);
-
-  // FIX: excluir becados del conteo sin_pago en el resumen
-  const sinPagoReales = sin_pago.filter(a => !esBecado(a));
-
-  const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
-  bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
-  bn.textContent=alumnos_nuevos.length;bn.className='tab-badge'+(alumnos_nuevos.length?'':' cero');
-  ba.textContent=sinPagoReales.length;ba.className='tab-badge'+(sinPagoReales.length?'':' cero');
-  document.getElementById('resumen-cards').innerHTML=`
-    <div class="summary-card"><div class="ic">📋</div><div class="num">${grupos.length}</div><div class="lbl">Mis grupos</div></div>
-    <div class="summary-card"><div class="ic">👥</div><div class="num">${totalAlumnos}</div><div class="lbl">Alumnos activos</div></div>
-    <div class="summary-card warn"><div class="ic">🧾</div><div class="num">${pagos_pendientes.length}</div><div class="lbl">Por validar</div></div>
-    <div class="summary-card danger"><div class="ic">⚠️</div><div class="num">${sinPagoReales.length}</div><div class="lbl">Sin pago</div></div>`;
-}
-
-function renderGrupos(){
-  const cont=document.getElementById('lista-grupos');
-  const selector=document.getElementById('nivel-selector');
-  const grupos=datosPanel?.grupos||[];
-  if(!grupos.length){
-    cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin grupos asignados</h3></div>`;
-    selector.innerHTML='';
-    return;
-  }
-  const niveles={};
-  grupos.forEach(g=>{
-    const nivel=g.nivel||'Sin nivel';
-    if(!niveles[nivel])niveles[nivel]=[];
-    niveles[nivel].push(g);
-  });
-  const listaNiveles=Object.keys(niveles).sort();
-  selector.innerHTML=listaNiveles.map(n=>`<button class="nivel-btn${nivelActivo===n?' active':''}" onclick="seleccionarNivel('${n}',this)">${n} <span>${niveles[n].length}</span></button>`).join('');
-  if(!nivelActivo || !niveles[nivelActivo]){
-    nivelActivo=null;
-    cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👆</div><h3>Selecciona un nivel</h3><p>Toca un nivel arriba para ver sus grupos</p></div>`;
-    return;
-  }
-  renderGruposPorNivel(nivelActivo);
-}
-
-function seleccionarNivel(nivel,el){
-  nivelActivo=nivel;
-  document.querySelectorAll('.nivel-btn').forEach(b=>b.classList.remove('active'));
-  if(el)el.classList.add('active');
-  renderGruposPorNivel(nivel);
-  document.getElementById('sec-hint-texto').textContent=nivel;
-}
-
-function renderGruposPorNivel(nivelFiltro){
-  const cont=document.getElementById('lista-grupos');
-  const grupos=datosPanel?.grupos||[];
-  const filtrados=grupos.filter(g=>g.nivel===nivelFiltro);
-  if(!filtrados.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin grupos en este nivel</h3></div>`;return;}
-
-  // FIX: separar becados de alumnos sin pago real
-  const sinPagoIds=new Set((datosPanel.sin_pago||[]).filter(a=>!esBecado(a)).map(a=>a.id));
-  const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
-
-  const porFecha={};
-  filtrados.forEach(g=>{
-    const fecha=g.fecha_inicio||'Sin fecha';
-    if(!porFecha[fecha])porFecha[fecha]=[];
-    porFecha[fecha].push(g);
-  });
-  const fechasOrdenadas=Object.keys(porFecha).sort((a,b)=>{
-    const [da,ma,ya]=a.split('/'),[db,mb,yb]=b.split('/');
-    return new Date(`${ya}-${ma}-${da}`)-new Date(`${yb}-${mb}-${db}`);
-  });
-  let html='';
-  fechasOrdenadas.forEach(fecha=>{
-    const gruposFecha=porFecha[fecha];
-    const esAdolescentesFecha=gruposFecha.some(g=>g.nombre?.toLowerCase().includes('adolescentes'));
-    html+=`<div style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="width:8px;height:8px;border-radius:50%;background:${esAdolescentesFecha?'var(--naranja)':'var(--azul)'}"></div>
-        <span style="font-size:12px;font-weight:700;color:var(--gris-500);text-transform:uppercase;letter-spacing:.5px">Inicio: ${fecha}</span>
-      </div>
-      ${gruposFecha.map(g=>{
-        const pct=Math.round((g.inscritos/g.cupo_max)*100);
-        const lleno=g.inscritos>=g.cupo_max;
-        const alumnos=(g.alumnos||[]);
-        // FIX: contar becados y sin pago por separado
-        const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
-        const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
-        const nBecados=alumnos.filter(a=>esBecado(a)).length;
-        const esAdolescentes=g.nombre?.toLowerCase().includes('adolescentes');
-        return `
-        <div class="grupo-row" onclick="abrirModalGrupoPorNombre('${g.id}')" style="margin-bottom:6px">
-          <div class="grupo-row-inner">
-            <span class="grupo-chip">${g.id}</span>
-            <div class="grupo-info">
-              <div class="grupo-nombre-row${esAdolescentes?' nombre-adolescentes':''}">${g.nombre} <span style="color:#94a3b8;font-size:12px;font-weight:400">${g.nivel||''}</span></div>
-              <div class="grupo-horario-row">${g.horario}</div>
-            </div>
-            <div class="grupo-stats">
-              <span class="gstat total">${alumnos.length}/${g.cupo_max}</span>
-              ${nNuevos?`<span class="gstat nuevo">+${nNuevos} nuevos</span>`:''}
-              ${nBecados?`<span class="gstat becado">⭐ ${nBecados} becado${nBecados>1?'s':''}</span>`:''}
-              ${nSinPago?`<span class="gstat sinpago">${nSinPago} sin pago</span>`:''}
-            </div>
-            <button onclick="event.stopPropagation();subirLinkWhats('${g.id}')" style="background:${g.linkWhats?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)'};color:#fff;border:none;border-radius:100px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-              ${g.linkWhats?'✅ WhatsApp':'📵 Sin WhatsApp'}
-            </button>
-            <span class="grupo-chevron">›</span>
-          </div>
-          <div class="grupo-progress-bar"><div class="grupo-progress-fill${lleno?' lleno':''}" style="width:${pct}%"></div></div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  });
-  cont.innerHTML=html;
-}
-
-function abrirModalGrupoPorNombre(idGrupo){
-  const idx=(datosPanel?.grupos||[]).findIndex(g=>g.id===idGrupo);
-  if(idx>=0)abrirModalGrupo(idx);
-}
-
-function abrirModalGrupo(idx){
-  const g=(datosPanel?.grupos||[])[idx];
-  if(!g)return;
-
-  // FIX: separar becados de sin_pago al abrir el modal
-  const sinPagoIds=new Set((datosPanel.sin_pago||[]).filter(a=>!esBecado(a)).map(a=>a.id));
-  const nuevosIds=new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
-  const alumnos=(g.alumnos||[]);
-  const nSinPago=alumnos.filter(a=>sinPagoIds.has(a.id)).length;
-  const nNuevos=alumnos.filter(a=>nuevosIds.has(a.id)).length;
-  const nOk=alumnos.filter(a=>a.pago_ok && !esBecado(a)).length;
-  const nBecados=alumnos.filter(a=>esBecado(a)).length;
-
-  document.getElementById('modal-grupo-header').innerHTML=`
-    <div>
-      <span class="modal-grupo-id">${g.id}</span>
-      <div class="modal-grupo-nombre">${g.nombre}</div>
-      <div class="modal-grupo-sub">${g.horario} · Inicio: ${g.fecha_inicio}</div>
-    </div>
-    <button class="modal-cerrar" onclick="cerrarModalGrupo()">✕</button>`;
-
-  // FIX: añadir stat de becados al modal
-  document.getElementById('modal-grupo-stats').innerHTML=`
-    <div class="modal-stat"><div class="num">${alumnos.length}</div><div class="lbl">Inscritos</div></div>
-    <div class="modal-stat ok"><div class="num">${nOk}</div><div class="lbl">Al corriente</div></div>
-    <div class="modal-stat warn"><div class="num">${nNuevos}</div><div class="lbl">Nuevos</div></div>
-    <div class="modal-stat danger"><div class="num">${nSinPago}</div><div class="lbl">Sin pago</div></div>
-    ${nBecados?`<div class="modal-stat becado"><div class="num">${nBecados}</div><div class="lbl">Becados</div></div>`:''}`;
-
-  if(!alumnos.length){
-    document.getElementById('modal-grupo-alumnos').innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><h3>Sin alumnos</h3></div>`;
-  }else{
-    document.getElementById('modal-grupo-alumnos').innerHTML=alumnos.map(a=>{
-      const esSinPago=sinPagoIds.has(a.id);
-      const esNuevo=nuevosIds.has(a.id);
-      const esBec=esBecado(a);
-
-      // FIX: lógica de pip y label — becado va ANTES de sin pago
-      let pip,lbl,lclass;
-      if(esBec){
-        pip='pip-becado'; lbl='⭐ Becado'; lclass='lbl-becado';
-      } else if(a.pago_ok){
-        pip='pip-ok'; lbl='Al corriente'; lclass='lbl-ok';
-      } else if(a.pago_pendiente){
-        pip='pip-pendiente'; lbl='Comprobante enviado'; lclass='lbl-pendiente';
-      } else {
-        pip='pip-sinpago'; lbl='Sin pago'; lclass='lbl-sinpago';
+    setTimeout(function() {
+      if (!done) {
+        cleanup();
+        callback(new Error('Tiempo de espera agotado (15 s).'));
       }
+    }, 15000);
 
-      // WhatsApp solo para sin pago reales (no becados)
-      const waBtn=esSinPago&&!esBec&&a.whatsapp
-        ?`<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${encodeURIComponent(`Hola ${a.nombre}, te recuerdo que tu pago de Organic English está pendiente. 😊`)}" target="_blank">WhatsApp</a>`
-        :'';
-      const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}</div>`;
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    script.src = url + sep + 'callback=' + id;
+    document.head.appendChild(script);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     HELPERS
+  ═══════════════════════════════════════════════════════════ */
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function val(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LOGIN
+  ═══════════════════════════════════════════════════════════ */
+  function loginEnter(e) { if (e.key === 'Enter') login(); }
+
+  function login() {
+    var id    = document.getElementById('inputId').value.trim().toUpperCase();
+    var clave = document.getElementById('inputClave').value.trim();
+    var err   = document.getElementById('errorMsg');
+    var btn   = document.getElementById('btnLogin');
+
+    if (!id || !clave) {
+      err.style.display = 'block';
+      err.textContent   = 'Completa todos los campos';
+      return;
+    }
+    err.style.display = 'none';
+    btn.textContent   = 'Verificando...';
+    btn.disabled      = true;
+
+    /* El login sí funciona con fetch normal (el servidor hace redirect
+       y el navegador lo sigue). JSONP también funcionaría, pero fetch
+       ya estaba funcionando para este endpoint. */
+    fetch(APPS_SCRIPT + '?action=loginCoordinadorIT&id=' + encodeURIComponent(id) + '&clave=' + encodeURIComponent(clave), { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = 'Entrar'; btn.disabled = false;
+        if (data.status === 'ok') {
+          itData = data;
+          mostrarPanel();
+        } else {
+          err.style.display = 'block';
+          err.textContent   = data.mensaje || 'ID o clave incorrectos';
+        }
+      })
+      .catch(function(e) {
+        btn.textContent = 'Entrar'; btn.disabled = false;
+        err.style.display = 'block';
+        err.textContent   = 'Error de conexión: ' + e.message;
+      });
+  }
+
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+    var ini = (itData.nombre || 'IT').split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
+    document.getElementById('avatarInitials').textContent = ini;
+    document.getElementById('contenidoVacio').style.display = 'block';
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
+    document.querySelectorAll('.btn-seccion').forEach(function(b){ b.classList.remove('active'); });
+  }
+
+  function logout() {
+    itData = null;
+    Object.keys(datosCargados).forEach(function(k){ datosCargados[k]=false; });
+    document.getElementById('screenPanel').classList.remove('active');
+    document.getElementById('screenLogin').classList.add('active');
+    document.getElementById('inputId').value   = '';
+    document.getElementById('inputClave').value = '';
+    document.getElementById('contenidoVacio').style.display = 'block';
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
+    document.querySelectorAll('.btn-seccion').forEach(function(b){ b.classList.remove('active'); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     NAVEGACIÓN
+  ═══════════════════════════════════════════════════════════ */
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.btn-seccion').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    document.getElementById('contenidoVacio').style.display = 'none';
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.style.display='none'; });
+    var el = document.getElementById('tab' + mapeoTab[tab]);
+    if (el) el.style.display = 'block';
+    if (tab !== 'grupos') cargarSeccion(tab);
+  }
+
+  function recargarTab(tab) {
+    datosCargados[tab] = false;
+    cargarSeccion(tab);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     CARGAR DATOS — usa JSONP para evitar CORS
+  ═══════════════════════════════════════════════════════════ */
+  function cargarSeccion(seccion) {
+    if (datosCargados[seccion]) return;
+
+    var tbId = 'tabla' + mapeoTab[seccion];
+    var tb   = document.getElementById(tbId);
+    if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8">Cargando...</td></tr>';
+
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'ok') {
+          datosCargados[seccion] = true;
+          if (seccion === 'direccion')  renderDireccion(data.direccion   || []);
+          if (seccion === 'academica')  renderAcademica(data.academica   || []);
+          if (seccion === 'maestros')   renderMaestros(data.maestros     || []);
+          if (seccion === 'escolar')    renderEscolar(data.escolar       || []);
+          if (seccion === 'asistentes') renderAsistentes(data.asistentes || []);
+if (seccion === 'ventas')     renderVentas(data.ventas         || []);
+          if (seccion === 'asesores')   renderAsesores(data.asesores     || []);
+        } else {
+          if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(data.mensaje || 'Error al cargar') + '</td></tr>';
+        }
+      })
+      .catch(function(e) {
+        if (tb) tb.innerHTML = '<tr class="info-row"><td colspan="8" style="color:var(--red)">' + esc(e.message) + '</td></tr>';
+      });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     MODAL
+  ═══════════════════════════════════════════════════════════ */
+  function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+  }
+
+  /* Campos reutilizables para Dirección */
+  function htmlCamposDireccion(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Director *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="DIR-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp (solo números)</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Clave *</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+    '</div>';
+  }
+
+  /* Campos para Académica */
+  function htmlCamposAcademica(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Coord. Académico *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="CA-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Cuenta Bancaria</label><input type="text" id="' + prefijo + 'CuentaBancaria" value="' + v('CuentaBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+    '</div>';
+  }
+
+  /* Campos para Maestros */
+  function htmlCamposMaestro(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    var activoCheck = (d.Activo === 'TRUE' || d.Activo === true || d.Activo === '1' || d.Activo === 1);
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Maestro *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="MAE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Rol</label><select id="' + prefijo + 'Rol">' +
+        '<option value="">Seleccionar...</option>' +
+        '<option value="Docente"' + (v('Rol') === 'Docente' ? ' selected' : '') + '>Docente</option>' +
+        '<option value="Colocador"' + (v('Rol') === 'Colocador' ? ' selected' : '') + '>Colocador</option>' +
+        '<option value="Ambos"' + (v('Rol') === 'Ambos' ? ' selected' : '') + '>Ambos</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Activo</label><input type="checkbox" id="' + prefijo + 'Activo" ' + (activoCheck ? 'checked' : '') + ' style="width:auto"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Costo/Clase</label><input type="text" id="' + prefijo + 'Costo" value="' + v('Costo') + '" placeholder="200"></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Inst. Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex"></div>' +
+    '</div>';
+  }
+
+  /* Campos para Escolar */
+  function htmlCamposEscolar(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Coord. Escolar *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="CE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+    '</div>';
+  }
+
+  /* Campos para Asistentes CE */
+  function htmlCamposAsistente(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Asistente *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="ASIST-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+    '</div>';
+  }
+
+  /* Campos para Ventas */
+  function htmlCamposVenta(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Coord. Ventas *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="CV-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Nómina (MXN)</label><input type="text" id="' + prefijo + 'Nomina" value="' + v('Nomina') + '" placeholder="15000"></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Cuenta Bancaria</label><input type="text" id="' + prefijo + 'CuentaBancaria" value="' + v('CuentaBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+    '</div>';
+  }
+
+  /* Campos para Asesores */
+  function htmlCamposAsesor(prefijo, d) {
+    d = d || {};
+    var esEditar = prefijo === 'edit';
+    function v(campo) { return esc(d[campo] || ''); }
+    var activoCheck = (d.Activo === 'TRUE' || d.Activo === true || d.Activo === '1' || d.Activo === 1);
+    return '<div class="form-grid">' +
+      '<div class="form-group"><label>ID Asesor *</label><input type="text" id="' + prefijo + 'Id" value="' + v('ID') + '" placeholder="ASE-01"' + (esEditar ? ' disabled' : '') + '></div>' +
+      '<div class="form-group"><label>Nombre *</label><input type="text" id="' + prefijo + 'Nombre" value="' + v('Nombre') + '" placeholder="Nombre completo"></div>' +
+      '<div class="form-group"><label>WhatsApp</label><input type="text" id="' + prefijo + 'Whatsapp" value="' + v('WhatsApp') + '" placeholder="2721234567"></div>' +
+      '<div class="form-group"><label>Activo</label><input type="checkbox" id="' + prefijo + 'Activo" ' + (activoCheck ? 'checked' : '') + ' style="width:auto"></div>' +
+      '<div class="form-group"><label>Comisión Total</label><input type="text" id="' + prefijo + 'ComisionTotal" value="' + v('ComisionTotal') + '" placeholder="$0"></div>' +
+      '<div class="form-group"><label>Clave</label><input type="text" id="' + prefijo + 'Clave" value="' + v('Clave') + '" placeholder="Contraseña"></div>' +
+      '<div class="form-group"><label>Link Inscripción</label><input type="text" id="' + prefijo + 'LinkInscripcion" value="' + v('LinkInscripcion') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Foto URL</label><input type="text" id="' + prefijo + 'Foto" value="' + v('Foto') + '" placeholder="https://..."></div>' +
+      '<div class="form-group"><label>Info Bancaria</label><input type="text" id="' + prefijo + 'InfoBancaria" value="' + v('InfoBancaria') + '" placeholder="Cuenta / CLABE"></div>' +
+      '<div class="form-group"><label>Institución Bancaria</label><input type="text" id="' + prefijo + 'InstBancaria" value="' + v('InstBancaria') + '" placeholder="HSBC / Banamex..."></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="' + prefijo + 'Email" value="' + v('Email') + '" placeholder="correo@ejemplo.com"></div>' +
+    '</div>';
+  }
+
+  /* Función genérica para abrir modal de agregar */
+  function getCampos(tipo, prefijo, datos) {
+    var fn = {
+      direccion: htmlCamposDireccion,
+      academica: htmlCamposAcademica,
+      maestros: htmlCamposMaestro,
+      escolar: htmlCamposEscolar,
+      asistentes: htmlCamposAsistente,
+      ventas: htmlCamposVenta,
+      asesores: htmlCamposAsesor
+    };
+    return fn[tipo] ? fn[tipo](prefijo, datos) : '';
+  }
+
+  function openAgregarModal(tipo) {
+    var titulos = { direccion:'Agregar Director', academica:'Agregar Coord. Académico', maestros:'Agregar Maestro', escolar:'Agregar Coord. Escolar', asistentes:'Agregar Asistente CE', ventas:'Agregar Coord. Ventas', asesores:'Agregar Asesor' };
+    var html = getCampos(tipo, 'new', null) +
+      '<div class="modal-footer">' +
+        '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
+        '<button class="btn-wa" onclick="notificarNuevo()">📲 Notificar WA</button>' +
+        '<button class="btn-save" onclick="guardar()">💾 Guardar en Sheets</button>' +
+      '</div>';
+
+    document.getElementById('modalTitle').textContent = titulos[tipo] || 'Agregar';
+    document.getElementById('modalBody').innerHTML    = html;
+    document.getElementById('modal').classList.add('active');
+    window.tipoActual = tipo;
+  }
+
+  function openEditarModal(tipo, datos) {
+    window.datosTemporal = datos;
+    window.tipoActual = tipo;
+    var titulos = { direccion:'Editar Director', academica:'Editar Coord. Académico', maestros:'Editar Maestro', escolar:'Editar Coord. Escolar', asistentes:'Editar Asistente CE', ventas:'Editar Coord. Ventas', asesores:'Editar Asesor' };
+    var html = getCampos(tipo, 'edit', datos) +
+      '<div class="modal-footer">' +
+        '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
+        '<button class="btn-wa" onclick="notificarExistente()">📲 Notificar WA</button>' +
+        '<button class="btn-save" onclick="actualizar()">💾 Actualizar en Sheets</button>' +
+      '</div>';
+
+    document.getElementById('modalTitle').textContent = titulos[tipo] || 'Editar';
+    document.getElementById('modalBody').innerHTML    = html;
+    document.getElementById('modal').classList.add('active');
+  }
+
+/* ═══════════════════════════════════════════════════════════
+      GUARDAR NUEVO REGISTRO — Genérico
+   ═══════════════════════════════════════════════════════════ */
+  function guardar() {
+    var tipo = window.tipoActual || 'direccion';
+    var id = val('newId').toUpperCase();
+    var nombre = val('newNombre');
+
+    if (!id || !nombre) {
+      alert('⚠️ El ID y el Nombre son obligatorios.');
+      return;
+    }
+
+    var actionMap = {
+      direccion: 'agregarDirector',
+      academica: 'agregarAcademica',
+      maestros: 'agregarMaestro',
+      escolar: 'agregarEscolar',
+      asistentes: 'agregarAsistente',
+      ventas: 'agregarVenta',
+      asesores: 'agregarAsesor'
+    };
+
+    var action = actionMap[tipo] || 'agregarDirector';
+    
+    var url = APPS_SCRIPT + '?action=' + action +
+      '&id=' + encodeURIComponent(id) +
+      '&nombre=' + encodeURIComponent(nombre) +
+      '&whatsapp=' + encodeURIComponent(val('newWhatsapp')) +
+      '&email=' + encodeURIComponent(val('newEmail')) +
+      '&clave=' + encodeURIComponent(val('newClave')) +
+      '&nomina=' + encodeURIComponent(val('newNomina')) +
+      '&foto=' + encodeURIComponent(val('newFoto')) +
+      '&infoBancaria=' + encodeURIComponent(val('newInfoBancaria')) +
+      '&instBancaria=' + encodeURIComponent(val('newInstBancaria')) +
+      '&grupos=' + encodeURIComponent(val('newGrupos')) +
+      '&costo=' + encodeURIComponent(val('newCosto')) +
+      '&cuentaBancaria=' + encodeURIComponent(val('newCuentaBancaria')) +
+      '&rol=' + encodeURIComponent(val('newRol')) +
+      '&activo=' + (document.getElementById('newActivo') && document.getElementById('newActivo').checked ? 'TRUE' : 'FALSE') +
+      '&comisionTotal=' + encodeURIComponent(val('newComisionTotal')) +
+      '&linkInscripcion=' + encodeURIComponent(val('newLinkInscripcion'));
+
+    console.log('Guardar URL:', url);
+    
+    fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (!text || text.trim() === '') { alert('El servidor respondió vacío.'); return; }
+        var data = JSON.parse(text);
+        if (data.status === 'ok') {
+          alert('✅ Registro guardado correctamente.\n\nAhora puedes notificarle por WhatsApp.');
+          var nuevosDatos = {
+            ID: id, Nombre: nombre, WhatsApp: val('newWhatsapp'), Email: val('newEmail'), Clave: val('newClave')
+          };
+          window.datosTemporal = nuevosDatos;
+          openEditarModal(tipo, nuevosDatos);
+          recargarTab(tipo);
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al guardar.'));
+        }
+      })
+      .catch(function(e) { alert('❌ Error: ' + e.message); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+      EDITAR — carga el registro y abre el modal
+   ═══════════════════════════════════════════════════════════ */
+  function editar(tipo, id) {
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status !== 'ok') { alert('El servidor respondió con error.'); return; }
+        var lista = data[tipo] || [];
+        var datos = null;
+        for (var i = 0; i < lista.length; i++) {
+          if (lista[i].ID === id) { datos = lista[i]; break; }
+        }
+        if (!datos) { alert('No se encontró el registro con ID: ' + id); return; }
+        openEditarModal(tipo, datos);
+      })
+      .catch(function(e) { alert('Error al obtener datos: ' + e.message); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+      ACTUALIZAR REGISTRO EXISTENTE — Genérico
+   ═══════════════════════════════════════════════════════════ */
+  function actualizar() {
+    var tipo = window.tipoActual || 'direccion';
+    var nombre = val('editNombre');
+    if (!nombre) { alert('⚠️ El nombre es obligatorio.'); return; }
+
+    var idOriginal = (window.datosTemporal && window.datosTemporal.ID) ? window.datosTemporal.ID : '';
+    if (!idOriginal) { alert('Error interno: falta el ID original.'); return; }
+
+    var actionMap = {
+      direccion: 'actualizarDirector',
+      academica: 'actualizarAcademica',
+      maestros: 'actualizarMaestro',
+      escolar: 'actualizarEscolar',
+      asistentes: 'actualizarAsistente',
+      ventas: 'actualizarVenta',
+      asesores: 'actualizarAsesor'
+    };
+
+    var action = actionMap[tipo] || 'actualizarDirector';
+    
+    var url = APPS_SCRIPT + '?action=' + action +
+      '&idOriginal=' + encodeURIComponent(idOriginal) +
+      '&id=' + encodeURIComponent(idOriginal) +
+      '&nombre=' + encodeURIComponent(nombre) +
+      '&whatsapp=' + encodeURIComponent(val('editWhatsapp')) +
+      '&email=' + encodeURIComponent(val('editEmail')) +
+      '&clave=' + encodeURIComponent(val('editClave')) +
+      '&nomina=' + encodeURIComponent(val('editNomina')) +
+      '&foto=' + encodeURIComponent(val('editFoto')) +
+      '&infoBancaria=' + encodeURIComponent(val('editInfoBancaria')) +
+      '&instBancaria=' + encodeURIComponent(val('editInstBancaria')) +
+      '&grupos=' + encodeURIComponent(val('editGrupos')) +
+      '&costo=' + encodeURIComponent(val('editCosto')) +
+      '&cuentaBancaria=' + encodeURIComponent(val('editCuentaBancaria')) +
+      '&rol=' + encodeURIComponent(val('editRol')) +
+      '&activo=' + (document.getElementById('editActivo') && document.getElementById('editActivo').checked ? 'TRUE' : 'FALSE') +
+      '&comisionTotal=' + encodeURIComponent(val('editComisionTotal')) +
+      '&linkInscripcion=' + encodeURIComponent(val('editLinkInscripcion'));
+
+    fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (!text || text.trim() === '') { alert('El servidor respondió vacío.'); return; }
+        var data = JSON.parse(text);
+        if (data.status === 'ok') {
+          alert('✅ Registro actualizado correctamente.');
+          closeModal();
+          recargarTab(tipo);
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al actualizar.'));
+        }
+      })
+      .catch(function(e) { alert('❌ Error: ' + e.message); });
+  }
+
+  function baja(tipo, id) {
+    if (!confirm('⚠️ ¿Confirmas dar de BAJA este registro? Se eliminará de Sheets.')) return;
+    
+    var actionMap = {
+      direccion: 'eliminarDirector',
+      academica: 'eliminarAcademica',
+      maestros: 'eliminarMaestro',
+      escolar: 'eliminarEscolar',
+      asistentes: 'eliminarAsistente',
+      ventas: 'eliminarVenta',
+      asesores: 'eliminarAsesor'
+    };
+    
+    var action = actionMap[tipo] || 'eliminarDirector';
+    var url = APPS_SCRIPT + '?action=' + action + '&id=' + encodeURIComponent(id);
+    
+    fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (!text || text.trim() === '') { alert('El servidor respondió vacío.'); return; }
+        var data = JSON.parse(text);
+        if (data.status === 'ok') {
+          alert('✅ Registro dado de baja correctamente.');
+          recargarTab(tipo);
+        } else {
+          alert('❌ ' + (data.mensaje || 'Error al dar de baja.'));
+        }
+      })
+      .catch(function(e) { alert('❌ Error: ' + e.message); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+      NOTIFICACIONES WHATSAPP
+   ═══════════════════════════════════════════════════════════ */
+  function notificarNuevo() {
+    var nombre   = val('newNombre');
+    var whatsapp = val('newWhatsapp');
+    var id       = val('newId').toUpperCase();
+    var clave    = val('newClave');
+    var tipo     = window.tipoActual || 'direccion';
+    
+    if (!nombre)   { alert('Escribe el nombre antes de notificar.'); return; }
+    if (!whatsapp) { alert('Escribe el WhatsApp antes de notificar.'); return; }
+    
+    var panelLink = {
+      direccion: 'https://organicenglish1.com/director.html',
+      academica: 'https://organicenglish1.com/coordinador_academico.html',
+      maestros: 'https://organicenglish1.com/maestro.html',
+      escolar: 'https://organicenglish1.com/coordinador_escolar.html',
+      asistentes: 'https://organicenglish1.com/asistente-ce.html',
+      ventas: 'https://organicenglish1.com/coordinacion-asesores.html',
+      asesores: 'https://organicenglish1.com/asesor.html'
+    };
+    
+    var nombrePanel = {
+      direccion: 'Director',
+      academica: 'Coordinador Académico',
+      maestros: 'Maestro',
+      escolar: 'Coordinador Escolar',
+      asistentes: 'Asistente CE',
+      ventas: 'Coordinador de Ventas',
+      asesores: 'Asesor'
+    };
+    
+    var linkInsc = (tipo === 'asesores') ? val('newLinkInscripcion') : '';
+    var linkAsesorMsg = (tipo === 'asesores' && linkInsc) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + linkInsc : '';
+    var msg = 'Hola ' + nombre + '.' +
+      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+      '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
+      '%0A📍 Enlace: ' + panelLink[tipo] +
+      '%0A👤 Usuario: ' + id +
+      (clave ? '%0A🔐 Contraseña: ' + clave : '') +
+      linkAsesorMsg +
+      '%0A%0ACualquier duda, estoy para orientarte.' +
+      '%0A%0ASaludos cordiales.';
+    window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + msg, '_blank');
+  }
+
+  function notificarExistente() {
+    var d = window.datosTemporal || {};
+    var tipo = window.tipoActual || 'direccion';
+    if (!d.Nombre)   { alert('No hay datos del registro.'); return; }
+    if (!d.WhatsApp) { alert('No hay WhatsApp registrado.'); return; }
+    
+    var panelLink = {
+      direccion: 'https://organicenglish1.com/director.html',
+      academica: 'https://organicenglish1.com/control-academico.html',
+      maestros: 'https://organicenglish1.com/maestro.html',
+      escolar: 'https://organicenglish1.com/control_ce.html',
+      asistentes: 'https://organicenglish1.com/asistente-ce.html',
+      ventas: 'https://organicenglish1.com/coordinacion-asesores.html',
+      asesores: 'https://organicenglish1.com/asesor.html'
+    };
+    
+    var nombrePanel = {
+      direccion: 'Director',
+      academica: 'Coordinador Académico',
+      maestros: 'Maestro',
+      escolar: 'Coordinador Escolar',
+      asistentes: 'Asistente CE',
+      ventas: 'Coordinador de Ventas',
+      asesores: 'Asesor'
+    };
+    
+    var linkAsesorMsg = (tipo === 'asesores' && d.LinkInscripcion) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + d.LinkInscripcion : '';
+    var msg = 'Hola ' + d.Nombre + '.' +
+      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+      '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
+      '%0A📍 Enlace: ' + panelLink[tipo] +
+      '%0A👤 Usuario: ' + (d.ID || '') +
+      (d.Clave ? '%0A🔐 Contraseña: ' + d.Clave : '') +
+      linkAsesorMsg +
+      '%0A%0ACualquier duda, estoy para orientarte.' +
+      '%0A%0ASaludos cordiales.';
+    window.open('https://wa.me/' + cleanWA(d.WhatsApp) + '?text=' + msg, '_blank');
+  }
+
+  /* Notificar desde la tabla directamente */
+  function notificarDesdeTabla(tipo, id) {
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status !== 'ok') { alert('Error al obtener datos'); return; }
+        var lista = data[tipo] || [];
+        var datos = null;
+        for (var i = 0; i < lista.length; i++) {
+          if (lista[i].ID === id) { datos = lista[i]; break; }
+        }
+        if (!datos) { alert('No se encontró el registro'); return; }
+        if (!datos.WhatsApp) { alert('No hay WhatsApp registrado'); return; }
+        
+var panelLink = {
+      direccion: 'https://organicenglish1.com/director.html',
+      academica: 'https://organicenglish1.com/control-academico.html',
+      maestros: 'https://organicenglish1.com/maestro.html',
+      escolar: 'https://organicenglish1.com/control_ce.html',
+      asistentes: 'https://organicenglish1.com/asistente-ce.html',
+      ventas: 'https://organicenglish1.com/coordinacion-asesores.html',
+      asesores: 'https://organicenglish1.com/asesor.html'
+    };
+        
+        var nombrePanel = {
+          direccion: 'Director',
+          academica: 'Coordinador Académico',
+          maestros: 'Maestro',
+          escolar: 'Coordinador Escolar',
+          asistentes: 'Asistente CE',
+          ventas: 'Coordinador de Ventas',
+          asesores: 'Asesor'
+        };
+        
+        var linkAsesor = (tipo === 'asesores' && datos.LinkInscripcion) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + datos.LinkInscripcion : '';
+        var msg = 'Hola ' + datos.Nombre + '.' +
+          '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+          '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+          '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
+          '%0A📍 Enlace: ' + panelLink[tipo] +
+          '%0A👤 Usuario: ' + (datos.ID || '') +
+          (datos.Clave ? '%0A🔐 Contraseña: ' + datos.Clave : '') +
+          linkAsesor +
+          '%0A%0ACualquier duda, estoy para orientarte.' +
+          '%0A%0ASaludos cordiales.';
+        window.open('https://wa.me/' + cleanWA(datos.WhatsApp) + '?text=' + msg, '_blank');
+      })
+      .catch(function(e) { alert('Error: ' + e.message); });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     RENDER TABLAS
+  ═══════════════════════════════════════════════════════════ */
+  function renderDireccion(lista) {
+    var tb = document.getElementById('tablaDireccion');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin directores registrados</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'direccion\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'direccion\',\'' + esc(p.ID) + '\')">Editar</button>' +
+        '</td>' +
+      '</tr>';
     }).join('');
   }
-  document.getElementById('modal-grupo').classList.add('open');
-  document.body.style.overflow='hidden';
-}
 
-function cerrarModalGrupo(){document.getElementById('modal-grupo').classList.remove('open');document.body.style.overflow='';}
-function cerrarModalGrupoClick(e){if(e.target===document.getElementById('modal-grupo'))cerrarModalGrupo();}
-
-function renderPagos(){
-  const cont=document.getElementById('lista-pagos');
-  const pagos=datosPanel?.pagos_pendientes||[];
-  if(!pagos.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">✅</div><h3>Todo al corriente</h3><p>No hay comprobantes pendientes.</p></div>`;return;}
-  cont.innerHTML=pagos.map(p=>{
-    const esPdf=p.comprobante_url?.toLowerCase().includes('.pdf')||p.comprobante_url?.includes('drive.google.com');
-    const tipoIcon=p.comprobante_url?(esPdf?'📄':'🖼️'):'❌';
-    const tipoLabel=p.comprobante_url?(esPdf?'PDF / Drive':'Imagen'):'Sin archivo';
-    const cUrl=p.comprobante_url||'';
-    const montoLabel=p.monto>0?`$${p.monto}`:'Por confirmar';
-    return `
-    <div class="pago-card">
-      <div class="pago-top">
-        <div class="pago-alumno">
-          <span class="alumno-id-chip">${p.id_alumno}</span>
-          <strong style="font-size:14px">${p.nombre}</strong>
-        </div>
-        <div class="pago-right">
-          <span class="pago-monto">${montoLabel}</span>
-        </div>
-      </div>
-      <div class="pago-meta">Enviado el ${p.fecha_pago} · Grupo: ${p.grupo}</div>
-      <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}')">
-        <div class="comp-icon">${tipoIcon}</div>
-        <div class="comp-info"><div class="comp-nombre">${p.comprobante_url?'Comprobante adjunto':'Sin comprobante'}</div><div class="comp-tipo">${tipoLabel}</div></div>
-        <span class="comp-ver">${p.comprobante_url?'Ver →':''}</span>
-      </div>
-      <div class="pago-actions">
-        <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}')">Ver y validar</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderNuevos(){
-  const cont=document.getElementById('lista-nuevos');
-  const nuevos=datosPanel?.alumnos_nuevos||[];
-  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
-  const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
-  if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
-  const nombreAsistente = asistente?.nombre || 'Asistente';
-  cont.innerHTML=sinPresentar.map(a=>{
-    const msg=encodeURIComponent(`¡Hola ${a.nombre}! 👋 Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. 🎉\n\nEstoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. 😊\n\n📌 IMPORTANTE: Por favor sube tus comprobantes de pago desde tu panel personal. Después de subirlo, notifícame por aquí para que pueda validarlo y confirmar tu pago en el sistema.\n\n¡Bienvenido/a a Organic English!`);
-    return `
-    <div class="nuevo-card">
-      <div class="nuevo-info">
-        <div class="nuevo-nombre">${a.nombre}</div>
-        <div class="nuevo-sub">${a.whatsapp} · <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--azul);font-weight:700">${a.id}</span></div>
-        <div class="nuevo-chip">🎓 ${a.grupo} · ${a.horario}</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <a class="btn-whats" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank">👋 Presentarse</a>
-        <button class="btn-confirmado" onclick="marcarPresentado('${a.id}')" style="padding:9px 14px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✓ Listo</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function marcarPresentado(idAlumno){
-  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
-  if(!presentados.includes(idAlumno)){
-    presentados.push(idAlumno);
-    localStorage.setItem('nuevos_presentados', JSON.stringify(presentados));
+  function renderAcademica(lista) {
+    var tb = document.getElementById('tablaAcademica');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="9">Sin coordinadores académicos</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.CuentaBancaria) + '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'academica\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'academica\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'academica\',\'' + esc(p.ID) + '\')">Baja</button>' +
+        '</td></tr>';
+    }).join('');
   }
-  renderNuevos();
-  mostrarToast('Alumno marcado como presentado','success');
-}
 
-function renderAlertas(){
-  const cont=document.getElementById('lista-alertas');
-  const lista=datosPanel?.sin_pago||[];
-
-  // FIX: filtrar becados — no deben aparecer en alertas de sin pago
-  const listaFiltrada = lista.filter(a => !esBecado(a));
-
-  if(!listaFiltrada.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
-  cont.innerHTML=listaFiltrada.map(a=>{
-    const fechaLimite = a.fecha_limite || '';
-    const msg = encodeURIComponent(`Hola ${a.nombre} 👋 Te recuerdo que tu pago en Organic English vence el ${fechaLimite}. Por favor realiza tu pago antes de esa fecha para no perder tu vigencia. ¿Necesitas ayuda? 😊`);
-    const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
-    return `
-    <div class="alerta-card">
-      <div class="alerta-icon">⚠️</div>
-      <div class="alerta-info">
-        <div class="alerta-nombre">${a.nombre}</div>
-        <div class="alerta-sub"><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);font-size:11px">${a.id}</span> · ${a.grupo} · Vence: ${fechaLimite}</div>
-      </div>
-      ${waBtn}
-      <div class="alerta-badge">Sin pago vigente</div>
-    </div>`;
-  }).join('');
-}
-
-function renderCambios(){
-  const select=document.getElementById('select-alumno-cambio');
-  const alumnos=[];
-  (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel}));});
-  alumnos.sort((a,b)=>a.id.localeCompare(b.id));
-  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
-}
-
-function seleccionarAlumnoCambio(){
-  const select=document.getElementById('select-alumno-cambio');
-  const opt=select.options[select.selectedIndex];
-  const id=select.value;
-  const infoBox=document.getElementById('alumno-cambio-info');
-  if(!id){infoBox.style.display='none';document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';document.getElementById('btn-confirmar-cambio').disabled=true;alumnoSeleccionadoCambio=null;return;}
-  const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel;
-  alumnoSeleccionadoCambio={id,nombre:opt.text.split('—')[2]?.trim()||opt.text,grupo_actual:grupoActual,nivel};
-  grupoSeleccionadoCambio=null;
-  document.getElementById('btn-confirmar-cambio').disabled=true;
-  document.getElementById('cambio-alumno-nombre').textContent=alumnoSeleccionadoCambio.nombre;
-  document.getElementById('cambio-alumno-grupo').textContent=`Grupo actual: ${grupoActual}`;
-  infoBox.style.display='block';
-  const grupoActualObj=(datosPanel?.grupos||[]).find(g=>g.id===grupoActual);
-  const fechaInicioActual=grupoActualObj?grupoActualObj.fecha_inicio:null;
-  const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>g.id!==grupoActual);
-  if(!todosGruposFiltrados.length){document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos disponibles.</p>';return;}
-  const contenedor=document.getElementById('grupos-disponibles-cambio');
-  contenedor.innerHTML=todosGruposFiltrados.map(g=>{
-    const libres=g.cupo_max-g.inscritos;
-    const sinLugares=libres<=0;
-    const mismaFecha=!fechaInicioActual||g.fecha_inicio===fechaInicioActual;
-    const bloqueado=sinLugares||!mismaFecha;
-    const cls=sinLugares?'lleno':libres<=2?'pocas':'';
-    let etiquetaBloqueo='';
-    if(!mismaFecha) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;padding:2px 7px;display:inline-block">Requiere examen de colocacion</div>';
-    else if(sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
-    return `<div class="grupo-opcion ${bloqueado?'go-lleno':''}" data-grupo-id="${g.id}" style="${bloqueado?'opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)':'cursor:pointer'}">
-      <div class="go-id">${g.id}</div><div class="go-nombre">${g.nombre}</div><div class="go-horario">${g.horario}</div>
-      <div class="go-plazas ${cls}">${libres>0?`${libres} lugares libres`:'Sin lugares'}</div>${etiquetaBloqueo}</div>`;
-  }).join('');
-  contenedor.querySelectorAll('.grupo-opcion:not(.go-lleno)').forEach(el=>{
-    el.addEventListener('click',function(){elegirGrupoCambio(this.dataset.grupoId,this);});
-  });
-}
-
-function elegirGrupoCambio(id,el){
-  document.querySelectorAll('.grupo-opcion').forEach(g=>g.classList.remove('selected'));
-  el.classList.add('selected');
-  grupoSeleccionadoCambio=id;
-  document.getElementById('btn-confirmar-cambio').disabled=false;
-  const grupoDestino=(datosPanel?.todos_grupos||[]).find(g=>g.id===id);
-  document.getElementById('confirm-alumno-nombre').textContent=alumnoSeleccionadoCambio.nombre;
-  document.getElementById('confirm-alumno-id').textContent=alumnoSeleccionadoCambio.id;
-  document.getElementById('confirm-grupo-origen').textContent=alumnoSeleccionadoCambio.grupo_actual;
-  document.getElementById('confirm-grupo-destino').textContent=id;
-  document.getElementById('confirm-horario-destino').textContent=grupoDestino?grupoDestino.horario:'—';
-  document.getElementById('modal-confirm-cambio').classList.add('open');
-}
-
-function cerrarModalConfirm(){
-  document.getElementById('modal-confirm-cambio').classList.remove('open');
-  document.querySelectorAll('.grupo-opcion').forEach(g=>g.classList.remove('selected'));
-  grupoSeleccionadoCambio=null;
-  document.getElementById('btn-confirmar-cambio').disabled=true;
-}
-
-async function ejecutarCambioGrupo(){
-  if(!alumnoSeleccionadoCambio||!grupoSeleccionadoCambio)return;
-  document.getElementById('modal-confirm-cambio').classList.remove('open');
-  const btn=document.getElementById('btn-confirmar-cambio');
-  btn.textContent='Procesando…';btn.disabled=true;
-  try{
-    const resp=await fetch(`${APPS_SCRIPT}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`);
-    const data=await resp.json();
-    if(data.status==='ok'){mostrarToast('Cambio de grupo realizado correctamente','success');document.getElementById('select-alumno-cambio').value='';seleccionarAlumnoCambio();await cargarDatos();}
-    else mostrarToast(data.mensaje||'Error al realizar el cambio.','error');
-  }catch(e){mostrarToast('Error de conexión.','error');}
-  finally{btn.textContent='Confirmar Cambio';btn.disabled=false;}
-}
-
-function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
-  pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;
-  document.getElementById('input-monto-validar').value=monto>0?monto:'';
-  document.getElementById('modal-alumno-info').innerHTML=`
-    <div class="row"><span>Alumno</span><span>${nombre} (${idAlumno})</span></div>
-    <div class="row"><span>Grupo</span><span>${grupo}</span></div>
-    <div class="row"><span>Fecha envío</span><span>${fechaPago}</span></div>`;
-  const visor=document.getElementById('modal-visor');
-  if(!cUrl){
-    visor.innerHTML='<p style="color:var(--gris-400);font-size:13px">Sin comprobante adjunto</p>';
-  } else if(cUrl.toLowerCase().includes('.pdf')||cUrl.includes('drive.google.com')){
-    visor.innerHTML=`<div style="text-align:center;padding:20px"><p style="color:var(--gris-500);font-size:13px;margin-bottom:12px">Archivo en Google Drive</p><a href="${cUrl}" target="_blank" style="background:var(--naranja);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Abrir comprobante →</a></div>`;
-  } else {
-    visor.innerHTML=`<img src="${cUrl}" alt="Comprobante" style="max-width:100%;max-height:380px;object-fit:contain;border-radius:8px;display:block" onerror="this.parentElement.innerHTML='<div style=\\'text-align:center;padding:20px\\'><p style=\\'color:var(--gris-500);font-size:13px;margin-bottom:12px\\'>No se pudo cargar la imagen</p><a href=\\'${cUrl}\\' target=\\'_blank\\' style=\\'background:var(--naranja);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px\\'>Abrir en nueva pestaña →</a></div>'">`;
+  function renderMaestros(lista) {
+    var tb = document.getElementById('tablaMaestros');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="12">Sin maestros</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      var activo = (p.Activo === 'TRUE' || p.Activo === true);
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Rol) + '</td>' +
+        '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>$' + esc(p.Costo || '0') + '</td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td style="text-align:center;">' +
+          (p.GruposAsignados !== undefined && p.GruposAsignados !== '' && p.GruposAsignados !== null
+            ? '<span style="background:rgba(59,130,246,0.18);color:#60a5fa;padding:3px 12px;border-radius:12px;font-weight:700;font-size:13px;">' + esc(String(p.GruposAsignados)) + '</span>'
+            : '<span style="color:var(--muted);font-size:12px;">—</span>') +
+        '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'maestros\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'maestros\',\'' + esc(p.ID) + '\')">Baja</button>' +
+        '</td></tr>';
+    }).join('');
   }
-  document.getElementById('modal-comprobante').classList.add('open');
-  document.body.style.overflow='hidden';
-}
 
-function cerrarModalComp(){
-  document.getElementById('modal-comprobante').classList.remove('open');
-  document.body.style.overflow='';
-  pagoActivoId=null;pagoActivoFecha=null;
-}
-
-async function validarDesdeModal(){
-  if(!pagoActivoId)return;
-  const monto=document.getElementById('input-monto-validar').value.trim();
-  if(!monto||isNaN(monto)||Number(monto)<=0){
-    mostrarToast('Ingresa el monto del comprobante antes de validar','error');
-    return;
+  function renderEscolar(lista) {
+    var tb = document.getElementById('tablaEscolar');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="10">Sin coordinadores escolares</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'escolar\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'escolar\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'escolar\',\'' + esc(p.ID) + '\')">Baja</button>' +
+        '</td></tr>';
+    }).join('');
   }
-  await validarPago(pagoActivoId,pagoActivoFecha,Number(monto));
-  cerrarModalComp();
-}
 
-function rechazarDesdeModal(){mostrarToast('Funcionalidad de rechazo próximamente','error');cerrarModalComp();}
+  function renderAsistentes(lista) {
+    var tb = document.getElementById('tablaAsistentes');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="10">Sin asistentes CE</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'asistentes\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'asistentes\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'asistentes\',\'' + esc(p.ID) + '\')">Baja</button>' +
+        '</td></tr>';
+    }).join('');
+  }
 
-async function validarPago(idAlumno,fechaPago,monto){
-  try{
-    const url=`${APPS_SCRIPT}?action=validarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fechaPago=${encodeURIComponent(fechaPago)}&idAsistente=${encodeURIComponent(asistente.id)}&monto=${encodeURIComponent(monto||0)}`;
-    const resp=await fetch(url);
-    const data=await resp.json();
-    if(data.status==='ok'){
-      mostrarToast('✓ Pago validado correctamente','success');
-      const pago = (datosPanel?.pagos_pendientes || []).find(p => p.id_alumno === idAlumno);
-      if (pago) { pagoActivoNombre = pago.nombre; pagoActivoWA = pago.whatsapp; }
-      document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
-      document.getElementById('modal-notif-pago').classList.add('open');
-      await cargarDatos();
+  function renderVentas(lista) {
+    var tb = document.getElementById('tablaVentas');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="10">Sin coordinadores de ventas</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td>' + esc(p.Nomina) + '</td>' +
+        '<td>' + esc(p.CuentaBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'ventas\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'ventas\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'ventas\',\'' + esc(p.ID) + '\')">Baja</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+
+  function renderAsesores(lista) {
+    var tb = document.getElementById('tablaAsesores');
+    if (!lista.length) { tb.innerHTML = '<tr class="info-row"><td colspan="12">Sin asesores</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(p) {
+      var foto = p.Foto
+        ? '<img src="' + esc(p.Foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700">' + esc(p.Nombre ? p.Nombre[0].toUpperCase() : '?') + '</div>';
+      var activo = (p.Activo === 'TRUE' || p.Activo === true);
+      return '<tr>' +
+        '<td>' + foto + '</td>' +
+        '<td>' + esc(p.ID) + '</td>' +
+        '<td>' + esc(p.Nombre) + '</td>' +
+        '<td>' + esc(p.WhatsApp) + '</td>' +
+        '<td><span class="badge ' + (activo ? 'badge-activo' : 'badge-inactivo') + '">' + (activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td>$' + esc(p.ComisionTotal || '0') + '</td>' +
+        '<td>' + esc(p.Clave) + '</td>' +
+        '<td><a href="' + esc(p.LinkInscripcion || '#') + '" target="_blank" style="color:var(--blue)">Link</a></td>' +
+        '<td>' + esc(p.InfoBancaria) + '</td>' +
+        '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td>' + esc(p.Email) + '</td>' +
+        '<td>' +
+          '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'asesores\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
+          '<button class="btn-action btn-edit" onclick="editar(\'asesores\',\'' + esc(p.ID) + '\')">Editar</button> ' +
+          '<button class="btn-action btn-delete" onclick="baja(\'asesores\',\'' + esc(p.ID) + '\')">Baja</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+
+  // ── CREAR GRUPO ──
+  function crearGrupoIT() {
+    var id        = document.getElementById('ng-id').value.trim().toUpperCase();
+    var nombre    = document.getElementById('ng-nombre').value.trim();
+    var horario   = document.getElementById('ng-horario').value;
+    var fecha     = document.getElementById('ng-fecha').value;
+    var nivel     = document.getElementById('ng-nivel').value;
+    var cupo      = document.getElementById('ng-cupo').value;
+    var zoom      = document.getElementById('ng-zoom').value.trim();
+    var asistente = document.getElementById('ng-asistente').value.trim();
+    var msgEl     = document.getElementById('msg-grupo');
+
+    msgEl.style.display = 'none';
+
+    if (!id || !nombre || !horario || !fecha || !nivel || !cupo || !zoom || !asistente) {
+      msgEl.textContent = 'Por favor completa todos los campos obligatorios.';
+      msgEl.style.display = 'inline'; return;
     }
-    else mostrarToast(data.mensaje||'Error al validar','error');
-  }catch(e){mostrarToast('Error de conexión','error');}
-}
 
-function cerrarModalNotifPago(){
-  document.getElementById('modal-notif-pago').classList.remove('open');
-  pagoActivoNombre=null; pagoActivoWA=null;
-}
+    var regexId = /^[A-Z]{2}-\d{2}$/;
+    if (!regexId.test(id)) {
+      msgEl.textContent = 'El ID del grupo debe tener el formato XX-00 (Ej: AC-01).';
+      msgEl.style.display = 'inline'; return;
+    }
 
-function notificarAlumnoPago(){
-  if(pagoActivoWA){
-    const msg = encodeURIComponent('Hola! Te informo que tu pago ha sido validado correctamente. Ya puedes asistir a tus clases. ¡Bienvenido/a!');
-    window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${msg}`,'_blank');
+    var btn = document.querySelector('#tabGrupos .card button');
+    btn.textContent = 'Creando...'; btn.disabled = true;
+
+    fetch(APPS_SCRIPT + '?action=crearGrupo&idGrupo=' + encodeURIComponent(id) +
+      '&nombre=' + encodeURIComponent(nombre) +
+      '&horario=' + encodeURIComponent(horario) +
+      '&fechaInicio=' + encodeURIComponent(fecha) +
+      '&nivel=' + encodeURIComponent(nivel) +
+      '&cupoMax=' + encodeURIComponent(cupo) +
+      '&linkZoom=' + encodeURIComponent(zoom) +
+      '&idAsistente=' + encodeURIComponent(asistente))
+      .then(function(response) {
+        return response.text();
+      })
+      .then(function(text) {
+        btn.textContent = 'Crear grupo'; btn.disabled = false;
+        var exito = false;
+        try {
+          var data = JSON.parse(text);
+          if (data.ok || data.success) {
+            exito = true;
+            msgEl.textContent = '✅ Grupo creado exitosamente!';
+            msgEl.style.color = 'var(--green)';
+            msgEl.style.display = 'inline';
+            ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, fecha: fecha, nivel: nivel, zoom: zoom, asistente: asistente };
+            document.getElementById('ng-id').value = '';
+            document.getElementById('ng-nombre').value = '';
+            document.getElementById('ng-horario').value = '';
+            document.getElementById('ng-fecha').value = '';
+            document.getElementById('ng-nivel').value = '';
+            document.getElementById('ng-cupo').value = '';
+            document.getElementById('ng-zoom').value = '';
+            document.getElementById('ng-asistente').value = '';
+          } else {
+            msgEl.textContent = '❌ ' + (data.error || data.mensaje || 'Error al crear grupo');
+            msgEl.style.color = 'var(--red)';
+            msgEl.style.display = 'inline';
+          }
+        } catch(e) {
+          exito = true;
+          msgEl.textContent = '✅ Grupo creado!';
+          msgEl.style.color = 'var(--green)';
+          msgEl.style.display = 'inline';
+        }
+        if (exito) {
+ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, fecha: fecha, nivel: nivel, zoom: zoom, asistente: asistente };
+        }
+      })
+      .catch(function(err) {
+        btn.textContent = 'Crear grupo'; btn.disabled = false;
+        msgEl.textContent = '✅ Grupo creado!';
+        msgEl.style.color = 'var(--green)';
+        msgEl.style.display = 'inline';
+        ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, fecha: fecha, nivel: nivel, zoom: zoom, asistente: asistente };
+      });
   }
-  cerrarModalNotifPago();
-}
 
-function subirLinkWhats(idGrupo) {
-  const link = prompt('Pega el link del grupo de WhatsApp para ' + idGrupo + ':');
-  if (!link || !link.trim()) return;
-  if (!link.includes('chat.whatsapp.com') && !link.includes('wa.me')) {
-    mostrarToast('El link no parece ser de WhatsApp','error');
-    return;
+  var ultimoGrupoCreado = null;
+  var ultimoGrupoCancelado = null;
+
+  function getDatosFormulario() {
+    return {
+      id: document.getElementById('ng-id').value.trim().toUpperCase(),
+      nombre: document.getElementById('ng-nombre').value.trim(),
+      horario: document.getElementById('ng-horario').value,
+      fecha: document.getElementById('ng-fecha').value,
+      nivel: document.getElementById('ng-nivel').value,
+      zoom: document.getElementById('ng-zoom').value.trim(),
+      asistente: document.getElementById('ng-asistente').value.trim()
+    };
   }
-  fetch(`${APPS_SCRIPT}?action=actualizarLinkWhatsGrupo&idGrupo=${encodeURIComponent(idGrupo)}&linkWhats=${encodeURIComponent(link.trim())}`, {redirect:'follow'})
-    .then(r=>r.json())
-    .then(data=>{
-      if(data.success){
-        mostrarToast('✅ Link de WhatsApp guardado','success');
-        const g = (datosPanel?.grupos||[]).find(g=>g.id===idGrupo);
-        if(g) g.linkWhats = link.trim();
-        renderGrupos();
-      } else {
-        mostrarToast('Error: '+(data.error||'Intenta de nuevo'),'error');
-      }
-    })
-    .catch(()=>mostrarToast('Error de conexión','error'));
-}
 
-function mostrarToast(msg,tipo=''){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.className='toast '+tipo;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3200);
-}
+  function notificarCoordEscolar() {
+    var datos = getDatosFormulario();
+    if ((!datos.id || !datos.nombre) && ultimoGrupoCreado) {
+      datos = ultimoGrupoCreado;
+    }
+    if (!datos.id || !datos.nombre) {
+      alert('Por favor completa los datos del grupo primero');
+      return;
+    }
+    var nombreAsistente = datos.asistente;
+    fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(datos.asistente))
+      .then(function(r) { return r.json(); })
+      .then(function(asiData) {
+        if (asiData.success) nombreAsistente = asiData.nombre;
+        return fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats');
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success && data.whatsapp) {
+          var msg = 'Hola ' + data.nombre + ', se ha registrado un nuevo grupo en el sistema:%0A%0A';
+          msg += '- ID: ' + datos.id + '%0A';
+          msg += '- Horario: ' + datos.horario + '%0A';
+          msg += '- Fecha Inicio: ' + datos.fecha + '%0A';
+          msg += '- Nivel: ' + datos.nivel + '%0A%0A';
+          msg += 'El Asistente ' + datos.asistente + ' ' + nombreAsistente + ' ya fue notificado para su control.%0A%0A';
+          msg += 'Buen día.';
+          window.open('https://wa.me/' + cleanWA(data.whatsapp) + '?text=' + msg, '_blank');
+        } else {
+          console.log('Error data:', data);
+          alert('No se pudo obtener el WhatsApp del Coordinador Escolar. Datos: ' + JSON.stringify(data));
+        }
+      })
+      .catch(function(err) {
+        console.error('Error:', err);
+        alert('Error al enviar mensaje: ' + err.message);
+      });
+  }
+
+  function notificarAsistente() {
+    var datos = getDatosFormulario();
+    if ((!datos.id || !datos.asistente) && ultimoGrupoCreado) {
+      datos = ultimoGrupoCreado;
+    }
+    if (!datos.id || !datos.asistente) {
+      alert('Por favor completa los datos del grupo y selecciona un asistente');
+      return;
+    }
+    fetch(APPS_SCRIPT + '?action=getAsistenteWhats&idAsistente=' + encodeURIComponent(datos.asistente))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = 'Hola ' + data.nombre + ', se te ha asignado un nuevo grupo:%0A%0A';
+          msg += '- ID: ' + datos.id + '%0A';
+          msg += '- Nombre: ' + datos.nombre + '%0A';
+          msg += '- Horario: ' + datos.horario + '%0A';
+          msg += '- Fecha Inicio: ' + datos.fecha + '%0A';
+          msg += '- Nivel: ' + datos.nivel + '%0A%0A';
+          msg += 'Por favor crear el grupo oficial de WhatsApp para los alumnos.%0A%0A';
+          msg += 'Buen día.';
+          window.open('https://wa.me/' + cleanWA(data.whatsapp) + '?text=' + msg, '_blank');
+        } else {
+          alert('No se pudo obtener el WhatsApp del Asistente');
+        }
+      });
+  }
+
+  function notificarBajaGrupoCE() {
+    if (!ultimoGrupoCancelado) return;
+    fetch(APPS_SCRIPT + '?action=getCoordEscolarWhats')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = 'Hola ' + data.nombre + ', el siguiente grupo ha sido dado de baja del sistema:%0A%0A';
+          msg += '🔹 ID: ' + ultimoGrupoCancelado.id + '%0A';
+          msg += '🔹 Nombre: ' + ultimoGrupoCancelado.nombre + '%0A%0A';
+          msg += 'Por favor actualizar los registros correspondientes.%0A%0ABuen día.';
+          window.open('https://wa.me/' + cleanWA(data.whatsapp) + '?text=' + msg, '_blank');
+        } else {
+          alert('No se pudo obtener el WhatsApp del Coordinador Escolar');
+        }
+      });
+  }
+
+  // Cargar asistentes al select
+  function cargarAsistentesSelect() {
+    fetch(APPS_SCRIPT + '?action=getPersonalIT', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var sel = document.getElementById('ng-asistente');
+        sel.innerHTML = '<option value="">Seleccionar</option>';
+        if (data.asistentes) {
+          data.asistentes.forEach(function(a) {
+            sel.innerHTML += '<option value="' + a.ID + '">' + a.ID + ' - ' + a.Nombre + '</option>';
+          });
+        }
+      });
+  }
+
+  // ── SUB-TABS MANTENIMIENTO GRUPOS ──
+  function switchSubTab(sub) {
+    document.getElementById('subAlta').style.display = sub === 'alta' ? 'block' : 'none';
+    document.getElementById('subBaja').style.display = sub === 'baja' ? 'block' : 'none';
+    document.getElementById('sub-alta').style.background = sub === 'alta' ? 'var(--green)' : 'var(--surface)';
+    document.getElementById('sub-alta').style.color = sub === 'alta' ? '#fff' : 'var(--text)';
+    document.getElementById('sub-baja').style.background = sub === 'baja' ? 'var(--green)' : 'var(--surface)';
+    document.getElementById('sub-baja').style.color = sub === 'baja' ? '#fff' : 'var(--text)';
+    if (sub === 'baja') cargarGruposExistentes();
+  }
+
+  function cargarGruposExistentes() {
+    var container = document.getElementById('tabla-grupos-container');
+    container.innerHTML = '<p style="color:var(--text-muted);">Cargando grupos...</p>';
+    fetch(APPS_SCRIPT + '?action=getGruposExistentes', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.grupos && data.grupos.length > 0) {
+          var html = '<table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr style="background:var(--surface);">';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">ID</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Nombre</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Horario</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Nivel</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:center;">Alumnos</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:left;">Estado</th>';
+          html += '<th style="padding:12px;border:1px solid var(--border);text-align:center;">Acción</th></tr></thead><tbody>';
+          data.grupos.forEach(function(g) {
+            var puedeCancelar = g.inscritos === 0 && g.estado !== 'CANCELADO';
+            html += '<tr>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.id + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.nombre + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.horario + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);">' + g.nivel + '</td>';
+            html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;">' + g.inscritos + '</td>';
+            var colorEstado = g.estado === 'CANCELADO' ? 'var(--red)' : 'var(--green)';
+            html += '<td style="padding:10px;border:1px solid var(--border);color:' + colorEstado + ';">' + (g.estado || 'ACTIVO') + '</td>';
+            if (puedeCancelar) {
+              html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;">';
+              html += '<button onclick="cancelarGrupo(\'' + g.id + '\',\'' + g.nombre + '\')" style="background:var(--red);color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Cancelar</button>';
+              html += '</td>';
+            } else {
+              html += '<td style="padding:10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);">-</td>';
+            }
+            html += '</tr>';
+          });
+          html += '</tbody></table>';
+          container.innerHTML = html;
+        } else {
+          container.innerHTML = '<p style="color:var(--text-muted);">No hay grupos registrados.</p>';
+        }
+      })
+      .catch(function() {
+        container.innerHTML = '<p style="color:var(--red);">Error al cargar grupos.</p>';
+      });
+  }
+
+  function cancelarGrupo(idGrupo, nombreGrupo) {
+    if (!confirm('¿Estás seguro de cancelar el grupo ' + idGrupo + '? Esto marcará el grupo como CANCELADO y ya no aparecerá en inscripciones.')) return;
+    var btn = event.target;
+    btn.textContent = 'Cancelando...'; btn.disabled = true;
+    fetch(APPS_SCRIPT + '?action=cancelarGrupoIT&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = 'Cancelar'; btn.disabled = false;
+        if (data.success) {
+          alert('✅ Grupo cancelado correctamente');
+          ultimoGrupoCancelado = { id: idGrupo, nombre: nombreGrupo };
+          if (confirm('¿Deseas notificar al Coordinador Escolar sobre la baja del grupo?')) {
+            notificarBajaGrupoCE();
+          }
+          cargarGruposExistentes();
+        } else {
+          alert('❌ ' + (data.error || 'Error al cancelar'));
+        }
+      })
+      .catch(function() {
+        btn.textContent = 'Cancelar'; btn.disabled = false;
+        alert('❌ Error de conexión');
+      });
+  }
+
+  // Llamar al cargar la página
+  window.onload = function() {
+    cargarAsistentesSelect();
+  };
+
+  // ── Actualizar col I (Grupos_Asignados) en la hoja Maestros ──────────────
+  function actualizarGruposAsignados() {
+    var btn = document.getElementById('btnActualizarGrupos');
+    btn.textContent = '⏳ Actualizando...';
+    btn.disabled = true;
+    fetch(APPS_SCRIPT + '?action=actualizarGruposAsignados', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = '🔄 Actualizar grupos';
+        btn.disabled = false;
+        if (data.success) {
+          alert('✅ Grupos asignados actualizados correctamente');
+          // Recargar la tabla de maestros
+          datosCargados['maestros'] = false;
+          loadSeccion('maestros');
+        } else {
+          alert('❌ ' + (data.error || 'Error al actualizar'));
+        }
+      })
+      .catch(function(e) {
+        btn.textContent = '🔄 Actualizar grupos';
+        btn.disabled = false;
+        alert('❌ Error de conexión: ' + e.message);
+      });
+  }
+
 </script>
 </body>
 </html>
