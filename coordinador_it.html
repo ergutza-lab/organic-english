@@ -164,12 +164,15 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">Maestros</span>
-            <button class="btn-add" onclick="openAgregarModal('maestros')">+ Agregar</button>
+            <div style="display:flex;gap:8px;">
+              <button id="btnActualizarGrupos" class="btn-add" style="background:var(--blue);" onclick="actualizarGruposAsignados()">🔄 Actualizar grupos</button>
+              <button class="btn-add" onclick="openAgregarModal('maestros')">+ Agregar</button>
+            </div>
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Rol</th><th>Activo</th><th>Clave</th><th>Costo</th><th>Info Bancaria</th><th>Banco</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaMaestros"><tr class="info-row"><td colspan="12">Cargando...</td></tr></tbody>
+              <thead><tr><th>Foto</th><th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Rol</th><th>Activo</th><th>Clave</th><th>Costo</th><th>Info Bancaria</th><th>Banco</th><th style="text-align:center;">Grupos</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMaestros"><tr class="info-row"><td colspan="13">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -354,7 +357,7 @@
      CONFIGURACIÓN
   ═══════════════════════════════════════════════════════════ */
   var APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-  function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
+  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
   var itData = null;
   window.datosTemporal = {};
@@ -1098,6 +1101,11 @@ var panelLink = {
         '<td>$' + esc(p.Costo || '0') + '</td>' +
         '<td>' + esc(p.InfoBancaria) + '</td>' +
         '<td>' + esc(p.InstBancaria) + '</td>' +
+        '<td style="text-align:center;">' +
+          (p.GruposAsignados !== undefined && p.GruposAsignados !== '' && p.GruposAsignados !== null
+            ? '<span style="background:rgba(59,130,246,0.18);color:#60a5fa;padding:3px 12px;border-radius:12px;font-weight:700;font-size:13px;">' + esc(String(p.GruposAsignados)) + '</span>'
+            : '<span style="color:var(--muted);font-size:12px;">—</span>') +
+        '</td>' +
         '<td>' +
           '<button class="btn-action btn-wa" onclick="notificarDesdeTabla(\'maestros\',\'' + esc(p.ID) + '\')" title="Notificar por WhatsApp">📲</button> ' +
           '<button class="btn-action btn-edit" onclick="editar(\'maestros\',\'' + esc(p.ID) + '\')">Editar</button> ' +
@@ -1489,6 +1497,32 @@ ultimoGrupoCreado = { id: id, nombre: nombre, horario: horario, fecha: fecha, ni
   window.onload = function() {
     cargarAsistentesSelect();
   };
+
+  // ── Actualizar col I (Grupos_Asignados) en la hoja Maestros ──────────────
+  function actualizarGruposAsignados() {
+    var btn = document.getElementById('btnActualizarGrupos');
+    btn.textContent = '⏳ Actualizando...';
+    btn.disabled = true;
+    fetch(APPS_SCRIPT + '?action=actualizarGruposAsignados', { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.textContent = '🔄 Actualizar grupos';
+        btn.disabled = false;
+        if (data.success) {
+          alert('✅ Grupos asignados actualizados correctamente');
+          // Recargar la tabla de maestros
+          datosCargados['maestros'] = false;
+          loadSeccion('maestros');
+        } else {
+          alert('❌ ' + (data.error || 'Error al actualizar'));
+        }
+      })
+      .catch(function(e) {
+        btn.textContent = '🔄 Actualizar grupos';
+        btn.disabled = false;
+        alert('❌ Error de conexión: ' + e.message);
+      });
+  }
 
 </script>
 </body>
