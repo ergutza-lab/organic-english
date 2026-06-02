@@ -32,8 +32,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif
 .ldot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 
 /* SCHEDULE */
-.schedule-wrap{flex:1;overflow:hidden;padding:8px 16px 8px 16px;min-height:0}
-.schedule-scroll{overflow:auto;height:100%}
+.schedule-wrap{flex:1;overflow:hidden;padding:8px 16px 8px 16px;min-height:0;display:flex;flex-direction:column}
+.schedule-scroll{overflow:auto;height:100%;max-height:100%;scroll-behavior:smooth}
 .schedule-scroll::-webkit-scrollbar{width:5px;height:5px}
 .schedule-scroll::-webkit-scrollbar-track{background:transparent}
 .schedule-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
@@ -303,6 +303,19 @@ function renderizar() {
   allTeachers = Object.keys(maestros).sort(function(a,b) {
     return (maestros[a]||a).localeCompare(maestros[b]||b);
   });
+  // Agregar columna Sin Asignar si hay grupos sin maestro
+  var haySinAsignar = gruposSemana.some(function(g) { return !g.idMaestro || g.idMaestro === 'S-SIN ASIG' || g.idMaestro.startsWith('S-'); });
+  if (haySinAsignar) {
+    maestros['__sin__'] = 'Sin Asignar';
+    if (allTeachers.indexOf('__sin__') === -1) allTeachers.push('__sin__');
+    // mapear grupos sin maestro real a __sin__
+    gruposSemana.forEach(function(g) {
+      if (!g.idMaestro || g.idMaestro.startsWith('S-')) {
+        if (!byTeacher['__sin__']) byTeacher['__sin__'] = [];
+        if (!byTeacher['__sin__'].find(function(x){return x.id===g.id;})) byTeacher['__sin__'].push(g);
+      }
+    });
+  }
 
   if (!allTeachers.length) {
     document.getElementById('scheduleGrid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:14px;">No hay maestros registrados.</div>';
@@ -321,7 +334,8 @@ function renderizar() {
   allTeachers.forEach(function(tid) {
     var tname = maestros[tid] || tid;
     var tg = byTeacher[tid] || [];
-    html += '<div class="t-header"><span class="t-name">' + tname + '</span><span class="t-id">' + tid + '</span><span class="t-count">' + tg.length + ' grupo' + (tg.length!==1?'s':'') + '</span></div>';
+    var headerStyle = tid === '__sin__' ? 'background:#64748b;border-color:rgba(255,255,255,0.1)' : '';
+    html += '<div class="t-header" style="'+headerStyle+'"><span class="t-name">' + tname + '</span><span class="t-id">' + (tid==='__sin__'?'Sin maestro':tid) + '</span><span class="t-count">' + tg.length + ' grupo' + (tg.length!==1?'s':'') + '</span></div>';
   });
 
   hours.forEach(function(h) {
