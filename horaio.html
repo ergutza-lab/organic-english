@@ -61,6 +61,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif
 .g-card.lvl-b1{background:#16a34a;border:1px solid rgba(255,255,255,0.12)}
 .g-card.lvl-b2{background:#ea580c;border:1px solid rgba(255,255,255,0.12)}
 .g-card.lvl-c1{background:#7c3aed;border:1px solid rgba(255,255,255,0.12)}
+.g-card.lvl-starter{background:#94a3b8;border:1px solid rgba(255,255,255,0.15)}
 .g-card.muted{opacity:1}
 .g-card .g-line{display:flex;align-items:center;gap:6px;line-height:1.3}
 .g-card .g-id{font-size:12px;font-weight:700;color:#fff}
@@ -178,6 +179,7 @@ function fmtHour(h) {
 
 function getLevelBase(n) {
   if (!n) return 'a1';
+  if (n.toLowerCase().includes('starter')) return 'starter';
   var m = n.match(/([ABC]\d)/i);
   return m ? m[1].toLowerCase() : 'a1';
 }
@@ -210,11 +212,12 @@ async function cargarAlumnos() {
     var json = JSON.parse(text.substring(47, text.length - 2));
     json.table.rows.forEach(function(r) {
       var idGrupo = parseGS(r.c[4]) || '';
+      var idAlumno = parseGS(r.c[0]) || '';
       var nombre = parseGS(r.c[2]) || '';
       var estatus = parseGS(r.c[6]) || '';
       if (idGrupo && nombre && estatus !== 'Cancelado') {
         if (!alumnos[idGrupo]) alumnos[idGrupo] = [];
-        alumnos[idGrupo].push(nombre);
+        alumnos[idGrupo].push({id: idAlumno, nombre: nombre});
       }
     });
   } catch(e) {}
@@ -249,8 +252,10 @@ function mostrarAlumnos(idGrupo, grupoNombre) {
   document.getElementById('stTitle').textContent = grupoNombre || idGrupo;
   document.getElementById('stSub').textContent = idGrupo + ' · ' + (lista.length) + ' alumno' + (lista.length !== 1 ? 's' : '');
   var html = lista.length ? '' : '<div class="st-empty">Sin alumnos registrados</div>';
-  lista.forEach(function(n, i) {
-    html += '<div class="st-item"><span class="st-num">' + (i+1) + '</span>' + n + '</div>';
+  lista.forEach(function(a, i) {
+    html += '<div class="st-item"><span class="st-num">' + (i+1) + '</span>' +
+      '<span style="font-size:11px;font-weight:700;color:#f97316;min-width:60px;flex-shrink:0">' + (a.id||'—') + '</span>' +
+      '<span>' + (a.nombre||a) + '</span></div>';
   });
   document.getElementById('stList').innerHTML = html;
   document.getElementById('stModal').classList.add('open');
@@ -294,15 +299,14 @@ function renderizar() {
     byTeacher[g.idMaestro].push(g);
   });
 
-  // Solo maestros que tienen grupos esta semana
-  allTeachers = Object.keys(byTeacher).sort(function(a,b) {
+  // Todos los maestros activos siempre visibles
+  allTeachers = Object.keys(maestros).sort(function(a,b) {
     return (maestros[a]||a).localeCompare(maestros[b]||b);
   });
 
   if (!allTeachers.length) {
-    document.getElementById('scheduleGrid').innerHTML = '';
+    document.getElementById('scheduleGrid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:14px;">No hay maestros registrados.</div>';
     document.getElementById('scheduleWrap').style.display = 'block';
-    document.getElementById('scheduleGrid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:14px;">No hay grupos con inicio en esta semana.</div>';
     return;
   }
 
@@ -356,6 +360,7 @@ function renderizar() {
     '<span class="legend-item"><span class="ldot" style="background:#16a34a"></span>B1</span>' +
     '<span class="legend-item"><span class="ldot" style="background:#ea580c"></span>B2</span>' +
     '<span class="legend-item"><span class="ldot" style="background:#7c3aed"></span>C1</span>' +
+    '<span class="legend-item"><span class="ldot" style="background:#94a3b8"></span>Starter</span>' +
     '<span style="width:1px;height:14px;background:var(--border);margin:0 6px"></span>' +
     '<span class="lg-t">Estado</span>' +
     '<span class="legend-item"><span class="ldot" style="background:#f0fdf4;border:1px solid #16a34a"></span>Disponible</span>' +
