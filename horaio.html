@@ -182,6 +182,13 @@ function getLevelBase(n) {
   return m ? m[1].toLowerCase() : 'a1';
 }
 
+function parseGvizDate(str) {
+  if (!str || typeof str !== 'string') return null;
+  var m = str.match(/Date\((\d{4}),(\d{1,2}),(\d{1,2})\)/);
+  if (!m) return null;
+  return new Date(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
+}
+
 async function cargarMaestros() {
   try {
     var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=MAESTROS&t=' + Date.now();
@@ -223,8 +230,7 @@ async function cargarGrupos() {
     grupos = json.table.rows.map(function(r) {
       return {
         id: parseGS(r.c[0]), nombre: parseGS(r.c[1]), horario: parseGS(r.c[2]),
-        fechaInicio: parseGS(r.c[3]) || '',
-        nivel: String(parseGS(r.c[4]) || '').trim(), cupoMax: r.c[5]?.v ?? 10,
+        fechaInicio: parseGS(r.c[3]), nivel: String(parseGS(r.c[4]) || '').trim(), cupoMax: r.c[5]?.v ?? 10,
         inscritos: r.c[6]?.v ?? 0, estado: parseGS(r.c[8]) || '',
         idMaestro: parseGS(r.c[11]) || '', demo: parseGS(r.c[15]) || ''
       };
@@ -254,36 +260,55 @@ function cerrarAlumnos() {
   document.getElementById('stModal').classList.remove('open');
 }
 
+function parseFechaGrupo(val) {
+  if (!val) return null;
+  // Formato Date(YYYY,M,D) de Sheets
+  if (typeof val === 'string' && val.startsWith('Date(')) {
+    var p = val.replace('Date(','').replace(')','').split(',').map(Number);
+    return new Date(p[0], p[1], p[2]);
+  }
+  // Formato string YYYY-MM-DD o similar
+  var d = new Date(val);
+  return isNaN(d) ? null : d;
+}
+
 function renderizar() {
   document.getElementById('loading').style.display = 'none';
 
   var rng = getWeekRange(semanaOffset);
-  var weekEnd = new Date(rng.thursday); weekEnd.setHours(23,59,59,0);
+  var lunesStr = rng.monday.toDateString();
+  var juevesStr = rng.thursday.toDateString();
 
-  var activos = grupos.filter(function(g) {
-    if (!g.fechaInicio) return true;
-    var fi = new Date(g.fechaInicio);
-    return fi <= weekEnd;
+  // Filtrar grupos cuya fechaInicio cae en la semana mostrada (lunes a jueves)
+  var gruposSemana = grupos.filter(function(g) {
+    var fi = parseFechaGrupo(g.fechaInicio);
+    if (!fi) return false;
+    fi.setHours(0,0,0,0);
+    var lunes = new Date(rng.monday); lunes.setHours(0,0,0,0);
+    var jueves = new Date(rng.thursday); jueves.setHours(23,59,59,0);
+    return fi >= lunes && fi <= jueves;
   });
 
   byTeacher = {};
-  activos.forEach(function(g) {
+  gruposSemana.forEach(function(g) {
     if (!byTeacher[g.idMaestro]) byTeacher[g.idMaestro] = [];
     byTeacher[g.idMaestro].push(g);
   });
 
+  // Solo maestros que tienen grupos esta semana
   allTeachers = Object.keys(byTeacher).sort(function(a,b) {
     return (maestros[a]||a).localeCompare(maestros[b]||b);
   });
 
   if (!allTeachers.length) {
-    document.getElementById('scheduleWrap').innerHTML = '<div class="loading"><p>No hay grupos activos.</p></div>';
-    document.getElementById('scheduleWrap').style.display = 'flex';
+    document.getElementById('scheduleGrid').innerHTML = '';
+    document.getElementById('scheduleWrap').style.display = 'block';
+    document.getElementById('scheduleGrid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:14px;">No hay grupos con inicio en esta semana.</div>';
     return;
   }
 
   var hoursSet = {};
-  grupos.forEach(function(g) { var h = parseHour(g.horario); if (h !== 99) hoursSet[h] = true; });
+  gruposSemana.forEach(function(g) { var h = parseHour(g.horario); if (h !== 99) hoursSet[h] = true; });
   var hours = Object.keys(hoursSet).map(Number).sort(function(a,b){return a-b;});
 
   var grid = document.getElementById('scheduleGrid');
@@ -292,14 +317,15 @@ function renderizar() {
   var html = '<div></div>';
   allTeachers.forEach(function(tid) {
     var tname = maestros[tid] || tid;
-    var count = byTeacher[tid].length;
-    html += '<div class="t-header"><span class="t-name">' + tname + '</span><span class="t-id">' + tid + '</span><span class="t-count">' + count + '</span></div>';
+    var tg = byTeacher[tid] || [];
+    html += '<div class="t-header"><span class="t-name">' + tname + '</span><span class="t-id">' + tid + '</span><span class="t-count">' + tg.length + ' grupo' + (tg.length!==1?'s':'') + '</span></div>';
   });
 
   hours.forEach(function(h) {
     html += '<div class="time-label">' + fmtHour(h) + '</div>';
     allTeachers.forEach(function(tid) {
-      var matching = (byTeacher[tid]||[]).filter(function(g) { return parseHour(g.horario) === h; });
+      var tg = byTeacher[tid] || [];
+      var matching = tg.filter(function(g) { return parseHour(g.horario) === h; });
       html += '<div class="cell' + (matching.length ? ' has-groups' : '') + '">';
       matching.forEach(function(g) {
         var lb = getLevelBase(g.nivel);
@@ -321,8 +347,8 @@ function renderizar() {
   grid.innerHTML = html;
   document.getElementById('scheduleWrap').style.display = 'block';
 
-  var pre = semanaOffset === 0 ? 'Esta semana' : (semanaOffset === -1 ? 'Semana pasada' : 'Próxima semana');
-  document.getElementById('weekLabel').textContent = pre + ' · ' + fmtDate(rng.monday) + ' al ' + fmtDate(rng.thursday);
+  var pre = semanaOffset === 0 ? 'Esta semana' : (semanaOffset > 0 ? 'Proxima semana' : 'Semana anterior');
+  document.getElementById('weekLabel').textContent = fmtDate(rng.monday) + ' — ' + fmtDate(rng.thursday);
 
   document.getElementById('legend').innerHTML =
     '<span class="lg-t">Niveles</span>' +
