@@ -223,6 +223,7 @@ async function cargarGrupos() {
     grupos = json.table.rows.map(function(r) {
       return {
         id: parseGS(r.c[0]), nombre: parseGS(r.c[1]), horario: parseGS(r.c[2]),
+        fechaInicio: parseGS(r.c[3]) || '',
         nivel: String(parseGS(r.c[4]) || '').trim(), cupoMax: r.c[5]?.v ?? 10,
         inscritos: r.c[6]?.v ?? 0, estado: parseGS(r.c[8]) || '',
         idMaestro: parseGS(r.c[11]) || '', demo: parseGS(r.c[15]) || ''
@@ -256,8 +257,17 @@ function cerrarAlumnos() {
 function renderizar() {
   document.getElementById('loading').style.display = 'none';
 
+  var rng = getWeekRange(semanaOffset);
+  var weekEnd = new Date(rng.thursday); weekEnd.setHours(23,59,59,0);
+
+  var activos = grupos.filter(function(g) {
+    if (!g.fechaInicio) return true;
+    var fi = new Date(g.fechaInicio);
+    return fi <= weekEnd;
+  });
+
   byTeacher = {};
-  grupos.forEach(function(g) {
+  activos.forEach(function(g) {
     if (!byTeacher[g.idMaestro]) byTeacher[g.idMaestro] = [];
     byTeacher[g.idMaestro].push(g);
   });
@@ -311,7 +321,6 @@ function renderizar() {
   grid.innerHTML = html;
   document.getElementById('scheduleWrap').style.display = 'block';
 
-  var rng = getWeekRange(semanaOffset);
   var pre = semanaOffset === 0 ? 'Esta semana' : (semanaOffset === -1 ? 'Semana pasada' : 'Próxima semana');
   document.getElementById('weekLabel').textContent = pre + ' · ' + fmtDate(rng.monday) + ' al ' + fmtDate(rng.thursday);
 
