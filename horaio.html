@@ -294,27 +294,24 @@ function renderizar() {
   });
 
   byTeacher = {};
+  var haySinAsignar = false;
   gruposSemana.forEach(function(g) {
-    if (!byTeacher[g.idMaestro]) byTeacher[g.idMaestro] = [];
-    byTeacher[g.idMaestro].push(g);
+    // Si no tiene maestro en el catálogo o su ID empieza con S-, va a columna Sin Asignar
+    var esSinAsignar = !g.idMaestro || !maestros[g.idMaestro] || String(g.idMaestro).toUpperCase().startsWith('S-');
+    var key = esSinAsignar ? '__sin__' : g.idMaestro;
+    if (esSinAsignar) haySinAsignar = true;
+    if (!byTeacher[key]) byTeacher[key] = [];
+    byTeacher[key].push(g);
   });
 
   // Todos los maestros activos siempre visibles
   allTeachers = Object.keys(maestros).sort(function(a,b) {
     return (maestros[a]||a).localeCompare(maestros[b]||b);
   });
-  // Agregar columna Sin Asignar si hay grupos sin maestro
-  var haySinAsignar = gruposSemana.some(function(g) { return !g.idMaestro || g.idMaestro === 'S-SIN ASIG' || g.idMaestro.startsWith('S-'); });
+  // Agregar columna Sin Asignar al final si hay grupos sin maestro
   if (haySinAsignar) {
     maestros['__sin__'] = 'Sin Asignar';
     if (allTeachers.indexOf('__sin__') === -1) allTeachers.push('__sin__');
-    // mapear grupos sin maestro real a __sin__
-    gruposSemana.forEach(function(g) {
-      if (!g.idMaestro || g.idMaestro.startsWith('S-')) {
-        if (!byTeacher['__sin__']) byTeacher['__sin__'] = [];
-        if (!byTeacher['__sin__'].find(function(x){return x.id===g.id;})) byTeacher['__sin__'].push(g);
-      }
-    });
   }
 
   if (!allTeachers.length) {
