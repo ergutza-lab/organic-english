@@ -63,8 +63,10 @@ header{background:rgba(28,43,94,0.98);border-bottom:1px solid var(--border);padd
 .g-card.lvl-b1::before{background:#16a34a}
 .g-card.lvl-b2::before{background:#ea580c}
 .g-card.lvl-c1::before{background:#7c3aed}
+.g-card.muted{opacity:0.45}
 .g-card .g-id{font-size:11px;font-weight:700;color:#fff}
-.g-card .g-name{font-size:10px;color:var(--text-muted);margin-top:1px}
+.g-card .g-name{font-size:10px;font-weight:700;color:var(--text-muted);margin-top:1px}
+.g-card .g-name.jovenes{color:#facc15}
 .g-card .g-level{font-size:9px;font-weight:700;color:var(--orange2);text-transform:uppercase;letter-spacing:0.04em;margin-top:3px}
 .g-card .g-meta{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
 .g-card .g-cap{font-size:10px;color:var(--text-muted)}
@@ -197,7 +199,7 @@ async function cargarGrupos() {
         demo: parseGS(r.c[15]) || ''
       };
     }).filter(function(g) {
-      return g.id && String(g.estado).trim() !== 'Cancelado' && g.idMaestro && maestros[g.idMaestro] && !g.demo && g.inscritos > 0;
+      return g.id && String(g.estado).trim() !== 'Cancelado' && g.idMaestro && maestros[g.idMaestro] && !g.demo;
     });
     renderizar();
   } catch(e) {
@@ -259,9 +261,13 @@ function renderizar() {
         var st = String(g.estado || '').trim().toLowerCase();
         var stClass = st === 'lleno' ? 'lleno' : (st === 'disponible' ? 'disp' : 'curso');
         var insc = Math.max(0, Math.min(g.cupoMax, g.inscritos));
-        html += '<div class="g-card lvl-' + levelBase + '">';
+        var muted = g.inscritos === 0 ? ' muted' : '';
+        var nombre = (g.nombre || '').trim();
+        var nameClass = 'g-name';
+        if (nombre.toLowerCase() === 'jovenes') nameClass += ' jovenes';
+        html += '<div class="g-card lvl-' + levelBase + muted + '">';
         html += '<div class="g-id">' + g.id + '</div>';
-        html += '<div class="g-name">' + (g.nombre || '') + '</div>';
+        html += '<div class="' + nameClass + '">' + nombre + '</div>';
         html += '<div class="g-level">' + g.nivel + '</div>';
         html += '<div class="g-meta"><span class="g-cap"><strong>' + insc + '</strong>/' + g.cupoMax + '</span><span class="g-st ' + stClass + '">' + st + '</span></div>';
         html += '</div>';
