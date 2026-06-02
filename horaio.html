@@ -233,7 +233,7 @@ async function cargarGrupos() {
     grupos = json.table.rows.map(function(r) {
       return {
         id: parseGS(r.c[0]), nombre: parseGS(r.c[1]), horario: parseGS(r.c[2]),
-        fechaInicio: parseGS(r.c[3]), nivel: String(parseGS(r.c[4]) || '').trim(), cupoMax: r.c[5]?.v ?? 10,
+        fechaInicio: r.c[3] ? (r.c[3].v || null) : null, nivel: String(parseGS(r.c[4]) || '').trim(), cupoMax: r.c[5]?.v ?? 10,
         inscritos: r.c[6]?.v ?? 0, estado: parseGS(r.c[8]) || '',
         idMaestro: parseGS(r.c[11]) || '', demo: parseGS(r.c[15]) || ''
       };
@@ -267,12 +267,18 @@ function cerrarAlumnos() {
 
 function parseFechaGrupo(val) {
   if (!val) return null;
-  // Formato Date(YYYY,M,D) de Sheets
+  // Formato Date(YYYY,M,D) de gviz — mes ya es 0-indexado
   if (typeof val === 'string' && val.startsWith('Date(')) {
     var p = val.replace('Date(','').replace(')','').split(',').map(Number);
     return new Date(p[0], p[1], p[2]);
   }
-  // Formato string YYYY-MM-DD o similar
+  // Número serial de Excel/Sheets
+  if (typeof val === 'number') {
+    // Serial de fecha de Sheets: días desde 30/12/1899
+    var d = new Date(Date.UTC(1899, 11, 30) + val * 86400000);
+    return isNaN(d) ? null : d;
+  }
+  // Formato string YYYY-MM-DD
   var d = new Date(val);
   return isNaN(d) ? null : d;
 }
@@ -288,9 +294,11 @@ function renderizar() {
   var jueves = new Date(rng.thursday); jueves.setHours(23,59,59,0);
   var gruposSemana = grupos.filter(function(g) {
     var fi = parseFechaGrupo(g.fechaInicio);
-    if (!fi) return false;
+    if (!fi) { console.log('SIN FECHA:', g.id, g.fechaInicio); return false; }
     fi.setHours(0,0,0,0);
-    return fi <= jueves;
+    var ok = fi <= jueves;
+    console.log(g.id, 'fi:', fi.toDateString(), 'jueves:', jueves.toDateString(), 'ok:', ok);
+    return ok;
   });
 
   byTeacher = {};
