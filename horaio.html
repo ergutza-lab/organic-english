@@ -61,7 +61,12 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif
 .g-card.lvl-b1{background:#16a34a;border:1px solid rgba(255,255,255,0.12)}
 .g-card.lvl-b2{background:#ea580c;border:1px solid rgba(255,255,255,0.12)}
 .g-card.lvl-c1{background:#7c3aed;border:1px solid rgba(255,255,255,0.12)}
-.g-card.muted{opacity:0.6}
+.g-card.muted{background:#e2e8f0;border:1px solid #cbd5e1;opacity:1}
+.g-card.muted .g-id{color:#475569}
+.g-card.muted .g-nombre{color:#64748b}
+.g-card.muted .g-nivel{color:#94a3b8}
+.g-card.muted .g-cap{color:#94a3b8}
+.g-card.muted .g-cap strong{color:#64748b}
 .g-card .g-line{display:flex;align-items:center;gap:6px;line-height:1.3}
 .g-card .g-id{font-size:12px;font-weight:700;color:#fff}
 .g-card .g-nombre{font-size:12px;font-weight:700;color:#fff}
@@ -312,7 +317,9 @@ function renderizar() {
   grid.innerHTML = html;
   document.getElementById('scheduleWrap').style.display = 'block';
 
-  document.getElementById('weekLabel').textContent = semanaOffset === 0 ? 'Esta semana' : (semanaOffset === -1 ? 'Semana pasada' : 'Próxima semana');
+  var rng = getWeekRange(semanaOffset);
+  var pre = semanaOffset === 0 ? 'Esta semana' : (semanaOffset === -1 ? 'Semana pasada' : 'Próxima semana');
+  document.getElementById('weekLabel').textContent = pre + ' · ' + fmtDate(rng.monday) + ' al ' + fmtDate(rng.thursday);
 
   document.getElementById('legend').innerHTML =
     '<span class="lg-t">Niveles</span>' +
@@ -329,6 +336,19 @@ function renderizar() {
     '<span class="legend-item" style="cursor:pointer;font-size:11px;margin-left:8px">👆 Da clic en un grupo para ver sus alumnos</span>';
 }
 
+function getWeekRange(offset) {
+  var now = new Date();
+  var day = now.getDay();
+  var diff = day === 0 ? -6 : 1 - day;
+  var mon = new Date(now); mon.setDate(now.getDate() + diff + offset * 7);
+  var thu = new Date(mon); thu.setDate(mon.getDate() + 3);
+  return { monday: mon, thursday: thu };
+}
+function fmtDate(d) {
+  var dd = ('0' + d.getDate()).slice(-2);
+  var months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return dd + ' ' + months[d.getMonth()];
+}
 function cambiarSemana(dir) { semanaOffset += dir; renderizar(); }
 cargarGrupos();
 </script>
