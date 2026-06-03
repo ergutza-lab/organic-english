@@ -10,7 +10,7 @@
 <style>
 :root{--bg:#f1f5f9;--surface:#ffffff;--surface2:#f8fafc;--border:#e2e8f0;--navy:#1c2b5e;--orange:#f97316;--orange2:#fb923c;--text:#1e293b;--text-muted:#64748b;--text-subtle:#94a3b8}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:auto;font-family:'DM Sans',system-ui,sans-serif;background:rgba(0,0,0,0.5);color:var(--text);display:flex;align-items:flex-start;justify-content:center}
+html,body{height:100%;overflow:auto;font-family:'DM Sans',system-ui,sans-serif;background:transparent;color:var(--text);display:flex;align-items:flex-start;justify-content:center}
 
 .modal{width:94%;max-width:1200px;background:var(--bg);border-radius:20px;display:flex;flex-direction:column;overflow:visible;box-shadow:0 25px 60px rgba(0,0,0,0.35);margin:20px auto}
 
@@ -115,7 +115,7 @@ html,body{height:100%;overflow:auto;font-family:'DM Sans',system-ui,sans-serif;b
     <span id="weekLabel" style="font-size:14px;color:rgba(255,255,255,0.7);font-weight:600"></span>
     <button class="btn-sm" onclick="cambiarSemana(-1)">◀</button>
     <button class="btn-sm" onclick="cambiarSemana(1)">▶</button>
-    <a id="btnCerrar" class="btn-sm btn-close" href="javascript:history.back()">✕ Cerrar</a>
+    <a id="btnCerrar" class="btn-sm btn-close" href="javascript:void(0)" onclick="cerrarModal()">✕ Cerrar</a>
   </div>
 </div>
 
@@ -409,6 +409,15 @@ function fmtDate(d) {
 }
 function cambiarSemana(dir) { semanaOffset += dir; renderizar(); }
 cargarGrupos();
+
+function cerrarModal() {
+  // Si está en iframe, notificar al padre
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage('cerrarHorario', '*');
+  } else {
+    history.back();
+  }
+}
 </script>
 </body>
 </html>
