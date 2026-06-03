@@ -820,14 +820,47 @@
     mostrarModalPago(p, dias);
   }
 
-  function mostrarModalPago(p, dias) {
-    var fechaFin=formatFechaCorta(p.periodoFin);
-    var tv=dias<=0?'Tu pago vencio el '+fechaFin:dias===1?'Tu pago vence manana · '+fechaFin:'Tu pago vence en '+dias+' dias · '+fechaFin;
-    document.getElementById('modalPagoVigencia').textContent=tv;
-    document.getElementById('modalPagoSubtitulo').innerHTML=p.tipo==='4 Semanas'?'Tu pago de <strong>4 semanas esta por terminar</strong>. Sube tu comprobante.':'Tu pago <strong>semanal esta por vencer</strong>. Sube tu comprobante.';
+   function mostrarModalPago(p, dias) {
+    var fechaFin = formatFechaCorta(p.periodoFin);
+    var tv = dias<=0 ? 'Tu pago vencio el '+fechaFin : dias===1 ? 'Tu pago vence manana · '+fechaFin : 'Tu pago vence en '+dias+' dias · '+fechaFin;
+    document.getElementById('modalPagoVigencia').textContent = tv;
+ 
+    // Calcular saldo y cuanto falta para la siguiente semana
+    var monto = Number(p.monto) || 0;
+    var saldo = monto % 100;
+    var falta = saldo > 0 ? (100 - saldo) : 0;
+ 
+    var saldoHtml = '';
+    if (saldo > 0) {
+      saldoHtml = '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#94a3b8;">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+          '<span>Saldo a favor:</span>' +
+          '<span style="color:#4ade80;font-weight:700;">$' + saldo + ' MXN</span>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;">' +
+          '<span>Falta para cubrir siguiente semana:</span>' +
+          '<span style="color:#fbbf24;font-weight:700;">$' + falta + ' MXN</span>' +
+        '</div>' +
+      '</div>';
+    }
+ 
+    document.getElementById('modalPagoSubtitulo').innerHTML =
+      'Tu <strong>colegiatura semanal esta por vencer</strong>. Sube tu comprobante de $100 MXN.' +
+      (saldo > 0 ? ' Tienes <strong style="color:#4ade80;">$'+saldo+' de saldo</strong> a favor.' : '');
+ 
+    // Insertar bloque de saldo antes del upload-zone
+    var uploadZone = document.getElementById('uploadZone');
+    var saldoEl = document.getElementById('saldoInfo');
+    if (saldoEl) saldoEl.remove();
+    if (saldo > 0) {
+      var div = document.createElement('div');
+      div.id = 'saldoInfo';
+      div.innerHTML = saldoHtml;
+      uploadZone.parentNode.insertBefore(div, uploadZone);
+    }
+ 
     document.getElementById('modalPago').classList.add('visible');
   }
-
   function cerrarModalPago() { document.getElementById('modalPago').classList.remove('visible'); }
 
   function archivoSeleccionado(input) {
