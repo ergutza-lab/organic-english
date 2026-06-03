@@ -299,5 +299,66 @@
 </div>
 
 </script>
+
+<!-- ═══════════════════════════════════════════════════
+     HORARIO FLOTANTE — Pegar este bloque en cada módulo
+     justo antes de </body>
+     ═══════════════════════════════════════════════════ -->
+
+<!-- Botón flotante -->
+<button onclick="abrirHorario()" style="
+  position:fixed;bottom:24px;right:24px;z-index:998;
+  background:#1c2b5e;color:#fff;
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:100px;padding:12px 20px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,0.35);
+  display:flex;align-items:center;gap:8px;
+  font-family:'Segoe UI',Arial,sans-serif;">
+  📅 Horario
+</button>
+
+<!-- Overlay con iframe -->
+<div id="horarioOverlay" style="
+  display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.65);
+  align-items:center;justify-content:center;">
+  <iframe id="horarioFrame" src="" style="
+    width:96%;max-width:1300px;height:92vh;
+    border:none;border-radius:20px;
+    box-shadow:0 25px 60px rgba(0,0,0,0.5);">
+  </iframe>
+</div>
+
+<script>
+function abrirHorario() {
+  var overlay = document.getElementById('horarioOverlay');
+  var frame   = document.getElementById('horarioFrame');
+  // Cargar horario con parámetro return para saber de dónde vino
+  frame.src = 'horario.html?return=' + encodeURIComponent(window.location.href);
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarHorario() {
+  var overlay = document.getElementById('horarioOverlay');
+  var frame   = document.getElementById('horarioFrame');
+  overlay.style.display = 'none';
+  frame.src = '';
+  document.body.style.overflow = '';
+}
+
+// Escuchar mensaje de cierre desde el iframe
+window.addEventListener('message', function(e) {
+  if (e.data === 'cerrarHorario') cerrarHorario();
+});
+
+// Cerrar con clic en el fondo oscuro
+document.getElementById('horarioOverlay').addEventListener('click', function(e) {
+  if (e.target === this) cerrarHorario();
+});
+</script>
+<!-- ═══════════════════════════════════════════════════ -->
+  
 </body>
 </html>
