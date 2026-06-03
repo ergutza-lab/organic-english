@@ -682,7 +682,7 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-  function cleanWA(p){return (p||'').toString().replace(/\D/g,'').slice(-10);}
+  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
   var alumnoData = null;
   var archivoSubida = null;
   var grupoDestinoCambio = null;
@@ -1051,8 +1051,11 @@
     var div=document.getElementById('pagosContenido');
     if(!p){div.innerHTML='<div class="califs-empty"><div class="califs-text">Sin pagos registrados</div></div>';return;}
     var pct=Math.min(100,Math.max(0,Math.round((Date.now()-new Date(p.fecha).getTime())/(new Date(p.periodoFin).getTime()-new Date(p.fecha).getTime())*100)));
+    var semanasP = Math.floor((Number(p.monto)||0) / 100);
+    if (semanasP < 1) semanasP = 1;
+    var tipoTexto = semanasP === 1 ? 'Colegiatura semanal' : semanasP + ' semanas cubiertas';
     div.innerHTML=
-      '<div class="pago-highlight"><div class="pago-monto">$'+p.monto+' MXN</div><div class="pago-tipo">'+p.tipo+' · '+formatFechaCorta(p.fecha)+'</div></div>'+
+      '<div class="pago-highlight"><div class="pago-monto">$'+p.monto+' MXN</div><div class="pago-tipo">'+tipoTexto+' · '+formatFechaCorta(p.fecha)+'</div></div>'+
       '<div class="field-row"><span class="field-label">Vigente hasta</span><span class="field-val">'+formatFechaCorta(p.periodoFin)+'</span></div>'+
       '<div class="progreso-bar"><div class="progreso-fill" style="width:'+pct+'%"></div></div>'+
       '<div class="progreso-labels"><span>'+formatFechaMini(p.fecha)+'</span><span>'+formatFechaMini(p.periodoFin)+'</span></div>'+
