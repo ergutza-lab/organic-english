@@ -10,9 +10,9 @@
 <style>
 :root{--bg:#f1f5f9;--surface:#ffffff;--surface2:#f8fafc;--border:#e2e8f0;--navy:#1c2b5e;--orange:#f97316;--orange2:#fb923c;--text:#1e293b;--text-muted:#64748b;--text-subtle:#94a3b8}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif;background:rgba(0,0,0,0.5);color:var(--text);display:flex;align-items:center;justify-content:center}
+html,body{height:100%;overflow:auto;font-family:'DM Sans',system-ui,sans-serif;background:rgba(0,0,0,0.5);color:var(--text);display:flex;align-items:flex-start;justify-content:center}
 
-.modal{width:94%;max-width:1200px;max-height:94vh;background:var(--bg);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.35)}
+.modal{width:94%;max-width:1200px;background:var(--bg);border-radius:20px;display:flex;flex-direction:column;overflow:visible;box-shadow:0 25px 60px rgba(0,0,0,0.35);margin:20px auto}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:var(--navy);border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0}
@@ -199,7 +199,8 @@ async function cargarMaestros() {
     var json = JSON.parse(text.substring(47, text.length - 2));
     json.table.rows.forEach(function(r) {
       var id = r.c[0]?.v || '', name = r.c[1]?.v || '';
-      if (id && name) maestros[id] = name;
+      // Excluir S- (Sin Asignar) del catalogo — se maneja como columna especial
+      if (id && name && !String(id).toUpperCase().startsWith('S-')) maestros[id] = name;
     });
   } catch(e) {}
 }
@@ -340,10 +341,15 @@ function renderizar() {
     var tname = maestros[tid] || tid;
     var tg = byTeacher[tid] || [];
     var headerStyle = tid === '__sin__' ? 'background:#64748b;border-color:rgba(255,255,255,0.1)' : '';
-    html += '<div class="t-header" style="'+headerStyle+'"><span class="t-name">' + tname + '</span><span class="t-id">' + (tid==='__sin__'?'Sin maestro':tid) + '</span><span class="t-count">' + tg.length + ' grupo' + (tg.length!==1?'s':'') + '</span></div>';
+    html += '<div class="t-header" style="'+headerStyle+'"><span class="t-name">' + tname + '</span><span class="t-count">' + tg.length + ' grupo' + (tg.length!==1?'s':'') + '</span></div>';
   });
 
   hours.forEach(function(h) {
+    // Verificar si al menos un maestro tiene grupo en este horario
+    var hayGrupoEnHora = allTeachers.some(function(tid) {
+      return (byTeacher[tid] || []).some(function(g) { return parseHour(g.horario) === h; });
+    });
+    if (!hayGrupoEnHora) return;
     html += '<div class="time-label">' + fmtHour(h) + '</div>';
     allTeachers.forEach(function(tid) {
       var tg = byTeacher[tid] || [];
