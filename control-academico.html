@@ -398,7 +398,7 @@ const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6F
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
-var mapaEval={}, mapaAcum={}, maestroWaActual='', gruposData=[], fechasRegistradas=[];
+var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[];
 
 // ── TABULADOR ──
 var NIVELES=[
@@ -927,17 +927,16 @@ function enviarReportePorCorreo(){
   var btn=document.querySelector('.btn-exportar');
   if(btn){btn.textContent='Enviando...';btn.disabled=true;}
 
-  fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',
-    body:JSON.stringify({
-      action:'enviarReporteCalificaciones',
-      email:email,
-      idGrupo:idGrupo,
-      grupoNombre:grupoNombre,
-      nombreCA:caData.nombre||'Coordinador Académico',
-      idCA:caData.id,
-      filas:rows
-    })
-  })
+  // Usar GET con parámetros para evitar CORS
+  var params='action=enviarReporteCalificaciones'
+    +'&email='+encodeURIComponent(email)
+    +'&idGrupo='+encodeURIComponent(idGrupo)
+    +'&grupoNombre='+encodeURIComponent(grupoNombre)
+    +'&nombreCA='+encodeURIComponent(caData.nombre||'Coordinador Académico')
+    +'&idCA='+encodeURIComponent(caData.id)
+    +'&filas='+encodeURIComponent(JSON.stringify(rows));
+
+  fetch(APPS_SCRIPT+'?'+params, {redirect:'follow'})
   .then(function(r){return r.json();})
   .then(function(data){
     if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
@@ -949,7 +948,7 @@ function enviarReportePorCorreo(){
   })
   .catch(function(){
     if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
-    alert('❌ Error de conexión con el servidor.');
+    alert('❌ Error de conexión.');
   });
 }
 
