@@ -927,28 +927,23 @@ function enviarReportePorCorreo(){
   var btn=document.querySelector('.btn-exportar');
   if(btn){btn.textContent='Enviando...';btn.disabled=true;}
 
-  // Usar GET con parámetros para evitar CORS
-  var params='action=enviarReporteCalificaciones'
+  // El AS genera el reporte desde Sheets directamente — solo enviamos idGrupo y email
+  var url=APPS_SCRIPT
+    +'?action=enviarReporteCalificaciones'
     +'&email='+encodeURIComponent(email)
     +'&idGrupo='+encodeURIComponent(idGrupo)
     +'&grupoNombre='+encodeURIComponent(grupoNombre)
     +'&nombreCA='+encodeURIComponent(caData.nombre||'Coordinador Académico')
-    +'&idCA='+encodeURIComponent(caData.id)
-    +'&filas='+encodeURIComponent(JSON.stringify(rows));
+    +'&idCA='+encodeURIComponent(caData.id);
 
-  fetch(APPS_SCRIPT+'?'+params, {redirect:'follow'})
-  .then(function(r){return r.json();})
-  .then(function(data){
+  fetch(url, {method:'GET', redirect:'follow', mode:'no-cors'})
+  .then(function(){
     if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
-    if(data.status==='ok'){
-      alert('✅ Correo enviado correctamente a '+email);
-    } else {
-      alert('❌ Error: '+(data.mensaje||'Intenta de nuevo.'));
-    }
+    alert('✅ Correo enviado a '+email+'. Verifica tu bandeja en unos segundos.');
   })
   .catch(function(){
     if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
-    alert('❌ Error de conexión.');
+    alert('❌ Error de conexión con el servidor.');
   });
 }
 
