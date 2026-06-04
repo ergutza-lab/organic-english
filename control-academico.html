@@ -403,7 +403,7 @@ const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6F
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
-var mapaEval={}, maestroWaActual='', gruposData=[], fechasRegistradas=[];
+var mapaEval={}, mapaAcum={}, maestroWaActual='', gruposData=[], fechasRegistradas=[];
 
 // ── TABULADOR ──
 var NIVELES=[
@@ -468,6 +468,13 @@ function cargarDatos(){
       renderStats(data);
       renderMaestrosBurbujas();
       renderSemana(data.resumenSemana||[]);
+      // Cargar porcentajes y acumulados desde maestros
+      maestrosData.forEach(function(m){
+        if(m.id!=='VID'){
+          mapaEval[m.id]=m.porcentajeEval||75;
+          mapaAcum[m.id]=m.acumuladasEval||0;
+        }
+      });
       renderEvaluaciones();
       poblarSelectGrupos();
     });
@@ -714,74 +721,67 @@ function renderEvaluaciones(){
   var activos=maestrosData.filter(function(m){return m.activo&&m.id!=='VID';});
   if(!activos.length){grid.innerHTML='<div class="empty-state">Sin maestros activos.</div>';return;}
 
-  function lenteSVG(pct){
-    // Color por nivel: N1=gris, N2=blanco, N3=amarillo claro, N4=amarillo fuerte, N5=naranja
-    var col, glow='', lenseFill;
-    if(pct>=95){col='#f97316';glow='filter:drop-shadow(0 0 8px #f97316) drop-shadow(0 0 16px #f97316);';lenseFill='rgba(249,115,22,0.15)';}
-    else if(pct>=90){col='#facc15';lenseFill='rgba(250,204,21,0.1)';}
-    else if(pct>=85){col='#fde68a';lenseFill='rgba(253,230,138,0.08)';}
-    else if(pct>=80){col='#e2e8f0';lenseFill='rgba(226,232,240,0.06)';}
-    else{col='#64748b';lenseFill='transparent';}
-
-    return '<svg width="70" height="34" viewBox="0 0 70 34" xmlns="http://www.w3.org/2000/svg" style="display:block;'+glow+'">'
-      // Patillas
-      +'<line x1="0" y1="12" x2="8" y2="12" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
-      +'<line x1="62" y1="12" x2="70" y2="12" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
-      // Puente central
-      +'<path d="M30 12 Q35 8 40 12" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
-      // Aro izquierdo — relleno + borde
-      +'<ellipse cx="18" cy="18" rx="12" ry="10" fill="'+lenseFill+'" stroke="'+col+'" stroke-width="2.5"/>'
-      // Aro derecho — relleno + borde
-      +'<ellipse cx="52" cy="18" rx="12" ry="10" fill="'+lenseFill+'" stroke="'+col+'" stroke-width="2.5"/>'
-      // Reflejo
-      +(pct>=80?'<ellipse cx="14" cy="14" rx="3" ry="2" fill="'+col+'" opacity="0.3"/>'+
-               '<ellipse cx="48" cy="14" rx="3" ry="2" fill="'+col+'" opacity="0.3"/>':'')
-      +'</svg>';
-  }
   grid.innerHTML=activos.map(function(m){
-    var pct=mapaEval[m.id]||75;
+    var pct=mapaEval[m.id]!==undefined?mapaEval[m.id]:75;
+    var acum=mapaAcum[m.id]||0;
     var nv=getNivel(pct);
-    var barColor=nv.color;
-    var foto=m.foto?'<img src="'+m.foto+'" class="eval-foto" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><div class="eval-fallback" style="display:none">'+(m.nombre[0]||'M')+'</div>':'<div class="eval-fallback">'+(m.nombre[0]||'M')+'</div>';
+    var ini=m.nombre?m.nombre[0].toUpperCase():'M';
+    var foto=m.foto?'<img src="'+m.foto+'" class="eval-foto" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><div class="eval-fallback" style="display:none">'+ini+'</div>':'<div class="eval-fallback">'+ini+'</div>';
 
     var criteriosHtml=CRITERIOS.map(function(c){
-      var val=0;
-      return '<div class="eval-crit-row">'+
-        '<span class="eval-crit-label">'+c.label+'</span>'+
-        '<div class="eval-crit-stars" id="stars_'+m.id+'_'+c.id+'">'+
-          [1,2,3,4,5].map(function(s){return '<span class="star off" onclick="calificarCrit(\''+m.id+'\',\''+c.id+'\','+s+')">★</span>';}).join('')+
+      return '<div style="margin-bottom:10px;">'+
+        '<div class="eval-crit-row">'+
+          '<span class="eval-crit-label" style="font-weight:600;color:var(--text);">'+c.label+'</span>'+
+          '<div class="eval-crit-stars" id="stars_'+m.id+'_'+c.id+'">'+
+            [1,2,3,4,5].map(function(s){return '<span class="star off" onclick="calificarCrit(\''+m.id+'\',\''+c.id+'\','+s+')">&#9733;</span>';}).join('')+
+          '</div>'+
         '</div>'+
+        '<input type="text" placeholder="Comentario sobre '+c.label.toLowerCase()+'..." id="com_'+m.id+'_'+c.id+'" '+
+          'style="width:100%;margin-top:4px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;outline:none;" />'+
       '</div>';
     }).join('');
+
+    var acumPct=Math.max(0,Math.min(100,((acum+4)/8)*100));
+    var acumColor=acum<0?'#ef4444':acum>=4?'#22c55e':'#f97316';
+    var acumLabel=acum>=4?'Listo para subir nivel':acum<=-4?'Alerta - riesgo de bajar':''+acum+'/4 para subir';
 
     return '<div class="eval-card" id="evalcard_'+m.id+'">'+
       '<div class="eval-card-header">'+foto+
         '<div><div class="eval-nombre">'+m.nombre+'</div><div class="eval-id">'+m.id+'</div></div>'+
       '</div>'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
-        '<div class="nivel-badge nivel-'+nv.n+'" style="margin-bottom:0"><span style="width:8px;height:8px;border-radius:50%;background:'+nv.color+';display:inline-block;"></span>Nivel '+nv.n+' · $'+nv.costo+'/clase</div>'+
+        '<div class="nivel-badge nivel-'+nv.n+'" style="margin-bottom:0;"><span style="width:8px;height:8px;border-radius:50%;background:'+nv.color+';display:inline-block;"></span>'+
+        (nv.n?'Nivel '+nv.n+' $'+nv.costo+'/clase':'Sin nivel')+'</div>'+
         lenteSVG(pct)+
       '</div>'+
-      '<div class="eval-pct-wrap">'+
-        '<div class="eval-pct-row"><span>Evaluación acumulada</span><span>'+pct+'%</span></div>'+
-        '<div class="eval-bar-bg"><div class="eval-bar-fill" style="width:'+pct+'%;background:'+barColor+';"></div></div>'+
+      '<div class="eval-pct-wrap" style="margin-bottom:8px;">'+
+        '<div class="eval-pct-row"><span>Porcentaje</span><span>'+pct+'%</span></div>'+
+        '<div class="eval-bar-bg"><div class="eval-bar-fill" style="width:'+Math.max(0,((pct-70)/25)*100)+'%;background:'+nv.color+';"></div></div>'+
+      '</div>'+
+      '<div style="margin-bottom:12px;">'+
+        '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="color:var(--muted);">Evaluaciones acumuladas</span><span style="color:'+acumColor+';font-weight:700;">'+acumLabel+'</span></div>'+
+        '<div class="eval-bar-bg"><div style="height:4px;border-radius:2px;background:'+acumColor+';width:'+acumPct+'%;"></div></div>'+
       '</div>'+
       '<div class="eval-criterios">'+criteriosHtml+'</div>'+
-      '<button class="btn-evaluar-maestro" onclick="guardarEvalMaestro(\''+m.id+'\')">Guardar evaluación</button>'+
-      '<div class="eval-guardado" id="evalsaved_'+m.id+'">✅ Evaluación guardada</div>'+
+      '<div style="margin-bottom:10px;">'+
+        '<label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Comentario general</label>'+
+        '<textarea id="comgen_'+m.id+'" rows="2" placeholder="Observaciones generales..." '+
+          'style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;outline:none;resize:none;"></textarea>'+
+      '</div>'+
+      '<button class="btn-evaluar-maestro" onclick="guardarEvalMaestro(\''+m.id+'\');">Guardar evaluacion</button>'+
+      '<div class="eval-guardado" id="evalsaved_'+m.id+'" style="display:none;padding:8px;border-radius:6px;text-align:center;font-size:12px;margin-top:6px;"></div>'+
     '</div>';
   }).join('');
 }
 
-var evalStars={};
+
 function calificarCrit(idMaestro,criterio,valor){
   if(!evalStars[idMaestro]) evalStars[idMaestro]={};
   evalStars[idMaestro][criterio]=valor;
   var container=document.getElementById('stars_'+idMaestro+'_'+criterio);
   if(!container) return;
   container.querySelectorAll('.star').forEach(function(s,i){
-    s.classList.toggle('on',i<valor);
-    s.classList.toggle('off',i>=valor);
+    s.classList.toggle('on',i<valor);s.classList.toggle('off',i>=valor);
   });
 }
 
@@ -789,26 +789,54 @@ function guardarEvalMaestro(idMaestro){
   var stars=evalStars[idMaestro]||{};
   var vals=CRITERIOS.map(function(c){return stars[c.id]||0;});
   var filled=vals.filter(function(v){return v>0;}).length;
-  if(filled<CRITERIOS.length){alert('Califica todos los criterios antes de guardar.');return;}
-  var promedio=vals.reduce(function(a,b){return a+b;},0)/vals.length;
-  // Convertir promedio (1-5) a porcentaje base (75-95)
-  var pctNuevo=Math.round(75+(promedio-1)*5);
-  pctNuevo=Math.min(95,Math.max(75,pctNuevo));
-  mapaEval[idMaestro]=pctNuevo;
+  if(filled<CRITERIOS.length){alert('Califica todos los criterios ('+filled+'/'+CRITERIOS.length+').');return;}
 
-  // Actualizar visualmente
-  var card=document.getElementById('evalcard_'+idMaestro);
-  if(card){
-    var nv=getNivel(pctNuevo);
-    var barEl=card.querySelector('.eval-bar-fill');
-    var pctEl=card.querySelector('.eval-pct-row span:last-child');
-    var nivelEl=card.querySelector('.nivel-badge');
-    if(barEl){barEl.style.width=pctNuevo+'%';barEl.style.background=nv.color;}
-    if(pctEl) pctEl.textContent=pctNuevo+'%';
-    if(nivelEl){nivelEl.textContent='';nivelEl.className='nivel-badge nivel-'+nv.n;nivelEl.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+nv.color+';display:inline-block;"></span>Nivel '+nv.n+' · $'+nv.costo+'/clase';}
-  }
+  // Recoger comentarios
+  var comentarios={};
+  CRITERIOS.forEach(function(c){
+    var el=document.getElementById('com_'+idMaestro+'_'+c.id);
+    comentarios[c.id]=el?el.value.trim():'';
+  });
+  var comGen=document.getElementById('comgen_'+idMaestro);
+  comentarios.general=comGen?comGen.value.trim():'';
+
+  var criteriosObj={};
+  CRITERIOS.forEach(function(c){criteriosObj[c.id]=stars[c.id]||0;});
+
+  var btn=document.querySelector('#evalcard_'+idMaestro+' .btn-evaluar-maestro');
   var saved=document.getElementById('evalsaved_'+idMaestro);
-  if(saved){saved.style.display='block';setTimeout(function(){saved.style.display='none';},3000);}
+  if(btn){btn.textContent='Guardando...';btn.disabled=true;}
+
+  fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({
+    action:'guardarEvaluacionMaestro',
+    idMaestro:idMaestro,
+    idCA:caData.id,
+    criterios:criteriosObj,
+    comentarios:comentarios
+  })})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
+    if(data.status==='ok'){
+      // Actualizar mapa local
+      mapaEval[idMaestro]=data.pctNuevo;
+      mapaAcum[idMaestro]=data.acumNuevo;
+      if(saved){
+        saved.style.display='block';
+        saved.textContent=data.mensaje||'✅ Guardado';
+        saved.style.color=data.resultado==='positiva'?'#4ade80':data.resultado==='negativa'?'#f87171':'#fb923c';
+        setTimeout(function(){saved.style.display='none';},4000);
+      }
+      // Re-renderizar solo esta card
+      renderEvaluaciones();
+    } else {
+      if(saved){saved.style.display='block';saved.textContent='❌ Error: '+(data.mensaje||'Intenta de nuevo.');saved.style.color='#f87171';}
+    }
+  })
+  .catch(function(){
+    if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
+    if(saved){saved.style.display='block';saved.textContent='❌ Error de conexión.';saved.style.color='#f87171';}
+  });
 }
 
 // ── REPORTE DE CALIFICACIONES ──
