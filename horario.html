@@ -332,12 +332,16 @@ function renderizar() {
   });
 
   // Maestros SIEMPRE visibles (todos los activos), ordenados por nombre
-  allTeachers = Object.keys(maestros).sort(function(a,b) {
-    return (maestros[a]||a).localeCompare(maestros[b]||b);
-  });
-
+  // Agregar Sin Asignar ANTES de construir allTeachers para evitar duplicados
   if (haySinAsignar) {
     maestros['__sin__'] = 'Sin Asignar';
+  }
+
+  allTeachers = Object.keys(maestros)
+    .filter(function(k){ return k !== '__sin__'; })
+    .sort(function(a,b){ return (maestros[a]||a).localeCompare(maestros[b]||b); });
+
+  if (haySinAsignar) {
     allTeachers.push('__sin__');
   }
 
