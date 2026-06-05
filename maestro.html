@@ -194,7 +194,7 @@
         <p>Bienvenido/a,</p>
         <h2 id="maestroNombrePanel">—</h2>
       </div>
-      <button onclick="console.log('CLIC DESEMPEÑO'); document.getElementById('modalDesempeno').style.display='flex';" style="background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;border-radius:100px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">📊 Mi Desempeño</button>
+      <button onclick="abrirModalDesempeno()" style="background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;border-radius:100px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">📊 Mi Desempeño</button>
     </div>
 
     <!-- VISTA GRUPOS -->
@@ -1316,11 +1316,14 @@ function getNivelMaestro(pct){
 function fmtPctM(pct){return (pct%1===0)?pct+'%':pct.toFixed(2)+'%';}
 
 function abrirModalDesempeno(){
+  try {
   if(!maestroData||!maestroData.id){alert('Sesión no iniciada');return;}
   var modal=document.getElementById('modalDesempeno');
+  if(!modal){alert('Modal no encontrado');return;}
   modal.style.display='flex';
   var cont=document.getElementById('desempenoContenido');
   cont.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;">Cargando...</div>';
+  console.log('Fetch desempeño para:', maestroData.id);
 
   fetch(APPS_SCRIPT+'?action=getDesempenoMaestro&id='+encodeURIComponent(maestroData.id),{redirect:'follow'})
   .then(function(r){return r.json();})
@@ -1376,9 +1379,14 @@ function abrirModalDesempeno(){
     }
     cont.innerHTML=html;
   })
-  .catch(function(){
-    cont.innerHTML='<p style="color:#f87171;text-align:center;">Error de conexión.</p>';
+  .catch(function(err){
+    console.error('Error fetch desempeño:', err);
+    cont.innerHTML='<p style="color:#f87171;text-align:center;">Error: '+err.message+'</p>';
   });
+  } catch(e) {
+    console.error('Error abrirModalDesempeno:', e);
+    alert('Error: '+e.message);
+  }
 }
 
 function cerrarModalDesempeno(){
