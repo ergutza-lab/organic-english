@@ -832,32 +832,34 @@ function guardarEvalMaestro(idMaestro){
   var saved=document.getElementById('evalsaved_'+idMaestro);
   if(btn){btn.textContent='Guardando...';btn.disabled=true;}
 
-  // Usar GET para evitar CORS
+  // no-cors para evitar bloqueo CORS — no podemos leer respuesta
   var params='action=guardarEvaluacionMaestro'
     +'&idMaestro='+encodeURIComponent(idMaestro)
     +'&idCA='+encodeURIComponent(caData.id)
     +'&criterios='+encodeURIComponent(JSON.stringify(criteriosObj))
     +'&comentarios='+encodeURIComponent(JSON.stringify(comentarios));
 
-  fetch(APPS_SCRIPT+'?'+params,{method:'GET',redirect:'follow'})
-  .then(function(r){return r.json();})
-  .then(function(data){
+  fetch(APPS_SCRIPT+'?'+params, {method:'GET', mode:'no-cors'})
+  .then(function(){
     if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
-    if(data.status==='ok'){
-      // Actualizar mapa local
-      mapaEval[idMaestro]=data.pctNuevo;
-      mapaAcum[idMaestro]=data.acumNuevo;
-      if(saved){
-        saved.style.display='block';
-        saved.textContent=data.mensaje||'✅ Guardado';
-        saved.style.color=data.resultado==='positiva'?'#4ade80':data.resultado==='negativa'?'#f87171':'#fb923c';
-        setTimeout(function(){saved.style.display='none';},4000);
-      }
-      // Re-renderizar solo esta card
-      renderEvaluaciones();
-    } else {
-      if(saved){saved.style.display='block';saved.textContent='❌ Error: '+(data.mensaje||'Intenta de nuevo.');saved.style.color='#f87171';}
+    // Actualizar mapa local optimistamente (+1.25 por positiva)
+    var pctActual=mapaEval[idMaestro]||75;
+    var vals=CRITERIOS.map(function(c){return criteriosObj[c.id]||0;});
+    var tieneNeg=vals.some(function(v){return v<=2;});
+    var tieneNeu=vals.some(function(v){return v===3;});
+    var pctNuevo=pctActual;
+    var acumNuevo=(mapaAcum[idMaestro]||0);
+    if(!tieneNeg&&!tieneNeu){pctNuevo=Math.min(95,Math.round((pctActual+1.25)*100)/100);acumNuevo++;}
+    else if(tieneNeg){pctNuevo=Math.max(75,Math.round((pctActual-1.25)*100)/100);acumNuevo--;}
+    mapaEval[idMaestro]=pctNuevo;
+    mapaAcum[idMaestro]=acumNuevo;
+    if(saved){
+      saved.style.display='block';
+      saved.textContent=!tieneNeg&&!tieneNeu?'✅ Evaluación positiva · '+fmtPct(pctNuevo):tieneNeg?'⚠️ Evaluación negativa · '+fmtPct(pctNuevo):'➡️ Evaluación neutral';
+      saved.style.color=!tieneNeg&&!tieneNeu?'#4ade80':tieneNeg?'#f87171':'#fb923c';
+      setTimeout(function(){saved.style.display='none';},4000);
     }
+    renderEvaluaciones();
   })
   .catch(function(){
     if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
