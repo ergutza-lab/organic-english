@@ -1338,5 +1338,103 @@ function invitarClase() {
   </div>
 </div>
 
+<script>
+// ── MODAL DESEMPEÑO ──────────────────────────────────────────────
+function lenteSVGMaestro(pct){
+  var col,glow='',fill;
+  if(pct>=95){col='#f97316';glow='filter:drop-shadow(0 0 8px #f97316);';fill='rgba(249,115,22,0.2)';}
+  else if(pct>=90){col='#f97316';fill='rgba(249,115,22,0.12)';}
+  else if(pct>=85){col='#facc15';fill='rgba(250,204,21,0.1)';}
+  else if(pct>=80){col='#fde68a';fill='rgba(253,230,138,0.08)';}
+  else if(pct>=75){col='#e2e8f0';fill='rgba(226,232,240,0.06)';}
+  else{col='#64748b';fill='transparent';}
+  return '<svg width="80" height="38" viewBox="0 0 70 34" style="display:block;'+glow+'">'
+    +'<line x1="0" y1="12" x2="8" y2="12" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
+    +'<line x1="62" y1="12" x2="70" y2="12" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
+    +'<path d="M30 12 Q35 8 40 12" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
+    +'<ellipse cx="18" cy="18" rx="12" ry="10" fill="'+fill+'" stroke="'+col+'" stroke-width="2.5"/>'
+    +'<ellipse cx="52" cy="18" rx="12" ry="10" fill="'+fill+'" stroke="'+col+'" stroke-width="2.5"/>'
+    +'</svg>';
+}
+function getNivelMaestro(pct){
+  if(pct>=95) return {n:5,label:'Nivel 5',color:'#f97316',costo:150};
+  if(pct>=90) return {n:4,label:'Nivel 4',color:'#f97316',costo:130};
+  if(pct>=85) return {n:3,label:'Nivel 3',color:'#facc15',costo:110};
+  if(pct>=80) return {n:2,label:'Nivel 2',color:'#fde68a',costo:100};
+  if(pct>=75) return {n:1,label:'Nivel 1',color:'#e2e8f0',costo:90};
+  return {n:0,label:'Sin nivel',color:'#64748b',costo:90};
+}
+function fmtPctM(pct){return (pct%1===0)?pct+'%':pct.toFixed(2)+'%';}
+
+function abrirModalDesempeno(){
+  var modal=document.getElementById('modalDesempeno');
+  modal.style.display='flex';
+  var cont=document.getElementById('desempenoContenido');
+  cont.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;">Cargando...</div>';
+
+  fetch(APPS_SCRIPT+'?action=getDesempenoMaestro&id='+encodeURIComponent(maestroData.id),{redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.status!=='ok'){cont.innerHTML='<p style="color:#f87171;text-align:center;">Error al cargar.</p>';return;}
+    var pct=data.porcentaje||75;
+    var acum=data.acumuladas||0;
+    var nv=getNivelMaestro(pct);
+    var evals=data.evaluaciones||[];
+    var pctBase=Math.floor(pct/5)*5;
+    var pctProx=Math.min(95,pctBase+5);
+    var progreso=Math.min(100,((pct-pctBase)/5)*100);
+
+    var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">';
+    html+=lenteSVGMaestro(pct);
+    html+='<div><div style="font-size:24px;font-weight:800;color:'+nv.color+';">'+fmtPctM(pct)+'</div>';
+    html+='<div style="font-size:13px;color:#94a3b8;">'+nv.label+' · $'+nv.costo+'/clase</div></div></div>';
+
+    html+='<div style="margin-bottom:20px;">';
+    html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px;">';
+    html+='<span>'+fmtPctM(pctBase)+'</span><span>Siguiente: '+fmtPctM(pctProx)+'</span></div>';
+    html+='<div style="background:rgba(255,255,255,0.08);border-radius:4px;height:8px;">';
+    html+='<div style="width:'+progreso+'%;height:8px;border-radius:4px;background:'+nv.color+';"></div></div>';
+    html+='<div style="font-size:11px;color:#64748b;margin-top:4px;text-align:center;">'+acum+'/4 evaluaciones para subir de nivel</div></div>';
+
+    if(evals.length){
+      html+='<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Últimas evaluaciones</div>';
+      evals.slice(0,5).forEach(function(ev){
+        var col=ev.resultado==='positiva'?'#4ade80':ev.resultado==='negativa'?'#f87171':'#fb923c';
+        var icon=ev.resultado==='positiva'?'✅':ev.resultado==='negativa'?'❌':'➡️';
+        var fecha=ev.fecha?new Date(ev.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):'—';
+        html+='<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px 14px;margin-bottom:8px;border-left:3px solid '+col+';">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;">';
+        html+='<span style="font-size:12px;color:'+col+';">'+icon+' '+ev.resultado.charAt(0).toUpperCase()+ev.resultado.slice(1)+'</span>';
+        html+='<span style="font-size:11px;color:#64748b;">'+fecha+'</span></div>';
+        var crit=['puntualidad','metodologia','dominio','comunicacion','compromiso'];
+        var lbl=['Puntual','Metod','Domin','Comunic','Compro'];
+        html+='<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">';
+        crit.forEach(function(c,i){
+          var val=ev.criterios[c]||0;
+          var est='';
+          for(var s=1;s<=5;s++) est+='<span style="color:'+(s<=val?'#facc15':'#334155')+';">★</span>';
+          html+='<div style="font-size:10px;color:#94a3b8;">'+lbl[i]+': '+est+'</div>';
+        });
+        html+='</div>';
+        if(ev.comentarios&&ev.comentarios.general){
+          html+='<div style="font-size:11px;color:#94a3b8;margin-top:6px;font-style:italic;">"'+ev.comentarios.general+'"</div>';
+        }
+        html+='</div>';
+      });
+    } else {
+      html+='<p style="color:#64748b;text-align:center;font-size:13px;">Aún no tienes evaluaciones registradas.</p>';
+    }
+    cont.innerHTML=html;
+  })
+  .catch(function(){
+    cont.innerHTML='<p style="color:#f87171;text-align:center;">Error de conexión.</p>';
+  });
+}
+
+function cerrarModalDesempeno(){
+  document.getElementById('modalDesempeno').style.display='none';
+}
+</script>
+
 </body>
 </html>
