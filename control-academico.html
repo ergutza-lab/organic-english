@@ -512,11 +512,17 @@ function cargarDatos(){
 }
 
 function cargarFechasRegistradas(){
-  // Obtener fechas del mes actual que ya tienen asistencia registrada
-  // Usamos getDatosCA y cruzamos con días hábiles del mes
   var hoy=new Date();
-  var year=hoy.getFullYear(), month=hoy.getMonth();
-  renderCalendario(year, month, []);
+  var year=hoy.getFullYear(), month=hoy.getMonth()+1;
+  fetch(APPS_SCRIPT+'?action=getFechasAsistenciaCA&year='+year+'&month='+month, {redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var fechas=data.fechas||[];
+      renderCalendario(year, month-1, fechas);
+    })
+    .catch(function(){
+      renderCalendario(year, month-1, []);
+    });
 }
 
 function renderStats(data){
@@ -698,7 +704,7 @@ function guardarAsistencia(){
         document.getElementById('btnGuardarAsist').style.display='none';
         document.getElementById('asistFecha').value='';
         cargarDatos();
-        cargarFechasRegistradas();
+        setTimeout(cargarFechasRegistradas, 1500); // Dar tiempo al AS de escribir
       } else {status.textContent='Error: '+(data.mensaje||'Intenta de nuevo.');status.style.color='#f87171';}
     })
     .catch(()=>{btn.textContent='Guardar asistencia';btn.disabled=false;status.textContent='Error de conexión.';status.style.color='#f87171';});
