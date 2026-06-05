@@ -489,15 +489,23 @@ function cargarFechasRegistradas(){
 
 function renderStats(data){
   var activos=maestrosData.filter(m=>m.activo&&m.id!=='VID').length;
-  var grupos=gruposData.filter(function(g){return g.idMaestro&&String(g.demo||'').toUpperCase()!=='DEMO';}).length;
   document.getElementById('statTotal').textContent=activos;
-  document.getElementById('statGrupos').textContent=grupos;
+  document.getElementById('statGrupos').textContent=data.gruposCubiertos||0;
   document.getElementById('statSinMaestro').textContent=data.sinMaestro||0;
   document.getElementById('statClasesHoy').textContent=data.clasesHoy||0;
   document.getElementById('statSemana').textContent=data.clasesSemana||0;
 }
 
 // ── BURBUJAS DE MAESTROS ──
+function lenteSVG_color(pct){
+  if(pct>=95) return '#f97316';
+  if(pct>=90) return '#f97316';
+  if(pct>=85) return '#facc15';
+  if(pct>=80) return '#fde68a';
+  if(pct>=75) return '#e2e8f0';
+  return '#64748b';
+}
+
 function renderMaestrosBurbujas(){
   var grid=document.getElementById('maestrosGrid');
   if(!maestrosData.length){grid.innerHTML='<div class="empty-state">Sin maestros registrados</div>';return;}
@@ -507,7 +515,7 @@ function renderMaestrosBurbujas(){
     // Contar grupos reales (sin DEMO) desde gruposData
     var gruposReales=gruposData.filter(function(g){return g.idMaestro===m.id&&String(g.demo||'').toUpperCase()!=='DEMO';}).length;
     var inactivo=m.activo?'':' burbuja-inactivo';
-    return '<div class="maestro-burbuja'+inactivo+'" onclick="abrirModalMaestro(\''+m.id+'\')">'+ foto +'<div class="burbuja-nombre">'+m.nombre+'</div><div class="burbuja-id">'+m.id+'</div><div class="burbuja-grupos">'+gruposReales+' grupo'+(gruposReales!==1?'s':'')+'</div></div>';
+    return '<div class="maestro-burbuja'+inactivo+'" onclick="abrirModalMaestro(\''+m.id+'\')">'+ foto +'<div class="burbuja-nombre">'+m.nombre+'</div><div class="burbuja-id">'+m.id+'</div><div class="burbuja-grupos">'+gruposReales+' grupo'+(gruposReales!==1?'s':'')+'<div style="margin-top:5px;font-size:11px;font-weight:700;color:'+lenteSVG_color(m.porcentajeEval||75)+'">'+fmtPct(m.porcentajeEval||75)+' · N'+getNivel(m.porcentajeEval||75).n+'</div>'+'</div></div>';
   }).join('');
 }
 
@@ -615,7 +623,7 @@ function cargarAsistencia(){
     .then(r=>r.json())
     .then(data=>{
       // Filtrar grupos sin alumnos
-      asistenciaRows=(data.rows||[]).filter(r=>r.activo!==false&&r.maestroId&&(r.inscritos>0||r.inscritos===undefined));
+      asistenciaRows=(data.rows||[]).filter(r=>r.activo!==false&&r.maestroId&&(r.inscritos>0||r.inscritos===undefined)&&String(r.demo||'').toUpperCase()!=='DEMO');
       renderAsistencia();
       document.getElementById('btnGuardarAsist').style.display=asistenciaRows.length?'inline-block':'none';
       document.getElementById('asistStatus').textContent='';
