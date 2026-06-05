@@ -832,13 +832,14 @@ function guardarEvalMaestro(idMaestro){
   var saved=document.getElementById('evalsaved_'+idMaestro);
   if(btn){btn.textContent='Guardando...';btn.disabled=true;}
 
-  fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({
-    action:'guardarEvaluacionMaestro',
-    idMaestro:idMaestro,
-    idCA:caData.id,
-    criterios:criteriosObj,
-    comentarios:comentarios
-  })})
+  // Usar GET para evitar CORS
+  var params='action=guardarEvaluacionMaestro'
+    +'&idMaestro='+encodeURIComponent(idMaestro)
+    +'&idCA='+encodeURIComponent(caData.id)
+    +'&criterios='+encodeURIComponent(JSON.stringify(criteriosObj))
+    +'&comentarios='+encodeURIComponent(JSON.stringify(comentarios));
+
+  fetch(APPS_SCRIPT+'?'+params,{method:'GET',redirect:'follow'})
   .then(function(r){return r.json();})
   .then(function(data){
     if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
