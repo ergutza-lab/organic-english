@@ -395,6 +395,38 @@
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
+// Llamar al AS sin CORS usando iframe oculto (fire-and-forget)
+function callAS(params){
+  var url=APPS_SCRIPT+'?'+params;
+  var ifr=document.createElement('iframe');
+  ifr.style.display='none';
+  ifr.src=url;
+  document.body.appendChild(ifr);
+  setTimeout(function(){document.body.removeChild(ifr);},8000);
+}
+
+// Llamar al AS y leer respuesta usando JSONP dinámico
+function callASWithResponse(params, callback){
+  var cbName='cb_'+Date.now();
+  window[cbName]=function(data){
+    callback(data);
+    delete window[cbName];
+    var s=document.getElementById(cbName);
+    if(s) s.parentNode.removeChild(s);
+  };
+  var script=document.createElement('script');
+  script.id=cbName;
+  script.src=APPS_SCRIPT+'?'+params+'&callback='+cbName;
+  document.head.appendChild(script);
+  // Timeout fallback
+  setTimeout(function(){
+    if(window[cbName]){
+      callback({status:'error',mensaje:'Timeout'});
+      delete window[cbName];
+    }
+  },10000);
+}
+
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
@@ -832,39 +864,39 @@ function guardarEvalMaestro(idMaestro){
   var saved=document.getElementById('evalsaved_'+idMaestro);
   if(btn){btn.textContent='Guardando...';btn.disabled=true;}
 
-  // no-cors para evitar bloqueo CORS — no podemos leer respuesta
-  var params='action=guardarEvaluacionMaestro'
-    +'&idMaestro='+encodeURIComponent(idMaestro)
-    +'&idCA='+encodeURIComponent(caData.id)
-    +'&criterios='+encodeURIComponent(JSON.stringify(criteriosObj))
-    +'&comentarios='+encodeURIComponent(JSON.stringify(comentarios));
-
-  fetch(APPS_SCRIPT+'?'+params, {method:'GET', mode:'no-cors'})
-  .then(function(){
-    if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
-    // Actualizar mapa local optimistamente (+1.25 por positiva)
-    var pctActual=mapaEval[idMaestro]||75;
-    var vals=CRITERIOS.map(function(c){return criteriosObj[c.id]||0;});
-    var tieneNeg=vals.some(function(v){return v<=2;});
-    var tieneNeu=vals.some(function(v){return v===3;});
-    var pctNuevo=pctActual;
-    var acumNuevo=(mapaAcum[idMaestro]||0);
-    if(!tieneNeg&&!tieneNeu){pctNuevo=Math.min(95,Math.round((pctActual+1.25)*100)/100);acumNuevo++;}
-    else if(tieneNeg){pctNuevo=Math.max(75,Math.round((pctActual-1.25)*100)/100);acumNuevo--;}
-    mapaEval[idMaestro]=pctNuevo;
-    mapaAcum[idMaestro]=acumNuevo;
-    if(saved){
-      saved.style.display='block';
-      saved.textContent=!tieneNeg&&!tieneNeu?'✅ Evaluación positiva · '+fmtPct(pctNuevo):tieneNeg?'⚠️ Evaluación negativa · '+fmtPct(pctNuevo):'➡️ Evaluación neutral';
-      saved.style.color=!tieneNeg&&!tieneNeu?'#4ade80':tieneNeg?'#f87171':'#fb923c';
-      setTimeout(function(){saved.style.display='none';},4000);
-    }
-    renderEvaluaciones();
+  fetch(APPS_SCRIPT, {
+    method:'POST',
+    redirect:'follow',
+    body: JSON.stringify({
+      action:'guardarEvaluacionMaestro',
+      idMaestro: idMaestro,
+      idCA: caData.id,
+      criterios: criteriosObj,
+      comentarios: comentarios
+    })
   })
-  .catch(function(){
+  .then(function(r){ return r.json(); })
+  .then(function(data){
     if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
-    if(saved){saved.style.display='block';saved.textContent='❌ Error de conexión.';saved.style.color='#f87171';}
+    if(data.status==='ok'){
+      mapaEval[idMaestro]=data.pctNuevo;
+      mapaAcum[idMaestro]=data.acumNuevo;
+      if(saved){
+        saved.style.display='block';
+        saved.textContent=data.mensaje||'✅ Guardado';
+        saved.style.color=data.resultado==='positiva'?'#4ade80':data.resultado==='negativa'?'#f87171':'#fb923c';
+        setTimeout(function(){saved.style.display='none';},4000);
+      }
+      renderEvaluaciones();
+    } else {
+      if(saved){saved.style.display='block';saved.textContent='❌ '+(data.mensaje||'Error');saved.style.color='#f87171';}
+    }
+  })
+  .catch(function(err){
+    if(btn){btn.textContent='Guardar evaluación';btn.disabled=false;}
+    if(saved){saved.style.display='block';saved.textContent='❌ Error: '+err.message;saved.style.color='#f87171';}
   });
+
 }
 
 // ── REPORTE DE CALIFICACIONES ──
@@ -951,15 +983,9 @@ function enviarReportePorCorreo(){
     +'&nombreCA='+encodeURIComponent(caData.nombre||'Coordinador Académico')
     +'&idCA='+encodeURIComponent(caData.id);
 
-  fetch(url, {method:'GET', redirect:'follow', mode:'no-cors'})
-  .then(function(){
-    if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
-    alert('✅ Correo enviado a '+email+'. Verifica tu bandeja en unos segundos.');
-  })
-  .catch(function(){
-    if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
-    alert('❌ Error de conexión con el servidor.');
-  });
+  callAS(url.replace(APPS_SCRIPT+'?',''));
+  if(btn){btn.textContent='✉ Enviar por correo';btn.disabled=false;}
+  alert('✅ Correo enviado. Verifica tu bandeja en unos segundos.');
 }
 
 function exportarReporte(){
