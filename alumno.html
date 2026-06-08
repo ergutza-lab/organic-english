@@ -782,7 +782,7 @@
     renderCalificaciones(g);
     cargarMapaAlumno(a.id, g ? g.id : '');
     console.log('Llamando verificarRecordatorio con p:', JSON.stringify(p));
-    verificarRecordatorio(p);
+    setTimeout(function(){ verificarRecordatorio(alumnoData.pago); }, 500);
   }
 
   // ── EVALUACIONES ─────────────────────────────────────────────────
@@ -938,7 +938,16 @@
             '<p style="color:#fca5a5;font-size:13px;line-height:1.7;margin:0;">' +
               'En el sistema <strong style="color:#f87171;">no se ha reflejado el pago</strong> de tu colegiatura para esta semana.' +
               '<br><br>' +
-              'Tienes hasta el <strong style="color:#fbbf24;">lunes a las 10:00 PM</strong> para que tu pago sea validado.' +
+              (function(){
+                var lun = new Date();
+                var d = lun.getDay();
+                // Calcular el próximo lunes (o hoy si ya es lunes)
+                if (d !== 1) lun.setDate(lun.getDate() + (d === 0 ? 1 : 8 - d));
+                var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                var dias = ['dom','lun','mar','mié','jue','vie','sáb'];
+                var fechaLunes = dias[1]+' '+lun.getDate()+' de '+meses[lun.getMonth()];
+                return 'Tienes hasta el <strong style="color:#fbbf24;">lunes '+fechaLunes+' a las 10:00 PM</strong> para que tu pago sea validado.';
+              })()+
               '<br><br>' +
               'Si ya realizaste tu pago pero no ha sido reflejado, comunícate de inmediato con tu asistente de control escolar.' +
             '</p>' +
