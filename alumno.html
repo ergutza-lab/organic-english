@@ -717,16 +717,9 @@
           }
           alumnoData = data;
           mostrarPanel();
-          // Verificar alerta de pago vencido inmediatamente después del login
-          (function(){
-            var p = alumnoData.pago;
-            var hoy = new Date(), dia = hoy.getDay(), hora = hoy.getHours();
-            var pagoVigente = p && p.periodoFin && new Date(p.periodoFin).setHours(23,59,59,0) >= hoy;
-            var limiteVencido = p && p.limiteSiguiente && Date.now() > new Date(p.limiteSiguiente).getTime();
-            if ((dia===1 && !pagoVigente && hora < 22) || ((dia===0||dia===6) && limiteVencido && !pagoVigente)) {
-              setTimeout(mostrarAlertaBajaLunes, 300);
-            }
-          })();
+          setTimeout(function(){
+            mostrarAlertaBajaLunes && mostrarAlertaBajaLunes();
+          }, 800);
         }
         else {
           err.style.display = 'block';
@@ -926,6 +919,13 @@
   }
 
   function mostrarAlertaBajaLunes() {
+    // Verificar condiciones antes de mostrar
+    var p = alumnoData ? alumnoData.pago : null;
+    var hoy = new Date(), dia = hoy.getDay(), hora = hoy.getHours();
+    var pagoVigente = p && p.periodoFin && new Date(p.periodoFin).setHours(23,59,59,0) >= Date.now();
+    var limiteVencido = p && p.limiteSiguiente && Date.now() > new Date(p.limiteSiguiente).getTime();
+    // Solo mostrar lunes sin pago (antes 22h) o sáb/dom con límite vencido
+    if (!((dia===1 && !pagoVigente && hora < 22) || ((dia===0||dia===6) && limiteVencido && !pagoVigente))) return;
     var s = alumnoData ? alumnoData.asistente : null;
     var waLink = s && s.whatsapp
       ? 'https://wa.me/'+cleanWA(s.whatsapp)
