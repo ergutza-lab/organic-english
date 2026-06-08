@@ -872,39 +872,41 @@
 
   // ── PAGO ─────────────────────────────────────────────────────────
   function verificarRecordatorio(p) {
-    var hoy=new Date(), dia=hoy.getDay();
+    var hoy=new Date(), dia=hoy.getDay(), horaActual=hoy.getHours();
+    console.log('verificarRecordatorio — dia:'+dia+' hora:'+horaActual+' p:'+(p?'ok':'null'));
 
-    // Verificar si el límite de pago ya venció (después del sáb límite)
+    // Verificar vigencia del pago
+    var pagoVigente = false;
+    if (p && p.periodoFin) {
+      var finPago = new Date(p.periodoFin);
+      finPago.setHours(23,59,59,0);
+      pagoVigente = finPago >= hoy;
+    }
+
+    // Verificar si el límite semanal ya venció
     var limiteVencido = false;
     if (p && p.limiteSiguiente) {
       limiteVencido = Date.now() > new Date(p.limiteSiguiente).getTime();
     }
-    console.log('verificarRecordatorio — dia:'+dia+' limiteVencido:'+limiteVencido+' limiteSiguiente:'+JSON.stringify(p&&p.limiteSiguiente)+' periodoFin:'+JSON.stringify(p&&p.periodoFin));
 
-    // LUNES sin pago vigente → modal de alerta roja (hasta las 22:00)
-    if (dia===1) {
-      var horaActual = hoy.getHours();
-      var pagoVigente = false;
-      if (p && p.periodoFin) {
-        var fin = new Date(p.periodoFin);
-        fin.setHours(23,59,59,0);
-        pagoVigente = fin >= hoy;
-      }
-      console.log('LUNES — pagoVigente:'+pagoVigente+' horaActual:'+horaActual);
-      if (!pagoVigente && horaActual < 22) {
-        mostrarAlertaBajaLunes();
-        return;
-      }
-    }
+    console.log('pagoVigente:'+pagoVigente+' limiteVencido:'+limiteVencido);
 
-    // DOMINGO o SÁBADO después del límite → también mostrar modal de alerta
-    if ((dia===0||dia===6) && limiteVencido) {
+    // LUNES sin pago vigente y antes de las 22:00 → modal alerta baja
+    if (dia===1 && !pagoVigente && horaActual < 22) {
       mostrarAlertaBajaLunes();
       return;
     }
 
-    // Jueves/viernes/sábado — recordatorio de pago próximo a vencer
+    // SAB o DOM después del límite y sin pago vigente → modal alerta baja
+    if ((dia===0||dia===6) && limiteVencido && !pagoVigente) {
+      mostrarAlertaBajaLunes();
+      return;
+    }
+
+    // Sin pago registrado en ningún día → no mostrar recordatorio normal
     if (!p||!p.periodoFin) return;
+
+    // Jue/Vie/Sáb — recordatorio de pago próximo a vencer
     if (dia!==4&&dia!==5&&dia!==6) return;
     var fin2=new Date(p.periodoFin);
     var dias=Math.ceil((fin2-hoy)/(1000*60*60*24));
