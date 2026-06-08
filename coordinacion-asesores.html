@@ -284,6 +284,23 @@ function cargarDatos(){
 }
 
 /* == HELPERS== */
+function nivelBg(nivel) {
+  var n = (nivel||'').toUpperCase();
+  if (n.includes('PRE-A1')||n.includes('PRE A1')||n.includes('STARTER'))
+    return {bg:'rgba(148,163,184,0.15)',border:'rgba(148,163,184,0.5)',tag:'#94a3b8'};
+  if (n.includes('A1'))
+    return {bg:'rgba(28,43,94,0.4)',border:'rgba(59,91,219,0.6)',tag:'#7b9ef5'};
+  if (n.includes('A2'))
+    return {bg:'rgba(8,145,178,0.15)',border:'rgba(8,145,178,0.5)',tag:'#22d3ee'};
+  if (n.includes('B1'))
+    return {bg:'rgba(22,163,74,0.15)',border:'rgba(22,163,74,0.5)',tag:'#4ade80'};
+  if (n.includes('B2'))
+    return {bg:'rgba(234,88,12,0.15)',border:'rgba(234,88,12,0.5)',tag:'#fb923c'};
+  if (n.includes('C1'))
+    return {bg:'rgba(124,58,237,0.15)',border:'rgba(124,58,237,0.5)',tag:'#a78bfa'};
+  return {bg:'rgba(100,116,139,0.15)',border:'rgba(100,116,139,0.4)',tag:'#94a3b8'};
+}
+
 function vacColor(ll){
   if(ll>=10)return 'azul';
   if(ll>=7)return 'verde';
@@ -462,14 +479,22 @@ function seleccionarDia(grupos,diaStr,el){
     var col=vacColor(ll);
     var card=document.createElement('div');
     card.className='grupo-card'+(ll===0?' lleno':'');
+    var nv=nivelBg(g.nivel||'');
+    card.style.background=nv.bg;
+    card.style.borderColor=nv.border;
+    var pendHtml=(g.pendientes&&g.pendientes>0)?'<span style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:100px;font-size:10px;font-weight:700;padding:2px 8px;">⚠️ '+g.pendientes+' pendiente'+(g.pendientes>1?'s':'')+'</span>':'';
     card.innerHTML=
       '<div class="grupo-top">'+
         '<span class="grupo-id">'+g.id+'</span>'+
         '<span class="vac-pill '+col+'">'+vacText(ll)+'</span>'+
       '</div>'+
       '<div class="grupo-nombre">'+g.nombre+'</div>'+
+      '<div style="font-size:10px;font-weight:600;color:'+nv.tag+';margin:2px 0;">'+g.nivel+'</div>'+
       '<div class="grupo-meta">'+g.horario+'</div>'+
-      '<div class="grupo-footer">Maestro: '+g.maestro+' &nbsp;|&nbsp; '+g.inscritos+'/'+g.cupoMax+' alumnos</div>';
+      '<div class="grupo-footer" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
+        '<span>Maestro: '+g.maestro+' &nbsp;|&nbsp; '+g.inscritos+'/'+g.cupoMax+' alumnos</span>'+
+        pendHtml+
+      '</div>';
     if(ll>0)card.onclick=function(){abrirGrupo(g);};
     grid.appendChild(card);
   });
@@ -620,69 +645,5 @@ function mandarReporte(){
   }
 }
 </script>
-
-<!-- ═══════════════════════════════════════════════════
-     HORARIO FLOTANTE — Pegar este bloque en cada módulo
-     justo antes de </body>
-     ═══════════════════════════════════════════════════ -->
-
-<!-- Botón flotante -->
-<button onclick="abrirHorario()" style="
-  position:fixed;bottom:24px;right:24px;z-index:998;
-  background:#1c2b5e;color:#fff;
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:100px;padding:12px 20px;
-  font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  📅 Horario
-</button>
-
-<!-- Overlay con iframe -->
-<div id="horarioOverlay" style="
-  display:none;position:fixed;inset:0;z-index:999;
-  background:rgba(0,0,0,0.65);
-  align-items:center;justify-content:center;">
-  <iframe id="horarioFrame" src="" style="
-    width:96%;max-width:1300px;height:92vh;
-    border:none;border-radius:20px;
-    box-shadow:0 25px 60px rgba(0,0,0,0.5);">
-  </iframe>
-</div>
-
-<script>
-function abrirHorario() {
-  if (window.innerWidth < 768) {
-    window.open('horario.html', '_blank');
-    return;
-  }
-  var overlay = document.getElementById('horarioOverlay');
-  var frame   = document.getElementById('horarioFrame');
-  frame.src = 'horario.html';
-  overlay.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-
-function cerrarHorario() {
-  var overlay = document.getElementById('horarioOverlay');
-  var frame   = document.getElementById('horarioFrame');
-  overlay.style.display = 'none';
-  frame.src = '';
-  document.body.style.overflow = '';
-}
-
-// Escuchar mensaje de cierre desde el iframe
-window.addEventListener('message', function(e) {
-  if (e.data === 'cerrarHorario') cerrarHorario();
-});
-
-// Cerrar con clic en el fondo oscuro
-document.getElementById('horarioOverlay').addEventListener('click', function(e) {
-  if (e.target === this) cerrarHorario();
-});
-</script>
-<!-- ═══════════════════════════════════════════════════ -->
-  
 </body>
 </html>
