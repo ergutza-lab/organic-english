@@ -602,15 +602,21 @@
     </div>`;
   }
 
-  function nivelColor(nivel) {
+  function nivelBg(nivel) {
     var n = (nivel||'').toUpperCase();
-    if (n.includes('PRE-A1') || n.includes('PRE A1') || n.includes('STARTER')) return '#94a3b8'; // gris claro
-    if (n.includes('A1')) return '#1c2b5e'; // azul marino
-    if (n.includes('A2')) return '#0891b2'; // cyan
-    if (n.includes('B1')) return '#16a34a'; // verde
-    if (n.includes('B2')) return '#ea580c'; // naranja
-    if (n.includes('C1')) return '#7c3aed'; // morado
-    return '#64748b'; // gris por defecto
+    if (n.includes('PRE-A1')||n.includes('PRE A1')||n.includes('STARTER'))
+      return {bg:'rgba(148,163,184,0.15)',border:'rgba(148,163,184,0.5)',tag:'#94a3b8'};
+    if (n.includes('A1'))
+      return {bg:'rgba(28,43,94,0.4)',border:'rgba(59,91,219,0.6)',tag:'#7b9ef5'};
+    if (n.includes('A2'))
+      return {bg:'rgba(8,145,178,0.15)',border:'rgba(8,145,178,0.5)',tag:'#22d3ee'};
+    if (n.includes('B1'))
+      return {bg:'rgba(22,163,74,0.15)',border:'rgba(22,163,74,0.5)',tag:'#4ade80'};
+    if (n.includes('B2'))
+      return {bg:'rgba(234,88,12,0.15)',border:'rgba(234,88,12,0.5)',tag:'#fb923c'};
+    if (n.includes('C1'))
+      return {bg:'rgba(124,58,237,0.15)',border:'rgba(124,58,237,0.5)',tag:'#a78bfa'};
+    return {bg:'rgba(100,116,139,0.15)',border:'rgba(100,116,139,0.4)',tag:'#94a3b8'};
   }
 
   function renderCard(g, hoy) {
@@ -623,6 +629,7 @@
     const dots = Array.from({length: g.cupoMax}, (_,i) =>
       `<div class="plaza-dot${i < inscritos ? ' ocupada' : ''}"></div>`).join('');
 
+    const nv = nivelBg(g.nivel);
     let cardClase, chipClase, chipTexto, plazasHtml, btnHtml, clickAttr;
 
     if (enCurso) {
@@ -648,8 +655,7 @@
       clickAttr  = `onclick="elegirGrupo('${g.id}')"`;
     }
 
-    const nColor = nivelColor(g.nivel);
-    return `<div class="${cardClase}" ${clickAttr} style="border-top:3px solid ${nColor};">
+    return `<div class="${cardClase}" ${clickAttr} style="background:${nv.bg};border-color:${nv.border};">
       <div class="grupo-header">
         <div>
           <div class="grupo-horario">${g.horario}</div>
@@ -662,7 +668,7 @@
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           Grupo ${g.id} · Lun–Jue
         </div>
-        <div class="grupo-nivel-tag" style="color:${nColor};">${g.nivel}</div>
+        <div class="grupo-nivel-tag" style="color:${nv.tag};">${g.nivel}</div>
       </div>
       <div class="grupo-footer">
         <div>${plazasHtml}<div class="plazas-bar">${dots}</div></div>
