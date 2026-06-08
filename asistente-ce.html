@@ -811,7 +811,18 @@ function renderAlertas(){
   if(!listaFiltrada.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
   cont.innerHTML=listaFiltrada.map(a=>{
     const fechaLimite = a.fecha_limite || '';
-    const msg = encodeURIComponent(`Hola ${a.nombre} 👋 Te recuerdo que tu pago en Organic English vence el ${fechaLimite}. Por favor realiza tu pago antes de esa fecha para no perder tu vigencia. ¿Necesitas ayuda? 😊`);
+    const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const fechaObj = fechaLimite ? new Date(fechaLimite) : new Date();
+    const fechaTexto = fechaObj.getDate()+' de '+meses[fechaObj.getMonth()];
+    const msg = encodeURIComponent(`Hola, ${a.nombre} 😊
+
+Esperamos que te encuentres muy bien.
+
+Te recordamos que el pago correspondiente al ${fechaTexto} continúa pendiente. Para mantener tu inscripción activa en Organic English, es necesario realizarlo el día de hoy antes de las 10:00 p.m.
+
+Después de ese horario, el sistema dará de baja automáticamente a los alumnos con pagos pendientes.
+
+Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu registro. Si tienes alguna duda o necesitas apoyo, con gusto estamos para ayudarte. ✨`);
     const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
     return `
     <div class="alerta-card">
