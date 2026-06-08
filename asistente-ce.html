@@ -696,7 +696,7 @@ function abrirModalGrupo(idx){
         :'';
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
       const validarBtn=esSinPago
-        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${a.nombre.replace(/'/g,\"\\'\")}')">📤 Validar pago</button>`
+        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>`
         :'';
       return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
     }).join('');
@@ -1000,6 +1000,61 @@ function mostrarToast(msg,tipo=''){
   t.textContent=msg;t.className='toast '+tipo;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3200);
 }
+
+// ── VALIDAR PAGO DESDE ASISTENTE CE ──────────────────────────────────────
+var validarCEAlumnoId = null;
+
+function abrirModalValidarCE(idAlumno) {
+  var nombre = idAlumno;
+  if (datosPanel && datosPanel.sin_pago) {
+    var found = (datosPanel.sin_pago||[]).find(function(a){ return a.id === idAlumno; });
+    if (found) nombre = found.nombre;
+  }
+  validarCEAlumnoId = idAlumno;
+  document.getElementById('validar-ce-alumno-info').innerHTML =
+    '<strong style="color:#f1f5f9;">'+nombre+'</strong> <span style="color:#64748b;">'+idAlumno+'</span>';
+  document.getElementById('validar-ce-monto').value = '';
+  document.getElementById('validar-ce-file').value = '';
+  document.getElementById('validar-ce-preview').style.display = 'none';
+  document.getElementById('validar-ce-status').style.display = 'none';
+  document.getElementById('btn-ejecutar-validar-ce').textContent = '✓ Validar pago';
+  document.getElementById('btn-ejecutar-validar-ce').disabled = false;
+  var modal = document.getElementById('modal-validar-ce');
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.style.display = 'flex';
+}
+function cerrarModalValidarCE() {
+  document.getElementById('modal-validar-ce').style.display = 'none';
+  validarCEAlumnoId = null;
+}
+function previewComprobantesCE(input) {
+  var file = input.files[0]; if (!file) return;
+  var img = document.getElementById('validar-ce-img');
+  document.getElementById('validar-ce-filename').textContent = file.name;
+  if (file.type.startsWith('image/')) {
+    var reader = new FileReader();
+    reader.onload = function(e) { img.src = e.target.result; img.style.display='block'; };
+    reader.readAsDataURL(file);
+  } else { img.style.display='none'; }
+  document.getElementById('validar-ce-preview').style.display = 'block';
+  document.getElementById('validar-ce-dropzone').style.borderColor = 'rgba(34,197,94,0.6)';
+}
+async function ejecutarValidarCE() {
+  var idAlumno=validarCEAlumnoId, monto=document.getElementById('validar-ce-monto').value.trim();
+  var file=document.getElementById('validar-ce-file').files[0];
+  var status=document.getElementById('validar-ce-status'), btn=document.getElementById('btn-ejecutar-validar-ce');
+  if (!monto||Number(monto)<1){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Ingresa el monto.';return;}
+  if (!file){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona el comprobante.';return;}
+  btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
+  try {
+    var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
+    var resp=await fetch(APPS_CE,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:datosPanel.asistente?datosPanel.asistente.id:'',monto:Number(monto),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
+    var data=await resp.json();
+    if(data.success){status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado.';btn.textContent='✓ Validado';setTimeout(function(){cerrarModalValidarCE();cargarDatos();},2000);}
+    else{throw new Error(data.error||'Error');}
+  }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
+}
+
 </script>
 
 <!-- MODAL VALIDAR PAGO CE -->
