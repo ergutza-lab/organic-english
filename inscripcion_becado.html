@@ -602,6 +602,17 @@
     </div>`;
   }
 
+  function nivelColor(nivel) {
+    var n = (nivel||'').toUpperCase();
+    if (n.includes('PRE-A1') || n.includes('PRE A1') || n.includes('STARTER')) return '#94a3b8'; // gris claro
+    if (n.includes('A1')) return '#1c2b5e'; // azul marino
+    if (n.includes('A2')) return '#0891b2'; // cyan
+    if (n.includes('B1')) return '#16a34a'; // verde
+    if (n.includes('B2')) return '#ea580c'; // naranja
+    if (n.includes('C1')) return '#7c3aed'; // morado
+    return '#64748b'; // gris por defecto
+  }
+
   function renderCard(g, hoy) {
     const yaInicio  = g.fechaObj && g.fechaObj <= hoy;
     const sinPlazas = g.libres <= 0;
@@ -637,7 +648,8 @@
       clickAttr  = `onclick="elegirGrupo('${g.id}')"`;
     }
 
-    return `<div class="${cardClase}" ${clickAttr}>
+    const nColor = nivelColor(g.nivel);
+    return `<div class="${cardClase}" ${clickAttr} style="border-top:3px solid ${nColor};">
       <div class="grupo-header">
         <div>
           <div class="grupo-horario">${g.horario}</div>
@@ -650,7 +662,7 @@
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           Grupo ${g.id} · Lun–Jue
         </div>
-        <div class="grupo-nivel-tag">${g.nivel}</div>
+        <div class="grupo-nivel-tag" style="color:${nColor};">${g.nivel}</div>
       </div>
       <div class="grupo-footer">
         <div>${plazasHtml}<div class="plazas-bar">${dots}</div></div>
