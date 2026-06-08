@@ -180,7 +180,9 @@
     .nuevo-nombre{font-size:14px;font-weight:700;color:var(--gris-800)}
     .nuevo-sub{font-size:11px;color:var(--gris-400);font-weight:500;margin-top:2px}
     .nuevo-chip{display:inline-flex;align-items:center;gap:4px;background:var(--azul-50);color:var(--azul);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;margin-top:5px}
-    .btn-whats{display:flex;align-items:center;gap:6px;background:#25d366;color:#fff;border:none;border-radius:var(--r-md);padding:9px 15px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity .18s,transform .1s}
+    .btn-validar-ce{background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.4);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif;}
+  .btn-validar-ce:hover{background:rgba(249,115,22,0.25);}
+  .btn-whats{display:flex;align-items:center;gap:6px;background:#25d366;color:#fff;border:none;border-radius:var(--r-md);padding:9px 15px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity .18s,transform .1s}
     .btn-whats:hover{opacity:.88}
     .btn-whats:active{transform:scale(.98)}
 
@@ -693,7 +695,10 @@ function abrirModalGrupo(idx){
         ?`<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${encodeURIComponent(waMsg)}" target="_blank">📱</a>`
         :'';
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}</div>`;
+      const validarBtn=esSinPago
+        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${a.nombre.replace(/'/g,\"\\'\")}')">📤 Validar pago</button>`
+        :'';
+      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
@@ -997,68 +1002,42 @@ function mostrarToast(msg,tipo=''){
 }
 </script>
 
-<!-- ═══════════════════════════════════════════════════
-     HORARIO FLOTANTE — Pegar este bloque en cada módulo
-     justo antes de </body>
-     ═══════════════════════════════════════════════════ -->
-
-<!-- Botón flotante -->
-<button onclick="abrirHorario()" style="
-  position:fixed;bottom:24px;right:24px;z-index:998;
-  background:#1c2b5e;color:#fff;
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:100px;padding:12px 20px;
-  font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  📅 Horario
-</button>
-
-<!-- Overlay con iframe -->
-<div id="horarioOverlay" style="
-  display:none;position:fixed;inset:0;z-index:999;
-  background:rgba(0,0,0,0.65);
-  align-items:center;justify-content:center;">
-  <iframe id="horarioFrame" src="" style="
-    width:96%;max-width:1300px;height:92vh;
-    border:none;border-radius:20px;
-    box-shadow:0 25px 60px rgba(0,0,0,0.5);">
-  </iframe>
+<!-- MODAL VALIDAR PAGO CE -->
+<div id="modal-validar-ce" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:440px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,0.5);max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="color:#f1f5f9;margin:0;font-size:16px;">📤 Validar pago</h3>
+      <button onclick="cerrarModalValidarCE()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">✕</button>
+    </div>
+    <div id="validar-ce-alumno-info" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#94a3b8;"></div>
+    <!-- Upload comprobante -->
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Comprobante de pago <span style="color:#f87171;">*</span></label>
+      <div id="validar-ce-dropzone" onclick="document.getElementById('validar-ce-file').click()" style="border:2px dashed rgba(249,115,22,0.4);border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:rgba(249,115,22,0.04);transition:all 0.2s;">
+        <div style="font-size:28px;margin-bottom:6px;">📎</div>
+        <div style="font-size:13px;color:#fb923c;font-weight:600;">Toca para seleccionar imagen</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;">JPG, PNG o PDF</div>
+      </div>
+      <input type="file" id="validar-ce-file" accept="image/*,.pdf" style="display:none;" onchange="previewComprobantesCE(this)">
+      <div id="validar-ce-preview" style="display:none;margin-top:10px;text-align:center;">
+        <img id="validar-ce-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" src="">
+        <div id="validar-ce-filename" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
+      </div>
+    </div>
+    <!-- Monto -->
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto del comprobante (MXN) <span style="color:#f87171;">*</span></label>
+      <input type="number" id="validar-ce-monto" placeholder="Ej. 100 o 400" min="1" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:14px;outline:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <p style="font-size:11px;color:#64748b;margin-top:6px;">Colegiatura semanal: $100 · 4 semanas: $400</p>
+    </div>
+    <!-- Botones -->
+    <div style="display:flex;gap:10px;">
+      <button onclick="ejecutarValidarCE()" id="btn-ejecutar-validar-ce" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">✓ Validar pago</button>
+      <button onclick="cerrarModalValidarCE()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:12px 16px;cursor:pointer;">Cancelar</button>
+    </div>
+    <div id="validar-ce-status" style="display:none;margin-top:12px;text-align:center;font-size:13px;border-radius:8px;padding:10px;"></div>
+  </div>
 </div>
 
-<script>
-function abrirHorario() {
-  if (window.innerWidth < 768) {
-    window.open('horario.html', '_blank');
-    return;
-  }
-  var overlay = document.getElementById('horarioOverlay');
-  var frame   = document.getElementById('horarioFrame');
-  frame.src = 'horario.html';
-  overlay.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-
-function cerrarHorario() {
-  var overlay = document.getElementById('horarioOverlay');
-  var frame   = document.getElementById('horarioFrame');
-  overlay.style.display = 'none';
-  frame.src = '';
-  document.body.style.overflow = '';
-}
-
-// Escuchar mensaje de cierre desde el iframe
-window.addEventListener('message', function(e) {
-  if (e.data === 'cerrarHorario') cerrarHorario();
-});
-
-// Cerrar con clic en el fondo oscuro
-document.getElementById('horarioOverlay').addEventListener('click', function(e) {
-  if (e.target === this) cerrarHorario();
-});
-</script>
-<!-- ═══════════════════════════════════════════════════ -->  
-  
 </body>
 </html>
