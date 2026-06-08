@@ -813,19 +813,35 @@ function renderAlertas(){
     const fechaLimite = a.fecha_limite || '';
     // fecha_limite llega como "4 de junio" — calcular inicio de semana (lunes)
     const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    var periodoTexto = fechaLimite || 'esta semana';
+    // Calcular semana pendiente a partir de fecha_limite (fin de vigencia anterior)
+    // fecha_limite viene como "4 de junio" — necesitamos calcular la semana siguiente
+    var periodoTexto = 'esta semana';
     if (a.ultimo_pago) {
-      // Calcular lunes de la semana siguiente al último pago
-      var partes = a.ultimo_pago.split('/'); // dd/MM/yyyy
+      // El ultimo_pago tiene formato dd/MM/yyyy
+      var partes = a.ultimo_pago.split('/');
       if (partes.length === 3) {
-        var ulp = new Date(partes[2], partes[1]-1, parseInt(partes[0]));
+        var ulp = new Date(parseInt(partes[2]), parseInt(partes[1])-1, parseInt(partes[0]));
+        // Calcular fin de vigencia (lunes siguiente + días según monto)
         var dia = ulp.getDay();
-        var lunes = new Date(ulp);
-        lunes.setDate(ulp.getDate() + (dia===0?1:8-dia));
-        var jueves = new Date(lunes);
-        jueves.setDate(lunes.getDate()+3);
-        periodoTexto = lunes.getDate()+' al '+jueves.getDate()+' de '+meses[jueves.getMonth()];
+        var lunesUlp = new Date(ulp);
+        lunesUlp.setDate(ulp.getDate() - (dia===0?6:dia-1));
+        lunesUlp.setDate(lunesUlp.getDate()+7); // lunes siguiente al pago
+        // La semana pendiente empieza en el siguiente lunes después del fin de vigencia
+        var hoy = new Date();
+        var diaHoy = hoy.getDay();
+        var lunesPendiente = new Date(hoy);
+        lunesPendiente.setDate(hoy.getDate() - (diaHoy===0?6:diaHoy-1));
+        var juevesPendiente = new Date(lunesPendiente);
+        juevesPendiente.setDate(lunesPendiente.getDate()+3);
+        periodoTexto = lunesPendiente.getDate()+' al '+juevesPendiente.getDate()+' de '+meses[juevesPendiente.getMonth()];
       }
+    } else {
+      // Sin pago previo — semana actual
+      var hoy2 = new Date();
+      var d2 = hoy2.getDay();
+      var lun2 = new Date(hoy2); lun2.setDate(hoy2.getDate()-(d2===0?6:d2-1));
+      var jue2 = new Date(lun2); jue2.setDate(lun2.getDate()+3);
+      periodoTexto = lun2.getDate()+' al '+jue2.getDate()+' de '+meses[jue2.getMonth()];
     }
     const msg = encodeURIComponent(`Hola, ${a.nombre} 😊
 
@@ -1073,7 +1089,7 @@ async function ejecutarValidarCE() {
   btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
   try {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
-    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:datosPanel.asistente?datosPanel.asistente.id:'',monto:Number(monto),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
+    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
     var data=await resp.json();
     if(data.success){status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado.';btn.textContent='✓ Validado';setTimeout(function(){cerrarModalValidarCE();cargarDatos();},2000);}
     else{throw new Error(data.error||'Error');}
