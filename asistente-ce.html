@@ -811,14 +811,27 @@ function renderAlertas(){
   if(!listaFiltrada.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
   cont.innerHTML=listaFiltrada.map(a=>{
     const fechaLimite = a.fecha_limite || '';
+    // fecha_limite llega como "4 de junio" — calcular inicio de semana (lunes)
     const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const fechaObj = fechaLimite ? new Date(fechaLimite) : new Date();
-    const fechaTexto = fechaObj.getDate()+' de '+meses[fechaObj.getMonth()];
+    var periodoTexto = fechaLimite || 'esta semana';
+    if (a.ultimo_pago) {
+      // Calcular lunes de la semana siguiente al último pago
+      var partes = a.ultimo_pago.split('/'); // dd/MM/yyyy
+      if (partes.length === 3) {
+        var ulp = new Date(partes[2], partes[1]-1, parseInt(partes[0]));
+        var dia = ulp.getDay();
+        var lunes = new Date(ulp);
+        lunes.setDate(ulp.getDate() + (dia===0?1:8-dia));
+        var jueves = new Date(lunes);
+        jueves.setDate(lunes.getDate()+3);
+        periodoTexto = lunes.getDate()+' al '+jueves.getDate()+' de '+meses[jueves.getMonth()];
+      }
+    }
     const msg = encodeURIComponent(`Hola, ${a.nombre} 😊
 
 Esperamos que te encuentres muy bien.
 
-Te recordamos que el pago correspondiente al ${fechaTexto} continúa pendiente. Para mantener tu inscripción activa en Organic English, es necesario realizarlo el día de hoy antes de las 10:00 p.m.
+Te recordamos que el pago de tu colegiatura del ${periodoTexto} continúa pendiente. Para mantener tu inscripción activa en Organic English, es necesario realizarlo el día de hoy antes de las 10:00 p.m.
 
 Después de ese horario, el sistema dará de baja automáticamente a los alumnos con pagos pendientes.
 
