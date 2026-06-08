@@ -300,6 +300,10 @@ function nivelBg(nivel) {
     return {bg:'rgba(124,58,237,0.15)',border:'rgba(124,58,237,0.5)',tag:'#a78bfa'};
   return {bg:'rgba(100,116,139,0.15)',border:'rgba(100,116,139,0.4)',tag:'#94a3b8'};
 }
+function nombreColor(nombre) {
+  if ((nombre||'').toUpperCase().includes('JOVEN')) return '#facc15';
+  return null;
+}
 
 function vacColor(ll){
   if(ll>=10)return 'azul';
@@ -482,18 +486,17 @@ function seleccionarDia(grupos,diaStr,el){
     var nv=nivelBg(g.nivel||'');
     card.style.background=nv.bg;
     card.style.borderColor=nv.border;
-    var pendHtml=(g.pendientes&&g.pendientes>0)?'<span style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4);border-radius:100px;font-size:10px;font-weight:700;padding:2px 8px;">⚠️ '+g.pendientes+' pendiente'+(g.pendientes>1?'s':'')+'</span>':'';
     card.innerHTML=
       '<div class="grupo-top">'+
         '<span class="grupo-id">'+g.id+'</span>'+
         '<span class="vac-pill '+col+'">'+vacText(ll)+'</span>'+
       '</div>'+
-      '<div class="grupo-nombre">'+g.nombre+'</div>'+
+      '<div class="grupo-nombre" style="'+(nombreColor(g.nombre)?'color:'+nombreColor(g.nombre)+';':'')+'">'+g.nombre+'</div>'+
       '<div style="font-size:10px;font-weight:600;color:'+nv.tag+';margin:2px 0;">'+g.nivel+'</div>'+
       '<div class="grupo-meta">'+g.horario+'</div>'+
-      '<div class="grupo-footer" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
-        '<span>Maestro: '+g.maestro+' &nbsp;|&nbsp; '+g.inscritos+'/'+g.cupoMax+' alumnos</span>'+
-        pendHtml+
+      '<div class="grupo-footer">'+
+        'Maestro: '+g.maestro+' &nbsp;|&nbsp; '+g.inscritos+'/'+g.cupoMax+' alumnos'+
+        (g.pendientes&&g.pendientes>0?' &nbsp;<span style="color:#f87171;font-weight:700;">· '+g.pendientes+' pendiente'+(g.pendientes>1?'s':'')+'</span>':'')+
       '</div>';
     if(ll>0)card.onclick=function(){abrirGrupo(g);};
     grid.appendChild(card);
