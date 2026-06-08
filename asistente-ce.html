@@ -182,6 +182,12 @@
     .nuevo-chip{display:inline-flex;align-items:center;gap:4px;background:var(--azul-50);color:var(--azul);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;margin-top:5px}
     .btn-validar-ce{background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.4);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif;}
   .btn-validar-ce:hover{background:rgba(249,115,22,0.25);}
+  .alumno-detalle{display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;margin:4px 0 6px 22px;font-size:12px;color:var(--gris-400);}
+  .alumno-detalle.open{display:block;}
+  .det-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .det-row:last-child{margin-bottom:0;}
+  .det-row a{color:#60a5fa;text-decoration:none;font-size:11px;}
+  .det-row a:hover{text-decoration:underline;}
   .btn-whats{display:flex;align-items:center;gap:6px;background:#25d366;color:#fff;border:none;border-radius:var(--r-md);padding:9px 15px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity .18s,transform .1s}
     .btn-whats:hover{opacity:.88}
     .btn-whats:active{transform:scale(.98)}
@@ -698,7 +704,7 @@ function abrirModalGrupo(idx){
       const validarBtn=esSinPago
         ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>`
         :'';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
+      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
@@ -1042,6 +1048,30 @@ function mostrarToast(msg,tipo=''){
   setTimeout(()=>t.classList.remove('show'),3200);
 }
 
+
+function toggleInfoAlumno(el, e) {
+  e.stopPropagation();
+  var row = el.closest('.alumno-row');
+  if (!row) return;
+  // Buscar o crear el panel
+  var next = row.nextElementSibling;
+  if (next && next.classList.contains('alumno-detalle')) {
+    next.classList.toggle('open');
+    return;
+  }
+  var fecha    = el.dataset.fecha    || '—';
+  var monto    = el.dataset.monto    || '';
+  var url      = el.dataset.url      || '';
+  var coment   = el.dataset.comentario || '';
+  var montoStr = monto ? ' · $'+monto : '';
+  var urlHtml  = url ? '<div class="det-row">🔗 <a href="'+url+'" target="_blank">Ver comprobante</a></div>' : '';
+  var comentHtml = coment ? '<div class="det-row">💬 '+coment+'</div>' : '';
+  var div = document.createElement('div');
+  div.className = 'alumno-detalle open';
+  div.innerHTML = '<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+urlHtml+comentHtml;
+  row.parentNode.insertBefore(div, row.nextSibling);
+}
+
 // ── VALIDAR PAGO DESDE ASISTENTE CE ──────────────────────────────────────
 var validarCEAlumnoId = null;
 
@@ -1060,6 +1090,7 @@ function abrirModalValidarCE(idAlumno) {
   document.getElementById('validar-ce-status').style.display = 'none';
   document.getElementById('btn-ejecutar-validar-ce').textContent = '✓ Validar pago';
   document.getElementById('btn-ejecutar-validar-ce').disabled = false;
+  document.getElementById('validar-ce-comentario').value = '';
   var modal = document.getElementById('modal-validar-ce');
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
@@ -1089,7 +1120,7 @@ async function ejecutarValidarCE() {
   btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
   try {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
-    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
+    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
     var data=await resp.json();
     if(data.success){status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado.';btn.textContent='✓ Validado';setTimeout(function(){cerrarModalValidarCE();cargarDatos();},2000);}
     else{throw new Error(data.error||'Error');}
@@ -1121,10 +1152,15 @@ async function ejecutarValidarCE() {
       </div>
     </div>
     <!-- Monto -->
-    <div style="margin-bottom:20px;">
+    <div style="margin-bottom:16px;">
       <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto del comprobante (MXN) <span style="color:#f87171;">*</span></label>
       <input type="number" id="validar-ce-monto" placeholder="Ej. 100 o 400" min="1" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:14px;outline:none;font-family:'Plus Jakarta Sans',sans-serif;">
       <p style="font-size:11px;color:#64748b;margin-top:6px;">Colegiatura semanal: $100 · 4 semanas: $400</p>
+    </div>
+    <!-- Comentario -->
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Comentario (opcional)</label>
+      <textarea id="validar-ce-comentario" rows="2" placeholder="Ej. Pago parcial, pendiente diferencia..." style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:13px;outline:none;resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
     </div>
     <!-- Botones -->
     <div style="display:flex;gap:10px;">
