@@ -97,6 +97,7 @@
   .progreso-fill { background: linear-gradient(90deg, #1c2b5e, #f97316); height: 7px; border-radius: 4px; }
   .progreso-labels { display: flex; justify-content: space-between; font-size: 12px; color: #475569; }
   .alerta-pago { font-size: 13px; color: #fbbf24; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; padding: 9px 12px; margin-top: 12px; }
+  .alerta-pago-roja { font-size: 13px; color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); border-radius: 8px; padding: 9px 12px; margin-top: 12px; font-weight: 700; }
   .califs-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70px; gap: 6px; }
   .califs-text { font-size: 14px; color: #334155; }
 
@@ -873,25 +874,38 @@
   function verificarRecordatorio(p) {
     var hoy=new Date(), dia=hoy.getDay();
 
-    // LUNES sin pago vigente → modal de alerta roja
+    // Verificar si el límite de pago ya venció (después del sáb límite)
+    var limiteVencido = false;
+    if (p && p.limiteSiguiente) {
+      limiteVencido = Date.now() > new Date(p.limiteSiguiente).getTime();
+    }
+
+    // LUNES sin pago vigente → modal de alerta roja (hasta las 22:00)
     if (dia===1) {
+      var horaActual = hoy.getHours();
       var pagoVigente = false;
       if (p && p.periodoFin) {
         var fin = new Date(p.periodoFin);
         fin.setHours(23,59,59,0);
         pagoVigente = fin >= hoy;
       }
-      if (!pagoVigente) {
+      if (!pagoVigente && horaActual < 22) {
         mostrarAlertaBajaLunes();
         return;
       }
     }
 
+    // DOMINGO o SÁBADO después del límite → también mostrar modal de alerta
+    if ((dia===0||dia===6) && limiteVencido) {
+      mostrarAlertaBajaLunes();
+      return;
+    }
+
     // Jueves/viernes/sábado — recordatorio de pago próximo a vencer
     if (!p||!p.periodoFin) return;
     if (dia!==4&&dia!==5&&dia!==6) return;
-    var fin=new Date(p.periodoFin);
-    var dias=Math.ceil((fin-hoy)/(1000*60*60*24));
+    var fin2=new Date(p.periodoFin);
+    var dias=Math.ceil((fin2-hoy)/(1000*60*60*24));
     if (dias>7) return;
     mostrarModalPago(p, dias);
   }
@@ -1114,7 +1128,14 @@
       '<div class="field-row"><span class="field-label">Vigente hasta</span><span class="field-val">'+formatFechaCorta(p.periodoFin)+'</span></div>'+
       '<div class="progreso-bar"><div class="progreso-fill" style="width:'+pct+'%"></div></div>'+
       '<div class="progreso-labels"><span>'+formatFechaMini(p.fecha)+'</span><span>'+formatFechaMini(p.periodoFin)+'</span></div>'+
-      '<div class="alerta-pago">Limite siguiente pago: sab '+formatFechaCorta(p.limiteSiguiente)+'</div>'+
+      (function(){
+        var hoyTS = Date.now();
+        var limTS = p.limiteSiguiente ? new Date(p.limiteSiguiente).getTime() : null;
+        if (limTS && hoyTS > limTS) {
+          return '<div class="alerta-pago-roja">🚨 Pago vencido desde el sáb '+formatFechaCorta(p.limiteSiguiente)+'</div>';
+        }
+        return '<div class="alerta-pago">⚠️ Límite de pago: sáb '+formatFechaCorta(p.limiteSiguiente)+'</div>';
+      })()+
       '<button onclick="document.getElementById(\'modalPago\').classList.add(\'visible\')" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Subir comprobante de pago</button>';
   }
 
