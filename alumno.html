@@ -1195,8 +1195,13 @@
   // ── MAPA DEL ALUMNO ──────────────────────────────────────────────
   function cargarMapaAlumno(idAlumno, idGrupo) {
     if (!idGrupo) return;
-    fetch(APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo), { redirect: 'follow' })
-      .then(r=>r.json()).then(data=>{if(data.success)renderMapaAlumno(data);}).catch(function(){});
+    var url=APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo);
+    fetch(url, { redirect: 'follow' })
+      .then(r=>r.json()).then(data=>{if(data.success)renderMapaAlumno(data);})
+      .catch(function(){
+        // Reintentar con no-cors si falla por CORS
+        fetch(url, { mode: 'no-cors' }).catch(function(){});
+      });
   }
 
   function renderMapaAlumno(data) {
