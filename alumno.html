@@ -717,6 +717,16 @@
           }
           alumnoData = data;
           mostrarPanel();
+          // Verificar alerta de pago vencido inmediatamente después del login
+          (function(){
+            var p = alumnoData.pago;
+            var hoy = new Date(), dia = hoy.getDay(), hora = hoy.getHours();
+            var pagoVigente = p && p.periodoFin && new Date(p.periodoFin).setHours(23,59,59,0) >= hoy;
+            var limiteVencido = p && p.limiteSiguiente && Date.now() > new Date(p.limiteSiguiente).getTime();
+            if ((dia===1 && !pagoVigente && hora < 22) || ((dia===0||dia===6) && limiteVencido && !pagoVigente)) {
+              setTimeout(mostrarAlertaBajaLunes, 300);
+            }
+          })();
         }
         else {
           err.style.display = 'block';
@@ -945,7 +955,7 @@
                 if (d !== 1) lun.setDate(lun.getDate() + (d === 0 ? 1 : 8 - d));
                 var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
                 var dias = ['dom','lun','mar','mié','jue','vie','sáb'];
-                var fechaLunes = dias[1]+' '+lun.getDate()+' de '+meses[lun.getMonth()];
+                var fechaLunes = lun.getDate()+' de '+meses[lun.getMonth()];
                 return 'Tienes hasta el <strong style="color:#fbbf24;">lunes '+fechaLunes+' a las 10:00 PM</strong> para que tu pago sea validado.';
               })()+
               '<br><br>' +
