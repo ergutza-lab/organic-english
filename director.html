@@ -370,13 +370,11 @@
     var directorCache = null;
   function esDemo(g) {
     if (!g) return false;
-    // Filtrar por estado DEMO
+    // Usar el campo esDemo que viene del AS (col P de GRUPOS)
+    if (g.esDemo === true) return true;
+    // Fallback: filtrar por estado
     if (String(g.estado||'').toUpperCase() === 'DEMO') return true;
-    // Filtrar por prefijo de ID (grupos demo legacy)
-    var id = (g.idGrupo || '').toUpperCase();
-    var pre = id.substring(0, 2);
-    return pre === 'AA' || pre === 'AB' || pre === 'AC' || pre === 'AD' ||
-           pre === 'AE' || pre === 'AF' || pre === 'AG' || pre === 'AH';
+    return false;
   }
   function cargarDatos() {
     fetch(APPS_SCRIPT + '?action=getDatosDirector').then(r => r.text()).then(text => {
@@ -393,11 +391,8 @@
   }
 
   function renderResumen(r) {
-    var gruposNoDemo = (todosGrupos||[]).filter(function(g){
-      var id = (g.idGrupo||'').toUpperCase();
-      var pre = id.substring(0,2);
-      return pre!=='AA' && pre!=='AB' && pre!=='AC' && pre!=='AD' && pre!=='AE' && pre!=='AF' && pre!=='AG' && pre!=='AH';
-    }).length;
+    var gruposNoDemo = (todosGrupos||[]).length; // ya vienen filtrados del AS sin DEMO
+0; // removido
     var items = [
       {icon:'alumnos',    val:(r.alumnosActivos||0)+(r.alumnosBecados||0), label:'Alumnos activos',   cls:'',         valcls:''},
       {icon:'inscritos',  val:r.alumnosActivos||0,  label:'Pagando',              cls:'',         valcls:''},
