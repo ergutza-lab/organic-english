@@ -398,8 +398,21 @@
     <div id="modalMaestroGrupos" style="margin-top:14px;"></div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="cerrarModalMaestro()">Cerrar</button>
+      <button onclick="abrirDisponibilidad()" style="background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:8px;">&#128197; Disponibilidad</button>
       <button class="btn-modal-confirm" id="btnWaMaestro" onclick="abrirWaMaestro()" style="background:#16a34a;">WhatsApp</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Disponibilidad del maestro -->
+<div id="modalDisponibilidad" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:92%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="modalDisponibilidadTitulo" style="color:var(--text);margin:0;font-size:16px;">Disponibilidad</h3>
+      <button onclick="document.getElementById('modalDisponibilidad').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Horarios disponibles Lunes a Jueves. Verde = libre, naranja = ya tiene grupo asignado.</p>
+    <div id="modalDisponibilidadBody"></div>
   </div>
 </div>
 
@@ -793,7 +806,15 @@ function renderSemana(resumen){
   if(!resumen.length){grid.innerHTML='<div class="empty-state">Sin registros esta semana.</div>';return;}
   grid.innerHTML=resumen.map(function(m){
     var pct=m.esperadas>0?Math.round((m.dadas/m.esperadas)*100):0;
-    return '<div class="semana-card"><div class="semana-maestro">'+m.nombre+'</div><div class="semana-id">'+m.id+'</div><div class="semana-bar-wrap"><div class="semana-bar" style="width:'+pct+'%;"></div></div><div class="semana-nums"><span>'+m.dadas+'</span> de '+m.esperadas+' clases</div></div>';
+    var grabHtml = '';
+    if (m.grupos && m.grupos.length) {
+      m.grupos.forEach(function(g){
+        if (g.grabacion) {
+          grabHtml += '<div style="margin-top:4px;"><a href="'+g.grabacion+'" target="_blank" style="font-size:10px;color:#60a5fa;text-decoration:none;">▶ '+g.id+' '+g.nombre+' '+g.horario+'</a></div>';
+        }
+      });
+    }
+    return '<div class="semana-card"><div class="semana-maestro">'+m.nombre+'</div><div class="semana-id">'+m.id+'</div><div class="semana-bar-wrap"><div class="semana-bar" style="width:'+pct+'%;"></div></div><div class="semana-nums"><span>'+m.dadas+'</span> de '+m.esperadas+' clases</div>'+(grabHtml?'<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);">'+grabHtml+'</div>':'')+'</div>';
   }).join('');
 }
 
@@ -1100,6 +1121,40 @@ function abrirHorario(){if(window.innerWidth<768){window.open('horario.html','_b
 function cerrarHorario(){var o=document.getElementById('horarioOverlay'),f=document.getElementById('horarioFrame');o.style.display='none';f.src='';document.body.style.overflow='';}
 window.addEventListener('message',function(e){if(e.data==='cerrarHorario')cerrarHorario();});
 document.getElementById('horarioOverlay').addEventListener('click',function(e){if(e.target===this)cerrarHorario();});
+
+// ── DISPONIBILIDAD DEL MAESTRO ──────────────────────────────────────────────
+function abrirDisponibilidad() {
+  var modal = document.getElementById('modalDisponibilidad');
+  if (!modal) return;
+  var nombre = document.getElementById('modalMaestroNombre').textContent;
+  var idText  = document.getElementById('modalMaestroId').textContent;
+  var idMaestro = idText.split(' \u00b7 ')[0];
+  document.getElementById('modalDisponibilidadTitulo').textContent = 'Disponibilidad \u2014 ' + nombre;
+  var horarios = ['9:00 AM','11:00 AM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+  var misGrupos = (gruposData||[]).filter(function(g){
+    return String(g.idMaestro||'').trim() === idMaestro;
+  });
+  function normH(h){ return (h||'').replace(/\s+/g,' ').trim().toUpperCase(); }
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  horarios.forEach(function(h) {
+    var gOcupa = misGrupos.find(function(g){ return normH(g.horario) === normH(h); });
+    if (gOcupa) {
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.4);border-radius:10px;padding:12px 16px;">';
+      html += '<div><div style="font-size:13px;font-weight:700;color:#fb923c;">'+h+'</div>';
+      html += '<div style="font-size:11px;color:var(--muted);">Grupo '+gOcupa.id+' \u2014 '+(gOcupa.nombre||'')+'</div></div>';
+      html += '<span style="font-size:11px;font-weight:700;color:#fb923c;">Ocupado</span></div>';
+    } else {
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px 16px;">';
+      html += '<div style="font-size:13px;font-weight:700;color:#4ade80;">'+h+'</div>';
+      html += '<span style="font-size:11px;font-weight:700;color:#4ade80;">Disponible</span></div>';
+    }
+  });
+  html += '</div>';
+  document.getElementById('modalDisponibilidadBody').innerHTML = html;
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.style.display = 'flex';
+}
+
 </script>
 
 </body>
