@@ -249,7 +249,7 @@
     <div class="resumen-grid" id="resumenGrid"><div class="loading" style="grid-column:1/-1">Cargando...</div></div>
 
     <div class="financiero-header">
-      <div class="sec-label" style="margin:0;flex:1">Financiero — semana en curso</div>
+      <div class="sec-label" style="margin:0;flex:1">Financiero — <span id="periodoLabel">periodo en curso</span></div>
       <button class="btn-historico" onclick="abrirHistorico()">
         <div class="oe-icon-sm"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
         Histórico
@@ -409,6 +409,13 @@
   }
 
   function renderFinanciero(f) {
+    // Mostrar periodo catorcenal
+    if (f.periodo) document.getElementById('periodoLabel').textContent = f.periodo;
+    // Normalizar campos (semanal → catorcenal)
+    f.ingresos    = f.ingresos    || f.ingresosSemana    || 0;
+    f.comisiones  = f.comisiones  || f.comisionesSemana  || 0;
+    f.nomina      = f.nomina      || (f.nominaMaestros||0)+(f.nominaAsis||0)+(f.nominaCA||0)+(f.nominaCE||0)+(f.nominaCoordVentas||0)+(f.nominaCoordIT||0);
+    f.balance     = f.balance     || (f.ingresos - f.comisiones - f.nomina);
     var bal = f.balance || 0;
     var bv = bal >= 0 ? 'green' : 'red';
     document.getElementById('finResumen').innerHTML =
@@ -448,7 +455,7 @@
   }
 
   function renderMaestros(maestros) {
-    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','Pago semana','Cuenta','Banco','Contacto'],
+    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','Pago catorcenal','Cuenta','Banco','Contacto'],
       (maestros||[]).map(function(m){return[
         fotoCell(m.foto,m.nombre,m.id), m.grupos,
         '<span class="chip chip-blue">'+m.clases+'</span>',
@@ -617,7 +624,7 @@
         '<div class="acum-card"><div class="acum-label">Nómina total</div><div class="acum-val orange">'+fmt(totN)+'</div></div>' +
         '<div class="acum-card"><div class="acum-label">Balance acumulado</div><div class="acum-val '+balCls+'">'+fmt(totB)+'</div></div>' +
       '</div>' +
-      '<table class="hist-table"><thead><tr><th>Semana</th><th>Ingresos</th><th>Comisiones</th><th>Nómina</th><th>Balance</th></tr></thead><tbody>';
+      '<table class="hist-table"><thead><tr><th>Periodo</th><th>Ingresos</th><th>Comisiones</th><th>Nómina</th><th>Balance</th></tr></thead><tbody>';
 
     historial.forEach(function(h){
       var bal  = Number(h.balance)||0;
