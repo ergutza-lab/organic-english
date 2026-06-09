@@ -71,7 +71,7 @@
   .oe-icon svg { width:20px; height:20px; stroke:var(--blue); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
   /* RESUMEN */
-  .resumen-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .resumen-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px; margin-bottom: 20px; }
   .resumen-card { background:var(--orange-dim); backdrop-filter:blur(14px); border:1px solid var(--orange-brd); border-radius:14px; padding:14px 10px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .resumen-card:hover { transform:none; box-shadow:none; }
   .resumen-card.baja-card { background:var(--red-dim); border-color:rgba(248,113,113,0.35); }
@@ -316,6 +316,7 @@
     asistentes:'<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
     asesores:  '<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
     inscritos: '<svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+    becados:   '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
     bajas:     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
     ingresos:  '<svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
     comision:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>',
@@ -490,7 +491,7 @@
     tablaPersonal('tab-asistentes',['Asistente CE','Grupos','Alumnos','Sueldo','Cuenta','Banco','Contacto'],
       (asistentes||[]).map(function(a){return[
         '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" data-id="'+a.id+'" onclick="var _a=directorCache.asistentes.find(function(x){return x.id===this.dataset.id;},this);if(_a)abrirGruposAsistente(_a);">'+fotoCell(a.foto,a.nombre,a.id)+'</span>',
-        a.grupos,
+        '<span class="chip chip-blue">'+(Array.isArray(a.grupos)?a.grupos.length:a.grupos)+'</span>',
         '<span class="chip chip-green">'+a.alumnos+'</span>',
         '<span class="td-orange">'+fmt(a.sueldo)+'</span>',
         '<span class="td-gray">'+(a.cuenta||'—')+'</span>',
@@ -581,7 +582,7 @@
     var el = document.getElementById('tablaGrupos');
     if (!grupos||!grupos.length){ el.innerHTML='<div class="tabla-wrap"><div class="loading">Sin grupos.</div></div>'; return; }
     var html = '<div class="tabla-wrap"><table><thead><tr>' +
-      '<th>Grupo</th><th>Nivel</th><th>Horario</th><th>Inscritos</th><th>Estado</th><th>Avance</th><th>Maestro</th><th>Asistente CE</th>' +
+      '<th>Grupo</th><th>Nivel</th><th>Horario</th><th>Inicio</th><th>Inscritos</th><th>Estado</th><th>Avance</th><th>Maestro</th><th>Asistente CE</th>' +
       '</tr></thead><tbody>';
     grupos.forEach(function(g){
       var inscritos = Number(g.inscritos) || 0;
@@ -597,6 +598,7 @@
         '<td style="cursor:pointer;" onclick="abrirAlumnosGrupo(directorCache.grupos.find(function(x){return x.idGrupo===\''+g.idGrupo+'\';}))"><span class="td-mono" style="color:#60a5fa;font-size:14px;text-decoration:underline;">'+g.idGrupo+'</span></td>' +
         '<td><span class="chip chip-blue">'+(g.nivel||'').replace('NIVEL ','')+'</span></td>' +
         '<td class="td-gray">'+g.horario+'</td>' +
+        '<td class="td-gray" style="font-size:11px;">'+(g.fechaInicio||'—')+'</td>' +
         '<td>'+inscritosCell+'</td>' +
         '<td>'+chipE+'</td>' +
         '<td>'+calcUnidad(g.fechaInicio)+'</td>' +
