@@ -455,11 +455,12 @@
   }
 
   function renderMaestros(maestros) {
-    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','Pago catorcenal','Cuenta','Banco','Contacto'],
+    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','% Eval','Pago catorcenal','Cuenta','Banco','Contacto'],
       (maestros||[]).map(function(m){return[
-        fotoCell(m.foto,m.nombre,m.id), m.grupos,
+        '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" onclick="abrirEvalMaestro('+JSON.stringify(m)+')">'+fotoCell(m.foto,m.nombre,m.id)+'</span>', m.grupos,
         '<span class="chip chip-blue">'+m.clases+'</span>',
         '<span class="td-gray">'+fmt(m.costoClase)+'</span>',
+        '<span style="color:'+(m.porcentajeEval>=90?'#f97316':m.porcentajeEval>=85?'#facc15':'#94a3b8')+';font-weight:700;">'+(m.porcentajeEval||75)+'%</span>',
         '<span class="td-orange">'+fmt(m.pago)+'</span>',
         '<span class="td-gray">'+(m.cuenta||'—')+'</span>',
         '<span class="td-gray">'+(m.banco||'—')+'</span>',
@@ -481,7 +482,8 @@
   function renderAsistentes(asistentes) {
     tablaPersonal('tab-asistentes',['Asistente CE','Grupos','Alumnos','Sueldo','Cuenta','Banco','Contacto'],
       (asistentes||[]).map(function(a){return[
-        fotoCell(a.foto,a.nombre,a.id), a.grupos,
+        '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" onclick="abrirGruposAsistente('+JSON.stringify(a)+')">'+fotoCell(a.foto,a.nombre,a.id)+'</span>',
+        a.grupos,
         '<span class="chip chip-green">'+a.alumnos+'</span>',
         '<span class="td-orange">'+fmt(a.sueldo)+'</span>',
         '<span class="td-gray">'+(a.cuenta||'—')+'</span>',
@@ -585,7 +587,7 @@
       var inscritosCell = '<span style="font-size:15px;font-weight:600;color:#fff">'+inscritos+'</span>'+chipFusion;
 
       html += '<tr>' +
-        '<td><span class="td-mono" style="color:#fff;font-size:14px">'+g.idGrupo+'</span></td>' +
+        '<td><span class="td-mono" style="color:#60a5fa;font-size:14px;cursor:pointer;text-decoration:underline;" onclick="abrirAlumnosGrupo(directorCache.grupos.find(function(x){return x.idGrupo===\''+g.idGrupo+'\';}))">'+g.idGrupo+'</span></td>' +
         '<td><span class="chip chip-blue">'+(g.nivel||'').replace('NIVEL ','')+'</span></td>' +
         '<td class="td-gray">'+g.horario+'</td>' +
         '<td>'+inscritosCell+'</td>' +
@@ -733,5 +735,50 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 </script>
 <!-- ═══════════════════════════════════════════════════ -->
   
+
+<!-- MODAL ALUMNOS DE GRUPO -->
+<div id="modalAlumnosGrupo" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:500px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="modalGrupoTitulo" style="color:#f1f5f9;margin:0;font-size:16px;"></h3>
+      <button onclick="document.getElementById('modalAlumnosGrupo').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modalAlumnosBody"></div>
+  </div>
+</div>
+
+<!-- MODAL EVAL ALUMNO -->
+<div id="modalEvalAlumno" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:460px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="modalEvalTitulo" style="color:#f1f5f9;margin:0;font-size:16px;"></h3>
+      <button onclick="document.getElementById('modalEvalAlumno').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modalEvalBody"><div style="text-align:center;padding:30px;color:#94a3b8;">Cargando...</div></div>
+  </div>
+</div>
+
+<!-- MODAL EVAL MAESTRO (CA) -->
+<div id="modalEvalMaestro" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:500px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="modalEvalMaestroTitulo" style="color:#f1f5f9;margin:0;font-size:16px;"></h3>
+      <button onclick="document.getElementById('modalEvalMaestro').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modalEvalMaestroBody"><div style="text-align:center;padding:30px;color:#94a3b8;">Cargando...</div></div>
+  </div>
+</div>
+
+<!-- MODAL GRUPOS ASISTENTE -->
+<div id="modalGruposAsis" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:460px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="modalGruposAsisTitulo" style="color:#f1f5f9;margin:0;font-size:16px;"></h3>
+      <button onclick="document.getElementById('modalGruposAsis').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modalGruposAsisBody"></div>
+  </div>
+</div>
+
 </body>
 </html>
