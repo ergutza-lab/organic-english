@@ -393,9 +393,11 @@
       return pre!=='AA' && pre!=='AB' && pre!=='AC' && pre!=='AD' && pre!=='AE' && pre!=='AF' && pre!=='AG' && pre!=='AH';
     }).length;
     var items = [
-      {icon:'alumnos',    val:r.alumnosActivos,   label:'Alumnos activos',      cls:'',         valcls:''},
-      {icon:'inscritos',  val:r.alumnosInscritos, label:'Inscritos', cls:'',         valcls:''},
-      {icon:'bajas',      val:r.bajasSemana,      label:'Bajas esta semana',     cls:'baja-card',valcls:'red'},
+      {icon:'alumnos',    val:(r.alumnosActivos||0)+(r.alumnosBecados||0), label:'Alumnos activos',   cls:'',         valcls:''},
+      {icon:'inscritos',  val:r.alumnosActivos||0,  label:'Pagando',              cls:'',         valcls:''},
+      {icon:'becados',    val:r.alumnosBecados||0,  label:'Becados',              cls:'',         valcls:'green'},
+      {icon:'inscritos',  val:r.alumnosInscritos||0,label:'Inscritos este periodo',cls:'',        valcls:''},
+      {icon:'bajas',      val:r.bajasSemana||0,     label:'Bajas este periodo',   cls:'baja-card',valcls:'red'},
       {icon:'grupos',     val:gruposNoDemo,        label:'Grupos activos',        cls:'',         valcls:''},
       {icon:'maestros',   val:r.maestrosActivos,  label:'Maestros',              cls:'',         valcls:''},
       {icon:'asistentes', val:r.asisActivos,      label:'Asistentes CE',         cls:'',         valcls:''},
@@ -587,7 +589,7 @@
       var inscritosCell = '<span style="font-size:15px;font-weight:600;color:#fff">'+inscritos+'</span>'+chipFusion;
 
       html += '<tr>' +
-        '<td><span class="td-mono" style="color:#60a5fa;font-size:14px;cursor:pointer;text-decoration:underline;" onclick="abrirAlumnosGrupo(directorCache.grupos.find(function(x){return x.idGrupo===\''+g.idGrupo+'\';}))">'+g.idGrupo+'</span></td>' +
+        '<td style="cursor:pointer;" onclick="abrirAlumnosGrupo(directorCache.grupos.find(function(x){return x.idGrupo===\''+g.idGrupo+'\';}))"><span class="td-mono" style="color:#60a5fa;font-size:14px;text-decoration:underline;">'+g.idGrupo+'</span></td>' +
         '<td><span class="chip chip-blue">'+(g.nivel||'').replace('NIVEL ','')+'</span></td>' +
         '<td class="td-gray">'+g.horario+'</td>' +
         '<td>'+inscritosCell+'</td>' +
@@ -670,6 +672,153 @@
 
   document.getElementById('inputClave').addEventListener('keypress', function(e){ if(e.key==='Enter') login(); });
   document.getElementById('modalHistorico').addEventListener('click', function(e){ if(e.target===this) cerrarHistorico(); });
+
+
+function abrirHorario() {
+  if (window.innerWidth < 768) {
+    window.open('horario.html', '_blank');
+    return;
+  }
+  var overlay = document.getElementById('horarioOverlay');
+  var frame   = document.getElementById('horarioFrame');
+  frame.src = 'horario.html';
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarHorario() {
+  var overlay = document.getElementById('horarioOverlay');
+  var frame   = document.getElementById('horarioFrame');
+  overlay.style.display = 'none';
+  frame.src = '';
+  document.body.style.overflow = '';
+}
+
+// Escuchar mensaje de cierre desde el iframe
+window.addEventListener('message', function(e) {
+  if (e.data === 'cerrarHorario') cerrarHorario();
+});
+
+// Cerrar con clic en el fondo oscuro
+var _ho = document.getElementById('horarioOverlay');
+if (_ho) _ho.addEventListener('click', function(e) {
+  if (e.target === this) cerrarHorario();
+});
+
+
+// ── DIRECTOR — DRILL DOWN ────────────────────────────────────────────────────
+function abrirAlumnosGrupo(grupo) {
+  if (!grupo) return;
+  var modal = document.getElementById('modalAlumnosGrupo');
+  if (!modal) return;
+  document.getElementById('modalGrupoTitulo').textContent = 'Grupo '+grupo.idGrupo+' — '+grupo.nombre+' '+grupo.horario;
+  var alumnos = grupo.alumnos || [];
+  var html = alumnos.length ? '<div style="font-size:12px;color:#64748b;margin-bottom:12px;">'+alumnos.length+' alumno(s)</div>' : '<p style="color:#64748b;text-align:center;padding:20px;">Sin alumnos.</p>';
+  alumnos.forEach(function(a){
+    var col = a.estatus==='Validado'?'#4ade80':a.estatus==='Becado'?'#facc15':'#f87171';
+    var safeNombre = a.nombre.replace(/['"]/g,'');
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:8px;cursor:pointer;" data-id="'+a.id+'" data-nombre="'+safeNombre+'" data-grupo="'+grupo.idGrupo+'" onclick="abrirEvalAlumno(this.dataset.id,this.dataset.nombre,this.dataset.grupo)">';
+    html += '<div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">'+a.nombre+'</div><div style="font-size:11px;color:#64748b;">'+a.id+'</div></div>';
+    html += '<span style="color:'+col+';border-radius:100px;font-size:11px;font-weight:700;padding:3px 10px;background:rgba(255,255,255,0.06);">'+a.estatus+'</span></div>';
+  });
+  document.getElementById('modalAlumnosBody').innerHTML = html;
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.style.display = 'flex';
+}
+function abrirEvalAlumno(idAlumno, nombre, idGrupo) {
+  var modal = document.getElementById('modalEvalAlumno');
+  if (!modal) return;
+  document.getElementById('modalEvalTitulo').textContent = '📊 '+nombre;
+  document.getElementById('modalEvalBody').innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;">Cargando...</div>';
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.style.display = 'flex';
+  fetch(APPS_SCRIPT+'?action=getEvalAlumnoDirector&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+  .then(function(r){return r.json();}).then(function(data){
+    var html='<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;text-align:center;margin-bottom:16px;">';
+    html+='<div style="font-size:28px;font-weight:800;color:#60a5fa;">'+(data.pctAsistencia||0)+'%</div>';
+    html+='<div style="font-size:11px;color:#64748b;">Asistencia · '+data.asistencias+'/'+data.totalClases+' clases</div></div>';
+    if(data.evaluaciones&&data.evaluaciones.length){
+      html+='<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Evaluaciones</div>';
+      data.evaluaciones.forEach(function(ev){
+        html+='<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:8px;">';
+        html+='<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#f1f5f9;">'+ev.tipo+'</span><span style="color:#64748b;">Sem '+ev.semana+'</span></div>';
+        html+='<div style="font-size:20px;font-weight:800;color:#facc15;margin:4px 0;">'+ev.puntaje+'/5 ⭐</div>';
+        if(ev.comentario) html+='<div style="font-size:11px;color:#94a3b8;font-style:italic;">"'+ev.comentario+'"</div>';
+        html+='</div>';
+      });
+    } else { html+='<p style="color:#64748b;text-align:center;font-size:13px;">Sin evaluaciones aún.</p>'; }
+    document.getElementById('modalEvalBody').innerHTML=html;
+  }).catch(function(){ document.getElementById('modalEvalBody').innerHTML='<p style="color:#f87171;text-align:center;">Error.</p>'; });
+}
+function abrirEvalMaestro(m) {
+  var modal = document.getElementById('modalEvalMaestro');
+  if (!modal) return;
+  document.getElementById('modalEvalMaestroTitulo').textContent = '🎓 '+m.nombre;
+  document.getElementById('modalEvalMaestroBody').innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;">Cargando...</div>';
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.style.display = 'flex';
+  fetch(APPS_SCRIPT+'?action=getDesempenoMaestro&id='+encodeURIComponent(m.id),{redirect:'follow'})
+  .then(function(r){return r.json();}).then(function(data){
+    var pct=data.porcentaje||75;
+    var col=pct>=95?'#f97316':pct>=90?'#fb923c':pct>=85?'#facc15':pct>=80?'#fde68a':'#94a3b8';
+    var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;">';
+    html+='<div style="font-size:36px;font-weight:800;color:'+col+';">'+pct+'%</div>';
+    html+='<div><div style="font-size:13px;color:#94a3b8;">Evaluación del CA</div>';
+    html+='<div style="font-size:12px;color:#64748b;">'+(data.acumuladas||0)+'/4 evals para siguiente nivel</div></div></div>';
+    var evals=data.evaluaciones||[];
+    if(evals.length){
+      html+='<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Historial CA</div>';
+      evals.slice(0,5).forEach(function(ev){
+        var colEv=ev.resultado==='positiva'?'#4ade80':ev.resultado==='negativa'?'#f87171':'#fb923c';
+        var icon=ev.resultado==='positiva'?'✅':ev.resultado==='negativa'?'❌':'➡️';
+        var fecha=ev.fecha?new Date(ev.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):'—';
+        html+='<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:8px;border-left:3px solid '+colEv+';">';
+        html+='<div style="display:flex;justify-content:space-between;"><span style="color:'+colEv+';font-size:12px;">'+icon+' '+ev.resultado+'</span><span style="color:#64748b;font-size:11px;">'+fecha+'</span></div>';
+        html+='<div style="font-size:12px;color:#64748b;margin-top:4px;">→ '+ev.pctNuevo+'%</div>';
+        if(ev.comentarios&&ev.comentarios.general) html+='<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:4px;">"'+ev.comentarios.general+'"</div>';
+        html+='</div>';
+      });
+    } else { html+='<p style="color:#64748b;text-align:center;font-size:13px;">Sin evaluaciones del CA aún.</p>'; }
+    document.getElementById('modalEvalMaestroBody').innerHTML=html;
+  }).catch(function(){ document.getElementById('modalEvalMaestroBody').innerHTML='<p style="color:#f87171;text-align:center;">Error.</p>'; });
+}
+function abrirGruposAsistente(a) {
+  var modal = document.getElementById('modalGruposAsis');
+  if (!modal) return;
+  document.getElementById('modalGruposAsisTitulo').textContent = '📋 '+a.nombre;
+  var grupos=a.grupos||[];
+  var html=grupos.length?'<div style="font-size:12px;color:#64748b;margin-bottom:12px;">'+grupos.length+' grupo(s)</div>':'<p style="color:#64748b;text-align:center;padding:20px;">Sin grupos.</p>';
+  grupos.forEach(function(g){
+    html+='<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+    html+='<div><div style="font-size:13px;font-weight:700;color:#f1f5f9;">'+g.id+' — '+g.nombre+'</div><div style="font-size:11px;color:#64748b;">'+g.horario+'</div></div>';
+    html+='<span style="color:#4ade80;font-size:12px;font-weight:700;">'+g.inscritos+' alumnos</span></div>';
+  });
+  html+='<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">';
+  html+='<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:10px;">Evaluaciones de alumnos</div>';
+  html+='<div id="evalAsisBody"><div style="color:#64748b;font-size:13px;text-align:center;">Cargando...</div></div></div>';
+  document.getElementById('modalGruposAsisBody').innerHTML=html;
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.style.display='flex';
+  fetch(APPS_SCRIPT+'?action=getEvalAsistente&idAsistente='+encodeURIComponent(a.id),{redirect:'follow'})
+  .then(function(r){return r.json();}).then(function(data){
+    var evalHtml='';
+    if(data.evaluaciones&&data.evaluaciones.length){
+      var total=data.evaluaciones.length;
+      var suma=data.evaluaciones.reduce(function(acc,ev){return acc+(Number(ev.puntaje)||0);},0);
+      evalHtml+='<div style="text-align:center;margin-bottom:12px;"><div style="font-size:28px;font-weight:800;color:#facc15;">'+(suma/total).toFixed(1)+'/5 ⭐</div>';
+      evalHtml+='<div style="font-size:11px;color:#64748b;">Promedio de '+total+' evaluación(es)</div></div>';
+      data.evaluaciones.slice(0,5).forEach(function(ev){
+        evalHtml+='<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;margin-bottom:6px;">';
+        evalHtml+='<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#f1f5f9;">'+(ev.alumno||'—')+'</span><span style="color:#facc15;font-weight:700;">'+(ev.puntaje||0)+'/5 ⭐</span></div>';
+        if(ev.comentario) evalHtml+='<div style="font-size:11px;color:#94a3b8;margin-top:4px;font-style:italic;">"'+ev.comentario+'"</div>';
+        evalHtml+='</div>';
+      });
+    } else { evalHtml='<p style="color:#64748b;text-align:center;font-size:13px;">Sin evaluaciones aún.</p>'; }
+    var el=document.getElementById('evalAsisBody');
+    if(el) el.innerHTML=evalHtml;
+  }).catch(function(){ var el=document.getElementById('evalAsisBody'); if(el) el.innerHTML='<p style="color:#f87171;text-align:center;">Error.</p>'; });
+}
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════
@@ -702,37 +851,7 @@
   </iframe>
 </div>
 
-<script>
-function abrirHorario() {
-  if (window.innerWidth < 768) {
-    window.open('horario.html', '_blank');
-    return;
-  }
-  var overlay = document.getElementById('horarioOverlay');
-  var frame   = document.getElementById('horarioFrame');
-  frame.src = 'horario.html';
-  overlay.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
 
-function cerrarHorario() {
-  var overlay = document.getElementById('horarioOverlay');
-  var frame   = document.getElementById('horarioFrame');
-  overlay.style.display = 'none';
-  frame.src = '';
-  document.body.style.overflow = '';
-}
-
-// Escuchar mensaje de cierre desde el iframe
-window.addEventListener('message', function(e) {
-  if (e.data === 'cerrarHorario') cerrarHorario();
-});
-
-// Cerrar con clic en el fondo oscuro
-document.getElementById('horarioOverlay').addEventListener('click', function(e) {
-  if (e.target === this) cerrarHorario();
-});
-</script>
 <!-- ═══════════════════════════════════════════════════ -->
   
 
