@@ -368,9 +368,14 @@
 
     var directorCache = null;
   function esDemo(g) {
+    if (!g) return false;
+    // Filtrar por estado DEMO
+    if (String(g.estado||'').toUpperCase() === 'DEMO') return true;
+    // Filtrar por prefijo de ID (grupos demo legacy)
     var id = (g.idGrupo || '').toUpperCase();
     var pre = id.substring(0, 2);
-    return pre === 'AA' || pre === 'AB' || pre === 'AC' || pre === 'AD' || pre === 'AE' || pre === 'AF' || pre === 'AG' || pre === 'AH';
+    return pre === 'AA' || pre === 'AB' || pre === 'AC' || pre === 'AD' ||
+           pre === 'AE' || pre === 'AF' || pre === 'AG' || pre === 'AH';
   }
   function cargarDatos() {
     fetch(APPS_SCRIPT + '?action=getDatosDirector').then(r => r.text()).then(text => {
@@ -459,7 +464,7 @@
   function renderMaestros(maestros) {
     tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','% Eval','Pago catorcenal','Cuenta','Banco','Contacto'],
       (maestros||[]).map(function(m){return[
-        '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" onclick="abrirEvalMaestro('+JSON.stringify(m)+')">'+fotoCell(m.foto,m.nombre,m.id)+'</span>', m.grupos,
+        '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" data-id="'+m.id+'" onclick="var _m=directorCache.maestros.find(function(x){return x.id===this.dataset.id;},this);if(_m)abrirEvalMaestro(_m);">'+fotoCell(m.foto,m.nombre,m.id)+'</span>', m.grupos,
         '<span class="chip chip-blue">'+m.clases+'</span>',
         '<span class="td-gray">'+fmt(m.costoClase)+'</span>',
         '<span style="color:'+(m.porcentajeEval>=90?'#f97316':m.porcentajeEval>=85?'#facc15':'#94a3b8')+';font-weight:700;">'+(m.porcentajeEval||75)+'%</span>',
@@ -484,7 +489,7 @@
   function renderAsistentes(asistentes) {
     tablaPersonal('tab-asistentes',['Asistente CE','Grupos','Alumnos','Sueldo','Cuenta','Banco','Contacto'],
       (asistentes||[]).map(function(a){return[
-        '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" onclick="abrirGruposAsistente('+JSON.stringify(a)+')">'+fotoCell(a.foto,a.nombre,a.id)+'</span>',
+        '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" data-id="'+a.id+'" onclick="var _a=directorCache.asistentes.find(function(x){return x.id===this.dataset.id;},this);if(_a)abrirGruposAsistente(_a);">'+fotoCell(a.foto,a.nombre,a.id)+'</span>',
         a.grupos,
         '<span class="chip chip-green">'+a.alumnos+'</span>',
         '<span class="td-orange">'+fmt(a.sueldo)+'</span>',
