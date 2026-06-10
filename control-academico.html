@@ -1218,19 +1218,16 @@ function desbloquearHorario(idMaestro, horario) {
 
 function asignarGrupoAMaestro(idMaestro, idGrupo) {
   if (!confirm('Asignar grupo '+idGrupo+' a este maestro?')) return;
-  var url = 'action=reasignarGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idMaestro);
-  callAS(url, function(data) {
-    if (data && data.ok) {
-      mostrarToast('Grupo '+idGrupo+' asignado correctamente', 'success');
+  fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idMaestro), {redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if (data && (data.status==='ok'||data.ok)) {
+      mostrarToast('✅ Grupo '+idGrupo+' asignado', 'success');
       cargarDatos();
-      var idText = document.getElementById('modalMaestroId').textContent;
-      renderDisponibilidad(idText.split(' \u00b7 ')[0]);
+      renderDisponibilidad(idMaestro);
     } else {
-      mostrarToast('Error al asignar: '+(data&&data.error||''), 'error');
+      mostrarToast('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'), 'error');
     }
-  });
+  })
+  .catch(function(){ mostrarToast('❌ Error de conexión', 'error'); });
 }
-</script>
-
-</body>
-</html>
