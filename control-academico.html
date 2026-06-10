@@ -672,6 +672,8 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         '<th style="padding:8px;color:var(--muted);text-align:left;">Estado</th>'+
         '</tr></thead><tbody>';
 
+      // Ordenar por % global de mayor a menor
+      data.resultados.sort(function(a,b){ return (b.porcentajeGlobal||0)-(a.porcentajeGlobal||0); });
       data.resultados.forEach(function(r){
         var pc=r.porcentajeGlobal||0;
         var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
@@ -810,7 +812,9 @@ function renderSemana(resumen){
     if (m.grupos && m.grupos.length) {
       m.grupos.forEach(function(g){
         if (g.grabacion) {
-          grabHtml += '<div style="margin-top:4px;"><a href="'+g.grabacion+'" target="_blank" style="font-size:10px;color:#60a5fa;text-decoration:none;">▶ '+g.id+' '+g.nombre+' '+g.horario+'</a></div>';
+          var niv = (g.nivel||'').toUpperCase();
+          var grabCol = niv.includes('PRE-A1')||niv.includes('STARTER')?'#94a3b8':niv.includes('A1')?'#7b9ef5':niv.includes('A2')?'#22d3ee':niv.includes('B1')?'#4ade80':niv.includes('B2')?'#fb923c':niv.includes('C1')?'#a78bfa':'#60a5fa';
+          grabHtml += '<div style="margin-top:4px;"><a href="'+g.grabacion+'" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:'+grabCol+';background:rgba(255,255,255,0.05);border:1px solid '+grabCol+'44;border-radius:6px;padding:3px 8px;text-decoration:none;">▶ '+g.id+' · '+g.nombre+' '+g.horario+'</a></div>';
         }
       });
     }
@@ -1109,18 +1113,12 @@ function logout(){
 document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('inputClave').addEventListener('keypress',function(e){if(e.key==='Enter') login();});
 });
-</script>
 
-<!-- HORARIO FLOTANTE -->
-<button onclick="abrirHorario()" style="position:fixed;bottom:24px;right:24px;z-index:998;background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Arial,sans-serif;">📅 Horario</button>
-<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
-  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
-</div>
-<script>
+
 function abrirHorario(){if(window.innerWidth<768){window.open('horario.html','_blank');return;}var o=document.getElementById('horarioOverlay'),f=document.getElementById('horarioFrame');f.src='horario.html';o.style.display='flex';document.body.style.overflow='hidden';}
 function cerrarHorario(){var o=document.getElementById('horarioOverlay'),f=document.getElementById('horarioFrame');o.style.display='none';f.src='';document.body.style.overflow='';}
 window.addEventListener('message',function(e){if(e.data==='cerrarHorario')cerrarHorario();});
-document.getElementById('horarioOverlay').addEventListener('click',function(e){if(e.target===this)cerrarHorario();});
+var _ho=document.getElementById('horarioOverlay'); if(_ho) _ho.addEventListener('click',function(e){if(e.target===this)cerrarHorario();});
 
 // ── DISPONIBILIDAD DEL MAESTRO ──────────────────────────────────────────────
 function abrirDisponibilidad() {
@@ -1231,6 +1229,14 @@ function asignarGrupoAMaestro(idMaestro, idGrupo) {
   })
   .catch(function(){ mostrarToast('❌ Error de conexión', 'error'); });
 }
+
 </script>
+
+<!-- HORARIO FLOTANTE -->
+<button onclick="abrirHorario()" style="position:fixed;bottom:24px;right:24px;z-index:998;background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Arial,sans-serif;">📅 Horario</button>
+<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
+  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
+</div>
+
 </body>
 </html>
