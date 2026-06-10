@@ -585,7 +585,7 @@
         '<span class="td-mono" style="color:#60a5fa;font-size:14px;text-decoration:underline;">'+g.idGrupo+'</span></td>' +
         '<td><span class="chip chip-blue">'+(g.nivel||'').replace('NIVEL ','')+'</span></td>' +
         '<td class="td-gray">'+g.horario+'</td>' +
-        '<td class="td-gray" style="font-size:11px;">'+(g.fechaInicio||'—')+'</td>' +
+        '<td class="td-gray" style="font-size:11px;">'+( g.fechaInicio ? (function(s){ var d=new Date(s); return isNaN(d.getTime()) ? s : d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); })(g.fechaInicio) : '—' )+'</td>' +
         '<td>'+inscritosCell+'</td>' +
         '<td>'+chipE+'</td>' +
         '<td>'+calcUnidad(g.fechaInicio)+'</td>' +
@@ -629,8 +629,7 @@
     historial.forEach(function(h){
       var bal  = Number(h.balance)||0;
       var bCls = bal >= 0 ? 'td-green' : 'td-red';
-      var f    = new Date(h.semana);
-      var fStr = f.getDate()+'/'+(f.getMonth()+1)+'/'+f.getFullYear();
+      var fStr = h.semana ? String(h.semana) : '—';
       html += '<tr>' +
         '<td style="color:#fff;font-weight:500">Semana del '+fStr+'</td>' +
         '<td class="td-green">'+fmt(h.ingresos)+'</td>' +
@@ -839,33 +838,62 @@ function abrirEvalMaestro(m) {
   document.getElementById('modalEvalMaestroBody').innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;">Cargando...</div>';
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
-  fetch(APPS_SCRIPT+'?action=getDesempenoMaestro&id='+encodeURIComponent(m.id),{redirect:'follow'})
-  .then(function(r){return r.json();})
-  .then(function(data){
-    var pct=data.porcentaje||75;
-    var col=pct>=95?'#f97316':pct>=90?'#fb923c':pct>=85?'#facc15':pct>=80?'#fde68a':'#94a3b8';
-    var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;">';
-    html+='<div style="font-size:36px;font-weight:800;color:'+col+';">'+pct+'%</div>';
-    html+='<div><div style="font-size:13px;color:#94a3b8;">Evaluaci\u00f3n del CA</div><div style="font-size:12px;color:#64748b;">'+(data.acumuladas||0)+'/4 evals para siguiente nivel</div></div></div>';
-    var evals=data.evaluaciones||[];
-    if(evals.length){
-      html+='<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Historial CA</div>';
+
+  // Fetch paralelo: evaluaciones CA + evaluaciones de alumnos
+  Promise.all([
+    fetch(APPS_SCRIPT+'?action=getDesempenoMaestro&id='+encodeURIComponent(m.id),{redirect:'follow'}).then(function(r){return r.json();}),
+    fetch(APPS_SCRIPT+'?action=getEvalMaestroAlumnos&idMaestro='+encodeURIComponent(m.id),{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {evaluaciones:[]};})
+  ])
+  .then(function(results){
+    var ca   = results[0];
+    var alum = results[1];
+    var pct  = ca.porcentaje||75;
+    var col  = pct>=95?'#f97316':pct>=90?'#fb923c':pct>=85?'#facc15':pct>=80?'#fde68a':'#94a3b8';
+    var html = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;">';
+    html += '<div style="font-size:36px;font-weight:800;color:'+col+';">'+pct+'%</div>';
+    html += '<div><div style="font-size:13px;color:#94a3b8;">Evaluación del CA</div>';
+    html += '<div style="font-size:12px;color:#64748b;">'+(ca.acumuladas||0)+'/4 evals para siguiente nivel</div></div></div>';
+
+    // Historial CA
+    var evals = ca.evaluaciones||[];
+    if (evals.length) {
+      html += '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Historial CA</div>';
       evals.slice(0,5).forEach(function(ev){
-        var colEv=ev.resultado==='positiva'?'#4ade80':ev.resultado==='negativa'?'#f87171':'#fb923c';
-        var icon=ev.resultado==='positiva'?'OK':ev.resultado==='negativa'?'NO':'-';
-        var fecha=ev.fecha?new Date(ev.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):'---';
-        html+='<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:8px;border-left:3px solid '+colEv+';">';
-        html+='<div style="display:flex;justify-content:space-between;"><span style="color:'+colEv+';font-size:12px;">'+icon+' '+ev.resultado+'</span><span style="color:#64748b;font-size:11px;">'+fecha+'</span></div>';
-        html+='<div style="font-size:12px;color:#64748b;margin-top:4px;">-> '+ev.pctNuevo+'%</div>';
-        if(ev.comentarios&&ev.comentarios.general) html+='<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:4px;">"'+ev.comentarios.general+'"</div>';
-        html+='</div>';
+        var colEv = ev.resultado==='positiva'?'#4ade80':ev.resultado==='negativa'?'#f87171':'#fb923c';
+        var icon  = ev.resultado==='positiva'?'✅':ev.resultado==='negativa'?'❌':'➡️';
+        var fecha = ev.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '—';
+        html += '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:8px;border-left:3px solid '+colEv+';">';
+        html += '<div style="display:flex;justify-content:space-between;"><span style="color:'+colEv+';font-size:12px;">'+icon+' '+ev.resultado+'</span><span style="color:#64748b;font-size:11px;">'+fecha+'</span></div>';
+        html += '<div style="font-size:12px;color:#64748b;margin-top:4px;">→ '+ev.pctNuevo+'%</div>';
+        if (ev.comentarios&&ev.comentarios.general) html += '<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:4px;">"'+ev.comentarios.general+'"</div>';
+        html += '</div>';
       });
-    } else { html+='<p style="color:#64748b;text-align:center;font-size:13px;">Sin evaluaciones del CA a\u00fan.</p>'; }
-    document.getElementById('modalEvalMaestroBody').innerHTML=html;
+    } else {
+      html += '<p style="color:#64748b;font-size:13px;text-align:center;">Sin evaluaciones del CA aún.</p>';
+    }
+
+    // Evaluaciones de alumnos al maestro
+    html += '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;">Evaluaciones de alumnos</div>';
+    var evalAlum = alum.evaluaciones||[];
+    if (evalAlum.length) {
+      var suma = evalAlum.reduce(function(acc,ev){return acc+(Number(ev.puntaje)||0);},0);
+      var prom = (suma/evalAlum.length).toFixed(1);
+      html += '<div style="text-align:center;margin-bottom:12px;"><div style="font-size:28px;font-weight:800;color:#facc15;">'+prom+'/5 ⭐</div>';
+      html += '<div style="font-size:11px;color:#64748b;">Promedio de '+evalAlum.length+' evaluación(es)</div></div>';
+      evalAlum.slice(0,5).forEach(function(ev){
+        html += '<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;margin-bottom:6px;">';
+        html += '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#f1f5f9;">'+(ev.alumno||'—')+'</span><span style="color:#facc15;font-weight:700;">'+(ev.puntaje||0)+'/5 ⭐</span></div>';
+        if (ev.comentario) html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;font-style:italic;">"'+ev.comentario+'"</div>';
+        html += '</div>';
+      });
+    } else {
+      html += '<p style="color:#64748b;font-size:13px;text-align:center;">Sin evaluaciones de alumnos aún.</p>';
+    }
+
+    document.getElementById('modalEvalMaestroBody').innerHTML = html;
   })
   .catch(function(){ document.getElementById('modalEvalMaestroBody').innerHTML='<p style="color:#f87171;text-align:center;">Error.</p>'; });
 }
-
 function abrirGruposAsistente(a) {
   var modal = document.getElementById('modalGruposAsis');
   if (!modal) return;
