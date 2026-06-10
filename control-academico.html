@@ -998,13 +998,8 @@ function cargarReporteGrupo(){
       if(!data.success||!data.resultados||!data.resultados.length){
         tbody.innerHTML='<tr><td colspan="12" class="empty-state">Sin registros para este grupo.</td></tr>';return;
       }
-      // Ordenar: Pase asegurado primero, luego Pendiente, luego No acredita
-      var orden={'Pase asegurado':0,'Pendiente':1,'No acredita':2};
-      data.resultados.sort(function(a,b){
-        var oa=orden[a.estado]!==undefined?orden[a.estado]:3;
-        var ob=orden[b.estado]!==undefined?orden[b.estado]:3;
-        return oa-ob;
-      });
+      // Ordenar por % Global de mayor a menor
+      data.resultados.sort(function(a,b){ return (b.porcentajeGlobal||0)-(a.porcentajeGlobal||0); });
       tbody.innerHTML=data.resultados.map(function(r){
         var tot=r.totalClases||1;
         var gp=function(c){return tot>0?Math.round(((r.colores[c]||0)/tot)*100):0;};
