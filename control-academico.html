@@ -1237,7 +1237,10 @@ function removerGrupoMaestro(idMaestro, idGrupo) {
   .then(function(data){
     if (data && (data.status==='ok'||data.ok)) {
       mostrarToast('✅ Grupo '+idGrupo+' removido', 'success');
-      cargarDatos(function(){ renderDisponibilidad(idMaestro); });
+      // Actualizar gruposData localmente para reflejar cambio inmediato
+      gruposData.forEach(function(g){ if(g.id===idGrupo) g.idMaestro='SIN ASIG.'; });
+      renderDisponibilidad(idMaestro);
+      setTimeout(function(){ cargarDatos(function(){ renderDisponibilidad(idMaestro); }); }, 2000);
     } else {
       mostrarToast('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'), 'error');
     }
@@ -1252,7 +1255,10 @@ function asignarGrupoAMaestro(idMaestro, idGrupo) {
   .then(function(data){
     if (data && (data.status==='ok'||data.ok)) {
       mostrarToast('✅ Grupo '+idGrupo+' asignado', 'success');
-      cargarDatos(function(){ renderDisponibilidad(idMaestro); });
+      // Actualizar gruposData localmente para reflejar cambio inmediato
+      gruposData.forEach(function(g){ if(g.id===idGrupo) g.idMaestro=idMaestro; });
+      renderDisponibilidad(idMaestro);
+      setTimeout(function(){ cargarDatos(function(){ renderDisponibilidad(idMaestro); }); }, 2000);
     } else {
       mostrarToast('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'), 'error');
     }
