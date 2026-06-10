@@ -1230,22 +1230,38 @@ function desbloquearHorario(idMaestro, horario) {
   renderDisponibilidad(idMaestro);
 }
 
+function mostrarToast(msg, tipo) {
+  var el = document.getElementById('caToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'caToast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:99999;transition:opacity 0.3s;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.background = tipo==='error' ? 'rgba(239,68,68,0.9)' : 'rgba(34,197,94,0.9)';
+  el.style.color = '#fff';
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.opacity='0'; }, 3000);
+}
+
 function removerGrupoMaestro(idMaestro, idGrupo) {
   if (!confirm('Remover grupo '+idGrupo+' de este maestro?')) return;
   fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&idMaestroNuevo=SIN+ASIG.', {redirect:'follow'})
   .then(function(r){return r.json();})
   .then(function(data){
     if (data && (data.status==='ok'||data.ok)) {
-      mostrarToast('✅ Grupo '+idGrupo+' removido', 'success');
+      alert('✅ Grupo '+idGrupo+' removido correctamente.');
       // Actualizar gruposData localmente para reflejar cambio inmediato
       gruposData.forEach(function(g){ if(g.id===idGrupo) g.idMaestro='SIN ASIG.'; });
       renderDisponibilidad(idMaestro);
       setTimeout(function(){ cargarDatos(function(){ renderDisponibilidad(idMaestro); }); }, 2000);
     } else {
-      mostrarToast('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'), 'error');
+      alert('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'));
     }
   })
-  .catch(function(){ mostrarToast('❌ Error de conexión', 'error'); });
+  .catch(function(){ alert('❌ Error de conexión'); });
 }
 
 function asignarGrupoAMaestro(idMaestro, idGrupo) {
@@ -1254,16 +1270,16 @@ function asignarGrupoAMaestro(idMaestro, idGrupo) {
   .then(function(r){return r.json();})
   .then(function(data){
     if (data && (data.status==='ok'||data.ok)) {
-      mostrarToast('✅ Grupo '+idGrupo+' asignado', 'success');
+      alert('✅ Grupo '+idGrupo+' asignado correctamente.');
       // Actualizar gruposData localmente para reflejar cambio inmediato
       gruposData.forEach(function(g){ if(g.id===idGrupo) g.idMaestro=idMaestro; });
       renderDisponibilidad(idMaestro);
       setTimeout(function(){ cargarDatos(function(){ renderDisponibilidad(idMaestro); }); }, 2000);
     } else {
-      mostrarToast('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'), 'error');
+      alert('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'));
     }
   })
-  .catch(function(){ mostrarToast('❌ Error de conexión', 'error'); });
+  .catch(function(){ alert('❌ Error de conexión'); });
 }
 
 </script>
