@@ -570,8 +570,22 @@
     var html = '<div class="tabla-wrap"><table><thead><tr>' +
       '<th>Grupo</th><th>Nivel</th><th>Horario</th><th>Inicio</th><th>Inscritos</th><th>Estado</th><th>Avance</th><th>Maestro</th><th>Asistente CE</th>' +
       '</tr></thead><tbody>';
+    var ultimaFechaGrupo = null;
     grupos.forEach(function(g){
       var inscritos = Number(g.inscritos) || 0;
+      // Separador por fecha de inicio
+      var fechaG = g.fechaInicio ? (function(s){
+        var d = new Date(s);
+        return isNaN(d.getTime()) ? String(s).substring(0,10) : d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+      })(g.fechaInicio) : '—';
+      if (fechaG !== ultimaFechaGrupo) {
+        html += '<tr><td colspan="9" style="padding:4px 8px;border:none;background:rgba(255,255,255,0.02);">';
+        html += '<span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px;">Inicio: '+fechaG+'</span></td></tr>';
+        if (ultimaFechaGrupo !== null) {
+          html = html.replace(/<tr><td colspan="9"[^>]+><span[^>]+>Inicio: /, '<tr><td colspan="9" style="padding:8px 8px 4px;border:none;background:rgba(255,255,255,0.02);"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px;">Inicio: ');
+        }
+        ultimaFechaGrupo = fechaG;
+      }
       var chipE = g.estado==='LLENO'
         ? '<span class="chip chip-red">Lleno</span>'
         : '<span class="chip chip-green">Disponible</span>';
@@ -905,8 +919,42 @@ function abrirGruposAsistente(a) {
     html+='<div><div style="font-size:13px;font-weight:700;color:#f1f5f9;">'+g.id+' - '+g.nombre+'</div><div style="font-size:11px;color:#64748b;">'+g.horario+'</div></div>';
     html+='<span style="color:#4ade80;font-size:12px;font-weight:700;">'+g.inscritos+' alumnos</span></div>';
   });
+  // Sección de evaluaciones — placeholder mientras carga
+  html += '<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">';
+  html += '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Evaluaciones de alumnos</div>';
+  html += '<div id="evalAsisDirectorBody"><div style="text-align:center;padding:16px;color:#64748b;font-size:13px;">Cargando...</div></div></div>';
   document.getElementById('modalGruposAsisBody').innerHTML=html;
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display='flex';
+  // Fetch evaluaciones
+  fetch(APPS_SCRIPT+'?action=getEvalAsistente&idAsistente='+encodeURIComponent(a.id),{redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var el = document.getElementById('evalAsisDirectorBody');
+    if (!el) return;
+    var evals = (data && data.evaluaciones) ? data.evaluaciones : [];
+    var evalHtml = '';
+    if (evals.length) {
+      var suma = evals.reduce(function(acc,ev){return acc+(Number(ev.puntaje)||0);},0);
+      var prom = (suma/evals.length).toFixed(1);
+      evalHtml += '<div style="text-align:center;margin-bottom:12px;">';
+      evalHtml += '<div style="font-size:28px;font-weight:800;color:#facc15;">'+prom+'/5 ⭐</div>';
+      evalHtml += '<div style="font-size:11px;color:#64748b;">Promedio de '+evals.length+' evaluación(es)</div></div>';
+      evals.slice(0,5).forEach(function(ev){
+        evalHtml += '<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;margin-bottom:6px;">';
+        evalHtml += '<div style="display:flex;justify-content:space-between;font-size:12px;">';
+        evalHtml += '<span style="color:#f1f5f9;">'+(ev.alumno||'—')+'</span>';
+        evalHtml += '<span style="color:#facc15;font-weight:700;">'+(ev.puntaje||0)+'/5 ⭐</span></div>';
+        evalHtml += '</div>';
+      });
+    } else {
+      evalHtml = '<p style="color:#64748b;text-align:center;font-size:13px;">Sin evaluaciones de alumnos aún.</p>';
+    }
+    el.innerHTML = evalHtml;
+  })
+  .catch(function(){
+    var el = document.getElementById('evalAsisDirectorBody');
+    if (el) el.innerHTML = '<p style="color:#f87171;text-align:center;font-size:13px;">Error al cargar.</p>';
+  });
 }
 </script>
