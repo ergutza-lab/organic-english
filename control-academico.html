@@ -1158,7 +1158,7 @@ function renderDisponibilidad(idMaestro) {
       html += '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.4);border-radius:10px;padding:12px 16px;">';
       html += '<div><div style="font-size:13px;font-weight:700;color:#fb923c;">'+h+'</div>';
       html += '<div style="font-size:11px;color:var(--muted);">Grupo '+gOcupa.id+' \u2014 '+(gOcupa.nombre||'')+'</div></div>';
-      html += '<span style="font-size:11px;font-weight:700;color:#fb923c;">Ocupado</span></div>';
+      html += '<button onclick="removerGrupoMaestro(\''+idMaestro+'\',\''+gOcupa.id+'\')" style="font-size:11px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;cursor:pointer;">Remover</button></div>';
     } else if (bloq) {
       // Bloqueado por el maestro
       html += '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.3);border-radius:10px;padding:12px 16px;">';
@@ -1207,6 +1207,22 @@ function desbloquearHorario(idMaestro, horario) {
   delete bloq[horario];
   localStorage.setItem(key, JSON.stringify(bloq));
   renderDisponibilidad(idMaestro);
+}
+
+function removerGrupoMaestro(idMaestro, idGrupo) {
+  if (!confirm('Remover grupo '+idGrupo+' de este maestro?')) return;
+  fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&idMaestroNuevo=SIN+ASIG.', {redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if (data && (data.status==='ok'||data.ok)) {
+      mostrarToast('✅ Grupo '+idGrupo+' removido', 'success');
+      cargarDatos();
+      renderDisponibilidad(idMaestro);
+    } else {
+      mostrarToast('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'), 'error');
+    }
+  })
+  .catch(function(){ mostrarToast('❌ Error de conexión', 'error'); });
 }
 
 function asignarGrupoAMaestro(idMaestro, idGrupo) {
