@@ -89,8 +89,9 @@ nav{
 /* ── HERO ── */
 #inicio{
   position:relative;
-  min-height:100vh;
-  overflow:visible;
+  height:100vh;
+  min-height:600px;
+  overflow:hidden;
 }
 .hero-bg{
   position:absolute;inset:0;z-index:0;
@@ -858,24 +859,29 @@ footer{
 .hero-frase{color:rgba(255,255,255,.65);font-size:13px;margin-top:8px;font-weight:300;letter-spacing:.2px}
 
 /* ── SCROLL SNAPPING ── */
-html{scroll-snap-type:y mandatory;overflow-y:scroll}
-section, .ticker-wrap, footer{scroll-snap-align:start;scroll-snap-stop:always}
-/* Hero tiene altura completa */
-#hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
-/* Ticker fuera del snap (es muy pequeño) */
-.ticker-wrap{scroll-snap-align:none}
-/* Cada sección llena la pantalla */
+html{scroll-snap-type:y proximity;overflow-y:scroll}
+/* Solo secciones principales hacen snap — ticker, confianza y footer quedan fuera */
+#inicio,#metodo,#niveles,#como-funciona,#contacto{
+  scroll-snap-align:start;
+  scroll-snap-stop:normal;
+}
+/* Cada sección llena la pantalla como mínimo */
 #metodo,#niveles,#como-funciona,#contacto{
   min-height:100vh;
   display:flex;
   flex-direction:column;
   justify-content:center;
-  padding-top:80px;   /* compensar navbar */
-  padding-bottom:40px;
+  padding-top:86px;
+  padding-bottom:48px;
   box-sizing:border-box;
 }
-footer{min-height:auto;scroll-snap-align:start}
-.confianza-final{scroll-snap-align:start}
+/* Hero: altura exacta del viewport */
+#inicio{
+  height:100vh;
+  min-height:600px;
+}
+/* ticker, confianza y footer: scroll libre, sin snap */
+.ticker-wrap,.confianza-final,footer{scroll-snap-align:none}
 </style>
 </head>
 <body>
@@ -1446,11 +1452,15 @@ function closeMobileMenu(){
   document.getElementById('mobileMenu').classList.remove('open');
 }
 
-// Smooth scroll para links del nav
+// Smooth scroll para links del nav — compatible con scroll-snap
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
-    const target=document.querySelector(a.getAttribute('href'));
-    if(target){e.preventDefault();target.scrollIntoView({behavior:'smooth'})}
+    const id=a.getAttribute('href');
+    const target=document.querySelector(id);
+    if(target){
+      e.preventDefault();
+      target.scrollIntoView({behavior:'smooth',block:'start'});
+    }
   });
 });
 
