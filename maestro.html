@@ -296,6 +296,7 @@
   var bloqueActualChallenge = 1;
   var modalAbierto = false;
   var fechasRegistradas = [];
+  var fechasCargadas = false;
   
   
   const COLORES_EVAL = [
@@ -392,6 +393,7 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
     document.getElementById('fechaClase').value=hoyStr;
     fechasRegistradas=[];
+    fechasCargadas = false;
 
     // Deshabilitar botones hasta que lleguen los datos
     var btnWa    = document.getElementById('btnInvitarWhats');
@@ -406,6 +408,7 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
       .then(function(d){
         if(d.success) {
           fechasRegistradas=d.fechas||[];
+          fechasCargadas = true;
           actualizarEstadoFecha(hoyStr);
         }
       });
@@ -583,7 +586,8 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
   function guardarRegistro() {
     var fecha=document.getElementById('fechaClase').value;
     if (!fecha) { mostrarToast('Selecciona la fecha de la clase','error'); return; }
-    if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro','error'); return; }
+    if (!fechasCargadas) { mostrarToast('Espera un momento, cargando datos del grupo...','error'); return; }
+    if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro en este grupo','error'); return; }
     var alumnos=grupoActual.alumnos||[];
     var fecha=document.getElementById('fechaClase').value;
     var btn=document.getElementById('btnGuardar');
