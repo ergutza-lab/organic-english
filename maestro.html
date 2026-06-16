@@ -625,11 +625,20 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
 
   function limpiarRegistro() {
     var alumnos=grupoActual.alumnos||[];
-    // Agregar fecha guardada a fechasRegistradas para bloquear doble registro
-    var fechaGuardada=document.getElementById('fechaClase').value;
-    if (fechaGuardada && fechasRegistradas.indexOf(fechaGuardada)===-1) {
-      fechasRegistradas.push(fechaGuardada);
-    }
+
+    // Recargar fechas del servidor para este grupo — evita bloquear otros grupos
+    fechasRegistradas=[];
+    fechasCargadas=false;
+    fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(grupoActual.id),{redirect:'follow'})
+      .then(r=>r.json())
+      .then(function(d){
+        if(d.success){
+          fechasRegistradas=d.fechas||[];
+          fechasCargadas=true;
+          actualizarEstadoFecha(document.getElementById('fechaClase').value);
+        }
+      });
+
     // Resetear todos los selects de color
     [1,2,3,4].forEach(function(v) {
       alumnos.forEach(function(a) {
