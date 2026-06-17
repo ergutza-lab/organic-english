@@ -886,7 +886,7 @@ function renderSeguimiento(filtroTexto, filtroSit) {
 
     // Botón cambiar estatus — disponible para todos
     var btnEstatus = '<button class="btn btn-sm" style="background:#1c2b5e;color:#fff;border:none;" '
-      + 'onclick="abrirModalEstatus(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\',\''+a.estatus+'\',\''+(a.whatsapp||'').replace(/\D/g,'')+'\')">&#9998; Estatus</button>';
+      + 'onclick="abrirModalEstatus(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\',\''+a.estatus+'\',\''+(a.whatsapp||'').replace(/\D/g,'')+'\',\''+(a.email||'')+'\')">&#9998; Estatus</button>';
 
     var accion = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
       + (accionPago ? accionPago : '')
@@ -1242,17 +1242,24 @@ function abrirModalAlumnosGrupo(idGrupo) {
 }
 
 function cerrarSesion() {
-  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:''};
+  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
 
 // ── MODAL CAMBIAR ESTATUS ──
-function abrirModalEstatus(idAlumno, nombreAlumno, estatusActual, whatsappAlumno) {
+function abrirModalEstatus(idAlumno, nombreAlumno, estatusActual, whatsappAlumno, emailAlumno) {
   estado.alumnoEstatusEnModal  = idAlumno;
   estado.estatusSeleccionado   = '';
   estado.whatsappAlumnoEnModal = whatsappAlumno || '';
+  estado.emailAlumnoEnModal    = emailAlumno    || '';
   document.getElementById('modal-estatus-sub').textContent = nombreAlumno + ' · ' + idAlumno + ' · Estatus actual: ' + estatusActual;
+  // Mostrar email del alumno para verificacion visual
+  var emailEl = document.getElementById('modal-estatus-email');
+  if (emailEl) {
+    emailEl.textContent = emailAlumno ? 'Correo del alumno: ' + emailAlumno : 'Sin correo registrado';
+    emailEl.style.color = emailAlumno ? 'var(--gris)' : 'var(--rojo)';
+  }
   document.getElementById('estatus-mensaje').value = '';
   document.getElementById('modal-estatus-msg').className = 'modal-msg';
   document.getElementById('modal-estatus-msg').textContent = '';
@@ -1300,7 +1307,8 @@ function confirmarCambioEstatus() {
     idAlumno:      estado.alumnoEstatusEnModal,
     nuevoEstatus:  estado.estatusSeleccionado,
     idCE:          estado.idCE,
-    mensaje:       mensaje
+    mensaje:       mensaje,
+    emailAlumno:   estado.emailAlumnoEnModal
   }).then(function(res) {
     btn.textContent = 'Guardar cambio'; btn.disabled = false;
     if (res.ok) {
@@ -1375,6 +1383,7 @@ function confirmarCambioEstatus() {
   <div class="modal" style="max-width:480px">
     <div class="modal-titulo">Cambiar estatus del alumno</div>
     <div class="modal-sub" id="modal-estatus-sub">Alumno: —</div>
+    <div id="modal-estatus-email" style="font-size:.75rem;margin-bottom:.75rem;padding:.4rem .6rem;background:var(--gris-cl);border-radius:6px;color:var(--gris)">Correo del alumno: —</div>
     <div style="margin-bottom:.75rem">
       <div style="font-size:.78rem;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem">Selecciona el nuevo estatus</div>
       <div class="estatus-opciones" id="estatus-opciones">
