@@ -886,7 +886,7 @@ function renderSeguimiento(filtroTexto, filtroSit) {
 
     // Botón cambiar estatus — disponible para todos
     var btnEstatus = '<button class="btn btn-sm" style="background:#1c2b5e;color:#fff;border:none;" '
-      + 'onclick="abrirModalEstatus(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\',\''+a.estatus+'\')">✏️ Estatus</button>';
+      + 'onclick="abrirModalEstatus(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\',\''+a.estatus+'\',\''+(a.whatsapp||'').replace(/\D/g,'')+'\')">&#9998; Estatus</button>';
 
     var accion = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
       + (accionPago ? accionPago : '')
@@ -1242,19 +1242,23 @@ function abrirModalAlumnosGrupo(idGrupo) {
 }
 
 function cerrarSesion() {
-  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:''};
+  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
 
 // ── MODAL CAMBIAR ESTATUS ──
-function abrirModalEstatus(idAlumno, nombreAlumno, estatusActual) {
-  estado.alumnoEstatusEnModal = idAlumno;
-  estado.estatusSeleccionado  = '';
+function abrirModalEstatus(idAlumno, nombreAlumno, estatusActual, whatsappAlumno) {
+  estado.alumnoEstatusEnModal  = idAlumno;
+  estado.estatusSeleccionado   = '';
+  estado.whatsappAlumnoEnModal = whatsappAlumno || '';
   document.getElementById('modal-estatus-sub').textContent = nombreAlumno + ' · ' + idAlumno + ' · Estatus actual: ' + estatusActual;
   document.getElementById('estatus-mensaje').value = '';
   document.getElementById('modal-estatus-msg').className = 'modal-msg';
   document.getElementById('modal-estatus-msg').textContent = '';
+  // Ocultar botón WhatsApp al abrir
+  var btnWA = document.getElementById('btn-whatsapp-estatus');
+  if (btnWA) { btnWA.style.display = 'none'; btnWA.href = '#'; }
   // Limpiar selección y marcar el estatus actual como deshabilitado
   ['Validado','Pendiente','Baja','Becado'].forEach(function(e) {
     var opt = document.getElementById('opt-'+e);
@@ -1279,6 +1283,7 @@ function selEstatus(valor, el) {
 function confirmarCambioEstatus() {
   var msgEl  = document.getElementById('modal-estatus-msg');
   var btn    = document.getElementById('btn-confirmar-estatus');
+  var btnWA  = document.getElementById('btn-whatsapp-estatus');
   var mensaje = document.getElementById('estatus-mensaje').value.trim();
 
   if (!estado.estatusSeleccionado) {
@@ -1288,6 +1293,7 @@ function confirmarCambioEstatus() {
   }
 
   btn.textContent = 'Guardando...'; btn.disabled = true;
+  if (btnWA) btnWA.style.display = 'none';
 
   api({
     action:        'cambiarEstatusAlumno',
@@ -1298,17 +1304,34 @@ function confirmarCambioEstatus() {
   }).then(function(res) {
     btn.textContent = 'Guardar cambio'; btn.disabled = false;
     if (res.ok) {
-      var correoTxt = res.correoEnviado ? ' · Correo enviado al alumno.' : ' · No se pudo enviar el correo.';
-      msgEl.textContent = '✅ Estatus cambiado a "' + res.nuevoEstatus + '".' + correoTxt;
+      var correoTxt = res.correoEnviado ? ' Correo enviado.' : ' No se pudo enviar el correo.';
+      msgEl.textContent = 'Estatus cambiado a "' + res.nuevoEstatus + '".' + correoTxt;
       msgEl.className   = 'modal-msg ok';
-      setTimeout(function(){ cerrarModal('modal-estatus'); cargarDatos(); }, 2000);
+
+      // Construir mensaje de WhatsApp predeterminado según estatus
+      var textoWA = {
+        'Validado':  'Hola ' + res.nombreAlumno + ', te informamos que tu acceso a Organic English ha sido activado. Ya puedes ingresar normalmente a tu plataforma.',
+        'Pendiente': 'Hola ' + res.nombreAlumno + ', tu cuenta en Organic English esta en revision. Por favor ponte en contacto con nosotros para regularizar tu situacion.',
+        'Baja':      'Hola ' + res.nombreAlumno + ', te informamos que tu acceso a Organic English ha sido dado de baja. Si deseas continuar, contactanos para reinscribirte.',
+        'Becado':    'Hola ' + res.nombreAlumno + ', te confirmamos que tu beca en Organic English ha sido autorizada. Puedes continuar tus clases sin costo.'
+      };
+      var mensajeFinal = (mensaje ? mensaje : (textoWA[res.nuevoEstatus] || ''));
+      var phone = (estado.whatsappAlumnoEnModal || '').replace(/\D/g,'');
+
+      if (phone && mensajeFinal && btnWA) {
+        btnWA.href = 'https://wa.me/52' + phone + '?text=' + encodeURIComponent(mensajeFinal);
+        btnWA.style.display = 'inline-flex';
+      }
+
+      // Recargar datos después de 3 segundos para dar tiempo de usar el botón WA
+      setTimeout(function(){ cerrarModal('modal-estatus'); cargarDatos(); }, 3000);
     } else {
       msgEl.textContent = res.error || 'Error al cambiar estatus.';
       msgEl.className   = 'modal-msg error';
     }
   }).catch(function() {
     btn.textContent = 'Guardar cambio'; btn.disabled = false;
-    msgEl.textContent = 'Error de conexión.';
+    msgEl.textContent = 'Error de conexion.';
     msgEl.className   = 'modal-msg error';
   });
 }
@@ -1387,12 +1410,15 @@ function confirmarCambioEstatus() {
     </div>
     <div class="modal-campo">
       <label>Mensaje para el alumno (opcional)</label>
-      <input type="text" id="estatus-mensaje" placeholder="Ej: Tu cuenta ha sido reactivada por pago recibido..." style="margin-bottom:0" />
-      <div style="font-size:.72rem;color:var(--gris);margin-top:.35rem;">Si escribes un mensaje se incluirá en el correo de notificación que recibirá el alumno.</div>
+      <textarea id="estatus-mensaje" rows="3" placeholder="Si lo dejas vacio se usara el mensaje predeterminado segun el estatus seleccionado..." style="width:100%;font-size:.85rem;padding:.6rem .75rem;border:1.5px solid var(--borde);border-radius:8px;resize:vertical;font-family:inherit;background:var(--fondo);color:var(--texto);margin-bottom:0"></textarea>
+      <div style="font-size:.72rem;color:var(--gris);margin-top:.35rem;">El correo se envia automaticamente. El boton de WhatsApp aparece al guardar para que puedas notificar tambien por ese canal.</div>
     </div>
-    <div class="modal-acciones" style="margin-top:1.25rem">
+    <div class="modal-acciones" style="margin-top:1.25rem;flex-wrap:wrap;gap:.5rem;">
       <button class="btn btn-outline" onclick="cerrarModal('modal-estatus')">Cancelar</button>
       <button class="btn btn-primario" id="btn-confirmar-estatus" onclick="confirmarCambioEstatus()">Guardar cambio</button>
+      <a id="btn-whatsapp-estatus" href="#" target="_blank" style="display:none;background:#16a34a;color:#fff;font-size:.84rem;font-weight:700;padding:.55rem 1.1rem;border-radius:8px;text-decoration:none;align-items:center;gap:.4rem;white-space:nowrap;">
+        Enviar por WhatsApp
+      </a>
     </div>
     <div class="modal-msg" id="modal-estatus-msg"></div>
   </div>
