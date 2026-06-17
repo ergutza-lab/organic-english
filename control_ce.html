@@ -1275,6 +1275,13 @@ function abrirModalEstatus(idAlumno, nombreAlumno, estatusActual, whatsappAlumno
     if (opt)   opt.style.opacity = (e === estatusActual) ? '0.4' : '1';
     if (opt)   opt.style.cursor  = (e === estatusActual) ? 'not-allowed' : 'pointer';
   });
+  // Restaurar botón guardar al estado original
+  var btnGuardar = document.getElementById('btn-confirmar-estatus');
+  if (btnGuardar) {
+    btnGuardar.textContent = 'Guardar cambio';
+    btnGuardar.disabled    = false;
+    btnGuardar.onclick     = confirmarCambioEstatus;
+  }
   document.getElementById('modal-estatus').classList.add('abierto');
 }
 
@@ -1331,8 +1338,10 @@ function confirmarCambioEstatus() {
         btnWA.style.display = 'inline-flex';
       }
 
-      // Recargar datos después de 3 segundos para dar tiempo de usar el botón WA
-      setTimeout(function(){ cerrarModal('modal-estatus'); cargarDatos(); }, 3000);
+      // Cambiar botón Guardar por Cerrar para que el CE pueda usar el botón de WhatsApp primero
+      btn.textContent = 'Cerrar';
+      btn.onclick = function() { cerrarModal('modal-estatus'); cargarDatos(); };
+
     } else {
       msgEl.textContent = res.error || 'Error al cambiar estatus.';
       msgEl.className   = 'modal-msg error';
