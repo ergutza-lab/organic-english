@@ -107,8 +107,6 @@
   .sem-btn.sel-2 { background: rgba(250,204,21,0.2); border-color: var(--amarillo); }
   .sem-btn.sel-3 { background: rgba(34,197,94,0.2); border-color: var(--verde-eval); }
   .sem-btn.sel-4 { background: rgba(59,130,246,0.25); border-color: var(--azul-eval); }
-  .sem-btn.asist-si { background: rgba(34,197,94,0.3); border-color: #22c55e; color: #22c55e; font-weight:900; }
-  .sem-btn.asist-no { background: rgba(239,68,68,0.25); border-color: #ef4444; color: #ef4444; font-weight:900; }
   
   .btn-guardar { width: 100%; background: linear-gradient(135deg,var(--verde),#15803d); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 16px; }
   .btn-guardar:hover { opacity: 0.9; }
@@ -296,7 +294,6 @@
   var bloqueActualChallenge = 1;
   var modalAbierto = false;
   var fechasRegistradas = [];
-  var fechasCargadas = false;
   
   
   const COLORES_EVAL = [
@@ -393,7 +390,6 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
     document.getElementById('fechaClase').value=hoyStr;
     fechasRegistradas=[];
-    fechasCargadas = false;
 
     // Deshabilitar botones hasta que lleguen los datos
     var btnWa    = document.getElementById('btnInvitarWhats');
@@ -406,10 +402,8 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
       .then(r=>r.json())
       .then(function(d){
-        console.log('getFechasRegistradas grupo='+idGrupo, d);
         if(d.success) {
           fechasRegistradas=d.fechas||[];
-          fechasCargadas = true;
           actualizarEstadoFecha(hoyStr);
         }
       });
@@ -517,14 +511,13 @@ function actualizarEstadoFecha(fechaStr) {
 
       return '<div class="alumno-registro">'
         +'<div class="alumno-reg-header"><span class="alumno-reg-nombre">'+a.nombre+'</span><span class="alumno-reg-id">'+a.id+'</span></div>'
-        +'<div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;">'
-          +'<div style="flex:1;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Asistencia</div>'
-            +'<div class="semaforo" style="gap:4px;">'
-             +'<button class="sem-btn" id="asist-si-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',true)" style="flex:1;padding:10px;font-size:14px;">✓</button>'
-              +'<button class="sem-btn" id="asist-no-'+a.id+'" onclick="selAsistencia(\''+a.id+'\',false)" style="flex:1;padding:10px;font-size:14px;">✕</button>'
-            +'</div>'
-          +'</div>'
-          +'<div style="flex:2;"><div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Evaluación del día</div><div class="semaforo">'+btns+'</div></div>'
+        +'<div style="margin-bottom:10px;background:rgba(255,255,255,0.03);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:14px;">ℹ️</span>'
+          +'<span style="font-size:11px;color:var(--gris2);">Si registras una calificación el alumno se marcará como <strong style="color:#4ade80;">Presente</strong>. Si no registras nada, quedará como <strong style="color:#f87171;">Ausente</strong>.</span>'
+        +'</div>'
+        +'<div style="margin-bottom:12px;">'
+          +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Evaluación del día</div>'
+          +'<div class="semaforo">'+btns+'</div>'
         +'</div>'
         +'<div style="margin-bottom:8px;">'
           +'<div style="font-size:10px;color:var(--gris2);margin-bottom:4px;text-transform:uppercase;">Observación seleccionada</div>'
@@ -551,13 +544,9 @@ function actualizarEstadoFecha(fechaStr) {
     wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
   }
 
-  function selAsistencia(idAlumno, presente) {
-document.getElementById('asist-si-'+idAlumno).className='sem-btn'+(presente?' asist-si':'');
-document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' asist-no':'');
-}
-
   function getAsistencia(idAlumno) {
-    return document.getElementById('asist-si-'+idAlumno).classList.contains('sel-3');
+    // Presente si el maestro seleccionó cualquier color (1-4)
+    return getColorVal(idAlumno) > 0;
   }
 
   function selColor(idAlumno, valor) {
@@ -572,7 +561,7 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
       var btn=document.getElementById('eval-'+v+'-'+idAlumno);
       if (btn&&btn.classList.contains('sel-'+v)) return v;
     }
-    return 3;
+    return 0; // sin selección = ausente
   }
 
   function calcularBloqueySemana() {
@@ -587,8 +576,7 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
   function guardarRegistro() {
     var fecha=document.getElementById('fechaClase').value;
     if (!fecha) { mostrarToast('Selecciona la fecha de la clase','error'); return; }
-    if (!fechasCargadas) { mostrarToast('Espera un momento, cargando datos del grupo...','error'); return; }
-    if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro en este grupo','error'); return; }
+    if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro','error'); return; }
     var alumnos=grupoActual.alumnos||[];
     var fecha=document.getElementById('fechaClase').value;
     var btn=document.getElementById('btnGuardar');
@@ -626,48 +614,32 @@ document.getElementById('asist-no-'+idAlumno).className='sem-btn'+(!presente?' a
 
   function limpiarRegistro() {
     var alumnos=grupoActual.alumnos||[];
-
-    // Recargar fechas del servidor para este grupo — evita bloquear otros grupos
-    fechasRegistradas=[];
-    fechasCargadas=false;
-    fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(grupoActual.id),{redirect:'follow'})
-      .then(r=>r.json())
-      .then(function(d){
-        if(d.success){
-          fechasRegistradas=d.fechas||[];
-          fechasCargadas=true;
-          actualizarEstadoFecha(document.getElementById('fechaClase').value);
-        }
-      });
-
-    // Resetear todos los selects de color
+    // Agregar fecha guardada a fechasRegistradas para bloquear doble registro
+    var fechaGuardada=document.getElementById('fechaClase').value;
+    if (fechaGuardada && fechasRegistradas.indexOf(fechaGuardada)===-1) {
+      fechasRegistradas.push(fechaGuardada);
+    }
+    // Resetear todos los botones de color
     [1,2,3,4].forEach(function(v) {
       alumnos.forEach(function(a) {
         var btn=document.getElementById('eval-'+v+'-'+a.id);
         if(btn) btn.className='sem-btn';
       });
     });
-    // Resetear asistencia — sin clase activa por default
-    alumnos.forEach(function(a) {
-      var si=document.getElementById('asist-si-'+a.id);
-      var no=document.getElementById('asist-no-'+a.id);
-      if(si) si.className='sem-btn';
-      if(no) no.className='sem-btn';
-    });
     // Limpiar observaciones
     alumnos.forEach(function(a) {
       var obs=document.getElementById('obs-'+a.id);
       if(obs) obs.value='';
+      var display=document.getElementById('obs-'+a.id+'-display');
+      if(display) display.textContent='— Selecciona un color para ver opciones —';
+      var notaWrap=document.getElementById('nota-wrap-'+a.id);
+      if(notaWrap) notaWrap.style.display='none';
     });
     // Nueva fecha
     var hoy=new Date();
     var nuevaFecha=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
     document.getElementById('fechaClase').value=nuevaFecha;
-    // Limpiar aviso mientras llegan las fechas del servidor
-    var inputFecha=document.getElementById('fechaClase');
-    var avisoFecha=document.getElementById('avisoFecha');
-    if(inputFecha) inputFecha.style.borderColor='rgba(255,255,255,0.1)';
-    if(avisoFecha) avisoFecha.style.display='none';
+    actualizarEstadoFecha(nuevaFecha);
   }
 
   function cargarMapas() {
