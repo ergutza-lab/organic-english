@@ -224,6 +224,15 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .fusion-info .fi-icono { font-size: 1.2rem; flex-shrink: 0; }
 .fusion-info strong { display: block; margin-bottom: .3rem; font-size: .9rem; }
 
+/* MODAL CAMBIO ESTATUS */
+.estatus-opciones { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+.estatus-opcion { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; border: 2px solid var(--borde); border-radius: 10px; cursor: pointer; transition: all .15s; }
+.estatus-opcion:hover { border-color: var(--azul); background: var(--azul-claro); }
+.estatus-opcion.sel { border-color: var(--azul); background: var(--azul-claro); }
+.estatus-opcion input[type="radio"] { accent-color: var(--azul); width: 16px; height: 16px; flex-shrink: 0; }
+.estatus-opcion-label { font-size: .88rem; font-weight: 600; color: var(--texto); }
+.estatus-opcion-desc  { font-size: .75rem; color: var(--gris); margin-top: .1rem; }
+
 @media (max-width: 640px) {
   .topbar { padding: .65rem 1rem; }
   .contenido { padding: 1rem; }
@@ -484,7 +493,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
             <thead>
               <tr>
                 <th>ID Alumno</th><th>Nombre</th><th>Grupo</th><th>Estatus</th>
-                <th>Pago hasta</th><th>Situación</th><th>Acción</th>
+                <th>Pago hasta</th><th>Situación</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody id="tbody-seguimiento">
@@ -861,18 +870,29 @@ function renderSeguimiento(filtroTexto, filtroSit) {
     // Becados no tienen fecha de vencimiento
     var pagoHasta = esBecado ? '<span style="color:var(--oro-text);font-size:.78rem">Beca vigente</span>' : (a.periodoFin ? formatFecha(a.periodoFin) : '—');
     var chipSit = '<span class="chip '+sit.chipClass+'">'+sit.etiqueta+'</span>';
-    // FIX: becados no tienen acción de cobro — solo cambio de grupo si aplica
-    var accion = '';
+
+    // Acciones según situación
+    var accionPago = '';
     if (esBecado) {
-      accion = '<span style="font-size:.75rem;color:var(--gris);font-style:italic">Sin acción requerida</span>';
+      accionPago = '';
     } else if (sit.clave==='vencido'||sit.clave==='proximo'||sit.clave==='pendiente') {
       var wa=(a.whatsappCE||'').replace(/\D/g,'');
       var msg=encodeURIComponent('Hola, te contacto sobre el alumno '+a.nombre+' ('+a.idAlumno+') del grupo '+a.idGrupo+'. Su situación de pago requiere atención.');
-      if (wa) accion='<a href="https://wa.me/'+cleanWA(wa)+'?text='+msg+'" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
-      else    accion='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
+      if (wa) accionPago='<a href="https://wa.me/'+cleanWA(wa)+'?text='+msg+'" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
+      else    accionPago='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
     } else if (sit.clave==='vigente') {
-      accion='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
+      accionPago='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
     }
+
+    // Botón cambiar estatus — disponible para todos
+    var btnEstatus = '<button class="btn btn-sm" style="background:#1c2b5e;color:#fff;border:none;" '
+      + 'onclick="abrirModalEstatus(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\',\''+a.estatus+'\')">✏️ Estatus</button>';
+
+    var accion = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
+      + (accionPago ? accionPago : '')
+      + btnEstatus
+      + '</div>';
+
     return '<tr>'+
       '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
       '<td><strong>'+a.nombre+'</strong></td>'+
@@ -1222,10 +1242,77 @@ function abrirModalAlumnosGrupo(idGrupo) {
 }
 
 function cerrarSesion() {
-  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:''};
+  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
+
+// ── MODAL CAMBIAR ESTATUS ──
+function abrirModalEstatus(idAlumno, nombreAlumno, estatusActual) {
+  estado.alumnoEstatusEnModal = idAlumno;
+  estado.estatusSeleccionado  = '';
+  document.getElementById('modal-estatus-sub').textContent = nombreAlumno + ' · ' + idAlumno + ' · Estatus actual: ' + estatusActual;
+  document.getElementById('estatus-mensaje').value = '';
+  document.getElementById('modal-estatus-msg').className = 'modal-msg';
+  document.getElementById('modal-estatus-msg').textContent = '';
+  // Limpiar selección y marcar el estatus actual como deshabilitado
+  ['Validado','Pendiente','Baja','Becado'].forEach(function(e) {
+    var opt = document.getElementById('opt-'+e);
+    var radio = opt ? opt.querySelector('input[type="radio"]') : null;
+    if (opt)   opt.classList.remove('sel');
+    if (radio) { radio.checked = false; radio.disabled = (e === estatusActual); }
+    if (opt)   opt.style.opacity = (e === estatusActual) ? '0.4' : '1';
+    if (opt)   opt.style.cursor  = (e === estatusActual) ? 'not-allowed' : 'pointer';
+  });
+  document.getElementById('modal-estatus').classList.add('abierto');
+}
+
+function selEstatus(valor, el) {
+  var radio = el.querySelector('input[type="radio"]');
+  if (radio && radio.disabled) return; // no permitir seleccionar el estatus actual
+  estado.estatusSeleccionado = valor;
+  document.querySelectorAll('.estatus-opcion').forEach(function(o){ o.classList.remove('sel'); });
+  el.classList.add('sel');
+  if (radio) radio.checked = true;
+}
+
+function confirmarCambioEstatus() {
+  var msgEl  = document.getElementById('modal-estatus-msg');
+  var btn    = document.getElementById('btn-confirmar-estatus');
+  var mensaje = document.getElementById('estatus-mensaje').value.trim();
+
+  if (!estado.estatusSeleccionado) {
+    msgEl.textContent = 'Selecciona un estatus.';
+    msgEl.className   = 'modal-msg error';
+    return;
+  }
+
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+
+  api({
+    action:        'cambiarEstatusAlumno',
+    idAlumno:      estado.alumnoEstatusEnModal,
+    nuevoEstatus:  estado.estatusSeleccionado,
+    idCE:          estado.idCE,
+    mensaje:       mensaje
+  }).then(function(res) {
+    btn.textContent = 'Guardar cambio'; btn.disabled = false;
+    if (res.ok) {
+      var correoTxt = res.correoEnviado ? ' · Correo enviado al alumno.' : ' · No se pudo enviar el correo.';
+      msgEl.textContent = '✅ Estatus cambiado a "' + res.nuevoEstatus + '".' + correoTxt;
+      msgEl.className   = 'modal-msg ok';
+      setTimeout(function(){ cerrarModal('modal-estatus'); cargarDatos(); }, 2000);
+    } else {
+      msgEl.textContent = res.error || 'Error al cambiar estatus.';
+      msgEl.className   = 'modal-msg error';
+    }
+  }).catch(function() {
+    btn.textContent = 'Guardar cambio'; btn.disabled = false;
+    msgEl.textContent = 'Error de conexión.';
+    msgEl.className   = 'modal-msg error';
+  });
+}
+
 </script>
 
 <!-- MODAL: ALUMNOS DEL GRUPO -->
@@ -1257,6 +1344,57 @@ function cerrarSesion() {
     <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;justify-content:flex-end">
       <button class="btn btn-outline" onclick="cerrarModal('modal-alumnos-grupo')">Cerrar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: CAMBIAR ESTATUS ALUMNO -->
+<div class="modal-overlay" id="modal-estatus" onclick="if(event.target===this)cerrarModal('modal-estatus')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-titulo">Cambiar estatus del alumno</div>
+    <div class="modal-sub" id="modal-estatus-sub">Alumno: —</div>
+    <div style="margin-bottom:.75rem">
+      <div style="font-size:.78rem;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem">Selecciona el nuevo estatus</div>
+      <div class="estatus-opciones" id="estatus-opciones">
+        <label class="estatus-opcion" id="opt-Validado" onclick="selEstatus('Validado',this)">
+          <input type="radio" name="nuevo-estatus" value="Validado" />
+          <div>
+            <div class="estatus-opcion-label"><span class="chip chip-azul" style="margin-right:.4rem">Validado</span>Acceso activo</div>
+            <div class="estatus-opcion-desc">El alumno puede ingresar normalmente a su plataforma.</div>
+          </div>
+        </label>
+        <label class="estatus-opcion" id="opt-Pendiente" onclick="selEstatus('Pendiente',this)">
+          <input type="radio" name="nuevo-estatus" value="Pendiente" />
+          <div>
+            <div class="estatus-opcion-label"><span class="chip chip-naranja" style="margin-right:.4rem">Pendiente</span>En revisión</div>
+            <div class="estatus-opcion-desc">El alumno está pendiente de regularizar su inscripción o pago.</div>
+          </div>
+        </label>
+        <label class="estatus-opcion" id="opt-Baja" onclick="selEstatus('Baja',this)">
+          <input type="radio" name="nuevo-estatus" value="Baja" />
+          <div>
+            <div class="estatus-opcion-label"><span class="chip chip-rojo" style="margin-right:.4rem">Baja</span>Acceso suspendido</div>
+            <div class="estatus-opcion-desc">El alumno no podrá ingresar hasta que se cambie este estatus.</div>
+          </div>
+        </label>
+        <label class="estatus-opcion" id="opt-Becado" onclick="selEstatus('Becado',this)">
+          <input type="radio" name="nuevo-estatus" value="Becado" />
+          <div>
+            <div class="estatus-opcion-label"><span class="chip chip-oro" style="margin-right:.4rem">⭐ Becado</span>Beca autorizada</div>
+            <div class="estatus-opcion-desc">El alumno no genera cobro. Beca autorizada por dirección.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="modal-campo">
+      <label>Mensaje para el alumno (opcional)</label>
+      <input type="text" id="estatus-mensaje" placeholder="Ej: Tu cuenta ha sido reactivada por pago recibido..." style="margin-bottom:0" />
+      <div style="font-size:.72rem;color:var(--gris);margin-top:.35rem;">Si escribes un mensaje se incluirá en el correo de notificación que recibirá el alumno.</div>
+    </div>
+    <div class="modal-acciones" style="margin-top:1.25rem">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-estatus')">Cancelar</button>
+      <button class="btn btn-primario" id="btn-confirmar-estatus" onclick="confirmarCambioEstatus()">Guardar cambio</button>
+    </div>
+    <div class="modal-msg" id="modal-estatus-msg"></div>
   </div>
 </div>
 
