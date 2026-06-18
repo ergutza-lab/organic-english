@@ -685,15 +685,88 @@
     a.download = filename; a.click();
   }
 
+  function descargarCSVCompleto(d, filename) {
+    var rows = [];
+    var sep  = ['','','','','','','',''];
+
+    rows.push(['ORGANIC ENGLISH — REPORTE FINANCIERO CATORCENAL','','','','','','','']);
+    rows.push(['Periodo: ' + (d.periodo||'—'),'','','','','','','']);
+    rows.push(['Generado: ' + new Date().toLocaleDateString('es-MX'),'','','','','','','']);
+    rows.push(sep);
+
+    rows.push(['RESUMEN EJECUTIVO','','','','','','','']);
+    rows.push(['Concepto','Monto','','','','','','']);
+    rows.push(['Total Ingresos','$'+(d.totalIngresos||0),'','','','','','']);
+    rows.push(['Total Comisiones Asesores','$'+(d.totalComisiones||0),'','','','','','']);
+    rows.push(['Total Nomina','$'+(d.totalNomina||0),'','','','','','']);
+    rows.push(['BALANCE NETO','$'+(d.balance||0),'','','','','','']);
+    rows.push(sep);
+
+    rows.push(['1. INGRESOS — PAGOS DE ALUMNOS','','','','','','','']);
+    rows.push(['Fecha','ID Alumno','Nombre Alumno','Grupo','Monto','Validado Por','Comprobante','Comentario']);
+    (d.pagos||[]).forEach(function(p){
+      rows.push([p.fecha, p.idAlumno, p.nombreAlumno, p.grupo, '$'+p.monto, p.validadoPor, p.comprobanteUrl, p.comentario]);
+    });
+    rows.push(['','','','','SUBTOTAL INGRESOS:','$'+(d.totalIngresos||0),'','']);
+    rows.push(sep);
+
+    rows.push(['2. EGRESOS — COMISIONES A ASESORES','','','','','','','']);
+    rows.push(['Asesor','ID','Alumnos Inscritos','Comision x Inscripcion','Total','','','']);
+    (d.comisionesAsesores||[]).forEach(function(a){
+      rows.push([a.nombre, a.id, a.alumnos, '$'+a.comxInsc, '$'+a.total,'','','']);
+    });
+    rows.push(['','','','','SUBTOTAL COMISIONES:','$'+(d.totalComisiones||0),'','']);
+    rows.push(sep);
+
+    rows.push(['3. EGRESOS — NOMINA MAESTROS','','','','','','','']);
+    rows.push(['Maestro','ID','Clases Impartidas','Costo x Clase','Total a Pagar','Cuenta','Banco','']);
+    (d.nominaMaestros||[]).forEach(function(m){
+      rows.push([m.nombre, m.id, m.clases, '$'+m.costoClase, '$'+m.total, m.cuenta, m.banco,'']);
+    });
+    rows.push(['','','','','SUBTOTAL MAESTROS:','$'+(d.totalNominaMaestros||0),'','']);
+    rows.push(sep);
+
+    rows.push(['4. EGRESOS — NOMINA ASISTENTES CE','','','','','','','']);
+    rows.push(['Asistente','ID','Grupos Asignados','Sueldo Catorcena','','Cuenta','Banco','']);
+    (d.nominaAsistentes||[]).forEach(function(a){
+      rows.push([a.nombre, a.id, a.grupos, '$'+a.sueldo,'', a.cuenta, a.banco,'']);
+    });
+    rows.push(['','','','','SUBTOTAL ASISTENTES:','$'+(d.totalNominaAsistentes||0),'','']);
+    rows.push(sep);
+
+    rows.push(['5. EGRESOS — NOMINA COORDINADORES','','','','','','','']);
+    rows.push(['Coordinador','ID','Rol','Sueldo Catorcena','','Cuenta','Banco','']);
+    (d.nominaCoordinadores||[]).forEach(function(c){
+      rows.push([c.nombre, c.id, c.rol, '$'+c.sueldo,'', c.cuenta, c.banco,'']);
+    });
+    rows.push(['','','','','SUBTOTAL COORDINADORES:','$'+(d.totalNominaCoordinadores||0),'','']);
+    rows.push(sep);
+
+    rows.push(['6. EGRESOS — NOMINA DIRECCION','','','','','','','']);
+    rows.push(['Director','ID','Sueldo Catorcena','','','Cuenta','Banco','']);
+    (d.nominaDireccion||[]).forEach(function(dir){
+      rows.push([dir.nombre, dir.id, '$'+dir.sueldo,'','', dir.cuenta, dir.banco,'']);
+    });
+    rows.push(['','','','','SUBTOTAL DIRECCION:','$'+(d.totalNominaDireccion||0),'','']);
+    rows.push(sep);
+
+    rows.push(['RESUMEN FINAL DE EGRESOS','','','','','','','']);
+    rows.push(['Comisiones asesores','$'+(d.totalComisiones||0),'','','','','','']);
+    rows.push(['Nomina maestros','$'+(d.totalNominaMaestros||0),'','','','','','']);
+    rows.push(['Nomina asistentes CE','$'+(d.totalNominaAsistentes||0),'','','','','','']);
+    rows.push(['Nomina coordinadores','$'+(d.totalNominaCoordinadores||0),'','','','','','']);
+    rows.push(['Nomina direccion','$'+(d.totalNominaDireccion||0),'','','','','','']);
+    rows.push(['TOTAL EGRESOS','$'+((d.totalComisiones||0)+(d.totalNomina||0)),'','','','','','']);
+    rows.push(['BALANCE NETO','$'+(d.balance||0),'','','','','','']);
+
+    descargarCSV(rows, filename);
+  }
+
   function descargarReporteCatorcena() {
     fetch(APPS_SCRIPT + '?action=getDetalleCatorcenaActual').then(r => r.text()).then(text => {
       var d = JSON.parse(text);
-      if (!d.success) { alert('Error al obtener reporte: ' + (d.error||'')); return; }
-      var rows = [['Fecha','ID Alumno','Nombre Alumno','Grupo','Monto','Validado Por','Comprobante URL','Comentario']];
-      (d.pagos||[]).forEach(function(p){
-        rows.push([p.fecha, p.idAlumno, p.nombreAlumno, p.grupo, p.monto, p.validadoPor, p.comprobanteUrl, p.comentario]);
-      });
-      descargarCSV(rows, 'pagos-catorcena-actual.csv');
+      if (!d.success) { alert('Error: '+(d.error||'')); return; }
+      descargarCSVCompleto(d, 'reporte-catorcena-actual.csv');
     }).catch(function(e){ alert('Error de conexion: '+e.message); });
   }
 
@@ -701,12 +774,8 @@
     fetch(APPS_SCRIPT + '?action=getDetalleCatorcena&inicio='+encodeURIComponent(inicioISO)+'&fin='+encodeURIComponent(finISO)).then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      var rows = [['Fecha','ID Alumno','Nombre Alumno','Grupo','Monto','Validado Por','Comprobante URL','Comentario']];
-      (d.pagos||[]).forEach(function(p){
-        rows.push([p.fecha, p.idAlumno, p.nombreAlumno, p.grupo, p.monto, p.validadoPor, p.comprobanteUrl, p.comentario]);
-      });
       var label = inicioISO.substring(0,10);
-      descargarCSV(rows, 'pagos-catorcena-'+label+'.csv');
+      descargarCSVCompleto(d, 'reporte-catorcena-'+label+'.csv');
     }).catch(function(e){ alert('Error: '+e.message); });
   }
 
@@ -714,11 +783,7 @@
     fetch(APPS_SCRIPT + '?action=getReporteGlobal').then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      var rows = [['Fecha','ID Alumno','Nombre Alumno','Grupo','Monto','Validado Por','Comprobante URL','Comentario']];
-      (d.pagos||[]).forEach(function(p){
-        rows.push([p.fecha, p.idAlumno, p.nombreAlumno, p.grupo, p.monto, p.validadoPor, p.comprobanteUrl, p.comentario]);
-      });
-      descargarCSV(rows, 'reporte-global-organic-english.csv');
+      descargarCSVCompleto(d, 'reporte-global-organic-english.csv');
     }).catch(function(e){ alert('Error: '+e.message); });
   }
 
