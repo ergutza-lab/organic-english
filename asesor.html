@@ -292,16 +292,27 @@
       lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
       return;
     }
+    var tipoEtiquetas = {
+      'Promo':         'Promo $100',
+      'Promo_Mensual': 'Promo mensual $400',
+      'Normal':        'Normal $140',
+      'Normal_Mensual':'Normal mensual $500',
+      'Beca_Parcial':  'Beca parcial',
+      'Becado':        'Becado 100%'
+    };
     lista.innerHTML = pendientes.map(function(a) {
       var fecha = new Date(a.fecha);
       var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
       var vencimiento = calcularVencimiento(a.fecha);
       var msg = generarMensaje(a, vencimiento);
       var waUrl = 'https://wa.me/' + cleanWA(a.whatsapp) + '?text=' + encodeURIComponent(msg);
+      var tipoChip = a.tipoInscripcion
+        ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(99,102,241,0.15);color:#818cf8;margin-left:5px;">' + (tipoEtiquetas[a.tipoInscripcion] || a.tipoInscripcion) + '</span>'
+        : '';
       return '<div class="alumno-card">' +
         '<div class="nombre">' + a.nombre +
           ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' +
-          (a.idGrupo ? a.idGrupo : 'Por colocación') + '</span></div>' +
+          (a.idGrupo ? a.idGrupo : 'Por colocacion') + '</span>' + tipoChip + '</div>' +
         '<div class="detalle">' +
           '<span>' + a.idAlumno + '</span>' +
           '<span>Reserva: ' + fechaStr + '</span>' +
