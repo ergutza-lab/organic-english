@@ -777,7 +777,7 @@
       if (s.foto) { document.getElementById('asisFoto').src=s.foto; document.getElementById('asisFoto').style.display='block'; document.getElementById('asisAvatarFallback').style.display='none'; }
     }
 
-    renderPagos(p);
+    renderPagos(p, alumnoData.alumno);
     renderHistorial(alumnoData.historialPagos);
     renderCalificaciones(g);
     cargarMapaAlumno(a.id, g ? g.id : '');
@@ -1139,14 +1139,34 @@
   }
 
   // ── RENDER PAGOS ─────────────────────────────────────────────────
-  function renderPagos(p) {
+  function renderPagos(p, alumno) {
     var div=document.getElementById('pagosContenido');
     if(!p){div.innerHTML='<div class="califs-empty"><div class="califs-text">Sin pagos registrados</div></div>';return;}
     var pct=Math.min(100,Math.max(0,Math.round((Date.now()-new Date(p.fecha).getTime())/(new Date(p.periodoFin).getTime()-new Date(p.fecha).getTime())*100)));
     var semanasP = Math.floor((Number(p.monto)||0) / 100);
     if (semanasP < 1) semanasP = 1;
     var tipoTexto = semanasP === 1 ? 'Colegiatura semanal' : semanasP + ' semanas cubiertas';
+
+    // Tipo de inscripcion y monto a pagar
+    var tipoMap = {
+      'Promo':         { etiqueta: 'Promocion',          monto: '$100', detalle: 'por semana' },
+      'Promo_Mensual': { etiqueta: 'Promocion mensual',  monto: '$400', detalle: 'por 4 semanas' },
+      'Normal':        { etiqueta: 'Normal',              monto: '$140', detalle: 'por semana' },
+      'Normal_Mensual':{ etiqueta: 'Normal mensual',     monto: '$500', detalle: 'por 4 semanas' },
+      'Beca_Parcial':  { etiqueta: 'Beca parcial',       monto: '$100', detalle: 'primera semana · 3 siguientes sin costo' },
+      'Becado':        { etiqueta: 'Becado 100%',        monto: '$0',   detalle: 'sin costo' }
+    };
+    var tipo = alumno && alumno.tipoInscripcion ? tipoMap[alumno.tipoInscripcion] : null;
+    var tipoHtml = tipo
+      ? '<div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;">'
+        + '<div style="font-size:.7rem;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Tu tipo de inscripcion</div>'
+        + '<div style="font-size:1rem;font-weight:700;color:#f1f5f9;">'+tipo.etiqueta+'</div>'
+        + '<div style="font-size:.8rem;color:#94a3b8;margin-top:2px;">Tu colegiatura es de <strong style="color:#fb923c;">'+tipo.monto+'</strong> '+tipo.detalle+'</div>'
+        + '</div>'
+      : '';
+
     div.innerHTML=
+      tipoHtml+
       '<div class="pago-highlight"><div class="pago-monto">$'+p.monto+' MXN</div><div class="pago-tipo">'+tipoTexto+' · '+formatFechaCorta(p.fecha)+'</div></div>'+
       '<div class="field-row"><span class="field-label">Vigente hasta</span><span class="field-val">'+formatFechaCorta(p.periodoFin)+'</span></div>'+
       '<div class="progreso-bar"><div class="progreso-fill" style="width:'+pct+'%"></div></div>'+
@@ -1155,9 +1175,9 @@
         var hoyTS = Date.now();
         var limTS = p.limiteSiguiente ? new Date(p.limiteSiguiente).getTime() : null;
         if (limTS && hoyTS > limTS) {
-          return '<div class="alerta-pago-roja">🚨 Pago vencido desde el sáb '+formatFechaCorta(p.limiteSiguiente)+'</div>';
+          return '<div class="alerta-pago-roja">Pago vencido desde el sab '+formatFechaCorta(p.limiteSiguiente)+'</div>';
         }
-        return '<div class="alerta-pago">⚠️ Límite de pago: sáb '+formatFechaCorta(p.limiteSiguiente)+'</div>';
+        return '<div class="alerta-pago">Limite de pago: sab '+formatFechaCorta(p.limiteSiguiente)+'</div>';
       })()+
       '<button onclick="document.getElementById(\'modalPago\').classList.add(\'visible\')" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Subir comprobante de pago</button>';
   }
