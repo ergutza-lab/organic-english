@@ -715,8 +715,9 @@ function abrirModalGrupo(idx){
         ?`<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${encodeURIComponent(waMsg)}" target="_blank">📱</a>`
         :'';
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
-      const validarBtn=esSinPago
-        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>`
+      // Botón de pago: siempre visible para no becados — permite registrar pago aunque esté al corriente
+      const validarBtn=!esBec
+        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
         :'';
       return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}">${a.nombre}</span>${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
     }).join('');
