@@ -895,7 +895,7 @@ function renderSeguimiento(filtroTexto, filtroSit) {
 
     return '<tr>'+
       '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
-      '<td><strong style="cursor:pointer;color:var(--azul);text-decoration:underline dotted;" onclick="abrirFichaAlumno(\''+a.idAlumno+'\')">'+a.nombre+'</strong></td>'+
+      '<td><strong style="cursor:pointer;color:var(--azul);text-decoration:underline dotted;" onclick="abrirFichaAlumno(\''+a.idAlumno+'\')">'+a.nombre+'</strong>'+(a.observaciones?'<span title="'+a.observaciones.replace(/"/g,'&quot;')+'" style="margin-left:5px;cursor:help;font-size:.75rem;background:rgba(251,146,60,0.15);color:#fb923c;border-radius:4px;padding:1px 5px;font-weight:700;" >nota</span>':'')+'</td>'+
       '<td><span class="chip chip-gris">'+a.idGrupo+'</span></td>'+
       '<td>'+chipEstatus+'</td>'+
       '<td style="font-size:.82rem;color:var(--gris)">'+pagoHasta+'</td>'+
@@ -919,10 +919,11 @@ function abrirFichaAlumno(idAlumno) {
   document.getElementById('ficha-fecha-baja').textContent = a.fechaBaja ? formatFecha(a.fechaBaja) : '—';
 
   // Campos editables
-  document.getElementById('ficha-nombre').value   = a.nombre   || '';
-  document.getElementById('ficha-whatsapp').value = a.whatsapp || '';
-  document.getElementById('ficha-email').value    = a.email    || '';
-  document.getElementById('ficha-tipo').value     = a.tipoInscripcion || 'Promo';
+  document.getElementById('ficha-nombre').value         = a.nombre           || '';
+  document.getElementById('ficha-whatsapp').value       = a.whatsapp         || '';
+  document.getElementById('ficha-email').value          = a.email            || '';
+  document.getElementById('ficha-tipo').value           = a.tipoInscripcion  || 'Promo';
+  document.getElementById('ficha-observaciones').value  = a.observaciones     || '';
 
   // Estatus actual en selector
   var sel = document.getElementById('ficha-estatus');
@@ -944,11 +945,12 @@ function guardarFichaAlumno() {
   var btn    = document.getElementById('btn-guardar-ficha');
   var btnWA  = document.getElementById('btn-whatsapp-ficha');
 
-  var nombre    = document.getElementById('ficha-nombre').value.trim();
-  var whatsapp  = document.getElementById('ficha-whatsapp').value.trim();
-  var email     = document.getElementById('ficha-email').value.trim();
-  var nuevoEst  = document.getElementById('ficha-estatus').value;
-  var nuevoTipo = document.getElementById('ficha-tipo').value;
+  var nombre        = document.getElementById('ficha-nombre').value.trim();
+  var whatsapp      = document.getElementById('ficha-whatsapp').value.trim();
+  var email         = document.getElementById('ficha-email').value.trim();
+  var nuevoEst      = document.getElementById('ficha-estatus').value;
+  var nuevoTipo     = document.getElementById('ficha-tipo').value;
+  var observaciones = document.getElementById('ficha-observaciones').value.trim();
   var idAlumno  = estado.fichaAlumnoEnModal;
   var a         = estado.todosAlumnos.find(function(x){ return x.idAlumno === idAlumno; });
 
@@ -969,6 +971,7 @@ function guardarFichaAlumno() {
     whatsapp:         whatsapp,
     email:            email,
     tipoInscripcion:  nuevoTipo,
+    observaciones:    observaciones,
     idCE:             estado.idCE
   }).then(function(res1) {
     if (!res1.ok) {
@@ -1536,6 +1539,11 @@ function confirmarCambioEstatus() {
     <div class="modal-campo">
       <label>Correo electronico</label>
       <input type="email" id="ficha-email" placeholder="correo@ejemplo.com" />
+    </div>
+    <div class="modal-campo">
+      <label>Observaciones internas</label>
+      <textarea id="ficha-observaciones" rows="3" placeholder="Nota interna sobre este alumno. No es visible para el alumno." style="width:100%;font-size:.85rem;padding:.6rem .75rem;border:1.5px solid var(--borde);border-radius:8px;resize:vertical;font-family:inherit;background:var(--fondo);color:var(--texto);margin-bottom:0"></textarea>
+      <div style="font-size:.72rem;color:var(--gris);margin-top:.35rem;">Esta nota es solo para uso interno de Control Escolar. No la ve el alumno.</div>
     </div>
     <div class="modal-campo">
       <label>Tipo de inscripcion</label>
