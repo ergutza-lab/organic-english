@@ -678,95 +678,131 @@
     document.getElementById('modalHistoricoBody').innerHTML = html;
   }
 
-  function descargarCSV(rows, filename) {
-    var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c||'').replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
-    var blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = filename; a.click();
-  }
+  function fmt2(n){ return '$'+Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-  function descargarCSVCompleto(d, filename) {
-    var rows = [];
-    var sep  = ['','','','','','','',''];
+  function generarReportePDF(d, titulo) {
+    var bal     = Number(d.balance||0);
+    var balColor = bal >= 0 ? '#22c55e' : '#f87171';
+    var fecha   = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
 
-    rows.push(['ORGANIC ENGLISH — REPORTE FINANCIERO CATORCENAL','','','','','','','']);
-    rows.push(['Periodo: ' + (d.periodo||'—'),'','','','','','','']);
-    rows.push(['Generado: ' + new Date().toLocaleDateString('es-MX'),'','','','','','','']);
-    rows.push(sep);
+    function seccion(num, titulo, color) {
+      return '<div style="background:'+color+';color:#fff;padding:10px 18px;border-radius:8px 8px 0 0;margin-top:28px;font-size:13px;font-weight:700;letter-spacing:.5px;">'+num+'. '+titulo+'</div>';
+    }
+    function tabla(cols, filas, subtotalLabel, subtotalVal) {
+      var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+      html += '<thead><tr>'+cols.map(function(c){ return '<th style="background:#f1f5f9;padding:7px 10px;text-align:left;border-bottom:2px solid #e2e8f0;color:#475569;font-weight:700;">'+c+'</th>'; }).join('')+'</tr></thead><tbody>';
+      filas.forEach(function(f,i){
+        html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';">'+f.map(function(c,ci){
+          return '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:'+(ci===f.length-1&&String(c).startsWith('$')?'#1e293b':'#334155')+';">'+c+'</td>';
+        }).join('')+'</tr>';
+      });
+      if (subtotalLabel) {
+        html += '<tr style="background:#fff8ed;"><td colspan="'+(cols.length-1)+'" style="padding:8px 10px;font-weight:700;color:#92400e;text-align:right;">'+subtotalLabel+'</td><td style="padding:8px 10px;font-weight:800;color:#f97316;font-size:13px;">'+subtotalVal+'</td></tr>';
+      }
+      html += '</tbody></table>';
+      return html;
+    }
 
-    rows.push(['RESUMEN EJECUTIVO','','','','','','','']);
-    rows.push(['Concepto','Monto','','','','','','']);
-    rows.push(['Total Ingresos','$'+(d.totalIngresos||0),'','','','','','']);
-    rows.push(['Total Comisiones Asesores','$'+(d.totalComisiones||0),'','','','','','']);
-    rows.push(['Total Nomina','$'+(d.totalNomina||0),'','','','','','']);
-    rows.push(['BALANCE NETO','$'+(d.balance||0),'','','','','','']);
-    rows.push(sep);
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<title>'+titulo+'</title>'+
+      '<style>body{font-family:Arial,sans-serif;background:#fff;color:#1e293b;margin:0;padding:0;}'+
+      '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
+      '</style></head><body style="padding:32px 40px;max-width:960px;margin:0 auto;">';
 
-    rows.push(['1. INGRESOS — PAGOS DE ALUMNOS','','','','','','','']);
-    rows.push(['Fecha','ID Alumno','Nombre Alumno','Grupo','Monto','Validado Por','Comprobante','Comentario']);
-    (d.pagos||[]).forEach(function(p){
-      rows.push([p.fecha, p.idAlumno, p.nombreAlumno, p.grupo, '$'+p.monto, p.validadoPor, p.comprobanteUrl, p.comentario]);
+    // Header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #f97316;">';
+    html += '<div><div style="font-size:22px;font-weight:800;color:#1c2b5e;">ORGANIC ENGLISH</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Reporte Financiero Catorcenal</div></div>';
+    html += '<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#f97316;">'+titulo+'</div><div style="font-size:11px;color:#94a3b8;margin-top:3px;">Periodo: '+(d.periodo||'—')+'</div><div style="font-size:11px;color:#94a3b8;">Generado: '+fecha+'</div></div>';
+    html += '</div>';
+
+    // Resumen ejecutivo
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px;">';
+    html += '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px;"><div style="font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px;">Total Ingresos</div><div style="font-size:20px;font-weight:800;color:#16a34a;margin-top:4px;">'+fmt2(d.totalIngresos)+'</div></div>';
+    html += '<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px;"><div style="font-size:10px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:.5px;">Comisiones</div><div style="font-size:20px;font-weight:800;color:#ef4444;margin-top:4px;">'+fmt2(d.totalComisiones)+'</div></div>';
+    html += '<div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;padding:14px;"><div style="font-size:10px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:.5px;">Nomina Total</div><div style="font-size:20px;font-weight:800;color:#f97316;margin-top:4px;">'+fmt2(d.totalNomina)+'</div></div>';
+    html += '<div style="background:'+(bal>=0?'#f0fdf4':'#fef2f2')+';border:2px solid '+(bal>=0?'#22c55e':'#f87171')+';border-radius:10px;padding:14px;"><div style="font-size:10px;font-weight:700;color:'+(bal>=0?'#15803d':'#b91c1c')+';text-transform:uppercase;letter-spacing:.5px;">Balance Neto</div><div style="font-size:20px;font-weight:800;color:'+balColor+';margin-top:4px;">'+fmt2(bal)+'</div></div>';
+    html += '</div>';
+
+    // 1. Ingresos
+    html += seccion('1','INGRESOS — PAGOS DE ALUMNOS','#15803d');
+    html += tabla(
+      ['Fecha','ID Alumno','Nombre Alumno','Grupo','Monto','Validado Por','Comentario'],
+      (d.pagos||[]).map(function(p){ return [p.fecha, p.idAlumno, p.nombreAlumno, p.grupo, fmt2(p.monto), p.validadoPor, p.comentario||'—']; }),
+      'SUBTOTAL INGRESOS', fmt2(d.totalIngresos)
+    );
+
+    // 2. Comisiones asesores
+    html += seccion('2','EGRESOS — COMISIONES A ASESORES DE VENTAS','#dc2626');
+    html += tabla(
+      ['Asesor','ID','Alumnos en Periodo','Comision x Inscripcion','Total'],
+      (d.comisionesAsesores||[]).filter(function(a){ return a.comxInsc > 0; }).map(function(a){ return [a.nombre, a.id, a.alumnos, fmt2(a.comxInsc), fmt2(a.total)]; }),
+      'SUBTOTAL COMISIONES', fmt2(d.totalComisiones)
+    );
+
+    // 3. Nomina maestros
+    html += seccion('3','EGRESOS — NOMINA MAESTROS','#7c3aed');
+    html += tabla(
+      ['Maestro','ID','Clases Impartidas','Costo x Clase','Total a Pagar','Cuenta','Banco'],
+      (d.nominaMaestros||[]).map(function(m){ return [m.nombre, m.id, m.clases, fmt2(m.costoClase), fmt2(m.total), m.cuenta||'—', m.banco||'—']; }),
+      'SUBTOTAL MAESTROS', fmt2(d.totalNominaMaestros)
+    );
+
+    // 4. Nomina asistentes CE
+    html += seccion('4','EGRESOS — NOMINA ASISTENTES CE','#0369a1');
+    html += tabla(
+      ['Asistente','ID','Sueldo Catorcena','Cuenta','Banco'],
+      (d.nominaAsistentes||[]).map(function(a){ return [a.nombre, a.id, fmt2(a.sueldo), a.cuenta||'—', a.banco||'—']; }),
+      'SUBTOTAL ASISTENTES CE', fmt2(d.totalNominaAsistentes)
+    );
+
+    // 5. Nomina coordinadores
+    html += seccion('5','EGRESOS — NOMINA COORDINADORES','#0f766e');
+    html += tabla(
+      ['Coordinador','ID','Rol','Sueldo Catorcena','Cuenta','Banco'],
+      (d.nominaCoordinadores||[]).map(function(c){ return [c.nombre, c.id, c.rol, fmt2(c.sueldo), c.cuenta||'—', c.banco||'—']; }),
+      'SUBTOTAL COORDINADORES', fmt2(d.totalNominaCoordinadores)
+    );
+
+    // 6. Nomina direccion
+    html += seccion('6','EGRESOS — NOMINA DIRECCION','#92400e');
+    html += tabla(
+      ['Director','ID','Sueldo Catorcena','Cuenta','Banco'],
+      (d.nominaDireccion||[]).map(function(dir){ return [dir.nombre, dir.id, fmt2(dir.sueldo), dir.cuenta||'—', dir.banco||'—']; }),
+      'SUBTOTAL DIRECCION', fmt2(d.totalNominaDireccion)
+    );
+
+    // Resumen final de egresos
+    html += '<div style="margin-top:28px;background:#fff8ed;border:2px solid #f97316;border-radius:10px;padding:18px 24px;">';
+    html += '<div style="font-size:13px;font-weight:800;color:#f97316;margin-bottom:12px;letter-spacing:.5px;">RESUMEN FINAL</div>';
+    var egresosItems = [
+      ['Comisiones asesores de ventas', d.totalComisiones],
+      ['Nomina maestros', d.totalNominaMaestros],
+      ['Nomina asistentes CE', d.totalNominaAsistentes],
+      ['Nomina coordinadores', d.totalNominaCoordinadores],
+      ['Nomina direccion', d.totalNominaDireccion]
+    ];
+    egresosItems.forEach(function(e){
+      html += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #fed7aa;font-size:12px;"><span style="color:#78350f;">'+e[0]+'</span><span style="font-weight:700;color:#f97316;">'+fmt2(e[1])+'</span></div>';
     });
-    rows.push(['','','','','SUBTOTAL INGRESOS:','$'+(d.totalIngresos||0),'','']);
-    rows.push(sep);
+    var totalEgresos = (d.totalComisiones||0)+(d.totalNomina||0);
+    html += '<div style="display:flex;justify-content:space-between;padding:8px 0;margin-top:4px;font-size:13px;font-weight:800;"><span style="color:#7c2d12;">TOTAL EGRESOS</span><span style="color:#ef4444;">'+fmt2(totalEgresos)+'</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid '+(bal>=0?'#22c55e':'#ef4444')+';margin-top:4px;font-size:15px;font-weight:800;"><span style="color:#1e293b;">BALANCE NETO</span><span style="color:'+balColor+';">'+fmt2(bal)+'</span></div>';
+    html += '</div>';
 
-    rows.push(['2. EGRESOS — COMISIONES A ASESORES','','','','','','','']);
-    rows.push(['Asesor','ID','Alumnos Inscritos','Comision x Inscripcion','Total','','','']);
-    (d.comisionesAsesores||[]).forEach(function(a){
-      rows.push([a.nombre, a.id, a.alumnos, '$'+a.comxInsc, '$'+a.total,'','','']);
-    });
-    rows.push(['','','','','SUBTOTAL COMISIONES:','$'+(d.totalComisiones||0),'','']);
-    rows.push(sep);
+    // Boton imprimir
+    html += '<div class="no-print" style="text-align:center;margin-top:32px;"><button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:10px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button></div>';
+    html += '</body></html>';
 
-    rows.push(['3. EGRESOS — NOMINA MAESTROS','','','','','','','']);
-    rows.push(['Maestro','ID','Clases Impartidas','Costo x Clase','Total a Pagar','Cuenta','Banco','']);
-    (d.nominaMaestros||[]).forEach(function(m){
-      rows.push([m.nombre, m.id, m.clases, '$'+m.costoClase, '$'+m.total, m.cuenta, m.banco,'']);
-    });
-    rows.push(['','','','','SUBTOTAL MAESTROS:','$'+(d.totalNominaMaestros||0),'','']);
-    rows.push(sep);
-
-    rows.push(['4. EGRESOS — NOMINA ASISTENTES CE','','','','','','','']);
-    rows.push(['Asistente','ID','Grupos Asignados','Sueldo Catorcena','','Cuenta','Banco','']);
-    (d.nominaAsistentes||[]).forEach(function(a){
-      rows.push([a.nombre, a.id, a.grupos, '$'+a.sueldo,'', a.cuenta, a.banco,'']);
-    });
-    rows.push(['','','','','SUBTOTAL ASISTENTES:','$'+(d.totalNominaAsistentes||0),'','']);
-    rows.push(sep);
-
-    rows.push(['5. EGRESOS — NOMINA COORDINADORES','','','','','','','']);
-    rows.push(['Coordinador','ID','Rol','Sueldo Catorcena','','Cuenta','Banco','']);
-    (d.nominaCoordinadores||[]).forEach(function(c){
-      rows.push([c.nombre, c.id, c.rol, '$'+c.sueldo,'', c.cuenta, c.banco,'']);
-    });
-    rows.push(['','','','','SUBTOTAL COORDINADORES:','$'+(d.totalNominaCoordinadores||0),'','']);
-    rows.push(sep);
-
-    rows.push(['6. EGRESOS — NOMINA DIRECCION','','','','','','','']);
-    rows.push(['Director','ID','Sueldo Catorcena','','','Cuenta','Banco','']);
-    (d.nominaDireccion||[]).forEach(function(dir){
-      rows.push([dir.nombre, dir.id, '$'+dir.sueldo,'','', dir.cuenta, dir.banco,'']);
-    });
-    rows.push(['','','','','SUBTOTAL DIRECCION:','$'+(d.totalNominaDireccion||0),'','']);
-    rows.push(sep);
-
-    rows.push(['RESUMEN FINAL DE EGRESOS','','','','','','','']);
-    rows.push(['Comisiones asesores','$'+(d.totalComisiones||0),'','','','','','']);
-    rows.push(['Nomina maestros','$'+(d.totalNominaMaestros||0),'','','','','','']);
-    rows.push(['Nomina asistentes CE','$'+(d.totalNominaAsistentes||0),'','','','','','']);
-    rows.push(['Nomina coordinadores','$'+(d.totalNominaCoordinadores||0),'','','','','','']);
-    rows.push(['Nomina direccion','$'+(d.totalNominaDireccion||0),'','','','','','']);
-    rows.push(['TOTAL EGRESOS','$'+((d.totalComisiones||0)+(d.totalNomina||0)),'','','','','','']);
-    rows.push(['BALANCE NETO','$'+(d.balance||0),'','','','','','']);
-
-    descargarCSV(rows, filename);
+    var w = window.open('','_blank','width=1000,height=800');
+    w.document.write(html);
+    w.document.close();
   }
 
   function descargarReporteCatorcena() {
     fetch(APPS_SCRIPT + '?action=getDetalleCatorcenaActual').then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      descargarCSVCompleto(d, 'reporte-catorcena-actual.csv');
+      generarReportePDF(d, 'Catorcena Actual');
     }).catch(function(e){ alert('Error de conexion: '+e.message); });
   }
 
@@ -774,8 +810,7 @@
     fetch(APPS_SCRIPT + '?action=getDetalleCatorcena&inicio='+encodeURIComponent(inicioISO)+'&fin='+encodeURIComponent(finISO)).then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      var label = inicioISO.substring(0,10);
-      descargarCSVCompleto(d, 'reporte-catorcena-'+label+'.csv');
+      generarReportePDF(d, 'Reporte Catorcenal');
     }).catch(function(e){ alert('Error: '+e.message); });
   }
 
@@ -783,10 +818,9 @@
     fetch(APPS_SCRIPT + '?action=getReporteGlobal').then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      descargarCSVCompleto(d, 'reporte-global-organic-english.csv');
+      generarReportePDF(d, 'Reporte Global — Organic English');
     }).catch(function(e){ alert('Error: '+e.message); });
   }
-
   function switchTab(tab, btn) {
     document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
     document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
