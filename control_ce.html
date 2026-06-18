@@ -895,18 +895,131 @@ function renderSeguimiento(filtroTexto, filtroSit) {
 
     return '<tr>'+
       '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
-      '<td><strong>'+a.nombre+'</strong></td>'+
+      '<td><strong style="cursor:pointer;color:var(--azul);text-decoration:underline dotted;" onclick="abrirFichaAlumno(\''+a.idAlumno+'\')">'+a.nombre+'</strong></td>'+
       '<td><span class="chip chip-gris">'+a.idGrupo+'</span></td>'+
       '<td>'+chipEstatus+'</td>'+
       '<td style="font-size:.82rem;color:var(--gris)">'+pagoHasta+'</td>'+
       '<td>'+chipSit+'</td>'+
-      '<td>'+accion+'</td>'+
+      '<td>'+(accionPago ? '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'+accionPago+'</div>' : '—')+'</td>'+
     '</tr>';
   }).join('');
 }
-function filtrarSeguimiento() { renderSeguimiento(document.getElementById('filtro-seguimiento').value, document.getElementById('filtro-situacion').value); }
+// ── FICHA COMPLETA DEL ALUMNO ──────────────────────────────────────────────
+function abrirFichaAlumno(idAlumno) {
+  var a = estado.todosAlumnos.find(function(x){ return x.idAlumno === idAlumno; });
+  if (!a) return;
 
-// ── FIX 4: renderAlertas — sección de becados + excluir de fusión ──
+  // Datos de solo lectura
+  document.getElementById('ficha-id').textContent       = a.idAlumno || '—';
+  document.getElementById('ficha-fecha').textContent    = a.fechaInscripcion ? formatFecha(a.fechaInscripcion) : '—';
+  document.getElementById('ficha-grupo').textContent    = a.idGrupo     || '—';
+  document.getElementById('ficha-asistente').textContent = a.idAsistente || '—';
+  document.getElementById('ficha-asesor').textContent   = a.idAsesor    || '—';
+  document.getElementById('ficha-maestro').textContent  = a.idMaestro   || '—';
+  document.getElementById('ficha-fecha-baja').textContent = a.fechaBaja ? formatFecha(a.fechaBaja) : '—';
+
+  // Campos editables
+  document.getElementById('ficha-nombre').value   = a.nombre   || '';
+  document.getElementById('ficha-whatsapp').value = a.whatsapp || '';
+  document.getElementById('ficha-email').value    = a.email    || '';
+
+  // Estatus actual en selector
+  var sel = document.getElementById('ficha-estatus');
+  sel.value = a.estatus || 'Validado';
+
+  // Guardar referencia al alumno actual
+  estado.fichaAlumnoEnModal = idAlumno;
+
+  // Limpiar mensajes
+  document.getElementById('ficha-msg').className = 'modal-msg';
+  document.getElementById('ficha-msg').textContent = '';
+  document.getElementById('btn-whatsapp-ficha').style.display = 'none';
+
+  document.getElementById('modal-ficha').classList.add('abierto');
+}
+
+function guardarFichaAlumno() {
+  var msgEl  = document.getElementById('ficha-msg');
+  var btn    = document.getElementById('btn-guardar-ficha');
+  var btnWA  = document.getElementById('btn-whatsapp-ficha');
+
+  var nombre    = document.getElementById('ficha-nombre').value.trim();
+  var whatsapp  = document.getElementById('ficha-whatsapp').value.trim();
+  var email     = document.getElementById('ficha-email').value.trim();
+  var nuevoEst  = document.getElementById('ficha-estatus').value;
+  var idAlumno  = estado.fichaAlumnoEnModal;
+  var a         = estado.todosAlumnos.find(function(x){ return x.idAlumno === idAlumno; });
+
+  if (!nombre) { msgEl.textContent = 'El nombre no puede estar vacío.'; msgEl.className = 'modal-msg error'; return; }
+
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  btnWA.style.display = 'none';
+
+  // Determinar si cambió el estatus
+  var estatusAnterior = a ? a.estatus : '';
+  var cambioEstatus   = nuevoEst !== estatusAnterior;
+
+  // Guardar datos editables
+  api({
+    action:       'actualizarDatosAlumno',
+    idAlumno:     idAlumno,
+    nombre:       nombre,
+    whatsapp:     whatsapp,
+    email:        email,
+    idCE:         estado.idCE
+  }).then(function(res1) {
+    if (!res1.ok) {
+      btn.textContent = 'Guardar cambios'; btn.disabled = false;
+      msgEl.textContent = res1.error || 'Error al guardar datos.'; msgEl.className = 'modal-msg error';
+      return;
+    }
+
+    // Si cambió el estatus, también actualizarlo
+    if (cambioEstatus) {
+      return api({
+        action:        'cambiarEstatusAlumno',
+        idAlumno:      idAlumno,
+        nuevoEstatus:  nuevoEst,
+        idCE:          estado.idCE,
+        mensaje:       '',
+        emailAlumno:   email
+      }).then(function(res2) {
+        btn.textContent = 'Guardar cambios'; btn.disabled = false;
+        if (res2.ok) {
+          msgEl.textContent = 'Datos guardados. Estatus cambiado a "'+nuevoEst+'". '+(res2.correoEnviado ? 'Correo enviado.' : '');
+          msgEl.className = 'modal-msg ok';
+          // Botón WhatsApp si hay número
+          var phone = (whatsapp || '').replace(/\D/g,'');
+          if (phone.length === 10) phone = '52' + phone;
+          var textoWA = {
+            'Validado':  'Hola '+nombre+', te informamos que tu acceso a Organic English ha sido activado. Ya puedes ingresar normalmente.',
+            'Pendiente': 'Hola '+nombre+', tu cuenta esta en revision. Contactanos para regularizar tu situacion.',
+            'Baja':      'Hola '+nombre+', te contactamos de parte de Organic English. Nuestro sistema no ha registrado tu pago de este periodo, por lo que tu acceso ha sido pausado temporalmente. Si crees que hay un error o ya realizaste tu pago, contactanos y con gusto lo revisamos.',
+            'Becado':    'Hola '+nombre+', te confirmamos que tu beca en Organic English ha sido autorizada. Puedes continuar tus clases sin costo.'
+          };
+          if (phone) {
+            btnWA.href = 'https://wa.me/'+phone+'?text='+encodeURIComponent(textoWA[nuevoEst]||'');
+            btnWA.style.display = 'inline-flex';
+          }
+          btn.textContent = 'Cerrar';
+          btn.onclick = function(){ cerrarModal('modal-ficha'); cargarDatos(); btn.textContent='Guardar cambios'; btn.onclick=guardarFichaAlumno; };
+        } else {
+          msgEl.textContent = 'Datos guardados pero error en estatus: '+(res2.error||''); msgEl.className = 'modal-msg error';
+          btn.textContent = 'Guardar cambios'; btn.disabled = false;
+        }
+      });
+    } else {
+      btn.textContent = 'Cerrar'; btn.disabled = false;
+      msgEl.textContent = 'Datos guardados correctamente.'; msgEl.className = 'modal-msg ok';
+      btn.onclick = function(){ cerrarModal('modal-ficha'); cargarDatos(); btn.textContent='Guardar cambios'; btn.onclick=guardarFichaAlumno; };
+    }
+  }).catch(function(){
+    btn.textContent = 'Guardar cambios'; btn.disabled = false;
+    msgEl.textContent = 'Error de conexion.'; msgEl.className = 'modal-msg error';
+  });
+}
+
+function filtrarSeguimiento() { renderSeguimiento(document.getElementById('filtro-seguimiento').value, document.getElementById('filtro-situacion').value); }
 function renderAlertas() {
   // Fusión — excluir becados del conteo
   var tbodyF = document.getElementById('tbody-alertas');
@@ -1242,7 +1355,7 @@ function abrirModalAlumnosGrupo(idGrupo) {
 }
 
 function cerrarSesion() {
-  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:''};
+  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:'',fichaAlumnoEnModal:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
@@ -1386,6 +1499,60 @@ function confirmarCambioEstatus() {
     <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;justify-content:flex-end">
       <button class="btn btn-outline" onclick="cerrarModal('modal-alumnos-grupo')">Cerrar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: FICHA COMPLETA DEL ALUMNO -->
+<div class="modal-overlay" id="modal-ficha" onclick="if(event.target===this)cerrarModal('modal-ficha')">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-titulo">Ficha del alumno</div>
+    <div class="modal-sub" id="ficha-id-sub">—</div>
+
+    <!-- Datos de solo lectura -->
+    <div style="background:var(--gris-cl);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;">
+      <div><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">ID Alumno</div><div id="ficha-id" style="font-size:.88rem;font-weight:700;color:var(--azul);">—</div></div>
+      <div><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Fecha inscripcion</div><div id="ficha-fecha" style="font-size:.85rem;color:var(--texto);">—</div></div>
+      <div><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Grupo</div><div id="ficha-grupo" style="font-size:.85rem;color:var(--texto);">—</div></div>
+      <div><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Asistente CE</div><div id="ficha-asistente" style="font-size:.85rem;color:var(--texto);">—</div></div>
+      <div><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Asesor</div><div id="ficha-asesor" style="font-size:.85rem;color:var(--texto);">—</div></div>
+      <div><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Maestro</div><div id="ficha-maestro" style="font-size:.85rem;color:var(--texto);">—</div></div>
+      <div style="grid-column:1/-1;"><div style="font-size:.68rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Fecha de baja</div><div id="ficha-fecha-baja" style="font-size:.85rem;color:var(--texto);">—</div></div>
+    </div>
+
+    <!-- Campos editables -->
+    <div style="font-size:.78rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem;">Datos editables</div>
+
+    <div class="modal-campo">
+      <label>Nombre completo</label>
+      <input type="text" id="ficha-nombre" placeholder="Nombre del alumno" />
+    </div>
+    <div class="modal-campo">
+      <label>WhatsApp</label>
+      <input type="text" id="ficha-whatsapp" placeholder="10 digitos sin espacios" />
+    </div>
+    <div class="modal-campo">
+      <label>Correo electronico</label>
+      <input type="email" id="ficha-email" placeholder="correo@ejemplo.com" />
+    </div>
+    <div class="modal-campo">
+      <label>Estatus</label>
+      <select id="ficha-estatus" style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.88rem;background:var(--fondo);color:var(--texto);">
+        <option value="Validado">Validado — Acceso activo</option>
+        <option value="Pendiente">Pendiente — En revision</option>
+        <option value="Baja">Baja — Acceso suspendido</option>
+        <option value="Becado">Becado — Beca autorizada</option>
+      </select>
+      <div style="font-size:.72rem;color:var(--gris);margin-top:.3rem;">Si cambias el estatus se enviara correo automatico al alumno.</div>
+    </div>
+
+    <div class="modal-acciones" style="margin-top:1.25rem;flex-wrap:wrap;gap:.5rem;">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-ficha')">Cancelar</button>
+      <button class="btn btn-primario" id="btn-guardar-ficha" onclick="guardarFichaAlumno()">Guardar cambios</button>
+      <a id="btn-whatsapp-ficha" href="#" target="_blank" style="display:none;background:#16a34a;color:#fff;font-size:.84rem;font-weight:700;padding:.55rem 1.1rem;border-radius:8px;text-decoration:none;align-items:center;gap:.4rem;white-space:nowrap;">
+        Enviar por WhatsApp
+      </a>
+    </div>
+    <div class="modal-msg" id="ficha-msg"></div>
   </div>
 </div>
 
