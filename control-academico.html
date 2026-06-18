@@ -847,6 +847,7 @@ function renderEvaluaciones(){
   if(!activos.length){grid.innerHTML='<div class="empty-state">Sin maestros activos.</div>';return;}
 
   grid.innerHTML=activos.map(function(m){
+    var esSiMismo = m.id === caData.id;
     var pct=mapaEval[m.id]!==undefined?mapaEval[m.id]:75;
     var acum=mapaAcum[m.id]||0;
     var nv=getNivel(pct);
@@ -870,10 +871,17 @@ function renderEvaluaciones(){
     var acumColor=acum<0?'#ef4444':acum>=4?'#22c55e':'#f97316';
     var acumLabel=acum>=4?'Listo para subir nivel':acum<=-4?'Alerta - riesgo de bajar':''+acum+'/4 para subir';
 
-    return '<div class="eval-card" id="evalcard_'+m.id+'">'+
+    var cardStyle = esSiMismo ? 'opacity:0.35;pointer-events:none;filter:grayscale(0.4);' : '';
+    var cardExtra = esSiMismo
+      ? '<div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:8px;font-style:italic;">No puedes evaluarte a ti mismo</div>'
+      : '';
+    var btnEval = esSiMismo ? '' : '<button class="btn-evaluar-maestro" onclick="guardarEvalMaestro(\''+m.id+'\');">Guardar evaluacion</button>';
+
+    return '<div class="eval-card" id="evalcard_'+m.id+'" style="'+cardStyle+'">'+
       '<div class="eval-card-header">'+foto+
         '<div><div class="eval-nombre">'+m.nombre+'</div><div class="eval-id">'+m.id+'</div></div>'+
       '</div>'+
+      cardExtra+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
         '<div class="nivel-badge nivel-'+nv.n+'" style="margin-bottom:0;"><span style="width:8px;height:8px;border-radius:50%;background:'+nv.color+';display:inline-block;"></span>'+
         (nv.n?'Nivel '+nv.n+' $'+nv.costo+'/clase':'Sin nivel')+'</div>'+
@@ -893,7 +901,7 @@ function renderEvaluaciones(){
         '<textarea id="comgen_'+m.id+'" rows="2" placeholder="Observaciones generales..." '+
           'style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;outline:none;resize:none;"></textarea>'+
       '</div>'+
-      '<button class="btn-evaluar-maestro" onclick="guardarEvalMaestro(\''+m.id+'\');">Guardar evaluacion</button>'+
+      btnEval+
       '<div class="eval-guardado" id="evalsaved_'+m.id+'" style="display:none;padding:8px;border-radius:6px;text-align:center;font-size:12px;margin-top:6px;"></div>'+
     '</div>';
   }).join('');
