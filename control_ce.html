@@ -922,6 +922,7 @@ function abrirFichaAlumno(idAlumno) {
   document.getElementById('ficha-nombre').value   = a.nombre   || '';
   document.getElementById('ficha-whatsapp').value = a.whatsapp || '';
   document.getElementById('ficha-email').value    = a.email    || '';
+  document.getElementById('ficha-tipo').value     = a.tipoInscripcion || 'Promo';
 
   // Estatus actual en selector
   var sel = document.getElementById('ficha-estatus');
@@ -947,6 +948,7 @@ function guardarFichaAlumno() {
   var whatsapp  = document.getElementById('ficha-whatsapp').value.trim();
   var email     = document.getElementById('ficha-email').value.trim();
   var nuevoEst  = document.getElementById('ficha-estatus').value;
+  var nuevoTipo = document.getElementById('ficha-tipo').value;
   var idAlumno  = estado.fichaAlumnoEnModal;
   var a         = estado.todosAlumnos.find(function(x){ return x.idAlumno === idAlumno; });
 
@@ -961,12 +963,13 @@ function guardarFichaAlumno() {
 
   // Guardar datos editables
   api({
-    action:       'actualizarDatosAlumno',
-    idAlumno:     idAlumno,
-    nombre:       nombre,
-    whatsapp:     whatsapp,
-    email:        email,
-    idCE:         estado.idCE
+    action:           'actualizarDatosAlumno',
+    idAlumno:         idAlumno,
+    nombre:           nombre,
+    whatsapp:         whatsapp,
+    email:            email,
+    tipoInscripcion:  nuevoTipo,
+    idCE:             estado.idCE
   }).then(function(res1) {
     if (!res1.ok) {
       btn.textContent = 'Guardar cambios'; btn.disabled = false;
@@ -1533,6 +1536,17 @@ function confirmarCambioEstatus() {
     <div class="modal-campo">
       <label>Correo electronico</label>
       <input type="email" id="ficha-email" placeholder="correo@ejemplo.com" />
+    </div>
+    <div class="modal-campo">
+      <label>Tipo de inscripcion</label>
+      <select id="ficha-tipo" style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.88rem;background:var(--fondo);color:var(--texto);">
+        <option value="Promo">Promocion — $100/semana</option>
+        <option value="Promo_Mensual">Promocion mensual — $400/4 semanas</option>
+        <option value="Normal">Normal — $140/semana</option>
+        <option value="Normal_Mensual">Normal mensual — $500/4 semanas</option>
+        <option value="Beca_Parcial">Beca parcial — $100 + 3 semanas gratis</option>
+        <option value="Becado">Becado 100% — sin costo</option>
+      </select>
     </div>
     <div class="modal-campo">
       <label>Estatus</label>
