@@ -619,6 +619,13 @@ function renderGruposPorNivel(nivelFiltro){
             <div class="grupo-info">
               <div class="grupo-nombre-row${esAdolescentes?' nombre-adolescentes':''}">${g.nombre} <span style="color:#94a3b8;font-size:12px;font-weight:400">${g.nivel||''}</span></div>
               <div class="grupo-horario-row">${g.horario}</div>
+              ${g.linkZoom
+                ? `<div style="margin-top:3px;display:flex;align-items:center;gap:5px;">
+                    <a href="${g.linkZoom}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#3b82f6;text-decoration:none;font-weight:600;">🔗 Link Zoom</a>
+                    <button onclick="event.stopPropagation();copiarZoom('${g.linkZoom}')" style="background:none;border:1px solid #3b82f6;color:#3b82f6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;cursor:pointer;">Copiar</button>
+                  </div>`
+                : `<div style="margin-top:3px;font-size:11px;color:#ef4444;font-weight:600;">Sin link Zoom asignado</div>`
+              }
             </div>
             <div class="grupo-stats">
               <span class="gstat total">${alumnos.length}/${g.cupo_max}</span>
@@ -662,6 +669,13 @@ function abrirModalGrupo(idx){
       <span class="modal-grupo-id">${g.id}</span>
       <div class="modal-grupo-nombre">${g.nombre}</div>
       <div class="modal-grupo-sub">${g.horario} · Inicio: ${g.fecha_inicio}</div>
+      ${g.linkZoom
+        ? `<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a href="${g.linkZoom}" target="_blank" style="font-size:12px;color:#93c5fd;text-decoration:none;font-weight:600;">🔗 Abrir Zoom</a>
+            <button onclick="copiarZoom('${g.linkZoom}')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">Copiar link</button>
+          </div>`
+        : `<div style="margin-top:4px;font-size:11px;color:#fca5a5;font-weight:600;">Sin link Zoom asignado</div>`
+      }
     </div>
     <button class="modal-cerrar" onclick="cerrarModalGrupo()">✕</button>`;
 
@@ -713,6 +727,21 @@ function abrirModalGrupo(idx){
 
 function cerrarModalGrupo(){document.getElementById('modal-grupo').classList.remove('open');document.body.style.overflow='';}
 function cerrarModalGrupoClick(e){if(e.target===document.getElementById('modal-grupo'))cerrarModalGrupo();}
+
+function copiarZoom(link) {
+  navigator.clipboard.writeText(link).then(function() {
+    mostrarToast('Link de Zoom copiado');
+  }).catch(function() {
+    // Fallback para navegadores que no soporten clipboard API
+    var el = document.createElement('textarea');
+    el.value = link;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    mostrarToast('Link de Zoom copiado');
+  });
+}
 
 function renderPagos(){
   const cont=document.getElementById('lista-pagos');
