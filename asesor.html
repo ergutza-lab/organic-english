@@ -716,44 +716,50 @@ function formatFechaDDMMM(d) {
   return dd + '/' + meses[d.getMonth()] + '/' + d.getFullYear();
 }
 
+function gvizJSONP(sheet, callback) {
+  var cbName = 'gvcb_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+  window[cbName] = function(resp) {
+    delete window[cbName];
+    var grupos = resp.table.rows.map(function(r) { return {
+      id:       r.c[0]?.v || '',
+      nombre:   r.c[1]?.v || '',
+      horario:  r.c[2]?.v || '',
+      fechaObj: parseFechaGVis(r.c[3]),
+      nivel:    String(r.c[4]?.v || '').trim(),
+      libres:   r.c[7]?.v ?? 0,
+      estado:   r.c[8]?.v || ''
+    }; });
+    callback(grupos);
+  };
+  var s = document.createElement('script');
+  s.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=responseHandler:' + cbName + '&sheet=' + encodeURIComponent(sheet) + '&t=' + Date.now();
+  document.head.appendChild(s);
+}
+
 function cargarNivelesDropdown() {
   var sel = document.getElementById('selNivelWA');
   sel.innerHTML = '<option value="">Cargando...</option>';
-  fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=GRUPOS&t=' + Date.now())
-    .then(function(r) { return r.text(); })
-    .then(function(text) {
-      var json = JSON.parse(text.substring(47, text.length - 2));
-      var hoy = new Date();
-      gruposCache = json.table.rows.map(function(r) { return {
-        id:       r.c[0]?.v || '',
-        nombre:   r.c[1]?.v || '',
-        horario:  r.c[2]?.v || '',
-        fechaObj: parseFechaGVis(r.c[3]),
-        nivel:    String(r.c[4]?.v || '').trim(),
-        libres:   r.c[7]?.v ?? 0,
-        estado:   r.c[8]?.v || ''
-      }; }).filter(function(g) {
-        return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0 && (!g.fechaObj || g.fechaObj >= hoy);
-      });
-      var nivelesVistos = {};
-      gruposCache.forEach(function(g) {
-        var norm = normalizarNivel(g.nivel);
-        if (norm) nivelesVistos[norm] = true;
-      });
-      var nivelesLista = NIVELES_ORDEN.filter(function(n) { return nivelesVistos[n]; });
-      var otros = Object.keys(nivelesVistos).filter(function(n) { return NIVELES_ORDEN.indexOf(n) === -1; }).sort();
-      nivelesLista = nivelesLista.concat(otros);
-      if (!nivelesLista.length) {
-        sel.innerHTML = '<option value="">Sin niveles disponibles</option>';
-        return;
-      }
-      sel.innerHTML = nivelesLista.map(function(n) {
-        return '<option value="' + n + '">' + n + '</option>';
-      }).join('');
-    })
-    .catch(function() {
-      sel.innerHTML = '<option value="">Error al cargar</option>';
+  gvizJSONP('GRUPOS', function(grupos) {
+    var hoy = new Date();
+    gruposCache = grupos.filter(function(g) {
+      return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0 && (!g.fechaObj || g.fechaObj >= hoy);
     });
+    var nivelesVistos = {};
+    gruposCache.forEach(function(g) {
+      var norm = normalizarNivel(g.nivel);
+      if (norm) nivelesVistos[norm] = true;
+    });
+    var nivelesLista = NIVELES_ORDEN.filter(function(n) { return nivelesVistos[n]; });
+    var otros = Object.keys(nivelesVistos).filter(function(n) { return NIVELES_ORDEN.indexOf(n) === -1; }).sort();
+    nivelesLista = nivelesLista.concat(otros);
+    if (!nivelesLista.length) {
+      sel.innerHTML = '<option value="">Sin niveles disponibles</option>';
+      return;
+    }
+    sel.innerHTML = nivelesLista.map(function(n) {
+      return '<option value="' + n + '">' + n + '</option>';
+    }).join('');
+  });
 }
 
 function compartirGruposWA(btn) {
