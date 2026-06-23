@@ -1565,64 +1565,76 @@ function subirVideoChallenge() {
   var btn = document.getElementById('btnEnviarVideo');
   btn.disabled = true;
   document.getElementById('videoProgressWrap').style.display = 'block';
-  document.getElementById('videoStatus').textContent = 'Subiendo video, por favor espera…';
+  document.getElementById('videoStatus').textContent = 'Preparando subida…';
 
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var base64 = e.target.result.split(',')[1];
-    var payload = {
-      action: 'subirVideoChallenge',
-      idAlumno: alumnoData.alumno.id,
-      nombreAlumno: alumnoData.alumno.nombre,
-      idGrupo: alumnoData.alumno.idGrupo,
-      tipoChallenge: _videoTipoChallenge,
-      nombreArchivo: _videoArchivo.name,
-      mimeType: _videoArchivo.type,
-      videoBase64: base64
+  var idCarpeta = _videoTipoChallenge === 'Mini'
+    ? '1GGUDvzHQfuul0oaCbftiUl2nY93pN2h6'
+    : '1tqUtChzZQlyZWfAlEeremlNMbbd7T7Pi';
+
+  var idAlumno     = alumnoData.alumno.id;
+  var nombreAlumno = alumnoData.alumno.nombre;
+  var idGrupo      = alumnoData.alumno.idGrupo || '';
+  var nombreFinal  = idAlumno + '_' + idGrupo + '_' + _videoTipoChallenge + '_' + _videoArchivo.name;
+
+  var prog = document.getElementById('videoProgressBar');
+  var pct  = 0;
+  var ticker = setInterval(function(){
+    pct = Math.min(pct + Math.random()*6, 85);
+    prog.style.width = pct + '%';
+  }, 400);
+
+  // Paso 1: obtener token
+  fetch(APPS_SCRIPT + '?action=getUploadToken', { redirect: 'follow' })
+  .then(function(r){ return r.json(); })
+  .then(function(res) {
+    var token = res.token;
+    document.getElementById('videoStatus').textContent = 'Subiendo video a Drive…';
+
+    // Paso 2: subir archivo directo a Drive API
+    var metadata = {
+      name: nombreFinal,
+      parents: [idCarpeta]
     };
+    var form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', _videoArchivo);
 
-    // Simular progreso
-    var prog = document.getElementById('videoProgressBar');
-    var pct = 0;
-    var ticker = setInterval(function(){
-      pct = Math.min(pct + Math.random()*8, 88);
-      prog.style.width = pct + '%';
-    }, 300);
-
-    fetch(APPS_SCRIPT, {
+    return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(resp) {
-      clearInterval(ticker);
-      prog.style.width = '100%';
-      console.log('RESP VIDEO:', JSON.stringify(resp));
-      if (resp && resp.success) {
-        document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
-        // Mostrar link en la card correspondiente
-        var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
-        var linkEl = document.getElementById(linkId);
-        if (linkEl) {
-          linkEl.href = resp.url;
-          linkEl.textContent = '▶ Ver mi video subido';
-          linkEl.style.display = 'block';
-        }
-        setTimeout(cerrarModalVideo, 2000);
-      } else {
-        document.getElementById('videoStatus').textContent = '❌ Error: ' + (resp && resp.error ? resp.error : 'Intenta de nuevo.');
-        btn.disabled = false;
-      }
-    })
-    .catch(function(err) {
-      clearInterval(ticker);
-      document.getElementById('videoStatus').textContent = '❌ Error: ' + err.message;
-      console.log('ERROR FETCH VIDEO:', err);
-      btn.disabled = false;
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: form
     });
-  };
-  reader.readAsDataURL(_videoArchivo);
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(driveResp) {
+    if (!driveResp.id) throw new Error('Drive no devolvió ID');
+    var urlVideo = driveResp.webViewLink;
+    clearInterval(ticker);
+    prog.style.width = '100%';
+    document.getElementById('videoStatus').textContent = 'Registrando en sistema…';
+
+    // Paso 3: registrar link en Sheets via Apps Script
+    return fetch(APPS_SCRIPT + '?action=registrarLinkVideo' +
+      '&idAlumno=' + encodeURIComponent(idAlumno) +
+      '&idGrupo='  + encodeURIComponent(idGrupo) +
+      '&tipo='     + encodeURIComponent(_videoTipoChallenge) +
+      '&url='      + encodeURIComponent(urlVideo),
+      { redirect: 'follow' }
+    ).then(function(r){ return r.json(); })
+    .then(function() {
+      document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
+      var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
+      var linkEl = document.getElementById(linkId);
+      if (linkEl) { linkEl.href = urlVideo; linkEl.textContent = '▶ Ver mi video subido'; linkEl.style.display = 'block'; }
+      setTimeout(cerrarModalVideo, 2000);
+    });
+  })
+  .catch(function(err) {
+    clearInterval(ticker);
+    document.getElementById('videoStatus').textContent = '❌ Error: ' + err.message;
+    console.log('ERROR VIDEO:', err);
+    btn.disabled = false;
+  });
 }
 </script>
 </body>
