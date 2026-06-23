@@ -292,6 +292,7 @@
   var panelData   = null;
   var grupoActual = null;
   var bloqueActualChallenge = 1;
+var _linksVideo = {};
   var modalAbierto = false;
   var fechasRegistradas = [];
   
@@ -456,7 +457,13 @@ function actualizarEstadoFecha(fechaStr) {
     });
     if (tab==='Registro')  renderRegistro();
     if (tab==='Mapa')      { grupoActual._mapaData=null; cargarMapas(); }
-    if (tab==='Challenge') renderChallenge();
+    if (tab==='Challenge') {
+      var bw = calcularBloqueySemana();
+      fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque='+bw.bloque, {redirect:'follow'})
+        .then(function(r){return r.json();})
+        .then(function(d){ _linksVideo = d.links || {}; renderChallenge(); })
+        .catch(function(){ renderChallenge(); });
+    }
   }
 
   // ── REGISTRO DIARIO ────────────────────────────────────────────────
@@ -1034,6 +1041,17 @@ function renderMapas(resultados) {
 '</div>'+
 '</div>'+
         '<textarea class="challenge-feedback" id="fb-'+a.id+'" placeholder="Escribe sus logros, avances y áreas de oportunidad..."></textarea>'+
+(function(){
+  var lv = _linksVideo[a.id] || {};
+  var linkMini  = lv.mini  || '';
+  var linkGrand = lv.grand || '';
+  var html = '<div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;">';
+  if (linkMini)  html += '<a href="'+linkMini+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Mini Challenge</a>';
+  if (linkGrand) html += '<a href="'+linkGrand+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Grand Challenge</a>';
+  if (!linkMini && !linkGrand) html += '<span style="font-size:11px;color:#475569;">Sin video subido</span>';
+  html += '</div>';
+  return html;
+})()+
        '<div class="challenge-aprobado">'+
           '<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Aprobó</div>'+
           '<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 No Aprobó</div>'+
