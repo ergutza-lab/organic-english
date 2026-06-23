@@ -1544,7 +1544,7 @@ function onVideoSeleccionado(input) {
   dz.addEventListener('drop', function(e){
     e.preventDefault(); dz.classList.remove('dragover');
     var file = e.dataTransfer.files[0];
-    if (file && (file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i))) {
+    if (file && file.type.startsWith('video/')) {
       _videoArchivo = file;
       var input = document.getElementById('videoFileInput');
       // Asignar via DataTransfer para que el input tenga el archivo
@@ -1572,61 +1572,76 @@ function subirVideoChallenge() {
     : '1tqUtChzZQlyZWfAlEeremlNMbbd7T7Pi';
 
   var idAlumno     = alumnoData.alumno.id;
-  var nombreAlumno = alumnoData.alumno.nombre;
-  var idGrupo      = alumnoData.alumno.idGrupo || '';
+  var nombreAlumno = alumnoData.alumno.nombre || '';
+  var idGrupo      = alumnoData.alumno.idGrupo || alumnoData.grupo && alumnoData.grupo.id || '';
   var nombreFinal  = idAlumno + '_' + idGrupo + '_' + _videoTipoChallenge + '_' + _videoArchivo.name;
 
-  var prog = document.getElementById('videoProgressBar');
-  var pct  = 0;
+  var prog   = document.getElementById('videoProgressBar');
+  var pct    = 0;
   var ticker = setInterval(function(){
-    pct = Math.min(pct + Math.random()*6, 85);
+    pct = Math.min(pct + Math.random()*5, 80);
     prog.style.width = pct + '%';
   }, 400);
 
-  // Paso 1: obtener token
+  // Paso 1: obtener token de Google
   fetch(APPS_SCRIPT + '?action=getUploadToken', { redirect: 'follow' })
-  .then(function(r){ return r.json(); })
-  .then(function(res) {
-    var token = res.token;
+  .then(function(r) { return r.text(); })
+  .then(function(txt) {
+    var res = JSON.parse(txt);
+    if (!res.token) throw new Error('No se obtuvo token');
     document.getElementById('videoStatus').textContent = 'Subiendo video a Drive…';
 
     // Paso 2: subir archivo directo a Drive API
-    var metadata = {
-      name: nombreFinal,
-      parents: [idCarpeta]
-    };
+    var metadata = JSON.stringify({ name: nombreFinal, parents: [idCarpeta] });
+    var boundary = '-------OEBoundary';
+    var body =
+      '--' + boundary + '\r\n' +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      metadata + '\r\n' +
+      '--' + boundary + '\r\n' +
+      'Content-Type: ' + _videoArchivo.type + '\r\n\r\n';
+
+    // Usar FormData para evitar problemas de encoding
     var form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('metadata', new Blob([metadata], { type: 'application/json' }));
     form.append('file', _videoArchivo);
 
     return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token },
+      headers: { 'Authorization': 'Bearer ' + res.token },
       body: form
     });
   })
-  .then(function(r){ return r.json(); })
+  .then(function(r) { return r.json(); })
   .then(function(driveResp) {
-    if (!driveResp.id) throw new Error('Drive no devolvió ID');
+    if (!driveResp.id) throw new Error('Drive error: ' + JSON.stringify(driveResp));
     var urlVideo = driveResp.webViewLink;
     clearInterval(ticker);
-    prog.style.width = '100%';
+    prog.style.width = '90%';
     document.getElementById('videoStatus').textContent = 'Registrando en sistema…';
 
-    // Paso 3: registrar link en Sheets via Apps Script
-    return fetch(APPS_SCRIPT + '?action=registrarLinkVideo' +
+    // Paso 3: registrar link en Sheets via Apps Script GET
+    return fetch(APPS_SCRIPT +
+      '?action=registrarLinkVideo' +
       '&idAlumno=' + encodeURIComponent(idAlumno) +
       '&idGrupo='  + encodeURIComponent(idGrupo) +
       '&tipo='     + encodeURIComponent(_videoTipoChallenge) +
       '&url='      + encodeURIComponent(urlVideo),
       { redirect: 'follow' }
-    ).then(function(r){ return r.json(); })
+    )
+    .then(function(r) { return r.json(); })
     .then(function() {
+      clearInterval(ticker);
+      prog.style.width = '100%';
       document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
       var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
       var linkEl = document.getElementById(linkId);
-      if (linkEl) { linkEl.href = urlVideo; linkEl.textContent = '▶ Ver mi video subido'; linkEl.style.display = 'block'; }
-      setTimeout(cerrarModalVideo, 2000);
+      if (linkEl) {
+        linkEl.href = urlVideo;
+        linkEl.textContent = '▶ Ver mi video subido';
+        linkEl.style.display = 'block';
+      }
+      setTimeout(cerrarModalVideo, 2500);
     });
   })
   .catch(function(err) {
