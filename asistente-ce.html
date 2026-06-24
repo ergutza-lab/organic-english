@@ -623,8 +623,12 @@ function renderGruposPorNivel(nivelFiltro){
                 ? `<div style="margin-top:3px;display:flex;align-items:center;gap:5px;">
                     <a href="${g.linkZoom}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#3b82f6;text-decoration:none;font-weight:600;">🔗 Link Zoom</a>
                     <button onclick="event.stopPropagation();copiarZoom('${g.linkZoom}')" style="background:none;border:1px solid #3b82f6;color:#3b82f6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;cursor:pointer;">Copiar</button>
+                    <button onclick="event.stopPropagation();generarReportePDF('${g.id}')" style="background:none;border:1px solid #f97316;color:#f97316;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:700;cursor:pointer;">📄 Reporte</button>
                   </div>`
-                : `<div style="margin-top:3px;font-size:11px;color:#ef4444;font-weight:600;">Sin link Zoom asignado</div>`
+                : `<div style="margin-top:3px;display:flex;align-items:center;gap:5px;">
+                    <span style="font-size:11px;color:#ef4444;font-weight:600;">Sin link Zoom asignado</span>
+                    <button onclick="event.stopPropagation();generarReportePDF('${g.id}')" style="background:none;border:1px solid #f97316;color:#f97316;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:700;cursor:pointer;">📄 Reporte</button>
+                  </div>`
               }
             </div>
             <div class="grupo-stats">
@@ -1196,6 +1200,140 @@ async function ejecutarValidarCE() {
   }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
 }
 
+
+// ── REPORTE PDF ──────────────────────────────────────────────────────────────
+function generarReportePDF(idGrupo) {
+  const g = (datosPanel?.grupos||[]).find(g=>g.id===idGrupo);
+  if (!g) return;
+
+  const sinPagoIds = new Set((datosPanel.sin_pago||[]).filter(a=>!esBecado(a)).map(a=>a.id));
+  const nuevosIds  = new Set((datosPanel.alumnos_nuevos||[]).map(a=>a.id));
+  const alumnos    = g.alumnos||[];
+
+  const tipoEtiquetas = {
+    'Promo':         'Promo $100',
+    'Promo_Mensual': 'Promo $400',
+    'Normal':        'Normal $140',
+    'Normal_Mensual':'Normal $500',
+    'Beca_Parcial':  'Beca parcial',
+    'Becado':        'Becado 100%'
+  };
+
+  const filas = alumnos.map(function(a) {
+    const esBec     = esBecado(a);
+    const esSinPago = sinPagoIds.has(a.id);
+    const esNuevo   = nuevosIds.has(a.id);
+
+    let estPago, colorEstPago;
+    if (esBec)              { estPago='Becado';             colorEstPago='#7c3aed'; }
+    else if (a.pago_ok)     { estPago='Al corriente';       colorEstPago='#16a34a'; }
+    else if (a.pago_pendiente){ estPago='Comprobante enviado'; colorEstPago='#d97706'; }
+    else                    { estPago='Sin pago';           colorEstPago='#dc2626'; }
+
+    const tipo = tipoEtiquetas[a.tipoInscripcion] || a.tipoInscripcion || '—';
+    const ultimoPago = a.ultimo_pago_fecha ? `${a.ultimo_pago_fecha}${a.ultimo_pago_monto?' · $'+a.ultimo_pago_monto:''}` : '—';
+    const vencimiento = a.fecha_vencimiento || '—';
+    const badges = [esNuevo?'NUEVO':'', esBec?'BECADO':''].filter(Boolean).join(' · ');
+
+    return `
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 8px;font-size:12px;font-weight:700;color:#1e293b;">${a.id}</td>
+        <td style="padding:10px 8px;font-size:13px;font-weight:600;color:#0f172a;">
+          ${a.nombre}
+          ${badges?`<br><span style="font-size:10px;font-weight:700;color:#7c3aed;">${badges}</span>`:''}
+        </td>
+        <td style="padding:10px 8px;font-size:11px;color:#475569;">${a.whatsapp||'—'}</td>
+        <td style="padding:10px 8px;">
+          <span style="font-size:11px;font-weight:700;color:${colorEstPago};background:${colorEstPago}18;padding:3px 8px;border-radius:100px;">${estPago}</span>
+        </td>
+        <td style="padding:10px 8px;font-size:11px;color:#475569;">${tipo}</td>
+        <td style="padding:10px 8px;font-size:11px;color:#475569;">${ultimoPago}</td>
+        <td style="padding:10px 8px;font-size:12px;font-weight:700;color:${vencimiento==='—'?'#94a3b8':'#0f172a'};">${vencimiento}</td>
+      </tr>`;
+  }).join('');
+
+  const nOk      = alumnos.filter(a=>a.pago_ok && !esBecado(a)).length;
+  const nSinPago = alumnos.filter(a=>sinPagoIds.has(a.id)).length;
+  const nBecados = alumnos.filter(a=>esBecado(a)).length;
+  const nNuevos  = alumnos.filter(a=>nuevosIds.has(a.id)).length;
+  const fecha    = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Reporte ${g.id}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background:#fff; color:#0f172a; padding:32px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; padding-bottom:16px; border-bottom:3px solid #f97316; }
+  .logo-txt { font-size:22px; font-weight:900; color:#f97316; letter-spacing:-0.5px; }
+  .logo-sub { font-size:11px; color:#94a3b8; margin-top:2px; }
+  .grupo-titulo { font-size:20px; font-weight:800; color:#0f172a; margin-bottom:4px; }
+  .grupo-sub { font-size:13px; color:#64748b; }
+  .stats-row { display:flex; gap:16px; margin-bottom:24px; }
+  .stat-box { flex:1; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center; }
+  .stat-num { font-size:24px; font-weight:800; color:#0f172a; }
+  .stat-lbl { font-size:11px; color:#64748b; margin-top:2px; text-transform:uppercase; letter-spacing:.5px; }
+  .stat-box.ok .stat-num { color:#16a34a; }
+  .stat-box.warn .stat-num { color:#d97706; }
+  .stat-box.danger .stat-num { color:#dc2626; }
+  .stat-box.purple .stat-num { color:#7c3aed; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:#f97316; }
+  thead th { padding:10px 8px; font-size:11px; font-weight:700; color:#fff; text-align:left; text-transform:uppercase; letter-spacing:.5px; }
+  tbody tr:nth-child(even) { background:#f8fafc; }
+  .footer { margin-top:24px; padding-top:12px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo-txt">Organic English</div>
+      <div class="logo-sub">Reporte de pagos por grupo</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="grupo-titulo">${g.id} — ${g.nombre}</div>
+      <div class="grupo-sub">${g.horario} · Inicio: ${g.fecha_inicio} · ${g.nivel||''}</div>
+      <div class="grupo-sub" style="margin-top:4px;color:#94a3b8;">Generado el ${fecha}</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num">${alumnos.length}</div><div class="stat-lbl">Inscritos</div></div>
+    <div class="stat-box ok"><div class="stat-num">${nOk}</div><div class="stat-lbl">Al corriente</div></div>
+    <div class="stat-box danger"><div class="stat-num">${nSinPago}</div><div class="stat-lbl">Sin pago</div></div>
+    <div class="stat-box warn"><div class="stat-num">${nNuevos}</div><div class="stat-lbl">Nuevos</div></div>
+    <div class="stat-box purple"><div class="stat-num">${nBecados}</div><div class="stat-lbl">Becados</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>WhatsApp</th>
+        <th>Estatus pago</th>
+        <th>Tipo inscripción</th>
+        <th>Último pago</th>
+        <th>Vigencia hasta</th>
+      </tr>
+    </thead>
+    <tbody>${filas}</tbody>
+  </table>
+
+  <div class="footer">
+    <span>Organic English — Reporte interno</span>
+    <span>${g.id} · ${alumnos.length} alumno${alumnos.length!==1?'s':''}</span>
+  </div>
+</body>
+</html>`;
+
+  const ventana = window.open('', '_blank');
+  ventana.document.write(html);
+  ventana.document.close();
+  setTimeout(function(){ ventana.print(); }, 400);
+}
 </script>
 
 <!-- MODAL VALIDAR PAGO CE -->
