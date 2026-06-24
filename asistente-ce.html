@@ -1231,24 +1231,39 @@ function generarReportePDF(idGrupo) {
     else                    { estPago='Sin pago';           colorEstPago='#dc2626'; }
 
     const tipo = tipoEtiquetas[a.tipoInscripcion] || a.tipoInscripcion || '—';
-    const ultimoPago = a.ultimo_pago_fecha ? `${a.ultimo_pago_fecha}${a.ultimo_pago_monto?' · $'+a.ultimo_pago_monto:''}` : '—';
     const vencimiento = a.fecha_vencimiento || '—';
     const badges = [esNuevo?'NUEVO':'', esBec?'BECADO':''].filter(Boolean).join(' · ');
 
+    // Historial de últimos 5 pagos
+    const historial = (a.historial_pagos||[]);
+    const histHtml = historial.length
+      ? historial.map(function(p){
+          return `<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #f1f5f9;">
+            <span style="color:#475569;">${p.fecha}</span>
+            <span style="font-weight:700;color:#0f172a;">$${p.monto}</span>
+            <span style="color:${p.validado_por?'#16a34a':'#d97706'};font-size:9px;">${p.validado_por?'✓ Validado':'Pendiente'}</span>
+          </div>`;
+        }).join('')
+      : '<div style="font-size:10px;color:#94a3b8;padding:4px 0;">Sin pagos registrados</div>';
+
     return `
-      <tr style="border-bottom:1px solid #e2e8f0;">
-        <td style="padding:10px 8px;font-size:12px;font-weight:700;color:#1e293b;">${a.id}</td>
-        <td style="padding:10px 8px;font-size:13px;font-weight:600;color:#0f172a;">
+      <tr style="border-bottom:2px solid #e2e8f0;">
+        <td style="padding:10px 8px;font-size:12px;font-weight:700;color:#1e293b;vertical-align:top;">${a.id}</td>
+        <td style="padding:10px 8px;font-size:13px;font-weight:600;color:#0f172a;vertical-align:top;">
           ${a.nombre}
           ${badges?`<br><span style="font-size:10px;font-weight:700;color:#7c3aed;">${badges}</span>`:''}
+          <br><span style="font-size:10px;color:#94a3b8;">${a.whatsapp||'—'}</span>
         </td>
-        <td style="padding:10px 8px;font-size:11px;color:#475569;">${a.whatsapp||'—'}</td>
-        <td style="padding:10px 8px;">
+        <td style="padding:10px 8px;vertical-align:top;">
           <span style="font-size:11px;font-weight:700;color:${colorEstPago};background:${colorEstPago}18;padding:3px 8px;border-radius:100px;">${estPago}</span>
+          <br><span style="font-size:10px;color:#64748b;margin-top:4px;display:block;">${tipo}</span>
         </td>
-        <td style="padding:10px 8px;font-size:11px;color:#475569;">${tipo}</td>
-        <td style="padding:10px 8px;font-size:11px;color:#475569;">${ultimoPago}</td>
-        <td style="padding:10px 8px;font-size:12px;font-weight:700;color:${vencimiento==='—'?'#94a3b8':'#0f172a'};">${vencimiento}</td>
+        <td style="padding:10px 8px;font-size:12px;font-weight:700;color:${vencimiento==='—'?'#94a3b8':'#0f172a'};vertical-align:top;">
+          ${vencimiento}
+        </td>
+        <td style="padding:10px 8px;vertical-align:top;min-width:160px;">
+          ${histHtml}
+        </td>
       </tr>`;
   }).join('');
 
@@ -1311,12 +1326,10 @@ function generarReportePDF(idGrupo) {
     <thead>
       <tr>
         <th>ID</th>
-        <th>Nombre</th>
-        <th>WhatsApp</th>
-        <th>Estatus pago</th>
-        <th>Tipo inscripción</th>
-        <th>Último pago</th>
+        <th>Nombre / WhatsApp</th>
+        <th>Estatus / Tipo</th>
         <th>Vigencia hasta</th>
+        <th>Últimos 5 pagos</th>
       </tr>
     </thead>
     <tbody>${filas}</tbody>
