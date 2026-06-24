@@ -577,7 +577,7 @@ function seleccionarNivel(nivel,el){
 function renderGruposPorNivel(nivelFiltro){
   const cont=document.getElementById('lista-grupos');
   const grupos=datosPanel?.grupos||[];
-  const filtrados=grupos.filter(g=>g.nivel===nivelFiltro);
+  const filtrados=grupos.filter(g=>g.nivel===nivelFiltro && (g.alumnos||[]).length > 0);
   if(!filtrados.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin grupos en este nivel</h3></div>`;return;}
 
   // FIX: separar becados de alumnos sin pago real
@@ -730,7 +730,7 @@ function abrirModalGrupo(idx){
       const tipoChip = a.tipoInscripcion
         ? `<span style="font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
         : '';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
+      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
@@ -1126,16 +1126,18 @@ function toggleInfoAlumno(el, e) {
     next.classList.toggle('open');
     return;
   }
-  var fecha    = el.dataset.fecha    || '—';
-  var monto    = el.dataset.monto    || '';
-  var url      = el.dataset.url      || '';
-  var coment   = el.dataset.comentario || '';
-  var montoStr = monto ? ' · $'+monto : '';
-  var urlHtml  = url ? '<div class="det-row">🔗 <a href="'+url+'" target="_blank">Ver comprobante</a></div>' : '';
+  var fecha      = el.dataset.fecha      || '—';
+  var monto      = el.dataset.monto      || '';
+  var url        = el.dataset.url        || '';
+  var coment     = el.dataset.comentario || '';
+  var vencimiento= el.dataset.vencimiento|| '';
+  var montoStr   = monto ? ' · $'+monto : '';
+  var urlHtml    = url ? '<div class="det-row">🔗 <a href="'+url+'" target="_blank">Ver comprobante</a></div>' : '';
   var comentHtml = coment ? '<div class="det-row">💬 '+coment+'</div>' : '';
+  var vencHtml   = vencimiento ? '<div class="det-row">⏳ Vigencia hasta: <strong>'+vencimiento+'</strong></div>' : '<div class="det-row" style="color:#ef4444;">⚠️ Sin vigencia registrada</div>';
   var div = document.createElement('div');
   div.className = 'alumno-detalle open';
-  div.innerHTML = '<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+urlHtml+comentHtml;
+  div.innerHTML = '<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml;
   row.parentNode.insertBefore(div, row.nextSibling);
 }
 
