@@ -839,8 +839,42 @@
     </div>`;
   }
 
+  function parseHoraGrupo(horarioStr) {
+    // Parsea "9:00 PM", "7:00 PM", "10:00 AM" etc. y devuelve {h, m}
+    if (!horarioStr) return null;
+    const m = horarioStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!m) return null;
+    let h = parseInt(m[1]);
+    const min = parseInt(m[2]);
+    const ampm = m[3].toUpperCase();
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return { h, min };
+  }
+
   function renderCard(g, hoy) {
-    const yaInicio  = g.fechaObj && g.fechaObj <= hoy;
+    // Si el grupo inicia HOY, solo marcar como en curso si ya pasó la hora de inicio
+    let yaInicio = false;
+    if (g.fechaObj) {
+      const fechaGrupo = new Date(g.fechaObj);
+      fechaGrupo.setHours(0,0,0,0);
+      const ahora = new Date();
+      const soloHoy = new Date(ahora); soloHoy.setHours(0,0,0,0);
+      if (fechaGrupo < soloHoy) {
+        // Grupo inició días anteriores — ya está en curso
+        yaInicio = true;
+      } else if (fechaGrupo.getTime() === soloHoy.getTime()) {
+        // Grupo inicia HOY — verificar si ya pasó la hora
+        const hp = parseHoraGrupo(g.horario);
+        if (hp) {
+          const horaInicio = new Date(ahora);
+          horaInicio.setHours(hp.h, hp.min, 0, 0);
+          yaInicio = ahora >= horaInicio;
+        } else {
+          yaInicio = false; // sin hora definida, permitir inscripción
+        }
+      }
+    }
     const sinPlazas = g.libres <= 0;
     const enCurso   = yaInicio && !sinPlazas;
     const lleno     = sinPlazas;
