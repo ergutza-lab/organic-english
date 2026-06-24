@@ -187,6 +187,15 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
       </div>
     </div>
 
+    <!-- TABS -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid rgba(255,255,255,0.07);padding-bottom:0;">
+      <button id="tabGruposBtn" onclick="cambiarTab('grupos')" style="padding:10px 20px;border:none;background:none;color:#f97316;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid #f97316;margin-bottom:-2px;">📅 Grupos</button>
+      <button id="tabAsesoresBtn" onclick="cambiarTab('asesores')" style="padding:10px 20px;border:none;background:none;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;">👥 Asesores</button>
+    </div>
+
+    <!-- SECCION GRUPOS -->
+    <div id="secGrupos">
+
     <!-- STATS -->
     <div class="stats-row">
       <div class="stat-card orange"><div class="stat-num" id="stGrupos">-</div><div class="stat-label">Grupos (3 meses)</div></div>
@@ -220,6 +229,16 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
   </div>
 </div>
 
+    </div><!-- /secGrupos -->
+
+    <!-- SECCION ASESORES -->
+    <div id="secAsesores" style="display:none;">
+      <div id="listaAsesores"><div style="text-align:center;color:#64748b;padding:40px;">Cargando asesores...</div></div>
+    </div>
+
+</div><!-- /panel -->
+</div><!-- /app -->
+
 <!-- MODAL -->
 <div class="modal-bg" id="modalGrupo" onclick="closeMbg(event)">
   <div class="modal-box">
@@ -235,7 +254,7 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
 
 <script>
 var APPS='https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-var caData=null,dataMeses=[],diaSeleccionado=null;
+var caData=null,dataMeses=[],dataAsesores=[],diaSeleccionado=null;
 
 /* == LOGIN== */
 function login(){
@@ -277,8 +296,10 @@ function cargarDatos(){
     .then(function(d){
       if(d.status!=='ok'){document.getElementById('calsWrap').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Error: '+d.mensaje+'</div>';return;}
       dataMeses=d.meses||[];
+      dataAsesores=d.asesores||[];
       renderStats();
       renderCalendarios();
+      renderAsesores();
     })
     .catch(function(){document.getElementById('calsWrap').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Error de conexion.</div>';});
 }
@@ -650,6 +671,81 @@ function mandarReporte(){
   } else {
     window.open('https://wa.me/'+numero+'?text='+encodeURIComponent(reporte),'_blank');
   }
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────
+function cambiarTab(tab) {
+  document.getElementById('secGrupos').style.display   = tab==='grupos'   ? '' : 'none';
+  document.getElementById('secAsesores').style.display = tab==='asesores' ? '' : 'none';
+  document.getElementById('tabGruposBtn').style.color        = tab==='grupos'   ? '#f97316' : '#64748b';
+  document.getElementById('tabGruposBtn').style.borderBottomColor   = tab==='grupos'   ? '#f97316' : 'transparent';
+  document.getElementById('tabAsesoresBtn').style.color      = tab==='asesores' ? '#f97316' : '#64748b';
+  document.getElementById('tabAsesoresBtn').style.borderBottomColor = tab==='asesores' ? '#f97316' : 'transparent';
+}
+
+// ── ASESORES ─────────────────────────────────────────────────────────────
+function cleanWAca(w){ return (w||'').replace(/\D/g,''); }
+
+function renderAsesores() {
+  var cont = document.getElementById('listaAsesores');
+  if (!dataAsesores.length) {
+    cont.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px;">Sin asesores registrados.</div>';
+    return;
+  }
+
+  var html = '<div style="display:grid;gap:12px;">';
+  dataAsesores.forEach(function(a) {
+    var waLink = a.whatsapp
+      ? 'https://wa.me/52' + cleanWAca(a.whatsapp) + '?text=' + encodeURIComponent('Hola ' + a.nombre + ', te contacta Coordinación de Asesores de Organic English.')
+      : '';
+
+    var colorComision = a.comisionCatorcena >= 500 ? '#22c55e' : a.comisionCatorcena >= 200 ? '#f97316' : '#64748b';
+
+    html += '<div style="background:#1a2540;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 20px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
+
+        // Info principal
+        '<div style="display:flex;align-items:center;gap:14px;">' +
+          '<div style="width:44px;height:44px;border-radius:50%;background:rgba(249,115,22,0.15);border:2px solid rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#f97316;flex-shrink:0;">' +
+            a.nombre.charAt(0).toUpperCase() +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:14px;font-weight:700;color:#f1f5f9;">' + a.nombre + '</div>' +
+            '<div style="font-size:11px;color:#64748b;margin-top:2px;">ID: ' + a.id +
+              (a.activo
+                ? ' <span style="color:#22c55e;font-weight:700;">● Activo</span>'
+                : ' <span style="color:#ef4444;font-weight:700;">● Inactivo</span>') +
+            '</div>' +
+            (a.whatsapp ? '<div style="font-size:11px;color:#475569;margin-top:1px;">📱 ' + a.whatsapp + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+
+        // Stats
+        '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
+          '<div style="text-align:center;">' +
+            '<div style="font-size:20px;font-weight:800;color:' + colorComision + ';">$' + a.comisionCatorcena + '</div>' +
+            '<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Comisión catorcena</div>' +
+          '</div>' +
+          '<div style="text-align:center;">' +
+            '<div style="font-size:20px;font-weight:800;color:#f1f5f9;">' + a.alumnosActivos + '</div>' +
+            '<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Alumnos activos</div>' +
+          '</div>' +
+          '<div style="text-align:center;">' +
+            '<div style="font-size:20px;font-weight:800;color:' + (a.alumnosPendientes>0?'#fbbf24':'#64748b') + ';">' + a.alumnosPendientes + '</div>' +
+            '<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Pendientes</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Botón WhatsApp
+        (waLink
+          ? '<a href="' + waLink + '" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;padding:9px 18px;border-radius:100px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">📱 WhatsApp</a>'
+          : '<span style="font-size:11px;color:#475569;">Sin WhatsApp</span>') +
+
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  cont.innerHTML = html;
 }
 </script>
 </body>
