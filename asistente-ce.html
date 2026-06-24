@@ -940,18 +940,44 @@ function seleccionarAlumnoCambio(){
   const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>g.id!==grupoActual);
   if(!todosGruposFiltrados.length){document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos disponibles.</p>';return;}
   const contenedor=document.getElementById('grupos-disponibles-cambio');
-  contenedor.innerHTML=todosGruposFiltrados.map(g=>{
+
+  // Parsear fecha dd/MM/yyyy a objeto Date para comparar
+  function parseFechaInicio(str) {
+    if (!str) return null;
+    const p = str.split('/');
+    if (p.length !== 3) return null;
+    return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+  }
+  const fechaActualObj = parseFechaInicio(fechaInicioActual);
+
+  // Ordenar: misma fecha primero, luego más nuevos, luego más antiguos al final
+  const gruposOrdenados = [...todosGruposFiltrados].sort((a,b)=>{
+    const fa = parseFechaInicio(a.fecha_inicio);
+    const fb = parseFechaInicio(b.fecha_inicio);
+    if (!fa && !fb) return 0;
+    if (!fa) return 1;
+    if (!fb) return -1;
+    return fb - fa; // más recientes primero
+  });
+
+  contenedor.innerHTML=gruposOrdenados.map(g=>{
     const libres=g.cupo_max-g.inscritos;
     const sinLugares=libres<=0;
-    const mismaFecha=!fechaInicioActual||g.fecha_inicio===fechaInicioActual;
-    const bloqueado=sinLugares||!mismaFecha;
+    const fechaGrupoObj = parseFechaInicio(g.fecha_inicio);
+    // Bloquear solo si no tiene lugares, o si es un grupo MÁS ANTIGUO que el actual
+    const esMasAntiguo = fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj;
+    const bloqueado = sinLugares || esMasAntiguo;
     const cls=sinLugares?'lleno':libres<=2?'pocas':'';
     let etiquetaBloqueo='';
-    if(!mismaFecha) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;padding:2px 7px;display:inline-block">Requiere examen de colocacion</div>';
-    else if(sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
+    let etiquetaTipo='';
+    if (esMasAntiguo && !sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;padding:2px 7px;display:inline-block">Requiere examen de colocación</div>';
+    else if (sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
+    if (!esMasAntiguo && fechaActualObj && fechaGrupoObj && fechaGrupoObj > fechaActualObj)
+      etiquetaTipo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#16a34a;background:#dcfce7;border-radius:4px;padding:2px 7px;display:inline-block">Grupo más reciente</div>';
     return `<div class="grupo-opcion ${bloqueado?'go-lleno':''}" data-grupo-id="${g.id}" style="${bloqueado?'opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)':'cursor:pointer'}">
       <div class="go-id">${g.id}</div><div class="go-nombre">${g.nombre}</div><div class="go-horario">${g.horario}</div>
-      <div class="go-plazas ${cls}">${libres>0?`${libres} lugares libres`:'Sin lugares'}</div>${etiquetaBloqueo}</div>`;
+      <div style="font-size:10px;color:var(--gris-400);margin-top:2px;">Inicio: ${g.fecha_inicio}</div>
+      <div class="go-plazas ${cls}">${libres>0?`${libres} lugares libres`:'Sin lugares'}</div>${etiquetaTipo}${etiquetaBloqueo}</div>`;
   }).join('');
   contenedor.querySelectorAll('.grupo-opcion:not(.go-lleno)').forEach(el=>{
     el.addEventListener('click',function(){elegirGrupoCambio(this.dataset.grupoId,this);});
