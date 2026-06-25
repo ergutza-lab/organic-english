@@ -526,8 +526,9 @@ function renderResumen(){
   // Excluir becados del conteo sin_pago
   const sinPagoReales = sin_pago.filter(a => !esBecado(a));
 
-  // Excluir presentados del conteo de nuevos (se guardan en localStorage)
-  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
+  // Excluir presentados del conteo de nuevos (clave por ID de asistente)
+  const _claveP = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_claveP) || '[]');
   const nuevosPendientes = alumnos_nuevos.filter(a => !presentados.includes(a.id));
 
   const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
@@ -796,7 +797,8 @@ function renderPagos(){
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
   const nuevos=datosPanel?.alumnos_nuevos||[];
-  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
+  const _clavePN = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_clavePN) || '[]');
   const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
   if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
@@ -818,11 +820,16 @@ function renderNuevos(){
 }
 
 function marcarPresentado(idAlumno, btn){
-  const presentados = JSON.parse(localStorage.getItem('nuevos_presentados') || '[]');
+  // Guardar en localStorage con clave por asistente (persiste en este dispositivo/navegador)
+  const _claveM = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_claveM) || '[]');
   if(!presentados.includes(idAlumno)){
     presentados.push(idAlumno);
-    localStorage.setItem('nuevos_presentados', JSON.stringify(presentados));
+    localStorage.setItem(_claveM, JSON.stringify(presentados));
   }
+  // Llamar al backend para persistir en Google Sheets (multi-dispositivo)
+  fetch(APPS_SCRIPT + '?action=marcarPresentado&idAlumno=' + encodeURIComponent(idAlumno) + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : ''))
+    .catch(function(e){ console.warn('No se pudo guardar presentado en servidor:', e); });
   // Desaparecer la tarjeta con animacion suave
   const card = btn ? btn.closest('.nuevo-card') : null;
   if(card){
