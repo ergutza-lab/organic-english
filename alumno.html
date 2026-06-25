@@ -1033,8 +1033,17 @@
     }
  
     document.getElementById('modalPago').classList.add('visible');
+    verificarBloqueoPago();
   }
-  function cerrarModalPago() { document.getElementById('modalPago').classList.remove('visible'); }
+  function cerrarModalPago() {
+    document.getElementById('modalPago').classList.remove('visible');
+    // Restaurar estado del modal para próxima apertura
+    document.getElementById('uploadZone').style.display = 'block';
+    document.getElementById('btnSubir').style.display = 'block';
+    var aviso = document.getElementById('avisoComprobante24h');
+    if (aviso) aviso.style.display = 'none';
+    quitarArchivo();
+  }
 
   function archivoSeleccionado(input) {
     var archivo=input.files[0];
@@ -1058,8 +1067,74 @@
 
   function setUploadStatus(msg, tipo) { var el=document.getElementById('uploadStatus'); el.textContent=msg; el.className='upload-status'+(tipo?' '+tipo:''); }
 
+  // ── CLAVE LOCAL PARA CONTROL DE 24H ─────────────────────────────
+  function _claveComprobante() {
+    return 'oe_comprobante_ts_' + (alumnoData ? alumnoData.alumno.id : 'x');
+  }
+  function _tsUltimoComprobante() {
+    try { return parseInt(localStorage.getItem(_claveComprobante()) || '0', 10); } catch(e) { return 0; }
+  }
+  function _guardarTsComprobante() {
+    try { localStorage.setItem(_claveComprobante(), Date.now().toString()); } catch(e) {}
+  }
+  function _horasDesdeUltimoComprobante() {
+    var ts = _tsUltimoComprobante();
+    if (!ts) return 999;
+    return (Date.now() - ts) / (1000 * 60 * 60);
+  }
+
+  // ── BLOQUEO AL ABRIR EL MODAL ────────────────────────────────────
+  function verificarBloqueoPago() {
+    var horas = _horasDesdeUltimoComprobante();
+    if (horas < 24) {
+      var restante = Math.ceil(24 - horas);
+      var s = alumnoData ? alumnoData.asistente : null;
+      var asisNombre = s ? (s.nombre || 'tu asistente') : 'tu asistente';
+      var waHref = s && s.whatsapp ? 'https://wa.me/' + cleanWA(s.whatsapp) : '#';
+
+      // Ocultar zona de carga y botón
+      document.getElementById('uploadZone').style.display = 'none';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('btnSubir').style.display = 'none';
+      document.getElementById('btnSubir').classList.remove('activo');
+      document.querySelector('.btn-cerrar-pago').style.marginTop = '0';
+
+      // Mostrar aviso si no existe
+      var avisoId = 'avisoComprobante24h';
+      var aviso = document.getElementById(avisoId);
+      if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = avisoId;
+        document.getElementById('uploadZone').parentNode.insertBefore(aviso, document.getElementById('uploadZone'));
+      }
+      aviso.innerHTML =
+        '<div style="background:rgba(251,191,36,0.08);border:1.5px solid rgba(251,191,36,0.35);border-radius:14px;padding:20px 18px;margin-bottom:14px;text-align:center;">' +
+          '<div style="font-size:32px;margin-bottom:10px;">📋</div>' +
+          '<div style="font-size:15px;font-weight:700;color:#fbbf24;margin-bottom:8px;">Ya hay un comprobante en el sistema</div>' +
+          '<div style="font-size:13px;color:#94a3b8;line-height:1.65;margin-bottom:14px;">' +
+            'Puedes subir un nuevo comprobante en <strong style="color:#fbbf24;">' + restante + (restante === 1 ? ' hora' : ' horas') + '</strong>.<br>' +
+            'Si crees que hubo un error, contacta a tu asistente.' +
+          '</div>' +
+          '<a href="' + waHref + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;text-decoration:none;">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>' +
+            'Contactar a ' + asisNombre +
+          '</a>' +
+        '</div>';
+      aviso.style.display = 'block';
+      return true; // bloqueado
+    }
+    // No bloqueado: limpiar aviso si existía
+    var aviso = document.getElementById('avisoComprobante24h');
+    if (aviso) aviso.style.display = 'none';
+    document.getElementById('uploadZone').style.display = 'block';
+    document.getElementById('btnSubir').style.display = 'block';
+    return false;
+  }
+
   function subirComprobante() {
     if (!archivoSubida||!alumnoData) return;
+    // Doble verificación al momento de subir
+    if (verificarBloqueoPago()) return;
     var btn=document.getElementById('btnSubir');
     btn.classList.remove('activo'); btn.classList.add('cargando'); btn.textContent='Subiendo...';
     setUploadStatus('Enviando comprobante...','');
@@ -1074,6 +1149,7 @@
         .then(data=>{
           btn.classList.remove('cargando'); btn.textContent='Subir comprobante';
           if(data.success){
+            _guardarTsComprobante();
             setUploadStatus('✅ Comprobante enviado correctamente.','ok');
             btn.textContent='¡Enviado!';
             var s=alumnoData.asistente;
