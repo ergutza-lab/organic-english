@@ -271,6 +271,7 @@
       <button class="tab" onclick="switchTab('coordventas',this)">Coord. de Ventas</button>
       <button class="tab" onclick="switchTab('coordit',this)">Coord. IT</button>
       <button class="tab" onclick="switchTab('asesores',this)">Asesores</button>
+      <button class="tab" onclick="switchTab('usuarios',this)" style="border:1px solid rgba(249,115,22,0.4);color:#fb923c;">Usuarios y claves</button>
     </div>
 
     <div id="tab-direccion"   class="tab-content active"><div class="tabla-wrap"><div class="loading">Selecciona una pestana para ver el personal.</div></div></div>
@@ -281,6 +282,7 @@
     <div id="tab-coordventas" class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
     <div id="tab-coordit" class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
     <div id="tab-asesores"   class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
+    <div id="tab-usuarios"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando usuarios...</div></div></div>
 
     <div class="sec-label">Grupos</div>
     <div class="grupos-filtro" id="gruposFiltro"></div>
@@ -539,6 +541,87 @@
       ];}));
   }
 
+  var _usuariosCache = null;
+
+  function renderUsuarios() {
+    var cont = document.getElementById('tab-usuarios');
+    if (_usuariosCache) { _buildTablaUsuarios(_usuariosCache); return; }
+    cont.innerHTML = '<div class="tabla-wrap"><div class="loading">Cargando usuarios y claves...</div></div>';
+    fetch(APPS_SCRIPT + '?action=getPersonalIT')
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data.status !== 'ok') { cont.innerHTML = '<div class="tabla-wrap"><div class="loading">Error al cargar.</div></div>'; return; }
+        _usuariosCache = data;
+        _buildTablaUsuarios(data);
+      }).catch(function(){ cont.innerHTML = '<div class="tabla-wrap"><div class="loading">Error de conexion.</div></div>'; });
+  }
+
+  function _buildTablaUsuarios(data) {
+    var grupos = [
+      { label: 'Direccion',           color: '#f97316', lista: data.direccion  || [] },
+      { label: 'Control Academico',   color: '#6366f1', lista: data.academica  || [] },
+      { label: 'Maestros',            color: '#3b82f6', lista: data.maestros   || [] },
+      { label: 'Control Escolar',     color: '#10b981', lista: data.escolar    || [] },
+      { label: 'Asistentes CE',       color: '#14b8a6', lista: data.asistentes || [] },
+      { label: 'Coord. de Ventas',    color: '#f59e0b', lista: data.ventas     || [] },
+      { label: 'Asesores',            color: '#ec4899', lista: data.asesores   || [] }
+    ];
+
+    var html =
+      '<div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.2);border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
+      '<svg viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;stroke:#fb923c;fill:none;stroke-width:2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
+      '<span style="font-size:12px;color:#fb923c;font-weight:600;">Esta seccion es confidencial. Solo el Director tiene acceso a las claves del sistema.</span>' +
+      '</div>';
+
+    grupos.forEach(function(g) {
+      if (!g.lista.length) return;
+      html += '<div style="margin-bottom:20px;">' +
+        '<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:' + g.color + ';margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.07);">' + g.label + '</div>' +
+        '<div class="tabla-wrap"><table>' +
+        '<thead><tr>' +
+        '<th style="padding:10px 14px;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-align:left;">Usuario</th>' +
+        '<th style="padding:10px 14px;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-align:left;">ID</th>' +
+        '<th style="padding:10px 14px;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-align:left;">Clave actual</th>' +
+        '<th style="padding:10px 14px;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-align:left;">Email</th>' +
+        '<th style="padding:10px 14px;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-align:left;">Contacto</th>' +
+        '</tr></thead><tbody>';
+
+      g.lista.forEach(function(u) {
+        var clave = u.Clave || '—';
+        html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">' +
+          '<td style="padding:12px 14px;">' + fotoCell(u.Foto, u.Nombre, '') + '</td>' +
+          '<td style="padding:12px 14px;"><span style="font-family:monospace;font-size:13px;color:#60a5fa;background:rgba(96,165,250,0.1);padding:3px 8px;border-radius:6px;">' + (u.ID || '—') + '</span></td>' +
+          '<td style="padding:12px 14px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span id="clave-' + (u.ID||'').replace(/[^a-z0-9]/gi,'') + '" style="font-family:monospace;font-size:14px;font-weight:700;letter-spacing:2px;color:#f97316;background:rgba(249,115,22,0.08);padding:5px 12px;border-radius:8px;border:1px solid rgba(249,115,22,0.2);">••••••</span>' +
+            '<button onclick="toggleClave(\'' + (u.ID||'').replace(/[^a-z0-9]/gi,'') + '\',\'' + clave.replace(/'/g,"\\'") + '\')" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--gray);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:\'Outfit\',sans-serif;">Mostrar</button>' +
+            '</div>' +
+          '</td>' +
+          '<td style="padding:12px 14px;"><span style="font-size:13px;color:var(--gray);">' + (u.Email || '—') + '</span></td>' +
+          '<td style="padding:12px 14px;">' + waBtn(u.WhatsApp) + '</td>' +
+          '</tr>';
+      });
+
+      html += '</tbody></table></div></div>';
+    });
+
+    document.getElementById('tab-usuarios').innerHTML = html;
+  }
+
+  function toggleClave(idKey, claveReal) {
+    var el = document.getElementById('clave-' + idKey);
+    var btn = el ? el.nextElementSibling : null;
+    if (!el) return;
+    if (el.textContent === '••••••') {
+      el.textContent = claveReal;
+      el.style.color = '#f97316';
+      if (btn) btn.textContent = 'Ocultar';
+    } else {
+      el.textContent = '••••••';
+      if (btn) btn.textContent = 'Mostrar';
+    }
+  }
+
   function renderDireccion(dir) {
     tablaPersonal('tab-direccion',['Dirección','Sueldo','Cuenta','Inst. bancaria','Contacto'],
       (dir||[]).map(function(c){return[
@@ -706,7 +789,7 @@
 
     // Header
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #f97316;">';
-    html += '<div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logotransparente.png" style="height:52px;object-fit:contain;display:block;" /><div style="font-size:12px;color:#64748b;margin-top:6px;">Reporte Financiero Catorcenal</div></div>';
+    html += '<div><img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logotransparente.png" style="height:52px;object-fit:contain;display:block;" /><div style="font-size:12px;color:#64748b;margin-top:6px;">Reporte Financiero Catorcenal</div></div>';
     html += '<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#f97316;">'+titulo+'</div><div style="font-size:11px;color:#94a3b8;margin-top:3px;">Periodo: '+(d.periodo||'—')+'</div><div style="font-size:11px;color:#94a3b8;">Generado: '+fecha+'</div></div>';
     html += '</div>';
 
@@ -831,6 +914,7 @@
     else if (tab === 'coordventas') renderCoordVentas(directorCache.coordVentas);
     else if (tab === 'coordit')     renderCoordIT(directorCache.coordIT);
     else if (tab === 'asesores')    renderAsesores(directorCache.asesores);
+    else if (tab === 'usuarios')    renderUsuarios();
   }
 
   function logout() {
