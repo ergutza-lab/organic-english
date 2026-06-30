@@ -869,24 +869,12 @@ function renderAlertas(){
   if(!listaFiltrada.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alertas</h3></div>`;return;}
   cont.innerHTML=listaFiltrada.map(a=>{
     const fechaLimite = a.fecha_limite || '';
-    // fecha_limite llega como "4 de junio" — calcular inicio de semana (lunes)
     const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    // Calcular semana pendiente a partir de fecha_limite (fin de vigencia anterior)
-    // fecha_limite viene como "4 de junio" — necesitamos calcular la semana siguiente
     var periodoTexto = 'esta semana';
     if (a.ultimo_pago) {
-      // El ultimo_pago tiene formato dd/MM/yyyy
       var partes = a.ultimo_pago.split('/');
       if (partes.length === 3) {
-        var ulp = new Date(parseInt(partes[2]), parseInt(partes[1])-1, parseInt(partes[0]));
-        // Calcular fin de vigencia (lunes siguiente + días según monto)
-        var dia = ulp.getDay();
-        var lunesUlp = new Date(ulp);
-        lunesUlp.setDate(ulp.getDate() - (dia===0?6:dia-1));
-        lunesUlp.setDate(lunesUlp.getDate()+7); // lunes siguiente al pago
-        // La semana pendiente empieza en el siguiente lunes después del fin de vigencia
-        var hoy = new Date();
-        var diaHoy = hoy.getDay();
+        var hoy = new Date(); var diaHoy = hoy.getDay();
         var lunesPendiente = new Date(hoy);
         lunesPendiente.setDate(hoy.getDate() - (diaHoy===0?6:diaHoy-1));
         var juevesPendiente = new Date(lunesPendiente);
@@ -894,9 +882,7 @@ function renderAlertas(){
         periodoTexto = lunesPendiente.getDate()+' al '+juevesPendiente.getDate()+' de '+meses[juevesPendiente.getMonth()];
       }
     } else {
-      // Sin pago previo — semana actual
-      var hoy2 = new Date();
-      var d2 = hoy2.getDay();
+      var hoy2 = new Date(); var d2 = hoy2.getDay();
       var lun2 = new Date(hoy2); lun2.setDate(hoy2.getDate()-(d2===0?6:d2-1));
       var jue2 = new Date(lun2); jue2.setDate(lun2.getDate()+3);
       periodoTexto = lun2.getDate()+' al '+jue2.getDate()+' de '+meses[jue2.getMonth()];
@@ -911,16 +897,33 @@ Después de ese horario, el sistema dará de baja automáticamente a los alumnos
 
 Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu registro. Si tienes alguna duda o necesitas apoyo, con gusto estamos para ayudarte. ✨`);
     const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
+    const tipoEtiquetas={'Promo':'PROMO','Normal':'NORMAL','Normal Mensual':'MENSUAL','Beca Parcial':'BECA PARCIAL','Becado':'BECADO','BECA_PARCIAL':'BECA PARCIAL','NORMAL_MENSUAL':'MENSUAL','PROMO':'PROMO','NORMAL':'NORMAL'};
+    const tipoChip = a.tipoInscripcion
+      ? `<span style="font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
+      : '';
     return `
-    <div class="alerta-card">
-      <div class="alerta-icon">⚠️</div>
-      <div class="alerta-info">
-        <div class="alerta-nombre">${a.nombre}</div>
-        <div class="alerta-sub"><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);font-size:11px">${a.id}</span> · ${a.grupo} · Vence: ${fechaLimite}</div>
+    <div class="alerta-card" style="flex-wrap:wrap;gap:6px;">
+      <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
+        <div class="alerta-icon">⚠️</div>
+        <div class="alerta-info" style="flex:1;min-width:0;">
+          <div class="alerta-nombre" style="cursor:pointer;display:flex;align-items:center;gap:6px;"
+               onclick="toggleInfoAlerta(this,'${a.id}','${a.ultimo_pago_fecha||''}','${a.ultimo_pago_monto||''}','${(a.comprobante_url||'').replace(/'/g,'%27')}','${(a.comentario||'').replace(/'/g,'%27')}','${a.fecha_vencimiento||''}')">
+            ${a.nombre}${tipoChip}
+            <span style="font-size:10px;color:#64748b;font-weight:600;">▼ ver más</span>
+          </div>
+          <div class="alerta-sub">
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);font-size:11px">${a.id}</span>
+            · ${a.grupo}
+            ${fechaLimite ? `· Venció: <strong style="color:#ef4444;">${fechaLimite}</strong>` : '· <strong style="color:#ef4444;">Sin pago registrado</strong>'}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${waBtn}
+          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
+        </div>
+        <div class="alerta-badge">Sin pago vigente</div>
       </div>
-      ${waBtn}
-      <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
-      <div class="alerta-badge">Sin pago vigente</div>
+      <div id="detalle-alerta-${a.id}" class="alumno-detalle" style="width:100%;margin:0;"></div>
     </div>`;
   }).join('');
 }
@@ -1131,7 +1134,6 @@ function toggleInfoAlumno(el, e) {
   e.stopPropagation();
   var row = el.closest('.alumno-row');
   if (!row) return;
-  // Buscar o crear el panel
   var next = row.nextElementSibling;
   if (next && next.classList.contains('alumno-detalle')) {
     next.classList.toggle('open');
@@ -1150,6 +1152,52 @@ function toggleInfoAlumno(el, e) {
   div.className = 'alumno-detalle open';
   div.innerHTML = '<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml;
   row.parentNode.insertBefore(div, row.nextSibling);
+}
+
+function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento) {
+  var panel = document.getElementById('detalle-alerta-' + idAlumno);
+  if (!panel) return;
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    panel.innerHTML = '';
+    return;
+  }
+  // Decodificar valores que pueden tener %27
+  url    = decodeURIComponent(url    || '');
+  coment = decodeURIComponent(coment || '');
+  fecha  = fecha || '—';
+  var montoStr   = monto ? ' · $' + monto : '';
+  var vencHtml   = vencimiento
+    ? '<div class="det-row">⏳ Vigencia hasta: <strong>' + vencimiento + '</strong></div>'
+    : '<div class="det-row" style="color:#ef4444;">⚠️ Sin vigencia registrada</div>';
+  var urlHtml    = url    ? '<div class="det-row">🔗 <a href="' + url + '" target="_blank" style="color:#60a5fa;">Ver comprobante</a></div>' : '<div class="det-row" style="color:#64748b;">📎 Sin comprobante registrado</div>';
+  var comentHtml = coment ? '<div class="det-row">💬 ' + coment + '</div>' : '';
+
+  // Historial de pagos del alumno
+  var histHtml = '';
+  if (datosPanel && datosPanel.grupos) {
+    var histPagos = [];
+    datosPanel.grupos.forEach(function(g) {
+      (g.alumnos || []).forEach(function(a) {
+        if (a.id === idAlumno && a.historial_pagos) {
+          histPagos = a.historial_pagos;
+        }
+      });
+    });
+    if (histPagos.length > 1) {
+      histHtml = '<div class="det-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.07);padding-top:6px;">'
+        + '<span style="font-weight:700;color:#94a3b8;">Historial:</span><br>'
+        + histPagos.map(function(p){
+            return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + '</span>';
+          }).join('<br>')
+        + '</div>';
+    }
+  }
+
+  panel.innerHTML =
+    '<div class="det-row">📅 Último pago: <strong>' + fecha + montoStr + '</strong></div>'
+    + vencHtml + urlHtml + comentHtml + histHtml;
+  panel.classList.add('open');
 }
 
 // ── VALIDAR PAGO DESDE ASISTENTE CE ──────────────────────────────────────
