@@ -111,6 +111,8 @@
     .fecha-section{margin-bottom:36px}
     .fecha-titulo{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:4px;letter-spacing:-0.02em}
     .fecha-subtitulo{font-size:0.78rem;color:var(--text-muted);margin-bottom:14px}
+    .fecha-subsection{margin-bottom:24px;padding-left:14px;border-left:2px solid rgba(255,255,255,0.08)}
+    .fecha-subtitulo-activo{font-size:0.85rem;font-weight:600;color:#cbd5e1;margin-bottom:10px}
 
     /* ── GRUPOS GRID ── */
     .grupos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
@@ -775,13 +777,31 @@
 
       let bloqueActivos = '';
       if (gruposActivos.length) {
+        const porFechaActivos = {};
+        gruposActivos.forEach(g => {
+          const iso = fechaISO(g.fechaObj);
+          if (!porFechaActivos[iso]) porFechaActivos[iso] = { fechaObj: g.fechaObj, lista: [] };
+          porFechaActivos[iso].lista.push(g);
+        });
+
+        let subBloques = '';
+        Object.keys(porFechaActivos).sort().forEach(iso => {
+          const { fechaObj, lista } = porFechaActivos[iso];
+          lista.sort((a,b) => a.horario > b.horario ? 1 : -1);
+          subBloques += `
+          <div class="fecha-subsection">
+            <div class="fecha-subtitulo-activo">Activos desde el ${formatFechaTitulo(fechaObj)} · ${lista.length} grupo${lista.length!==1?'s':''} con cupo</div>
+            <div class="grupos-grid">
+              ${lista.map(g => renderCard(g, hoy)).join('')}
+            </div>
+          </div>`;
+        });
+
         bloqueActivos = `
         <div class="fecha-section">
           <div class="fecha-titulo">Grupos activos con cupo disponible</div>
           <div class="fecha-subtitulo">${gruposActivos.length} grupo${gruposActivos.length!==1?'s':''} en curso · Ingreso vía evaluación de colocación gratuita</div>
-          <div class="grupos-grid">
-            ${gruposActivos.map(g => renderCard(g, hoy)).join('')}
-          </div>
+          ${subBloques}
         </div>`;
       }
 
