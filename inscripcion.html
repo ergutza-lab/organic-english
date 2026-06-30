@@ -749,13 +749,51 @@
       seccionesHtml = `<div class="sin-fecha-msg">
         <p>👆 Selecciona una <span>fecha de inicio</span> en el calendario para ver los grupos disponibles,<br>o da clic en <span>Ver todos los grupos</span>.</p>
       </div>`;
-    } else {
-      const gruposFiltrados = fechaFiltro
-        ? grupos.filter(g => g.fechaObj && fechaISO(g.fechaObj) === fechaFiltro)
-        : grupos;
+    } else if (fechaFiltro) {
+      // ── Grupos que INICIAN exactamente en la fecha seleccionada ──────────
+      const gruposNuevos = grupos.filter(g => g.fechaObj && fechaISO(g.fechaObj) === fechaFiltro);
 
+      // ── Grupos ya ACTIVOS antes de esa fecha, con cupo disponible ────────
+      const fechaSelObj = new Date(fechaFiltro + 'T00:00:00');
+      const gruposActivos = grupos
+        .filter(g => g.fechaObj && g.fechaObj < fechaSelObj && g.libres > 0)
+        .sort((a,b) => a.fechaObj - b.fechaObj || (a.horario > b.horario ? 1 : -1));
+
+      let bloqueNuevos = '';
+      if (gruposNuevos.length) {
+        const disponibles = gruposNuevos.filter(g => g.libres > 0).length;
+        gruposNuevos.sort((a,b) => a.horario > b.horario ? 1 : -1);
+        bloqueNuevos = `
+        <div class="fecha-section">
+          <div class="fecha-titulo">Inicio de cursos el ${formatFechaTitulo(fechaSelObj)}</div>
+          <div class="fecha-subtitulo">${disponibles} grupo${disponibles!==1?'s':''} disponible${disponibles!==1?'s':''}</div>
+          <div class="grupos-grid">
+            ${gruposNuevos.map(g => renderCard(g, hoy)).join('')}
+          </div>
+        </div>`;
+      }
+
+      let bloqueActivos = '';
+      if (gruposActivos.length) {
+        bloqueActivos = `
+        <div class="fecha-section">
+          <div class="fecha-titulo">Grupos activos con cupo disponible</div>
+          <div class="fecha-subtitulo">${gruposActivos.length} grupo${gruposActivos.length!==1?'s':''} en curso · Ingreso vía evaluación de colocación gratuita</div>
+          <div class="grupos-grid">
+            ${gruposActivos.map(g => renderCard(g, hoy)).join('')}
+          </div>
+        </div>`;
+      }
+
+      seccionesHtml = bloqueNuevos + bloqueActivos;
+
+      if (!seccionesHtml) {
+        seccionesHtml = `<div class="seccion-vacia">No hay grupos para la fecha seleccionada.</div>`;
+      }
+    } else {
+      // ── Ver todos los grupos (sin filtro de fecha) ───────────────────────
       const porFecha = {};
-      gruposFiltrados.forEach(g => {
+      grupos.forEach(g => {
         const iso = g.fechaObj ? fechaISO(g.fechaObj) : 'sin-fecha';
         if (!porFecha[iso]) porFecha[iso] = { fechaObj: g.fechaObj, lista: [] };
         porFecha[iso].lista.push(g);
