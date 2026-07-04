@@ -232,13 +232,12 @@
     .subnivel-nombre{font-family:'Fraunces',serif;font-size:1.15rem;font-weight:700;color:#fff}
     .subnivel-count{font-size:0.72rem;color:var(--text-muted)}
 
-    /* ── CUADRICULA SEMANAL ── */
-    .semana-grid-wrap{overflow-x:auto}
-    .semana-grid{display:grid;grid-template-columns:90px repeat(4,minmax(120px,1fr));gap:6px;min-width:560px}
-    .semana-head{font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;text-align:center;padding:6px 0}
-    .semana-hora{font-size:0.72rem;color:var(--text-muted);display:flex;align-items:center;padding:4px 0}
-    .semana-celda{border:1px dashed rgba(255,255,255,0.08);border-radius:8px;min-height:52px;padding:4px}
-    .semana-chip{background:var(--surface2);border-left:3px solid var(--orange);border-radius:6px;padding:5px 7px;font-size:0.68rem;color:var(--text);cursor:pointer;margin-bottom:4px;transition:background 0.15s}
+    /* ── VISTA POR HORARIO ── */
+    .semana-lista{display:flex;flex-direction:column;gap:14px}
+    .semana-hora-fila{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+    .semana-hora-label{flex-shrink:0;width:88px;font-size:0.78rem;font-weight:700;color:var(--text);padding-top:10px}
+    .semana-hora-chips{display:flex;gap:10px;flex-wrap:wrap;flex:1}
+    .semana-chip{background:var(--surface2);border-left:3px solid var(--orange);border-radius:8px;padding:8px 12px;font-size:0.72rem;color:var(--text-muted);cursor:pointer;transition:background 0.15s;min-width:150px;line-height:1.55}
     .semana-chip:hover{background:rgba(249,115,22,0.15)}
     .semana-chip.en-curso{border-left-color:#ca8a04}
     .semana-chip.lleno{border-left-color:#ef4444;opacity:0.6;cursor:not-allowed}
@@ -955,30 +954,39 @@
       </div>`;
     } else if (fechaFiltro) {
       const fechaSelObj = new Date(fechaFiltro + 'T00:00:00');
+      const porId = (a,b) => a.id > b.id ? 1 : (a.id < b.id ? -1 : 0);
 
-      // ── Todos los sub-niveles presentes en este nivel (ej. A1.1, A1.2, A1.3) ──
+      // ── Todos los sub-niveles presentes en este nivel (ej. A1-Bloque 1, A1-Bloque 2) ──
       const subnivelesSet = {};
       gruposBase.forEach(g => { if (g.nivel) subnivelesSet[g.nivel] = true; });
       const subniveles = Object.keys(subnivelesSet).sort();
 
-      // Armar, por sub-nivel: nuevos de esta semana + activos con vacantes (sin importar cuántas semanas)
+      // Armar, por sub-nivel: nuevos de esta semana + activos con vacantes, separados por fecha de inicio
       const bloquesPorSubnivel = [];
       let totalGruposMostrados = 0;
       subniveles.forEach(sub => {
-        const nuevos = gruposBase.filter(g => g.nivel === sub && g.fechaObj && fechaISO(g.fechaObj) === fechaFiltro);
+        const nuevos = gruposBase.filter(g => g.nivel === sub && g.fechaObj && fechaISO(g.fechaObj) === fechaFiltro).sort(porId);
         const activos = gruposBase.filter(g => g.nivel === sub && g.fechaObj && g.fechaObj < fechaSelObj && g.libres > 0);
         if (!nuevos.length && !activos.length) return; // este sub-nivel no aplica esta semana
-        nuevos.sort((a,b) => a.horario > b.horario ? 1 : -1);
-        activos.sort((a,b) => a.fechaObj - b.fechaObj || (a.horario > b.horario ? 1 : -1));
-        const combinados = nuevos.concat(activos);
-        totalGruposMostrados += combinados.length;
-        bloquesPorSubnivel.push({ sub, combinados });
+
+        // Agrupar los activos por su propia fecha de inicio
+        const activosPorFecha = {};
+        activos.forEach(g => {
+          const iso = fechaISO(g.fechaObj);
+          if (!activosPorFecha[iso]) activosPorFecha[iso] = { fechaObj: g.fechaObj, lista: [] };
+          activosPorFecha[iso].lista.push(g);
+        });
+        const fechasActivos = Object.keys(activosPorFecha).sort();
+        fechasActivos.forEach(iso => activosPorFecha[iso].lista.sort(porId));
+
+        totalGruposMostrados += nuevos.length + activos.length;
+        bloquesPorSubnivel.push({ sub, nuevos, activosPorFecha, fechasActivos, totalSub: nuevos.length + activos.length });
       });
 
       const toggleHtml = `
       <div class="vista-toggle">
         <button class="vista-btn${vistaActual==='lista'?' sel':''}" onclick="cambiarVista('lista')">Lista por nivel</button>
-        <button class="vista-btn${vistaActual==='semanal'?' sel':''}" onclick="cambiarVista('semanal')">Calendario semanal</button>
+        <button class="vista-btn${vistaActual==='semanal'?' sel':''}" onclick="cambiarVista('semanal')">Vista por horario</button>
       </div>`;
 
       if (!bloquesPorSubnivel.length) {
@@ -987,24 +995,44 @@
           <div class="seccion-vacia">No hay grupos de este nivel para la semana seleccionada.</div>
         </div>`;
       } else if (vistaActual === 'semanal') {
-        const gruposSemana = [].concat(...bloquesPorSubnivel.map(b => b.combinados));
+        const gruposSemana = [].concat(
+          ...bloquesPorSubnivel.map(b => b.nuevos),
+          ...bloquesPorSubnivel.map(b => [].concat(...b.fechasActivos.map(iso => b.activosPorFecha[iso].lista)))
+        );
         seccionesHtml = `
         <div class="fecha-section">
           <div class="fecha-titulo">Semana del ${formatFechaTitulo(fechaSelObj)}</div>
           <div class="fecha-subtitulo">${totalGruposMostrados} grupo${totalGruposMostrados!==1?'s':''} · ${toggleHtml}</div>
-          ${renderVistaSemanal(gruposSemana, hoy)}
+          ${renderVistaPorHorario(gruposSemana, fechaSelObj)}
         </div>`;
       } else {
-        const bloquesHtml = bloquesPorSubnivel.map(({sub, combinados}) => `
+        const bloquesHtml = bloquesPorSubnivel.map(({sub, nuevos, activosPorFecha, fechasActivos, totalSub}) => {
+          let nuevosHtml = '';
+          if (nuevos.length) {
+            nuevosHtml = `
+            <div class="fecha-subsection">
+              <div class="fecha-subtitulo-activo">Grupos nuevos · inician el ${formatFechaTitulo(fechaSelObj)}</div>
+              <div class="grupos-grid">${nuevos.map(g => renderCard(g, hoy)).join('')}</div>
+            </div>`;
+          }
+          const activosHtml = fechasActivos.map(iso => {
+            const { fechaObj, lista } = activosPorFecha[iso];
+            return `
+            <div class="fecha-subsection">
+              <div class="fecha-subtitulo-activo">En curso desde el ${formatFechaTitulo(fechaObj)} · ${lista.length} grupo${lista.length!==1?'s':''} con cupo</div>
+              <div class="grupos-grid">${lista.map(g => renderCard(g, hoy)).join('')}</div>
+            </div>`;
+          }).join('');
+          return `
           <div class="subnivel-section">
             <div class="subnivel-titulo">
               <span class="subnivel-nombre">${sub}</span>
-              <span class="subnivel-count">${combinados.length} grupo${combinados.length!==1?'s':''}</span>
+              <span class="subnivel-count">${totalSub} grupo${totalSub!==1?'s':''}</span>
             </div>
-            <div class="grupos-grid">
-              ${combinados.map(g => renderCard(g, hoy)).join('')}
-            </div>
-          </div>`).join('');
+            ${nuevosHtml}
+            ${activosHtml}
+          </div>`;
+        }).join('');
         seccionesHtml = `
         <div class="fecha-section">
           <div class="fecha-titulo">Semana del ${formatFechaTitulo(fechaSelObj)}</div>
@@ -1049,10 +1077,9 @@
     content.innerHTML = leyendaHtml + calHtml + `<div id="secciones">${seccionesHtml}</div>`;
   }
 
-  function renderVistaSemanal(gruposSemana, hoy) {
-    const DIAS = ['Lun','Mar','Mié','Jue'];
+  function renderVistaPorHorario(gruposLista, fechaSelObj) {
     const horariosSet = {};
-    gruposSemana.forEach(g => { if (g.horario) horariosSet[g.horario] = true; });
+    gruposLista.forEach(g => { if (g.horario) horariosSet[g.horario] = true; });
     const horarios = Object.keys(horariosSet).sort((a,b) => {
       const ha = parseHoraGrupo(a), hb = parseHoraGrupo(b);
       if (!ha || !hb) return a > b ? 1 : -1;
@@ -1063,29 +1090,34 @@
       return `<div class="seccion-vacia">No hay horarios para mostrar.</div>`;
     }
 
+    const porId = (a,b) => a.id > b.id ? 1 : (a.id < b.id ? -1 : 0);
+
     let filasHtml = '';
     horarios.forEach(hor => {
-      const gruposHora = gruposSemana.filter(g => g.horario === hor);
-      let celdas = '';
-      for (let d = 0; d < 4; d++) {
-        const chips = gruposHora.map(g => {
-          const sinPlazas = g.libres <= 0;
-          const enCurso = g.fechaObj && g.fechaObj < hoy && !sinPlazas;
-          const clase = sinPlazas ? 'lleno' : (enCurso ? 'en-curso' : '');
-          const clickAttr = sinPlazas ? '' : `onclick="abrirModalGrupo('${g.id}')"`;
-          return `<div class="semana-chip ${clase}" ${clickAttr}><span class="semana-chip-nivel">${g.nivel}</span> · ${g.id}</div>`;
-        }).join('');
-        celdas += `<div class="semana-celda">${chips}</div>`;
-      }
-      filasHtml += `<div class="semana-hora">${hor}</div>${celdas}`;
+      const gruposHora = gruposLista.filter(g => g.horario === hor).sort(porId);
+      const chips = gruposHora.map(g => {
+        const esNuevo   = g.fechaObj && fechaISO(g.fechaObj) === fechaISO(fechaSelObj);
+        const sinPlazas = g.libres <= 0;
+        const clase = sinPlazas ? 'lleno' : (esNuevo ? '' : 'en-curso');
+        const clickAttr = `onclick="abrirModalGrupo('${g.id}')"`;
+        const etiquetaFecha = esNuevo
+          ? `<span class="semana-chip-nivel">Grupo nuevo</span>`
+          : `Desde el ${formatFechaTitulo(g.fechaObj)}`;
+        const vacantesTxt = sinPlazas ? 'Lleno' : `${g.libres} vacante${g.libres!==1?'s':''}`;
+        return `<div class="semana-chip ${clase}" ${clickAttr}>
+          <div style="font-weight:700;color:#fff">${g.nombre} · ${g.id}</div>
+          <div>${etiquetaFecha}</div>
+          <div>${vacantesTxt}</div>
+        </div>`;
+      }).join('');
+      filasHtml += `
+      <div class="semana-hora-fila">
+        <div class="semana-hora-label">${hor}</div>
+        <div class="semana-hora-chips">${chips}</div>
+      </div>`;
     });
 
-    return `<div class="semana-grid-wrap">
-      <div class="semana-grid">
-        <div></div>${DIAS.map(d => `<div class="semana-head">${d}</div>`).join('')}
-        ${filasHtml}
-      </div>
-    </div>`;
+    return `<div class="semana-lista">${filasHtml}</div>`;
   }
 
   function renderCalendario(fechasSet, fechasLlenas, hoy) {
