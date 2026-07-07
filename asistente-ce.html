@@ -1347,8 +1347,12 @@ function abrirModalValidarCE(idAlumno) {
   document.getElementById('validar-ce-file').value = '';
   document.getElementById('validar-ce-preview').style.display = 'none';
   document.getElementById('validar-ce-status').style.display = 'none';
-  document.getElementById('btn-ejecutar-validar-ce').textContent = '✓ Validar pago';
-  document.getElementById('btn-ejecutar-validar-ce').disabled = false;
+  var btnValidar = document.getElementById('btn-ejecutar-validar-ce');
+  btnValidar.textContent = '✓ Validar pago';
+  btnValidar.disabled = false;
+  btnValidar.style.background = 'var(--verde)';
+  btnValidar.onclick = function(){ ejecutarValidarCE(); };
+  document.getElementById('btn-cancelar-validar-ce').style.display = '';
   document.getElementById('validar-ce-comentario').value = '';
   var modal = document.getElementById('modal-validar-ce');
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
@@ -1375,6 +1379,7 @@ async function ejecutarValidarCE() {
   var idAlumno=validarCEAlumnoId, monto=document.getElementById('validar-ce-monto').value.trim();
   var file=document.getElementById('validar-ce-file').files[0];
   var status=document.getElementById('validar-ce-status'), btn=document.getElementById('btn-ejecutar-validar-ce');
+  var btnCancelar=document.getElementById('btn-cancelar-validar-ce');
   if (!monto||Number(monto)<1){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Ingresa el monto.';return;}
   if (!file){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona el comprobante.';return;}
   var cal = calendarios['cal-ce'];
@@ -1384,7 +1389,17 @@ async function ejecutarValidarCE() {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
     var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),coberturaInicio:cal.inicio.toISOString(),coberturaFin:cal.fin.toISOString(),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
     var data=await resp.json();
-    if(data.success){status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado.';btn.textContent='✓ Validado';setTimeout(function(){cerrarModalValidarCE();cargarDatos();},2000);}
+    if(data.success){
+      status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado correctamente.';
+      // Recargar datos en segundo plano de una vez, sin esperar a que cierren el modal
+      cargarDatos();
+      // Botón claro para cerrar, en vez de cerrarse solo (para no confundir)
+      btnCancelar.style.display='none';
+      btn.disabled=false;
+      btn.textContent='✓ Cerrar';
+      btn.style.background='#334155';
+      btn.onclick=function(){ cerrarModalValidarCE(); };
+    }
     else{throw new Error(data.error||'Error');}
   }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
 }
@@ -1579,7 +1594,7 @@ function generarReportePDF(idGrupo) {
     <!-- Botones -->
     <div style="display:flex;gap:10px;">
       <button onclick="ejecutarValidarCE()" id="btn-ejecutar-validar-ce" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">✓ Validar pago</button>
-      <button onclick="cerrarModalValidarCE()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:12px 16px;cursor:pointer;">Cancelar</button>
+      <button onclick="cerrarModalValidarCE()" id="btn-cancelar-validar-ce" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:12px 16px;cursor:pointer;">Cancelar</button>
     </div>
     <div id="validar-ce-status" style="display:none;margin-top:12px;text-align:center;font-size:13px;border-radius:8px;padding:10px;"></div>
   </div>
