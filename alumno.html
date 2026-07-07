@@ -388,7 +388,7 @@
         <div class="card-header">
           <div class="card-icon icon-grupo">📅</div>
           <span class="card-title">Mi grupo</span>
-          <button class="btn-cambiar-grupo" onclick="abrirModalCambioGrupo()" style="background:rgba(202,138,4,0.15);border-color:rgba(202,138,4,0.4);color:#ca8a04;padding:6px 14px;font-size:12px;">⇄ Cambiar grupo</button>
+          <button id="btnCambiarGrupo" class="btn-cambiar-grupo" style="background:rgba(202,138,4,0.15);border-color:rgba(202,138,4,0.4);color:#ca8a04;padding:6px 14px;font-size:12px;">⇄ Cambiar grupo</button>
         </div>
         <div class="grupo-grid">
           <div class="grupo-item"><div class="grupo-label">Grupo</div><div class="grupo-val" id="grupoId">—</div><div class="grupo-sub" id="grupoNivel">—</div></div>
@@ -704,6 +704,12 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+  // ── INTERRUPTOR: cambio de grupo por el propio alumno ──────────────────
+  // Se desactivó a petición de dirección: ahora solo el asistente CE puede
+  // cambiar de grupo a un alumno (ya disponible en asistente-ce.html).
+  // Para reactivar que el alumno lo haga el mismo, poner en true.
+  const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
   var alumnoData = null;
   var archivoSubida = null;
@@ -756,6 +762,15 @@
     document.getElementById('screenPanel').classList.add('active');
     var a = alumnoData.alumno, g = alumnoData.grupo, s = alumnoData.asistente, p = alumnoData.pago;
     var m = alumnoData.maestro || null;
+
+    var btnCambiar = document.getElementById('btnCambiarGrupo');
+    if (CAMBIO_GRUPO_ALUMNO_ACTIVO) {
+      btnCambiar.textContent = '⇄ Cambiar grupo';
+      btnCambiar.onclick = abrirModalCambioGrupo;
+    } else {
+      btnCambiar.textContent = '💬 Solicitar cambio de grupo';
+      btnCambiar.onclick = solicitarCambioGrupoWhatsApp;
+    }
 
     var iniciales = a.nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     document.getElementById('avatarInitials').textContent = iniciales;
@@ -1179,7 +1194,23 @@
   }
 
   // ── CAMBIO DE GRUPO ──────────────────────────────────────────────
+  function solicitarCambioGrupoWhatsApp() {
+    if (!alumnoData) return;
+    var s = alumnoData.asistente, a = alumnoData.alumno, g = alumnoData.grupo;
+    if (!s || !s.whatsapp) return;
+    var msg = encodeURIComponent(
+      'Hola ' + s.nombre.split(' ')[0] + ' 👋\n\n' +
+      'Me gustaría solicitar un cambio de grupo.\n\n' +
+      '👤 Alumno: ' + a.nombre + '\n' +
+      '🆔 ID: ' + a.id + '\n' +
+      '📚 Grupo actual: ' + (g ? g.id + ' · ' + g.nombre + ' · ' + g.horario : '—') + '\n\n' +
+      'Quedo al pendiente de las opciones disponibles. ¡Gracias! 🙏'
+    );
+    window.open('https://wa.me/' + cleanWA(s.whatsapp) + '?text=' + msg, '_blank');
+  }
+
   function abrirModalCambioGrupo() {
+    if (!CAMBIO_GRUPO_ALUMNO_ACTIVO) return; // función desactivada, ver interruptor arriba
     grupoDestinoCambio=null;
     document.getElementById('btnConfirmarCambio').classList.remove('activo');
     document.getElementById('cambioStatus').textContent='';
@@ -1222,6 +1253,7 @@
   }
 
   function confirmarCambioGrupoAlumno() {
+    if (!CAMBIO_GRUPO_ALUMNO_ACTIVO) return; // función desactivada, ver interruptor arriba
     if (!grupoDestinoCambio||!alumnoData) return;
     var btn=document.getElementById('btnConfirmarCambio');
     btn.classList.remove('activo'); btn.classList.add('cargando'); btn.textContent='Procesando...';
