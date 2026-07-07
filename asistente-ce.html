@@ -284,6 +284,34 @@
     .nivel-btn span{font-size:11px;font-weight:700;border-radius:20px;padding:2px 7px;background:var(--gris-100);color:var(--gris-500)}
     .nivel-btn.active span{background:rgba(255,255,255,.25);color:#fff}
     .grupo-nombre-row.nombre-adolescentes{color:var(--naranja)!important}
+
+    /* ── CALENDARIO DE COBERTURA DE PAGO ── */
+    .cal-cobertura{background:var(--gris-50,#f8fafc);border:1px solid var(--gris-200);border-radius:10px;padding:12px;margin-bottom:14px}
+    .cal-cobertura-label{font-size:12px;font-weight:700;color:var(--gris-600);display:block;margin-bottom:8px}
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .cal-header button{background:none;border:none;font-size:18px;color:var(--naranja);cursor:pointer;padding:2px 10px;font-weight:700}
+    .cal-header button:hover{background:var(--naranja-10);border-radius:6px}
+    .cal-header span{font-size:13px;font-weight:700;color:var(--gris-700,#334155);text-transform:capitalize}
+    .cal-grid-head{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+    .cal-grid-head span{text-align:center;font-size:10px;font-weight:700;color:var(--gris-400);padding:2px 0}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+    .cal-day{text-align:center;font-size:12px;padding:6px 0;border-radius:6px;color:var(--gris-600)}
+    .cal-day.cal-otro-mes{opacity:.3}
+    .cal-day.cal-no-clase{color:var(--gris-300);background:transparent}
+    .cal-day.cal-clase{cursor:pointer;background:#fff;border:1px solid var(--gris-200);font-weight:600}
+    .cal-day.cal-clase:hover{border-color:var(--naranja);background:var(--naranja-10)}
+    .cal-day.cal-selected{background:var(--naranja)!important;color:#fff!important;border-color:var(--naranja)!important}
+    .cal-resumen{margin-top:8px;font-size:12px;color:var(--naranja);font-weight:700;text-align:center;min-height:16px}
+
+    /* Variante oscura (modal Validar pago CE) */
+    .cal-dark{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.1)}
+    .cal-dark .cal-cobertura-label{color:#94a3b8}
+    .cal-dark .cal-header span{color:#e2e8f0}
+    .cal-dark .cal-grid-head span{color:#64748b}
+    .cal-dark .cal-day{color:#94a3b8}
+    .cal-dark .cal-day.cal-clase{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12)}
+    .cal-dark .cal-day.cal-clase:hover{border-color:#fb923c;background:rgba(249,115,22,0.15)}
+    .cal-dark .cal-day.cal-selected{background:#f97316!important;color:#fff!important}
   </style>
 </head>
 <body>
@@ -409,6 +437,10 @@
       <label>Monto del comprobante (MXN)</label>
       <input type="number" id="input-monto-validar" placeholder="Ej. 150 o 570" min="1" />
       <p class="monto-hint">Ingresa el monto que aparece en el comprobante. Pago semanal: $150 · 4 semanas: $570</p>
+    </div>
+    <div class="cal-cobertura">
+      <span class="cal-cobertura-label">¿Qué semana(s) cubre este pago?</span>
+      <div id="cal-comp"></div>
     </div>
     <div class="modal-actions">
       <button class="btn-validar" style="flex:1" onclick="validarDesdeModal()">✓ Validar pago</button>
@@ -1033,6 +1065,97 @@ async function ejecutarCambioGrupo(){
   finally{btn.textContent='Confirmar Cambio';btn.disabled=false;}
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// CALENDARIO DE SEMANAS DE COBERTURA
+// Cada instancia se identifica por un containerId ('cal-comp' o 'cal-ce').
+// Clic en un día lunes-jueves selecciona esa semana completa (lun→jue).
+// Un segundo clic en otra semana extiende el rango hasta ahí (para pagos
+// de varias semanas). Un tercer clic reinicia la selección.
+// ══════════════════════════════════════════════════════════════════════════
+var calendarios = {};
+
+function calLunesDe(d){var x=new Date(d);x.setHours(0,0,0,0);var dia=x.getDay();x.setDate(x.getDate()-(dia===0?6:dia-1));return x;}
+function calJuevesDe(lunes){var j=new Date(lunes);j.setDate(j.getDate()+3);return j;}
+
+function calInit(containerId){
+  calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0 };
+  calRender(containerId);
+}
+
+function calMes(containerId, delta){
+  var st = calendarios[containerId];
+  st.mes = new Date(st.mes.getFullYear(), st.mes.getMonth()+delta, 1);
+  calRender(containerId);
+}
+
+function calClickDia(containerId, timestamp){
+  var st = calendarios[containerId];
+  var d = new Date(timestamp);
+  var lunes = calLunesDe(d);
+  var jueves = calJuevesDe(lunes);
+
+  if (st.paso === 0 || st.paso === 2) {
+    // Primer clic de un nuevo ciclo (o reinicio tras un rango ya completo)
+    st.inicio = lunes;
+    st.fin = jueves;
+    st.paso = 1;
+  } else {
+    // Segundo clic: define el otro extremo del rango
+    if (lunes < st.inicio) {
+      st.fin = calJuevesDe(st.inicio);
+      st.inicio = lunes;
+    } else {
+      st.fin = jueves;
+    }
+    st.paso = 2;
+  }
+  calRender(containerId);
+}
+
+function calFormatoCorto(d){
+  var meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return d.getDate()+' '+meses[d.getMonth()];
+}
+
+function calRender(containerId){
+  var st = calendarios[containerId];
+  var cont = document.getElementById(containerId);
+  if (!cont) return;
+  var mes = st.mes;
+  var nombresMes=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var primerDia = new Date(mes.getFullYear(), mes.getMonth(), 1);
+  var inicioGrid = calLunesDe(primerDia);
+
+  var html = '<div class="cal-header">'+
+    '<button type="button" onclick="calMes(\''+containerId+'\',-1)">‹</button>'+
+    '<span>'+nombresMes[mes.getMonth()]+' '+mes.getFullYear()+'</span>'+
+    '<button type="button" onclick="calMes(\''+containerId+'\',1)">›</button></div>';
+  html += '<div class="cal-grid-head"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>';
+  html += '<div class="cal-grid">';
+
+  for (var i=0;i<42;i++){
+    var d = new Date(inicioGrid);
+    d.setDate(inicioGrid.getDate()+i);
+    var esOtroMes = d.getMonth() !== mes.getMonth();
+    var diaSemana = d.getDay();
+    var esClaseDia = diaSemana>=1 && diaSemana<=4; // lunes a jueves
+    var enRango = esClaseDia && st.inicio && st.fin && d >= st.inicio && d <= st.fin;
+    var cls = 'cal-day'+(esOtroMes?' cal-otro-mes':'')+(esClaseDia?' cal-clase':' cal-no-clase')+(enRango?' cal-selected':'');
+    var clickAttr = esClaseDia ? ' onclick="calClickDia(\''+containerId+'\','+d.getTime()+')"' : '';
+    html += '<div class="'+cls+'"'+clickAttr+'>'+d.getDate()+'</div>';
+  }
+  html += '</div>';
+
+  var resumen = 'Toca cualquier día lunes a jueves para elegir la semana que cubre el pago.';
+  if (st.inicio && st.fin) {
+    var semanas = Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1;
+    resumen = 'Cubre del ' + calFormatoCorto(st.inicio) + ' al ' + calFormatoCorto(st.fin) + ' ('+semanas+' semana'+(semanas!==1?'s':'')+')';
+  }
+  html += '<div class="cal-resumen">'+resumen+'</div>';
+
+  cont.innerHTML = html;
+}
+
 function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
   pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;
   document.getElementById('input-monto-validar').value=monto>0?monto:'';
@@ -1049,6 +1172,7 @@ function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
     visor.innerHTML=`<img src="${cUrl}" alt="Comprobante" style="max-width:100%;max-height:380px;object-fit:contain;border-radius:8px;display:block" onerror="this.parentElement.innerHTML='<div style=\\'text-align:center;padding:20px\\'><p style=\\'color:var(--gris-500);font-size:13px;margin-bottom:12px\\'>No se pudo cargar la imagen</p><a href=\\'${cUrl}\\' target=\\'_blank\\' style=\\'background:var(--naranja);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px\\'>Abrir en nueva pestaña →</a></div>'">`;
   }
   document.getElementById('modal-comprobante').classList.add('open');
+  calInit('cal-comp');
   document.body.style.overflow='hidden';
 }
 
@@ -1065,15 +1189,22 @@ async function validarDesdeModal(){
     mostrarToast('Ingresa el monto del comprobante antes de validar','error');
     return;
   }
-  await validarPago(pagoActivoId,pagoActivoFecha,Number(monto));
+  const cal = calendarios['cal-comp'];
+  if(!cal || !cal.inicio || !cal.fin){
+    mostrarToast('Selecciona la semana (o semanas) que cubre este pago','error');
+    return;
+  }
+  await validarPago(pagoActivoId,pagoActivoFecha,Number(monto),cal.inicio,cal.fin);
   cerrarModalComp();
 }
 
 function rechazarDesdeModal(){mostrarToast('Funcionalidad de rechazo próximamente','error');cerrarModalComp();}
 
-async function validarPago(idAlumno,fechaPago,monto){
+async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin){
   try{
-    const url=`${APPS_SCRIPT}?action=validarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fechaPago=${encodeURIComponent(fechaPago)}&idAsistente=${encodeURIComponent(asistente.id)}&monto=${encodeURIComponent(monto||0)}`;
+    let url=`${APPS_SCRIPT}?action=validarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fechaPago=${encodeURIComponent(fechaPago)}&idAsistente=${encodeURIComponent(asistente.id)}&monto=${encodeURIComponent(monto||0)}`;
+    if(coberturaInicio) url += `&coberturaInicio=${encodeURIComponent(coberturaInicio.toISOString())}`;
+    if(coberturaFin)    url += `&coberturaFin=${encodeURIComponent(coberturaFin.toISOString())}`;
     const resp=await fetch(url);
     const data=await resp.json();
     if(data.status==='ok'){
@@ -1222,6 +1353,7 @@ function abrirModalValidarCE(idAlumno) {
   var modal = document.getElementById('modal-validar-ce');
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
+  calInit('cal-ce');
 }
 function cerrarModalValidarCE() {
   document.getElementById('modal-validar-ce').style.display = 'none';
@@ -1245,10 +1377,12 @@ async function ejecutarValidarCE() {
   var status=document.getElementById('validar-ce-status'), btn=document.getElementById('btn-ejecutar-validar-ce');
   if (!monto||Number(monto)<1){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Ingresa el monto.';return;}
   if (!file){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona el comprobante.';return;}
+  var cal = calendarios['cal-ce'];
+  if (!cal || !cal.inicio || !cal.fin){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona la semana (o semanas) que cubre este pago.';return;}
   btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
   try {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
-    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
+    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),coberturaInicio:cal.inicio.toISOString(),coberturaFin:cal.fin.toISOString(),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
     var data=await resp.json();
     if(data.success){status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado.';btn.textContent='✓ Validado';setTimeout(function(){cerrarModalValidarCE();cargarDatos();},2000);}
     else{throw new Error(data.error||'Error');}
@@ -1431,6 +1565,11 @@ function generarReportePDF(idGrupo) {
       <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto del comprobante (MXN) <span style="color:#f87171;">*</span></label>
       <input type="number" id="validar-ce-monto" placeholder="Ej. 100 o 400" min="1" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:14px;outline:none;font-family:'Plus Jakarta Sans',sans-serif;">
       <p style="font-size:11px;color:#64748b;margin-top:6px;">Colegiatura semanal: $100 · 4 semanas: $400</p>
+    </div>
+    <!-- Cobertura -->
+    <div class="cal-cobertura cal-dark">
+      <span class="cal-cobertura-label">¿Qué semana(s) cubre este pago?</span>
+      <div id="cal-ce"></div>
     </div>
     <!-- Comentario -->
     <div style="margin-bottom:20px;">
