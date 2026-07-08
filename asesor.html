@@ -498,15 +498,21 @@
         if (data.esColocacion) {
           document.getElementById('modalTitulo').textContent = 'Pago validado';
           document.getElementById('modalMensaje').textContent =
-            'El pago de ' + data.nombreAlumno + ' ha sido registrado. Ahora puedes notificar al Asistente CE y/o al Maestro.';
+            'El pago de ' + data.nombreAlumno + ' ha sido registrado. Avisa al Maestro de Colocación para que lo coloque en un grupo.';
+          // Colocación: solo aplica avisar al Maestro de Colocación
+          document.getElementById('btnNotificarCE').style.display = 'none';
+          document.getElementById('btnNotificarAlumno').style.display = 'none';
+          document.getElementById('btnNotificarMaestro').style.display = '';
+          document.getElementById('btnNotificarMaestro').textContent = 'Notificar Maestro de Colocación';
         } else {
           document.getElementById('modalTitulo').textContent = 'Plaza validada';
           document.getElementById('modalMensaje').textContent =
             'El pago de ' + data.nombreAlumno + ' fue validado y se envió el correo de bienvenida. Usa los botones para notificar.';
+          document.getElementById('btnNotificarCE').style.display = '';
+          document.getElementById('btnNotificarMaestro').style.display = '';
+          document.getElementById('btnNotificarMaestro').textContent = 'Notificar Maestro';
+          document.getElementById('btnNotificarAlumno').style.display = '';
         }
-        document.getElementById('btnNotificarCE').style.display = '';
-        document.getElementById('btnNotificarMaestro').style.display = '';
-        document.getElementById('btnNotificarAlumno').style.display = '';
         document.getElementById('modalNotificacion').classList.add('active');
       } else {
         alert('Error al validar: ' + (data.error || 'Intenta de nuevo.'));
@@ -531,6 +537,7 @@
     document.getElementById('modalNotificacion').classList.remove('active');
     document.getElementById('btnNotificarCE').style.display = '';
     document.getElementById('btnNotificarMaestro').style.display = '';
+    document.getElementById('btnNotificarMaestro').textContent = 'Notificar Maestro';
     document.getElementById('btnNotificarAlumno').style.display = '';
     var waTemp = modalData ? (modalData.alumnoWA || '') : '';
     modalData = null; alumnoWA = null;
@@ -572,6 +579,15 @@
   function notificarMaestro() {
     if (!modalData || !modalData.data) return;
     var d = modalData.data;
+    if (d.esColocacion) {
+      if (d.colocadorWA) {
+        var msgColocador = encodeURIComponent('Hola ' + d.colocadorNombre + ', hay un alumno que necesita ser colocado: ' + d.nombreAlumno + '. Por favor contáctalo para agendar su evaluación y asignarle un grupo.');
+        window.open('https://wa.me/' + cleanWA(d.colocadorWA) + '?text=' + msgColocador, '_blank');
+      } else {
+        alert('No hay un Maestro de Colocación activo registrado.');
+      }
+      return;
+    }
     if (d.maestroWA) {
       var msgMaestro = encodeURIComponent('Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' + d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.');
       window.open('https://wa.me/' + cleanWA(d.maestroWA) + '?text=' + msgMaestro, '_blank');
