@@ -56,10 +56,6 @@
 
   .btn-validar:hover { opacity: 0.9; }
 
-  .btn-whatsapp { flex: 1; background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; border-radius: 100px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; text-align: center; }
-
-  .btn-whatsapp:hover { opacity: 0.9; }
-
   .btn-compartir-wa { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; background:linear-gradient(135deg,#25d366,#128C7E); color:#fff; border:none; border-radius:100px; padding:12px 18px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; transition:opacity 0.2s; margin-top:16px; }
   .btn-compartir-wa:hover { opacity:0.9; }
   .btn-compartir-wa.loading { pointer-events:none; opacity:0.6; }
@@ -289,16 +285,6 @@
   }
 
   // ── RENDER ──
-  function calcularVencimiento(fechaRegistro) {
-    var fecha = new Date(fechaRegistro);
-    var dia = fecha.getDay();
-    var sumar = dia === 5 ? 3 : dia === 6 ? 2 : 1;
-    fecha.setDate(fecha.getDate() + sumar);
-    var dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' de ' + meses[fecha.getMonth()] + ' a las 4:00 PM';
-  }
-
   function renderPendientes(pendientes) {
     var lista = document.getElementById('listaPendientes');
     if (!pendientes || !pendientes.length) {
@@ -308,9 +294,6 @@
     lista.innerHTML = pendientes.map(function(a) {
       var fecha = new Date(a.fecha);
       var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
-      var vencimiento = calcularVencimiento(a.fecha);
-      var msg = generarMensaje(a, vencimiento);
-      var waUrl = 'https://wa.me/' + cleanWA(a.whatsapp) + '?text=' + encodeURIComponent(msg);
       return '<div class="alumno-card">' +
         '<div class="nombre">' + a.nombre +
           ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' +
@@ -321,25 +304,9 @@
         '</div>' +
         '<div class="card-actions">' +
           '<button class="btn-validar" onclick="abrirModalValidar(\'' + a.idAlumno + '\', \'' + a.nombre + '\', this)">Validar pago</button>' +
-          '<a class="btn-whatsapp" href="' + waUrl + '" target="_blank">Mensaje al alumno</a>' +
         '</div>' +
       '</div>';
     }).join('');
-  }
-
-  function generarMensaje(a, vencimiento) {
-    if (!a.idGrupo || a.idGrupo === 'undefined') {
-      return '¡Hola! ' + a.nombre + ' Con gusto te comparto la información para completar tu inscripción en Organic English.\n\n' +
-        '⚠️ IMPORTANTE: Tu registro vence el ' + vencimiento + '. Después de esta hora, el sistema cancela automáticamente los lugares sin pago validado.\n\n' +
-        'Opciones de pago:\n· $100 MXN — Pago semanal.\n· $400 MXN — Pago por 4 semanas. Por tiempo limitado.\n\n' +
-        'Datos Bancarios (Banco Azteca):\n· Cuenta: 0631 1337 4127 81\n· CLABE: 1274 4501 3374 1278 14\n· Núm. Tarjeta: 4027 6600 0473 5249\n· Titular: Marisol Arteaga Rodríguez.\n\n' +
-        'Pasos:\n1. Envíame tu comprobante por aquí.\n2. Una vez que tu pago sea verificado, te mandare un mensaje indicando que tu inscripción ha sido validada.\n3. Recibirás el correo con acceso a tus clases y datos de tu Asistente CE.';
-    }
-    return '¡Hola! ' + a.nombre + ' Con gusto te comparto la información para completar tu inscripción en Organic English.\n\n' +
-      '⚠️ IMPORTANTE: Tu reserva vence el ' + vencimiento + '.\n\n' +
-      'Opciones de pago:\n· $100 MXN — Pago semanal.\n· $400 MXN — Pago por 4 semanas Por tiempo limitado.\n\n' +
-      'Datos Bancarios (Banco Azteca):\n· Cuenta: 0631 1337 4127 81\n· CLABE: 1274 4501 3374 1278 14\n· Núm. Tarjeta: 4027 6600 0473 5249\n· Titular: Marisol Arteaga Rodríguez.\n\n' +
-      'Pasos:\n1. Envíame tu comprobante por aquí.\n2. Una vez que tu pago sea verificado, te mandare un mensaje indicando que tu inscripción ha sido validada.\n3. Recibirás el correo con acceso a tus clases y datos de tu Asistente CE.';
   }
 
   // ── MODAL VALIDAR PAGO ──
