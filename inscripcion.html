@@ -1334,12 +1334,31 @@
     return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' de ' + meses[fecha.getMonth()] + ' a las 4:00 PM';
   }
 
-  function generarMensajePago(nombre, vencimiento) {
+  const opcionesPagoPorTipo = {
+    'Promo':         '· $100 MXN — Pago semanal (Promoción).',
+    'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción). Por tiempo limitado.',
+    'Normal':        '· $140 MXN — Pago semanal.',
+    'Normal_Mensual':'· $500 MXN — Pago por 4 semanas.',
+    'Beca_Parcial':  '· $100 MXN — Pago único. Con este pago obtienes 3 semanas adicionales de beca (4 semanas en total).'
+  };
+
+  function generarMensajePago(nombre, vencimiento, tipo, esColocacion) {
+    const cierre = esColocacion
+      ? 'Un maestro de colocación se pondrá en contacto contigo a la brevedad para programar tu examen gratuito de colocación, en cuanto tu pago sea validado.'
+      : 'Recibirás un correo con el acceso a tu plataforma de alumno, la información de tu Asistente de Control Escolar y los datos de tu maestro.';
+
+    if (tipo === 'Becado') {
+      return '¡Hola! ' + nombre + ' ¡Felicidades! Tu lugar en Organic English ha sido confirmado con una beca del 100%, así que no necesitas realizar ningún pago.\n\n' +
+        cierre;
+    }
+
+    const lineaPago = opcionesPagoPorTipo[tipo] || opcionesPagoPorTipo['Promo'];
+
     return '¡Hola! ' + nombre + ' Con gusto te comparto la información para completar tu inscripción en Organic English.\n\n' +
       '⚠️ IMPORTANTE: Tu reserva vence el ' + vencimiento + '.\n\n' +
-      'Opciones de pago:\n· $100 MXN — Pago semanal.\n· $400 MXN — Pago por 4 semanas. Por tiempo limitado.\n\n' +
+      'Tu opción de pago:\n' + lineaPago + '\n\n' +
       'Datos Bancarios (Banco Azteca):\n· Cuenta: 0631 1337 4127 81\n· CLABE: 1274 4501 3374 1278 14\n· Núm. Tarjeta: 4027 6600 0473 5249\n· Titular: Marisol Arteaga Rodríguez.\n\n' +
-      'Pasos:\n1. Envíame tu comprobante por aquí.\n2. Una vez que tu pago sea verificado, te mandare un mensaje indicando que tu inscripción ha sido validada.\n3. Recibirás el correo con acceso a tus clases y datos de tu Asistente CE.';
+      'Pasos:\n1. Envíame tu comprobante por aquí.\n2. Una vez que tu pago sea verificado, te mandaré un mensaje indicando que tu inscripción ha sido validada.\n3. ' + cierre;
   }
 
   async function submitForm() {
@@ -1379,7 +1398,7 @@
       <div class="confirm-row"><span class="confirm-row-label">Tipo de inscripcion</span><span class="confirm-row-value">${tipoEtiquetas[tipoInscripcion]||tipoInscripcion}</span></div>`;
 
     const vencimiento = calcularVencimientoPago(new Date());
-    const msgPago = generarMensajePago(nombre, vencimiento);
+    const msgPago = generarMensajePago(nombre, vencimiento, tipoInscripcion, esColocacionActual);
     document.getElementById('btn-whatsapp-pago').href = `https://wa.me/${whatsapp}?text=${encodeURIComponent(msgPago)}`;
 
     btn.disabled = false;
