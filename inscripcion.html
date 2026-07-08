@@ -441,6 +441,7 @@
         </div>
         <a class="grupo-sel-chg" onclick="goToPanel(1)">← Cambiar</a>
       </div>
+      <div id="aviso-colocacion-panel2" style="display:none;background:rgba(202,138,4,0.1);border:1px solid rgba(202,138,4,0.35);border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:0.78rem;line-height:1.55;color:var(--text-muted)"></div>
       <div class="form-group">
         <label class="form-label" for="nombre">Nombre completo <span>*</span></label>
         <input class="form-input" type="text" id="nombre" placeholder="Ej. María García López" autocomplete="name" />
@@ -1273,6 +1274,22 @@
       `${grupoSel.horario} (hora CDMX) — ${grupoSel.nombre}`;
     document.getElementById('grupo-sel-detalle').textContent =
       `Grupo ${grupoSel.id} · Inicio de cursos el ${formatLarga(grupoSel.fechaObj)} · ${grupoSel.libres} lugar${grupoSel.libres!==1?'es':''} libre${grupoSel.libres!==1?'s':''}`;
+
+    // Si el grupo ya inició, este alumno se incorpora por colocación:
+    // mostrar aviso claro para el asesor dentro del mismo formulario.
+    const hoyEG = new Date(); hoyEG.setHours(0,0,0,0);
+    const fechaGrupoEG = grupoSel.fechaObj ? new Date(grupoSel.fechaObj) : null;
+    if (fechaGrupoEG) fechaGrupoEG.setHours(0,0,0,0);
+    const esColocacion = fechaGrupoEG && fechaGrupoEG < hoyEG;
+    const avisoBox = document.getElementById('aviso-colocacion-panel2');
+    if (esColocacion) {
+      const semana = calcularAvanceSemanas(grupoSel.fechaObj, hoyEG);
+      avisoBox.innerHTML = `<strong>Grupo en curso (semana ${semana}).</strong> Este alumno se incorpora por evaluación de colocación gratuita — agenda su evaluación con el maestro/asistente del grupo después de completar este registro.`;
+      avisoBox.style.display = 'block';
+    } else {
+      avisoBox.style.display = 'none';
+    }
+
     goToPanel(2);
   }
 
@@ -1399,7 +1416,7 @@
     if (lleno) {
       accionHtml = `<div class="seccion-vacia" style="margin-top:10px">Este grupo no tiene lugares disponibles.</div>`;
     } else if (enCurso) {
-      accionHtml = `<button class="btn-elegir curso" style="width:100%;padding:0.85rem;font-size:0.85rem;margin-top:6px" onclick="cerrarModalGrupo();abrirModalColocacion('${g.id}')">Me interesa · Evaluación de colocación →</button>`;
+      accionHtml = `<button class="btn-elegir curso" style="width:100%;padding:0.85rem;font-size:0.85rem;margin-top:6px" onclick="cerrarModalGrupo();elegirGrupo('${g.id}')">Registrar en este grupo →</button>`;
     } else {
       accionHtml = `<button class="btn-elegir" style="width:100%;padding:0.85rem;font-size:0.85rem;margin-top:6px" onclick="cerrarModalGrupo();elegirGrupo('${g.id}')">Elegir este grupo →</button>`;
     }
