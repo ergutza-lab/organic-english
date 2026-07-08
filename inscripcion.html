@@ -531,7 +531,11 @@
       <h2>¡Tu plaza está <em>reservada!</em></h2>
       <p>Tu lugar ha sido apartado. Para completar tu inscripción envía tu comprobante de pago a tiempo.</p>
       <div class="confirm-card" id="confirm-resumen"></div>
-      <div class="alerta-pago"><strong>Tienes un plazo limitado</strong> para completar el pago de este registro.</div>
+      <div class="alerta-pago"><strong>Tienes un plazo limitado</strong> para completar el pago de este registro. Usa el botón de abajo para mandarle al alumno los datos bancarios por WhatsApp.</div>
+      <a class="btn-whatsapp" id="btn-whatsapp-pago" href="#" target="_blank">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Enviar datos de pago al alumno
+      </a>
       <a href="niveles.html" class="btn-secondary">← Regresar al inicio</a>
     </div>
   </div>
@@ -1320,6 +1324,24 @@
     'Becado':        'Becado 100%'
   };
 
+  function calcularVencimientoPago(fechaRegistro) {
+    var fecha = new Date(fechaRegistro);
+    var dia = fecha.getDay();
+    var sumar = dia === 5 ? 3 : dia === 6 ? 2 : 1;
+    fecha.setDate(fecha.getDate() + sumar);
+    var dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' de ' + meses[fecha.getMonth()] + ' a las 4:00 PM';
+  }
+
+  function generarMensajePago(nombre, vencimiento) {
+    return '¡Hola! ' + nombre + ' Con gusto te comparto la información para completar tu inscripción en Organic English.\n\n' +
+      '⚠️ IMPORTANTE: Tu reserva vence el ' + vencimiento + '.\n\n' +
+      'Opciones de pago:\n· $100 MXN — Pago semanal.\n· $400 MXN — Pago por 4 semanas. Por tiempo limitado.\n\n' +
+      'Datos Bancarios (Banco Azteca):\n· Cuenta: 0631 1337 4127 81\n· CLABE: 1274 4501 3374 1278 14\n· Núm. Tarjeta: 4027 6600 0473 5249\n· Titular: Marisol Arteaga Rodríguez.\n\n' +
+      'Pasos:\n1. Envíame tu comprobante por aquí.\n2. Una vez que tu pago sea verificado, te mandare un mensaje indicando que tu inscripción ha sido validada.\n3. Recibirás el correo con acceso a tus clases y datos de tu Asistente CE.';
+  }
+
   async function submitForm() {
     if (!validateForm()) return;
     const btn = document.getElementById('btn-submit');
@@ -1355,6 +1377,11 @@
       <div class="confirm-row"><span class="confirm-row-label">Inicio de cursos el</span><span class="confirm-row-value">${formatLarga(grupoSel.fechaObj)}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Correo</span><span class="confirm-row-value">${email}</span></div>
       <div class="confirm-row"><span class="confirm-row-label">Tipo de inscripcion</span><span class="confirm-row-value">${tipoEtiquetas[tipoInscripcion]||tipoInscripcion}</span></div>`;
+
+    const vencimiento = calcularVencimientoPago(new Date());
+    const msgPago = generarMensajePago(nombre, vencimiento);
+    document.getElementById('btn-whatsapp-pago').href = `https://wa.me/${whatsapp}?text=${encodeURIComponent(msgPago)}`;
+
     btn.disabled = false;
     btn.innerHTML = 'Reservar mi lugar';
     goToPanel(3);
