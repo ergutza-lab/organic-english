@@ -116,6 +116,8 @@
   .modal-notif-box p { color: #64748b; font-size: 13px; margin-bottom: 24px; line-height: 1.5; }
   .modal-notif-actions { display: flex; flex-direction: column; gap: 10px; }
   .btn-notificar { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; border-radius: 100px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  .btn-colocador-opcion { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  .btn-colocador-opcion:hover { opacity: 0.9; }
   .btn-notificar:hover { opacity: 0.9; }
   .btn-cerrar-modal { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 13px; font-size: 14px; cursor: pointer; }
 </style>
@@ -218,6 +220,16 @@
       <button class="btn-cancelar" onclick="cerrarModalValidar()">Cancelar</button>
       <button class="btn-confirmar-validar" id="btnConfirmarValidar" disabled onclick="confirmarValidacion()">Validar pago</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL SELECCIÓN DE MAESTRO DE COLOCACIÓN -->
+<div class="modal-overlay" id="modalSeleccionColocador">
+  <div class="modal-notif-box">
+    <div class="modal-icon">🎓</div>
+    <h3>¿Quién atenderá esta colocación?</h3>
+    <p>Hay más de un Maestro de Colocación activo. Elige a quién avisarle.</p>
+    <div class="modal-notif-actions" id="listaColocadores"></div>
   </div>
 </div>
 
@@ -463,14 +475,14 @@
 
         modalData = { data: data, alumnoWA: waAlumno };
         if (data.esColocacion) {
-          document.getElementById('modalTitulo').textContent = 'Pago validado';
-          document.getElementById('modalMensaje').textContent =
-            'El pago de ' + data.nombreAlumno + ' ha sido registrado. Avisa al Maestro de Colocación para que lo coloque en un grupo.';
-          // Colocación: solo aplica avisar al Maestro de Colocación
-          document.getElementById('btnNotificarCE').style.display = 'none';
-          document.getElementById('btnNotificarAlumno').style.display = 'none';
-          document.getElementById('btnNotificarMaestro').style.display = '';
-          document.getElementById('btnNotificarMaestro').textContent = 'Notificar Maestro de Colocación';
+          var colocadores = data.colocadores || [];
+          if (colocadores.length > 1) {
+            // Varios maestros de colocación activos: dejar que el asesor elija
+            abrirModalSeleccionColocador(colocadores);
+          } else {
+            modalData.colocadorSeleccionado = colocadores[0] || null;
+            abrirModalNotifColocacion(data);
+          }
         } else {
           document.getElementById('modalTitulo').textContent = 'Plaza validada';
           document.getElementById('modalMensaje').textContent =
@@ -479,8 +491,8 @@
           document.getElementById('btnNotificarMaestro').style.display = '';
           document.getElementById('btnNotificarMaestro').textContent = 'Notificar Maestro';
           document.getElementById('btnNotificarAlumno').style.display = '';
+          document.getElementById('modalNotificacion').classList.add('active');
         }
-        document.getElementById('modalNotificacion').classList.add('active');
       } else {
         alert('Error al validar: ' + (data.error || 'Intenta de nuevo.'));
       }
@@ -543,13 +555,40 @@
     }
   }
 
+  function abrirModalNotifColocacion(data) {
+    document.getElementById('modalTitulo').textContent = 'Pago validado';
+    document.getElementById('modalMensaje').textContent =
+      'El pago de ' + data.nombreAlumno + ' ha sido registrado. Avisa al Maestro de Colocación para que lo coloque en un grupo.';
+    document.getElementById('btnNotificarCE').style.display = 'none';
+    document.getElementById('btnNotificarAlumno').style.display = 'none';
+    document.getElementById('btnNotificarMaestro').style.display = '';
+    document.getElementById('btnNotificarMaestro').textContent = 'Notificar Maestro de Colocación';
+    document.getElementById('modalNotificacion').classList.add('active');
+  }
+
+  function abrirModalSeleccionColocador(colocadores) {
+    var lista = document.getElementById('listaColocadores');
+    lista.innerHTML = colocadores.map(function(c, idx) {
+      return '<button class="btn-colocador-opcion" onclick="seleccionarColocador(' + idx + ')">' + c.nombre + '</button>';
+    }).join('');
+    modalData.colocadoresDisponibles = colocadores;
+    document.getElementById('modalSeleccionColocador').classList.add('active');
+  }
+
+  function seleccionarColocador(idx) {
+    modalData.colocadorSeleccionado = modalData.colocadoresDisponibles[idx];
+    document.getElementById('modalSeleccionColocador').classList.remove('active');
+    abrirModalNotifColocacion(modalData.data);
+  }
+
   function notificarMaestro() {
     if (!modalData || !modalData.data) return;
     var d = modalData.data;
     if (d.esColocacion) {
-      if (d.colocadorWA) {
-        var msgColocador = encodeURIComponent('Hola ' + d.colocadorNombre + ', hay un alumno que necesita ser colocado: ' + d.nombreAlumno + '. Por favor contáctalo para agendar su evaluación y asignarle un grupo.');
-        window.open('https://wa.me/' + cleanWA(d.colocadorWA) + '?text=' + msgColocador, '_blank');
+      var col = modalData.colocadorSeleccionado;
+      if (col && col.whatsapp) {
+        var msgColocador = encodeURIComponent('Hola ' + col.nombre + ', hay un alumno que necesita ser colocado: ' + d.nombreAlumno + '. Por favor contáctalo para agendar su evaluación y asignarle un grupo.');
+        window.open('https://wa.me/' + cleanWA(col.whatsapp) + '?text=' + msgColocador, '_blank');
       } else {
         alert('No hay un Maestro de Colocación activo registrado.');
       }
