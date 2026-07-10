@@ -918,7 +918,7 @@
 
   function compartirGruposDisponibles() {
     const hoy = new Date(); hoy.setHours(0,0,0,0);
-    const disponibles = gruposDelNivel().filter(g => g.libres > 0 && (!g.fechaObj || g.fechaObj >= hoy));
+    const disponibles = gruposDelNivel().filter(g => g.libres > 0);
     if (!disponibles.length) {
       alert('No hay grupos con lugares disponibles para este nivel por ahora.');
       return;
@@ -926,17 +926,25 @@
     const porFecha = {};
     disponibles.forEach(g => {
       const clave = g.fechaObj ? formatFechaTitulo(g.fechaObj) : 'Sin fecha';
-      if (!porFecha[clave]) porFecha[clave] = [];
-      porFecha[clave].push(g);
+      if (!porFecha[clave]) porFecha[clave] = { fechaObj: g.fechaObj, grupos: [] };
+      porFecha[clave].grupos.push(g);
     });
     const nivelInfo = NIVELES.find(n => n.codigo === nivelSeleccionado);
     const nombreNivel = nivelInfo ? `${nivelInfo.codigo} · ${nivelInfo.nombreEn}` : nivelSeleccionado;
 
     let msg = `Hola! 👋\n\nTe comparto los grupos disponibles del *nivel ${nombreNivel}* en Organic English:\n\n`;
-    const fechas = Object.keys(porFecha);
+    const fechas = Object.keys(porFecha).sort((a, b) => {
+      const fa = porFecha[a].fechaObj, fb = porFecha[b].fechaObj;
+      if (!fa) return 1;
+      if (!fb) return -1;
+      return fa - fb;
+    });
     fechas.forEach((fecha, fi) => {
-      msg += `📅 *Inicio: ${fecha}*\n`;
-      porFecha[fecha].forEach(g => { msg += `⏰ ${g.horario}\n`; });
+      const { fechaObj, grupos: gruposFecha } = porFecha[fecha];
+      const yaInicio = fechaObj && fechaObj < hoy;
+      const etiqueta = yaInicio ? '▶️ Grupo en curso · inició' : '🆕 Grupo nuevo · inicia';
+      msg += `*${etiqueta} ${fecha}*\n`;
+      gruposFecha.forEach(g => { msg += `⏰ ${g.horario}${yaInicio ? ' (' + g.libres + ' vacante' + (g.libres!==1?'s':'') + ')' : ''}\n`; });
       if (fi < fechas.length - 1) msg += '\n';
     });
     msg += '\nPara más información o para apartar tu lugar, escríbeme.';
