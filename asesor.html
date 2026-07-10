@@ -57,6 +57,10 @@
   .btn-validar:hover { opacity: 0.9; }
 
   .btn-compartir-wa { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; background:linear-gradient(135deg,#25d366,#128C7E); color:#fff; border:none; border-radius:100px; padding:12px 18px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; transition:opacity 0.2s; margin-top:16px; }
+  .btn-nueva-inscripcion, .btn-mis-alumnos { flex:1; border:none; border-radius:12px; padding:14px 10px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity 0.2s; }
+  .btn-nueva-inscripcion { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
+  .btn-mis-alumnos { background:#1e2a4a; color:#f1f5f9; border:1px solid rgba(255,255,255,0.12); }
+  .btn-nueva-inscripcion:hover, .btn-mis-alumnos:hover { opacity:0.9; }
   .btn-compartir-wa:hover { opacity:0.9; }
   .btn-compartir-wa.loading { pointer-events:none; opacity:0.6; }
 
@@ -160,6 +164,10 @@
       <p>Bienvenido/a,</p>
       <h2 id="asesorNombre">—</h2>
     </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <button class="btn-nueva-inscripcion" onclick="abrirModalNuevaInscripcion()">➕ Nueva inscripción</button>
+      <button class="btn-mis-alumnos" onclick="abrirModalMisAlumnos()">👥 Mis alumnos</button>
+    </div>
     <div class="seccion-titulo">Alumnos pendientes de validación de pago</div>
     <div id="listaPendientes"><div class="loading">Cargando...</div></div>
     <div style="margin-top:28px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between">
@@ -219,6 +227,123 @@
     <div class="modal-actions-row">
       <button class="btn-cancelar" onclick="cerrarModalValidar()">Cancelar</button>
       <button class="btn-confirmar-validar" id="btnConfirmarValidar" disabled onclick="confirmarValidacion()">Validar pago</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA INSCRIPCIÓN (módulo fusionado) -->
+<div class="modal-overlay" id="modalNuevaInscripcion">
+  <div class="modal-box" style="max-width:480px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-titulo">➕ Nueva inscripción</div>
+    <div class="modal-sub">Registra al alumno y valida su pago en un solo paso.</div>
+
+    <span class="monto-label">Nivel</span>
+    <select id="ni-nivel" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niCargarGrupos()">
+      <option value="">Cargando niveles...</option>
+    </select>
+
+    <span class="monto-label">Grupo</span>
+    <select id="ni-grupo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
+      <option value="">Elige un nivel primero</option>
+    </select>
+    <div id="ni-grupo-info" style="font-size:11px;color:#94a3b8;margin:-6px 0 12px;"></div>
+
+    <span class="monto-label">Nombre completo del alumno</span>
+    <input type="text" id="ni-nombre" placeholder="Ej. María García López" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;">
+        <span class="monto-label">WhatsApp</span>
+        <input type="text" id="ni-whatsapp" placeholder="10 dígitos" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+      </div>
+      <div style="flex:1;">
+        <span class="monto-label">Edad</span>
+        <input type="number" id="ni-edad" placeholder="Ej. 16" min="1" max="99" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" oninput="niToggleMenor()" />
+      </div>
+    </div>
+
+    <span class="monto-label">Correo electrónico</span>
+    <input type="email" id="ni-email" placeholder="correo@ejemplo.com" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+
+    <span class="monto-label">Lugar de residencia</span>
+    <input type="text" id="ni-residencia" placeholder="Ciudad, estado" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+
+    <div id="ni-bloque-menor" style="display:none;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#fb923c;margin-bottom:8px;">⚠️ Alumno menor de edad — datos del tutor</div>
+      <span class="monto-label">Fecha de nacimiento</span>
+      <input type="date" id="ni-fecha-nac" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box;" />
+      <span class="monto-label">Nombre del tutor</span>
+      <input type="text" id="ni-tutor-nombre" placeholder="Nombre completo del tutor" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box;" />
+      <span class="monto-label">WhatsApp del tutor</span>
+      <input type="text" id="ni-tutor-whatsapp" placeholder="10 dígitos" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;outline:none;box-sizing:border-box;" />
+    </div>
+
+    <span class="monto-label">Tipo de inscripción</span>
+    <select id="ni-tipo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niToggleBecado()">
+      <option value="Promo">Promoción ($100/semana)</option>
+      <option value="Promo_Mensual">Promoción mensual ($400/4 semanas)</option>
+      <option value="Normal">Normal ($140/semana)</option>
+      <option value="Normal_Mensual">Normal mensual ($500/4 semanas)</option>
+      <option value="Beca_Parcial">Beca parcial ($100 + 3 semanas gratis)</option>
+      <option value="Becado">Becado 100%</option>
+    </select>
+
+    <div id="ni-bloque-pago">
+      <span class="monto-label">Monto del pago</span>
+      <input type="number" id="ni-monto" placeholder="Ej. 100" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+
+      <span class="upload-label">Comprobante de pago</span>
+      <div class="upload-zone" id="niUploadZone">
+        <input type="file" id="niUploadInput" accept="image/*,application/pdf" onchange="niArchivoSeleccionado(this)" />
+        <div class="upload-icon">📎</div>
+        <div class="upload-text"><span>Selecciona un archivo</span> o arrástralo aquí</div>
+        <div class="upload-hint">PDF o imagen · máx. 10 MB</div>
+      </div>
+      <div class="upload-preview" id="niUploadPreview">
+        <span class="upload-preview-icon">📄</span>
+        <span class="upload-preview-name" id="niUploadPreviewName"></span>
+        <button class="upload-preview-remove" onclick="niQuitarArchivo()">✕</button>
+      </div>
+    </div>
+
+    <div class="upload-status" id="ni-status"></div>
+
+    <div class="modal-actions-row">
+      <button class="btn-cancelar" onclick="cerrarModalNuevaInscripcion()">Cancelar</button>
+      <button class="btn-confirmar-validar" id="btnConfirmarNI" onclick="confirmarNuevaInscripcion()">Registrar y validar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MIS ALUMNOS -->
+<div class="modal-overlay" id="modalMisAlumnos">
+  <div class="modal-box" style="max-width:520px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-titulo">👥 Mis alumnos registrados</div>
+    <div class="modal-sub">Alumnos que tú has registrado. Puedes editar sus datos.</div>
+    <div id="ma-lista"><div class="loading">Cargando...</div></div>
+    <div class="modal-actions-row">
+      <button class="btn-cancelar" onclick="cerrarModalMisAlumnos()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR ALUMNO -->
+<div class="modal-overlay" id="modalEditarAlumno">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-titulo">Editar alumno</div>
+    <div class="modal-sub" id="ea-sub">—</div>
+    <span class="monto-label">Nombre completo</span>
+    <input type="text" id="ea-nombre" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <span class="monto-label">WhatsApp</span>
+    <input type="text" id="ea-whatsapp" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <span class="monto-label">Correo</span>
+    <input type="email" id="ea-email" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <span class="monto-label">Lugar de residencia</span>
+    <input type="text" id="ea-residencia" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <div class="upload-status" id="ea-status"></div>
+    <div class="modal-actions-row">
+      <button class="btn-cancelar" onclick="cerrarModalEditarAlumno()">Cancelar</button>
+      <button class="btn-confirmar-validar" onclick="guardarEdicionAlumno()">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -802,6 +927,284 @@ function compartirGruposWA(btn) {
   msg += '\nPara más información o para apartar tu lugar, escríbeme.';
   var waUrl = 'https://wa.me/?text=' + encodeURIComponent(msg);
   window.open(waUrl, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MÓDULO FUSIONADO: NUEVA INSCRIPCIÓN + MIS ALUMNOS (julio 2026)
+// ═══════════════════════════════════════════════════════════════════════
+var gruposCacheInsc = [];
+var niArchivoBase64 = null;
+var niArchivoMime   = null;
+var niArchivoNombre = null;
+var misAlumnosCache = [];
+
+function cargarGruposInscripcion(callback) {
+  gvizJSONP('GRUPOS', function (grupos) {
+    gruposCacheInsc = grupos.filter(function (g) {
+      return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0;
+    });
+    if (callback) callback();
+  });
+}
+
+function abrirModalNuevaInscripcion() {
+  // Reiniciar formulario
+  ['ni-nombre','ni-whatsapp','ni-edad','ni-email','ni-residencia','ni-fecha-nac','ni-tutor-nombre','ni-tutor-whatsapp','ni-monto'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('ni-tipo').value = 'Promo';
+  document.getElementById('ni-bloque-menor').style.display = 'none';
+  document.getElementById('ni-bloque-pago').style.display = '';
+  document.getElementById('ni-status').textContent = '';
+  niQuitarArchivo();
+
+  var selNivel = document.getElementById('ni-nivel');
+  selNivel.innerHTML = '<option value="">Cargando niveles...</option>';
+  document.getElementById('ni-grupo').innerHTML = '<option value="">Elige un nivel primero</option>';
+
+  cargarGruposInscripcion(function () {
+    var nivelesVistos = {};
+    gruposCacheInsc.forEach(function (g) { var n = normalizarNivel(g.nivel); if (n) nivelesVistos[n] = true; });
+    var lista = NIVELES_ORDEN.filter(function (n) { return nivelesVistos[n]; });
+    var otros = Object.keys(nivelesVistos).filter(function (n) { return NIVELES_ORDEN.indexOf(n) === -1; }).sort();
+    lista = lista.concat(otros);
+    selNivel.innerHTML = lista.length
+      ? lista.map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('')
+      : '<option value="">Sin niveles disponibles</option>';
+    if (lista.length) niCargarGrupos();
+  });
+
+  document.getElementById('modalNuevaInscripcion').classList.add('active');
+}
+
+function cerrarModalNuevaInscripcion() {
+  document.getElementById('modalNuevaInscripcion').classList.remove('active');
+}
+
+function niCargarGrupos() {
+  var nivel = document.getElementById('ni-nivel').value;
+  var selGrupo = document.getElementById('ni-grupo');
+  var info = document.getElementById('ni-grupo-info');
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var grupos = gruposCacheInsc.filter(function (g) { return normalizarNivel(g.nivel) === nivel; });
+  if (!grupos.length) {
+    selGrupo.innerHTML = '<option value="">Sin grupos disponibles</option>';
+    info.textContent = '';
+    return;
+  }
+  grupos.sort(function(a,b){ return (a.fechaObj||0) - (b.fechaObj||0); });
+  selGrupo.innerHTML = grupos.map(function (g) {
+    var enCurso = g.fechaObj && g.fechaObj < hoy;
+    var etiqueta = (enCurso ? '🔵 En curso' : '🆕 Nuevo') + ' · ' + formatFechaDDMMM(g.fechaObj) + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)';
+    return '<option value="' + g.id + '">' + g.id + ' — ' + etiqueta + '</option>';
+  }).join('');
+  info.textContent = '';
+}
+
+function niToggleMenor() {
+  var edad = Number(document.getElementById('ni-edad').value) || 0;
+  var esMenor = edad > 0 && edad < 18;
+  document.getElementById('ni-bloque-menor').style.display = esMenor ? '' : 'none';
+}
+
+function niToggleBecado() {
+  var esBecado = document.getElementById('ni-tipo').value === 'Becado';
+  document.getElementById('ni-bloque-pago').style.display = esBecado ? 'none' : '';
+}
+
+function niArchivoSeleccionado(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    niArchivoBase64 = e.target.result.split(',')[1];
+    niArchivoMime   = file.type;
+    niArchivoNombre = file.name;
+    document.getElementById('niUploadZone').style.display = 'none';
+    document.getElementById('niUploadPreview').style.display = 'flex';
+    document.getElementById('niUploadPreviewName').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function niQuitarArchivo() {
+  niArchivoBase64 = null; niArchivoMime = null; niArchivoNombre = null;
+  document.getElementById('niUploadInput').value = '';
+  document.getElementById('niUploadZone').style.display = '';
+  document.getElementById('niUploadPreview').style.display = 'none';
+}
+
+function niMensajePago(nombre, tipo) {
+  var opciones = {
+    'Promo': '· $100 MXN — Pago semanal (Promoción).',
+    'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción).',
+    'Normal': '· $140 MXN — Pago semanal.',
+    'Normal_Mensual': '· $500 MXN — Pago por 4 semanas.',
+    'Beca_Parcial': '· $100 MXN — Pago único (con 3 semanas adicionales de beca).'
+  };
+  return '¡Hola! Bienvenido/a a Organic English, ' + nombre + ' 🎉\n\n' +
+    'Tu inscripción ha sido registrada y tu pago validado.\n\n' +
+    (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n\n' : '') +
+    'En breve recibirás un correo con el acceso a tu plataforma de alumno y los datos de tu Asistente de Control Escolar.\n\n' +
+    '¡Bienvenido/a! 🙌';
+}
+
+function confirmarNuevaInscripcion() {
+  var status = document.getElementById('ni-status');
+  var btn = document.getElementById('btnConfirmarNI');
+  var nivel = document.getElementById('ni-nivel').value;
+  var idGrupo = document.getElementById('ni-grupo').value;
+  var nombre = document.getElementById('ni-nombre').value.trim();
+  var whatsapp = document.getElementById('ni-whatsapp').value.trim();
+  var edad = Number(document.getElementById('ni-edad').value) || 0;
+  var email = document.getElementById('ni-email').value.trim();
+  var residencia = document.getElementById('ni-residencia').value.trim();
+  var tipo = document.getElementById('ni-tipo').value;
+  var esBecado = tipo === 'Becado';
+  var esMenor = edad > 0 && edad < 18;
+  var fechaNac = document.getElementById('ni-fecha-nac').value;
+  var tutorNombre = document.getElementById('ni-tutor-nombre').value.trim();
+  var tutorWhatsapp = document.getElementById('ni-tutor-whatsapp').value.trim();
+  var monto = Number(document.getElementById('ni-monto').value) || 0;
+
+  status.style.display = 'none';
+  function mostrarError(txt) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(239,68,68,0.15)';
+    status.style.color = '#f87171';
+    status.textContent = '❌ ' + txt;
+  }
+
+  if (!idGrupo)    return mostrarError('Selecciona un grupo.');
+  if (!nombre)     return mostrarError('Ingresa el nombre del alumno.');
+  if (!whatsapp)   return mostrarError('Ingresa el WhatsApp del alumno.');
+  if (!edad)       return mostrarError('Ingresa la edad del alumno.');
+  if (!residencia) return mostrarError('Ingresa el lugar de residencia.');
+  if (esMenor && (!fechaNac || !tutorNombre || !tutorWhatsapp)) return mostrarError('Para menores de edad, la fecha de nacimiento y los datos del tutor son obligatorios.');
+  if (!esBecado && !niArchivoBase64) return mostrarError('Sube el comprobante de pago.');
+  if (!esBecado && !monto) return mostrarError('Ingresa el monto del pago.');
+
+  var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var esColocacion = grupoSel && grupoSel.fechaObj && grupoSel.fechaObj < hoy;
+
+  btn.disabled = true; btn.textContent = 'Registrando...';
+
+  fetch(APPS_SCRIPT, {
+    method: 'POST', redirect: 'follow',
+    body: JSON.stringify({
+      action: 'registrarInscripcionConPago',
+      nombre: nombre, whatsapp: cleanWA(whatsapp), email: email,
+      idGrupo: idGrupo, idAsesor: asesorData.id,
+      tipoInscripcion: tipo, esColocacion: esColocacion,
+      edad: edad, fechaNacimiento: fechaNac, lugarResidencia: residencia,
+      tutorNombre: tutorNombre, tutorWhatsapp: tutorWhatsapp ? cleanWA(tutorWhatsapp) : '',
+      monto: monto,
+      base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre
+    })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    btn.disabled = false; btn.textContent = 'Registrar y validar';
+    if (data.success) {
+      status.style.display = 'block';
+      status.style.background = 'rgba(34,197,94,0.12)';
+      status.style.color = '#4ade80';
+      status.textContent = '✅ ' + nombre + ' registrado con ID ' + data.idAlumno + '.';
+
+      var destinoNombre = data.esMenor ? data.tutorNombre : nombre;
+      var destinoWA = data.esMenor ? cleanWA(data.tutorWhatsapp) : cleanWA(whatsapp);
+      if (destinoWA) {
+        var msg = niMensajePago(destinoNombre, tipo);
+        setTimeout(function () {
+          window.open('https://wa.me/' + destinoWA + '?text=' + encodeURIComponent(msg), '_blank');
+        }, 600);
+      }
+      setTimeout(function () { cerrarModalNuevaInscripcion(); cargarDatos(); }, 1800);
+    } else {
+      mostrarError(data.error || 'No se pudo registrar.');
+    }
+  }).catch(function () {
+    btn.disabled = false; btn.textContent = 'Registrar y validar';
+    mostrarError('Error de conexión.');
+  });
+}
+
+// ── MIS ALUMNOS ──
+function abrirModalMisAlumnos() {
+  var lista = document.getElementById('ma-lista');
+  lista.innerHTML = '<div class="loading">Cargando...</div>';
+  document.getElementById('modalMisAlumnos').classList.add('active');
+  fetch(APPS_SCRIPT + '?action=getMisAlumnosAsesor&idAsesor=' + encodeURIComponent(asesorData.id))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) { lista.innerHTML = '<div class="empty-state"><p>Error al cargar.</p></div>'; return; }
+      misAlumnosCache = data.alumnos || [];
+      if (!misAlumnosCache.length) {
+        lista.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>Aún no has registrado alumnos.</p></div>';
+        return;
+      }
+      lista.innerHTML = misAlumnosCache.map(function (a, idx) {
+        return '<div class="alumno-card">' +
+          '<div class="nombre">' + a.nombre + ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' + a.estatus + '</span></div>' +
+          '<div class="detalle"><span>' + a.idAlumno + '</span><span>' + (a.idGrupo || 'Sin grupo') + '</span></div>' +
+          '<div class="card-actions"><button class="btn-validar" onclick="abrirModalEditarAlumno(' + idx + ')">Editar</button></div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(function () { lista.innerHTML = '<div class="empty-state"><p>Error de conexión.</p></div>'; });
+}
+
+function cerrarModalMisAlumnos() {
+  document.getElementById('modalMisAlumnos').classList.remove('active');
+}
+
+var eaIdxActual = null;
+function abrirModalEditarAlumno(idx) {
+  var a = misAlumnosCache[idx];
+  if (!a) return;
+  eaIdxActual = idx;
+  document.getElementById('ea-sub').textContent = a.idAlumno + ' · ' + (a.idGrupo || 'Sin grupo');
+  document.getElementById('ea-nombre').value = a.nombre || '';
+  document.getElementById('ea-whatsapp').value = a.whatsapp || '';
+  document.getElementById('ea-email').value = a.email || '';
+  document.getElementById('ea-residencia').value = a.lugarResidencia || '';
+  document.getElementById('ea-status').textContent = '';
+  document.getElementById('modalEditarAlumno').classList.add('active');
+}
+
+function cerrarModalEditarAlumno() {
+  document.getElementById('modalEditarAlumno').classList.remove('active');
+}
+
+function guardarEdicionAlumno() {
+  var a = misAlumnosCache[eaIdxActual];
+  if (!a) return;
+  var status = document.getElementById('ea-status');
+  status.style.display = 'block'; status.style.background = 'rgba(255,255,255,0.06)'; status.style.color = '#94a3b8';
+  status.textContent = 'Guardando...';
+
+  fetch(APPS_SCRIPT, {
+    method: 'POST', redirect: 'follow',
+    body: JSON.stringify({
+      action: 'actualizarAlumnoAsesor',
+      idAlumno: a.idAlumno, idAsesor: asesorData.id,
+      nombre: document.getElementById('ea-nombre').value.trim(),
+      whatsapp: cleanWA(document.getElementById('ea-whatsapp').value.trim()),
+      email: document.getElementById('ea-email').value.trim(),
+      lugarResidencia: document.getElementById('ea-residencia').value.trim()
+    })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.success) {
+      status.style.background = 'rgba(34,197,94,0.12)'; status.style.color = '#4ade80';
+      status.textContent = '✅ Cambios guardados.';
+      setTimeout(function () { cerrarModalEditarAlumno(); abrirModalMisAlumnos(); }, 1000);
+    } else {
+      status.style.background = 'rgba(239,68,68,0.15)'; status.style.color = '#f87171';
+      status.textContent = '❌ ' + (data.error || 'No se pudo guardar.');
+    }
+  }).catch(function () {
+    status.style.background = 'rgba(239,68,68,0.15)'; status.style.color = '#f87171';
+    status.textContent = '❌ Error de conexión.';
+  });
 }
 </script>
 <!-- ═══════════════════════════════════════════════════ -->
