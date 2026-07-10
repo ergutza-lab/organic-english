@@ -36,7 +36,7 @@
   /* PANEL */
   .panel-wrap { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
   .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-  .panel-header img { height: 44px; object-fit: contain; }
+  .panel-header img { height: 64px; object-fit: contain; }
   .btn-logout { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 8px 16px; font-size: 12px; cursor: pointer; transition: background 0.2s; }
   .btn-logout:hover { background: rgba(255,255,255,0.1); }
 
@@ -58,6 +58,14 @@
 
   .btn-compartir-wa { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; background:linear-gradient(135deg,#25d366,#128C7E); color:#fff; border:none; border-radius:100px; padding:12px 18px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; transition:opacity 0.2s; margin-top:16px; }
   .btn-nueva-inscripcion, .btn-mis-alumnos { flex:1; border:none; border-radius:12px; padding:14px 10px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity 0.2s; }
+  .ma-lista-compacta { display:flex; flex-direction:column; border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; }
+  .ma-fila { display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .ma-fila:last-child { border-bottom:none; }
+  .ma-fila:nth-child(even) { background:rgba(255,255,255,0.02); }
+  .ma-fila-id { font-size:11px; color:#94a3b8; font-family:monospace; flex-shrink:0; width:56px; }
+  .ma-fila-nombre { font-size:13px; color:#f1f5f9; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ma-fila-editar { font-size:12px; font-weight:700; color:#fb923c; cursor:pointer; flex-shrink:0; text-decoration:none; }
+  .ma-fila-editar:hover { text-decoration:underline; }
   .btn-nueva-inscripcion { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
   .btn-mis-alumnos { background:#1e2a4a; color:#f1f5f9; border:1px solid rgba(255,255,255,0.12); }
   .btn-nueva-inscripcion:hover, .btn-mis-alumnos:hover { opacity:0.9; }
@@ -160,19 +168,16 @@
            onerror="this.src='https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png'" />
       <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
     </div>
-    <div class="bienvenida">
-      <p>Bienvenido/a,</p>
-      <h2 id="asesorNombre">—</h2>
+    <div class="bienvenida" style="display:flex;align-items:center;gap:12px;">
+      <img id="asesorFoto" src="" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;display:none;border:2px solid rgba(249,115,22,0.4);" onerror="this.style.display='none'" />
+      <div>
+        <p>Bienvenido/a,</p>
+        <h2 id="asesorNombre">—</h2>
+      </div>
     </div>
     <div style="display:flex;gap:10px;margin-bottom:10px;">
       <button class="btn-nueva-inscripcion" onclick="abrirModalNuevaInscripcion()">➕ Nueva inscripción</button>
       <button class="btn-mis-alumnos" onclick="abrirModalMisAlumnos()">👥 Mis alumnos</button>
-    </div>
-    <div class="seccion-titulo">Alumnos pendientes de validación de pago</div>
-    <div id="listaPendientes"><div class="loading">Cargando...</div></div>
-    <div style="margin-top:28px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between">
-      <span style="color:#64748b;font-size:12px">Comisiones esta semana</span>
-      <span id="comisionSemana" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
     </div>
     <div style="margin-top:20px;padding:18px 20px;background:#1e2a4a;border-radius:14px;border:1px solid rgba(255,255,255,0.06);text-align:center;">
       <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Compartir con candidatos</div>
@@ -181,6 +186,10 @@
         <option value="">Cargando niveles...</option>
       </select>
       <button class="btn-compartir-wa" onclick="compartirGruposWA(this)">Compartir grupos</button>
+    </div>
+    <div style="margin-top:16px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between">
+      <span style="color:#64748b;font-size:12px">Comisiones esta catorcena</span>
+      <span id="comisionCatorcena" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
     </div>
   </div>
 </div>
@@ -281,9 +290,9 @@
     <span class="monto-label">Tipo de inscripción</span>
     <select id="ni-tipo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niToggleBecado()">
       <option value="Promo">Promoción ($100/semana)</option>
-      <option value="Promo_Mensual">Promoción mensual ($400/4 semanas)</option>
+      <option value="Promo_Mensual">Promoción por 4 semanas ($400)</option>
       <option value="Normal">Normal ($140/semana)</option>
-      <option value="Normal_Mensual">Normal mensual ($500/4 semanas)</option>
+      <option value="Normal_Mensual">Normal por 4 semanas ($500)</option>
       <option value="Beca_Parcial">Beca parcial ($100 + 3 semanas gratis)</option>
       <option value="Becado">Becado 100%</option>
     </select>
@@ -329,17 +338,40 @@
 
 <!-- MODAL EDITAR ALUMNO -->
 <div class="modal-overlay" id="modalEditarAlumno">
-  <div class="modal-box" style="max-width:440px;">
+  <div class="modal-box" style="max-width:440px;max-height:88vh;overflow-y:auto;">
     <div class="modal-titulo">Editar alumno</div>
     <div class="modal-sub" id="ea-sub">—</div>
     <span class="monto-label">Nombre completo</span>
     <input type="text" id="ea-nombre" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
-    <span class="monto-label">WhatsApp</span>
-    <input type="text" id="ea-whatsapp" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;">
+        <span class="monto-label">WhatsApp</span>
+        <input type="text" id="ea-whatsapp" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+      </div>
+      <div style="flex:1;">
+        <span class="monto-label">Edad</span>
+        <input type="number" id="ea-edad" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+      </div>
+    </div>
     <span class="monto-label">Correo</span>
     <input type="email" id="ea-email" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
     <span class="monto-label">Lugar de residencia</span>
     <input type="text" id="ea-residencia" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <span class="monto-label">Tipo de inscripción</span>
+    <select id="ea-tipo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
+      <option value="Promo">Promoción ($100/semana)</option>
+      <option value="Promo_Mensual">Promoción por 4 semanas ($400)</option>
+      <option value="Normal">Normal ($140/semana)</option>
+      <option value="Normal_Mensual">Normal por 4 semanas ($500)</option>
+      <option value="Beca_Parcial">Beca parcial ($100 + 3 semanas gratis)</option>
+      <option value="Becado">Becado 100%</option>
+    </select>
+    <span class="monto-label">Fecha de nacimiento</span>
+    <input type="date" id="ea-fecha-nac" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <span class="monto-label">Nombre del tutor <small style="color:#64748b;">(si es menor de edad)</small></span>
+    <input type="text" id="ea-tutor-nombre" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+    <span class="monto-label">WhatsApp del tutor</span>
+    <input type="text" id="ea-tutor-whatsapp" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
     <div class="upload-status" id="ea-status"></div>
     <div class="modal-actions-row">
       <button class="btn-cancelar" onclick="cerrarModalEditarAlumno()">Cancelar</button>
@@ -416,34 +448,11 @@
     document.getElementById('screenLogin').classList.remove('active');
     document.getElementById('screenPanel').classList.add('active');
     document.getElementById('asesorNombre').textContent = asesorData.nombre;
-    document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
-    renderPendientes(asesorData.alumnosPendientes);
+    document.getElementById('comisionCatorcena').textContent = '$' + asesorData.comisionCatorcena + ' MXN';
+    var foto = document.getElementById('asesorFoto');
+    if (asesorData.foto) { foto.src = asesorData.foto; foto.style.display = ''; }
+    else { foto.style.display = 'none'; }
     cargarNivelesDropdown();
-  }
-
-  // ── RENDER ──
-  function renderPendientes(pendientes) {
-    var lista = document.getElementById('listaPendientes');
-    if (!pendientes || !pendientes.length) {
-      lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No tienes alumnos pendientes de pago.</p></div>';
-      return;
-    }
-    lista.innerHTML = pendientes.map(function(a) {
-      var fecha = new Date(a.fecha);
-      var fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
-      return '<div class="alumno-card">' +
-        '<div class="nombre">' + a.nombre +
-          ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' +
-          (a.idGrupo ? a.idGrupo : 'Por colocación') + '</span></div>' +
-        '<div class="detalle">' +
-          '<span>' + a.idAlumno + '</span>' +
-          '<span>Reserva: ' + fechaStr + '</span>' +
-        '</div>' +
-        '<div class="card-actions">' +
-          '<button class="btn-validar" onclick="abrirModalValidar(\'' + a.idAlumno + '\', \'' + a.nombre + '\', this)">Validar pago</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
   }
 
   // ── MODAL VALIDAR PAGO ──
@@ -589,8 +598,8 @@
         var card = btnActual ? btnActual.closest('.alumno-card') : null;
         if (card) card.remove();
 
-        asesorData.comisionSemana = (asesorData.comisionSemana || 0) + 100;
-        document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+        asesorData.comisionCatorcena = (asesorData.comisionCatorcena || 0) + 100;
+        document.getElementById('comisionCatorcena').textContent = '$' + asesorData.comisionCatorcena + ' MXN';
 
         var restantes = document.querySelectorAll('.alumno-card');
         if (restantes.length === 0) {
@@ -659,7 +668,7 @@
           asesorData = data.asesor;
           asesorData.clave = claveTemp;
           if (waTemp) { asesorData.alumnosPendientes = asesorData.alumnosPendientes || []; }
-          document.getElementById('comisionSemana').textContent = '$' + asesorData.comisionSemana + ' MXN';
+          document.getElementById('comisionCatorcena').textContent = '$' + asesorData.comisionCatorcena + ' MXN';
           renderPendientes(asesorData.alumnosPendientes);
         }
       })
@@ -819,7 +828,7 @@ var gruposCache = [];
 var NIVELES_ORDEN = ['PRE-A1','A1','A1.1','A2','B1','B1.2','B2','C1','C2'];
 
 function normalizarNivel(n) {
-  var v = String(n || '').toUpperCase().replace(/^NIVEL\s*/,'').trim();
+  var v = String(n || '').toUpperCase().replace(/^NIVEL\s*/,'').replace(/-BLOQUE\s*\d+/,'').trim();
   if (v === 'PRE-A1' || v === 'STARTER' || v === 'PREA1') return 'PRE-A1';
   if (v === 'A1.1' || v === 'A1.1 BEGINNER' || v === 'A11') return 'A1.1';
   if (v === 'A1' || v === 'BASIC') return 'A1';
@@ -995,7 +1004,7 @@ function niCargarGrupos() {
   grupos.sort(function(a,b){ return (a.fechaObj||0) - (b.fechaObj||0); });
   selGrupo.innerHTML = grupos.map(function (g) {
     var enCurso = g.fechaObj && g.fechaObj < hoy;
-    var etiqueta = (enCurso ? '🔵 En curso' : '🆕 Nuevo') + ' · ' + formatFechaDDMMM(g.fechaObj) + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)';
+    var etiqueta = (enCurso ? '🔵 En curso' : '🟢 Nuevo') + ' · ' + formatFechaDDMMM(g.fechaObj) + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)';
     return '<option value="' + g.id + '">' + g.id + ' — ' + etiqueta + '</option>';
   }).join('');
   info.textContent = '';
@@ -1034,7 +1043,7 @@ function niQuitarArchivo() {
   document.getElementById('niUploadPreview').style.display = 'none';
 }
 
-function niMensajePago(nombre, tipo) {
+function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo) {
   var opciones = {
     'Promo': '· $100 MXN — Pago semanal (Promoción).',
     'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción).',
@@ -1042,10 +1051,19 @@ function niMensajePago(nombre, tipo) {
     'Normal_Mensual': '· $500 MXN — Pago por 4 semanas.',
     'Beca_Parcial': '· $100 MXN — Pago único (con 3 semanas adicionales de beca).'
   };
-  return '¡Hola! Bienvenido/a a Organic English, ' + nombre + ' 🎉\n\n' +
-    'Tu inscripción ha sido registrada y tu pago validado.\n\n' +
+  var infoGrupo = idGrupo ? ('en el grupo *' + idGrupo + '*' + (horario ? ' con horario ' + horario : '')) : '';
+
+  if (esParaTutor) {
+    return '¡Hola ' + destinoNombre + '! 👋\n\n' +
+      'Le confirmamos que ' + nombreAlumno + ' ya está inscrito/a en Organic English' + (infoGrupo ? ', ' + infoGrupo : '') + '.\n\n' +
+      (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n\n' : '') +
+      nombreAlumno + ' recibirá por correo el acceso a su plataforma personal de alumno, junto con los datos de contacto de su Asistente de Control Escolar y de su maestro.\n\n' +
+      '¡Bienvenido/a a Organic English! 🙌';
+  }
+  return '¡Hola! Bienvenido/a a Organic English, ' + destinoNombre + ' 🎉\n\n' +
+    'Tu inscripción ya quedó registrada' + (infoGrupo ? ', ' + infoGrupo : '') + ', y tu pago fue validado.\n\n' +
     (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n\n' : '') +
-    'En breve recibirás un correo con el acceso a tu plataforma de alumno y los datos de tu Asistente de Control Escolar.\n\n' +
+    'Recibirás por correo el acceso a tu plataforma personal de alumno, junto con los datos de contacto de tu Asistente de Control Escolar y de tu maestro.\n\n' +
     '¡Bienvenido/a! 🙌';
 }
 
@@ -1113,7 +1131,7 @@ function confirmarNuevaInscripcion() {
       var destinoNombre = data.esMenor ? data.tutorNombre : nombre;
       var destinoWA = data.esMenor ? cleanWA(data.tutorWhatsapp) : cleanWA(whatsapp);
       if (destinoWA) {
-        var msg = niMensajePago(destinoNombre, tipo);
+        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupo, grupoSel ? grupoSel.horario : '', tipo);
         setTimeout(function () {
           window.open('https://wa.me/' + destinoWA + '?text=' + encodeURIComponent(msg), '_blank');
         }, 600);
@@ -1142,13 +1160,13 @@ function abrirModalMisAlumnos() {
         lista.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>Aún no has registrado alumnos.</p></div>';
         return;
       }
-      lista.innerHTML = misAlumnosCache.map(function (a, idx) {
-        return '<div class="alumno-card">' +
-          '<div class="nombre">' + a.nombre + ' <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:100px;background:rgba(249,115,22,0.15);color:#fb923c;">' + a.estatus + '</span></div>' +
-          '<div class="detalle"><span>' + a.idAlumno + '</span><span>' + (a.idGrupo || 'Sin grupo') + '</span></div>' +
-          '<div class="card-actions"><button class="btn-validar" onclick="abrirModalEditarAlumno(' + idx + ')">Editar</button></div>' +
+      lista.innerHTML = '<div class="ma-lista-compacta">' + misAlumnosCache.map(function (a, idx) {
+        return '<div class="ma-fila">' +
+          '<span class="ma-fila-id">' + a.idAlumno + '</span>' +
+          '<span class="ma-fila-nombre">' + a.nombre + '</span>' +
+          '<a class="ma-fila-editar" onclick="abrirModalEditarAlumno(' + idx + ')">Editar</a>' +
         '</div>';
-      }).join('');
+      }).join('') + '</div>';
     })
     .catch(function () { lista.innerHTML = '<div class="empty-state"><p>Error de conexión.</p></div>'; });
 }
@@ -1162,13 +1180,24 @@ function abrirModalEditarAlumno(idx) {
   var a = misAlumnosCache[idx];
   if (!a) return;
   eaIdxActual = idx;
-  document.getElementById('ea-sub').textContent = a.idAlumno + ' · ' + (a.idGrupo || 'Sin grupo');
+  document.getElementById('ea-sub').textContent = a.idAlumno + ' · ' + (a.idGrupo || 'Sin grupo') + ' · ' + a.estatus;
   document.getElementById('ea-nombre').value = a.nombre || '';
   document.getElementById('ea-whatsapp').value = a.whatsapp || '';
+  document.getElementById('ea-edad').value = a.edad || '';
   document.getElementById('ea-email').value = a.email || '';
   document.getElementById('ea-residencia').value = a.lugarResidencia || '';
+  document.getElementById('ea-tipo').value = a.tipoInscripcion || 'Promo';
+  document.getElementById('ea-fecha-nac').value = a.fechaNacimiento ? formatFechaInput(a.fechaNacimiento) : '';
+  document.getElementById('ea-tutor-nombre').value = a.tutorNombre || '';
+  document.getElementById('ea-tutor-whatsapp').value = a.tutorWhatsapp || '';
   document.getElementById('ea-status').textContent = '';
   document.getElementById('modalEditarAlumno').classList.add('active');
+}
+
+function formatFechaInput(f) {
+  var d = new Date(f);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function cerrarModalEditarAlumno() {
@@ -1190,7 +1219,12 @@ function guardarEdicionAlumno() {
       nombre: document.getElementById('ea-nombre').value.trim(),
       whatsapp: cleanWA(document.getElementById('ea-whatsapp').value.trim()),
       email: document.getElementById('ea-email').value.trim(),
-      lugarResidencia: document.getElementById('ea-residencia').value.trim()
+      lugarResidencia: document.getElementById('ea-residencia').value.trim(),
+      edad: Number(document.getElementById('ea-edad').value) || '',
+      tipoInscripcion: document.getElementById('ea-tipo').value,
+      fechaNacimiento: document.getElementById('ea-fecha-nac').value,
+      tutorNombre: document.getElementById('ea-tutor-nombre').value.trim(),
+      tutorWhatsapp: cleanWA(document.getElementById('ea-tutor-whatsapp').value.trim())
     })
   }).then(function (r) { return r.json(); }).then(function (data) {
     if (data.success) {
