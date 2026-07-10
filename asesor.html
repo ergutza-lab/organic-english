@@ -1002,12 +1002,35 @@ function niCargarGrupos() {
     return;
   }
   grupos.sort(function(a,b){ return (a.fechaObj||0) - (b.fechaObj||0); });
-  selGrupo.innerHTML = grupos.map(function (g) {
-    var enCurso = g.fechaObj && g.fechaObj < hoy;
-    var etiqueta = (enCurso ? '🔵 En curso' : '🟢 Nuevo') + ' · ' + (g.nombre || '—') + ' · ' + formatFechaDDMMM(g.fechaObj) + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)';
-    return '<option value="' + g.id + '">' + g.id + ' — ' + etiqueta + '</option>';
+
+  // Agrupar por fecha de inicio para no repetirla en cada opción
+  var porFecha = {};
+  var ordenFechas = [];
+  grupos.forEach(function (g) {
+    var clave = g.fechaObj ? formatFechaDDMMM(g.fechaObj) : 'Sin fecha';
+    if (!porFecha[clave]) { porFecha[clave] = { fechaObj: g.fechaObj, grupos: [] }; ordenFechas.push(clave); }
+    porFecha[clave].grupos.push(g);
+  });
+
+  selGrupo.innerHTML = ordenFechas.map(function (clave) {
+    var bloque = porFecha[clave];
+    var enCurso = bloque.fechaObj && bloque.fechaObj < hoy;
+    var etiquetaFecha = (enCurso ? '🔵 En curso · inició' : '🟢 Nuevo · inicia') + ' ' + clave;
+    var opciones = bloque.grupos.map(function (g) {
+      return '<option value="' + g.id + '" ' + niColorGrupoAttr(g.nombre) + '>' +
+        g.id + ' — ' + (g.nombre || '—') + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)' +
+      '</option>';
+    }).join('');
+    return '<optgroup label="' + etiquetaFecha + '">' + opciones + '</optgroup>';
   }).join('');
   info.textContent = '';
+}
+
+function niColorGrupoAttr(nombre) {
+  var n = String(nombre || '').toUpperCase();
+  if (n.indexOf('TEEN') !== -1)      return 'style="color:#facc15;"';
+  if (n.indexOf('KID') !== -1)       return 'style="color:#4ade80;"';
+  return '';
 }
 
 function niToggleMenor() {
