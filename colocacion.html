@@ -102,6 +102,7 @@
   .modal-icon { font-size: 40px; margin-bottom: 12px; text-align: center; }
   .modal-actions-notify { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
   .btn-notificar { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; border-radius: 100px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-notificar.enviado, .btn-notificar:disabled { background: rgba(255,255,255,0.06); color: #64748b; cursor: default; }
   .btn-cerrar-modal { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 13px; font-size: 14px; cursor: pointer; }
   .btn-whatsapp-verde { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; white-space: nowrap; }
 
@@ -254,9 +255,11 @@
   <div class="modal-box">
     <div class="modal-icon">✅</div>
     <h3 id="modalNotifTitulo">Asignación completada</h3>
-    <p id="modalNotifMensaje"></p>
+    <p id="modalNotifMensaje">Envía los 3 avisos. Puedes hacerlo en cualquier orden, pero no cierres hasta enviar los 3.</p>
     <div class="modal-actions-notify">
-      <button class="btn-notificar" id="btnNotificar">Notificar</button>
+      <button class="btn-notificar" id="btnNotificarCE">Notificar al Asistente CE</button>
+      <button class="btn-notificar" id="btnNotificarMaestro">Notificar al Maestro</button>
+      <button class="btn-notificar" id="btnNotificarAlumno">Notificar al Alumno (Bienvenida)</button>
       <button class="btn-cerrar-modal" onclick="cerrarModalNotif()">Cerrar</button>
     </div>
   </div>
@@ -491,6 +494,8 @@ function toggleNivel(id, btn) {
     var btn = document.getElementById('btnConfirmar');
     btn.textContent = 'Asignando...'; btn.disabled = true;
 
+    var alumnoWAActual = alumnoActual.whatsapp;
+
     fetch(APPS_SCRIPT + '?action=asignarGrupoColocacion' +
       '&idAlumno='    + encodeURIComponent(alumnoActual.idAlumno) +
       '&idGrupo='     + encodeURIComponent(grupoSeleccionado) +
@@ -500,10 +505,12 @@ function toggleNivel(id, btn) {
         btn.textContent = 'Confirmar asignación';
         cerrarModalAsignacion();
         if (data.success) {
-          notifData = { tipo: 'ce', data: data };
+          notifData = data;
+          if (!notifData.alumnoWA) notifData.alumnoWA = alumnoWAActual;
           document.getElementById('modalNotifTitulo').textContent = 'Asignación completada';
           document.getElementById('modalNotifMensaje').textContent =
-            'El correo de bienvenida fue enviado a ' + data.nombreAlumno + '. ¿Deseas notificar al Asistente CE?';
+            'Envía los 3 avisos. Puedes hacerlo en cualquier orden, pero no cierres hasta enviar los 3.';
+          resetBotonesNotif();
           document.getElementById('modalNotificacion').classList.add('active');
           cargarDatos(); // refresca listas con id incluido
         } else {
@@ -516,36 +523,76 @@ function toggleNivel(id, btn) {
       });
   }
 
-  // ── MODAL NOTIFICACIÓN ──
+  // ── MODAL NOTIFICACIÓN (3 avisos independientes) ──
   function cerrarModalNotif() {
     document.getElementById('modalNotificacion').classList.remove('active');
     notifData = null;
   }
 
-  document.getElementById('btnNotificar').addEventListener('click', function() {
+  function resetBotonesNotif() {
+    var textos = {
+      btnNotificarCE: 'Notificar al Asistente CE',
+      btnNotificarMaestro: 'Notificar al Maestro',
+      btnNotificarAlumno: 'Notificar al Alumno (Bienvenida)'
+    };
+    Object.keys(textos).forEach(function(id) {
+      var b = document.getElementById(id);
+      b.disabled = false;
+      b.classList.remove('enviado');
+      b.textContent = textos[id];
+    });
+  }
+
+  function marcarBotonEnviado(id) {
+    var b = document.getElementById(id);
+    b.disabled = true;
+    b.classList.add('enviado');
+    b.textContent = '✓ Enviado';
+  }
+
+  document.getElementById('btnNotificarCE').addEventListener('click', function() {
     if (!notifData) return;
-    var d = notifData.data;
-    if (notifData.tipo === 'ce') {
-      if (d.asisWA) {
-        var msgCE = encodeURIComponent(
-          'Hola ' + d.asisNombre + ', se ha asignado un nuevo alumno por colocación a tu grupo ' + d.idGrupo + ': ' +
-          d.nombreAlumno + '. Por favor preséntate con él por WhatsApp para darle la bienvenida.'
-        );
-        window.open('https://wa.me/' + cleanWA(d.asisWA) + '?text=' + msgCE, '_blank');
-      }
-      notifData = { tipo: 'maestro', data: d };
-      document.getElementById('modalNotifTitulo').textContent = 'Notificar al Maestro';
-      document.getElementById('modalNotifMensaje').textContent =
-        '¿Deseas notificar al maestro sobre la asignación de ' + d.nombreAlumno + ' en el grupo ' + d.idGrupo + '?';
-    } else if (notifData.tipo === 'maestro') {
-      if (d.maestroWA) {
-        var msgMaestro = encodeURIComponent(
-          'Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
-          d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.'
-        );
-        window.open('https://wa.me/' + cleanWA(d.maestroWA) + '?text=' + msgMaestro, '_blank');
-      }
-      cerrarModalNotif();
+    var d = notifData;
+    if (d.asisWA) {
+      var msgCE = encodeURIComponent(
+        'Hola ' + d.asisNombre + ', se ha asignado un nuevo alumno por colocación a tu grupo ' + d.idGrupo + ': ' +
+        d.nombreAlumno + '. Por favor preséntate con él por WhatsApp para darle la bienvenida.'
+      );
+      window.open('https://wa.me/' + cleanWA(d.asisWA) + '?text=' + msgCE, '_blank');
+      marcarBotonEnviado('btnNotificarCE');
+    } else {
+      alert('No hay número de WhatsApp registrado para el Asistente CE.');
+    }
+  });
+
+  document.getElementById('btnNotificarMaestro').addEventListener('click', function() {
+    if (!notifData) return;
+    var d = notifData;
+    if (d.maestroWA) {
+      var msgMaestro = encodeURIComponent(
+        'Hola ' + d.maestroNombre + ', hay un nuevo alumno en tu grupo ' + d.idGrupo + ': ' +
+        d.nombreAlumno + '. Ya cuenta con acceso a su panel personal.'
+      );
+      window.open('https://wa.me/' + cleanWA(d.maestroWA) + '?text=' + msgMaestro, '_blank');
+      marcarBotonEnviado('btnNotificarMaestro');
+    } else {
+      alert('No hay número de WhatsApp registrado para el Maestro.');
+    }
+  });
+
+  document.getElementById('btnNotificarAlumno').addEventListener('click', function() {
+    if (!notifData) return;
+    var d = notifData;
+    var alumnoWA = d.alumnoWA;
+    if (alumnoWA) {
+      var msgAlumno = encodeURIComponent(
+        '¡Hola ' + d.nombreAlumno + '! Ya estás oficialmente registrado(a) en el grupo ' + d.idGrupo +
+        '. ¡Bienvenido(a)! Cualquier duda, aquí estamos para apoyarte.'
+      );
+      window.open('https://wa.me/' + cleanWA(alumnoWA) + '?text=' + msgAlumno, '_blank');
+      marcarBotonEnviado('btnNotificarAlumno');
+    } else {
+      alert('No hay número de WhatsApp registrado para el alumno.');
     }
   });
 
