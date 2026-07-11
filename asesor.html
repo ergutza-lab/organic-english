@@ -729,6 +729,23 @@
     recargarPendientes(waTemp);
   }
 
+  function refrescarComisionAsesor() {
+    var claveGuardada = asesorData.clave || '';
+    fetch(APPS_SCRIPT + '?action=loginAsesor&id=' + encodeURIComponent(asesorData.id) + '&clave=' + encodeURIComponent(claveGuardada), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          var claveTemp = asesorData.clave;
+          var fotoTemp  = asesorData.foto;
+          asesorData = data.asesor;
+          asesorData.clave = claveTemp;
+          if (!asesorData.foto) asesorData.foto = fotoTemp;
+          document.getElementById('comisionCatorcena').textContent = '$' + asesorData.comisionCatorcena + ' MXN';
+        }
+      })
+      .catch(function () {});
+  }
+
   function recargarPendientes(waTemp) {
     document.getElementById('listaPendientes').innerHTML = '<div class="loading">Actualizando...</div>';
     var claveGuardada = asesorData.clave || '';
@@ -1195,7 +1212,7 @@ function abrirModalNuevaInscripcion() {
 
 function cerrarModalNuevaInscripcion() {
   document.getElementById('modalNuevaInscripcion').classList.remove('active');
-  cargarDatos();
+  refrescarComisionAsesor();
 }
 
 function niCargarGrupos() {
@@ -1351,7 +1368,7 @@ function niVerificarDatosWhatsApp() {
   window.open('https://wa.me/' + cleanWA(destino) + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
-function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo) {
+function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo, esColocacion) {
   var opciones = {
     'Promo': '· $100 MXN — Pago semanal (Promoción).',
     'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción).',
@@ -1363,17 +1380,24 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
   };
   var infoGrupo = idGrupo ? ('en el grupo *' + idGrupo + '*' + (horario ? ' con horario ' + horario : '')) : '';
 
+  var cierreColocacion = 'Tu inscripción ya fue validada. En breve recibirás un mensaje del maestro de colocación para coordinar tu examen gratuito de colocación.';
+  var cierreColocacionTutor = nombreAlumno + ' ya tiene su inscripción validada. En breve recibirán un mensaje del maestro de colocación para coordinar el examen gratuito de colocación.';
+
   if (esParaTutor) {
     return '¡Hola ' + destinoNombre + '! 👋\n\n' +
       'Le confirmamos que ' + nombreAlumno + ' ya está inscrito/a en Organic English' + (infoGrupo ? ', ' + infoGrupo : '') + '.\n\n' +
       (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n\n' : '') +
-      nombreAlumno + ' recibirá por correo el acceso a su plataforma personal de alumno, junto con los datos de contacto de su Asistente de Control Escolar y de su maestro.\n\n' +
+      (esColocacion
+        ? cierreColocacionTutor
+        : nombreAlumno + ' recibirá por correo el acceso a su plataforma personal de alumno, junto con los datos de contacto de su Asistente de Control Escolar y de su maestro.') + '\n\n' +
       '¡Bienvenido/a a Organic English! 🙌';
   }
   return '¡Hola! Bienvenido/a a Organic English, ' + destinoNombre + ' 🎉\n\n' +
-    'Tu inscripción ya quedó registrada' + (infoGrupo ? ', ' + infoGrupo : '') + ', y tu pago fue validado.\n\n' +
+    'Tu inscripción ya quedó registrada' + (infoGrupo ? ', ' + infoGrupo : '') + (esColocacion ? '' : ', y tu pago fue validado') + '.\n\n' +
     (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n\n' : '') +
-    'Recibirás por correo el acceso a tu plataforma personal de alumno, junto con los datos de contacto de tu Asistente de Control Escolar y de tu maestro.\n\n' +
+    (esColocacion
+      ? cierreColocacion
+      : 'Recibirás por correo el acceso a tu plataforma personal de alumno, junto con los datos de contacto de tu Asistente de Control Escolar y de tu maestro.') + '\n\n' +
     '¡Bienvenido/a! 🙌';
 }
 
@@ -1438,8 +1462,8 @@ function confirmarNuevaInscripcion() {
       base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre
     })
   }).then(function (r) { return r.json(); }).then(function (data) {
-    btn.disabled = false;
     if (data.success) {
+      btn.disabled = true; // se queda deshabilitado: ya se registró, no debe poder volver a mandarse
       status.style.display = 'block';
       status.style.background = 'rgba(34,197,94,0.12)';
       status.style.color = '#4ade80';
@@ -1449,7 +1473,7 @@ function confirmarNuevaInscripcion() {
       var destinoWA = data.esMenor ? cleanWA(data.tutorWhatsapp) : cleanWA(whatsapp);
       var btnWA = document.getElementById('ni-btn-whatsapp');
       if (destinoWA) {
-        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupoEnviar, grupoSel ? grupoSel.horario : '', tipo);
+        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupoEnviar, grupoSel ? grupoSel.horario : '', tipo, esColocacion);
         // IMPORTANTE: no se abre WhatsApp automáticamente aquí — la mayoría
         // de los navegadores bloquean window.open() cuando no viene de un
         // clic directo del usuario. En vez de eso se muestra un botón real
@@ -1503,7 +1527,9 @@ function confirmarNuevaInscripcion() {
       document.getElementById('ni-btn-verificar-datos').style.display = 'none';
       btn.textContent = '✓ Registrado';
       document.getElementById('ni-btn-cancelar').textContent = 'Cerrar';
+      refrescarComisionAsesor();
     } else {
+      btn.disabled = false;
       btn.textContent = 'Registrar y validar';
       mostrarError(data.error || 'No se pudo registrar.');
     }
