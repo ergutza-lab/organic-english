@@ -197,7 +197,7 @@
       <button class="btn-nueva-inscripcion" onclick="abrirModalNuevaInscripcion()">➕ Nueva inscripción</button>
       <button class="btn-mis-alumnos" onclick="abrirModalMisAlumnos()">👥 Mis alumnos</button>
     </div>
-    <div style="margin-top:20px;padding:18px 20px;background:#1e2a4a;border-radius:14px;border:1px solid rgba(255,255,255,0.06);text-align:center;">
+    <div id="bloque-compartir-grupos" style="margin-top:20px;padding:18px 20px;background:#1e2a4a;border-radius:14px;border:1px solid rgba(255,255,255,0.06);text-align:center;">
       <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Compartir con candidatos</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Selecciona un nivel y comparte los grupos disponibles por WhatsApp</div>
       <select id="selNivelWA" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:100px;padding:10px 16px;font-size:13px;margin-bottom:10px;outline:none;">
@@ -339,9 +339,10 @@
     </div>
 
     <div class="upload-status" id="ni-status"></div>
+    <a class="btn-compartir-wa" id="ni-btn-whatsapp" href="#" target="_blank" style="display:none;margin-bottom:10px;">📲 Enviar mensaje de bienvenida por WhatsApp</a>
 
     <div class="modal-actions-row">
-      <button class="btn-cancelar" onclick="cerrarModalNuevaInscripcion()">Cancelar</button>
+      <button class="btn-cancelar" onclick="cerrarModalNuevaInscripcion()" id="ni-btn-cancelar">Cancelar</button>
       <button class="btn-confirmar-validar" id="btnConfirmarNI" onclick="confirmarNuevaInscripcion()">Registrar y validar</button>
     </div>
   </div>
@@ -467,6 +468,11 @@
       .catch(() => { btn.textContent='Entrar'; btn.disabled=false; err.style.display='block'; err.textContent='Error de conexión.'; });
   }
 
+  // ── INTERRUPTOR: compartir grupos disponibles con candidatos ────────────
+  // Desactivado temporalmente a petición de dirección. Para reactivarlo,
+  // poner en true — no se borró nada del código ni de la función.
+  var COMPARTIR_GRUPOS_ACTIVO = false;
+
   function mostrarPanel() {
     document.getElementById('screenLogin').classList.remove('active');
     document.getElementById('screenPanel').classList.add('active');
@@ -475,6 +481,7 @@
     var foto = document.getElementById('asesorFoto');
     if (asesorData.foto) { foto.src = asesorData.foto; foto.style.display = ''; }
     else { foto.style.display = 'none'; }
+    document.getElementById('bloque-compartir-grupos').style.display = COMPARTIR_GRUPOS_ACTIVO ? '' : 'none';
     cargarNivelesDropdown();
   }
 
@@ -1075,6 +1082,11 @@ function abrirModalNuevaInscripcion() {
   document.getElementById('ni-bloque-menor').style.display = 'none';
   document.getElementById('ni-bloque-pago').style.display = '';
   document.getElementById('ni-status').textContent = '';
+  document.getElementById('ni-status').style.display = 'none';
+  document.getElementById('ni-btn-whatsapp').style.display = 'none';
+  document.getElementById('btnConfirmarNI').textContent = 'Registrar y validar';
+  document.getElementById('btnConfirmarNI').disabled = false;
+  document.getElementById('ni-btn-cancelar').textContent = 'Cancelar';
   niQuitarArchivo();
   calInit('cal-ni');
 
@@ -1099,6 +1111,7 @@ function abrirModalNuevaInscripcion() {
 
 function cerrarModalNuevaInscripcion() {
   document.getElementById('modalNuevaInscripcion').classList.remove('active');
+  cargarDatos();
 }
 
 function niCargarGrupos() {
@@ -1106,27 +1119,34 @@ function niCargarGrupos() {
   var selGrupo = document.getElementById('ni-grupo');
   var info = document.getElementById('ni-grupo-info');
   var hoy = new Date(); hoy.setHours(0,0,0,0);
-  var grupos = gruposCacheInsc.filter(function (g) { return normalizarNivel(g.nivel) === nivel; });
-  if (!grupos.length) {
+  var todos = gruposCacheInsc.filter(function (g) { return normalizarNivel(g.nivel) === nivel; });
+  if (!todos.length) {
     selGrupo.innerHTML = '<option value="">Sin grupos disponibles</option>';
     info.textContent = '';
     return;
   }
-  grupos.sort(function(a,b){ return (a.fechaObj||0) - (b.fechaObj||0); });
+
+  // Los grupos NUEVOS (aún no inician) sí se pueden elegir directo.
+  // Los grupos EN CURSO ya NO se listan individualmente — un alumno que
+  // llega a un grupo ya iniciado siempre pasa primero por colocación, sin
+  // que el asesor le asigne un grupo específico.
+  var nuevos = todos.filter(function (g) { return !g.fechaObj || g.fechaObj >= hoy; });
+  var hayEnCurso = todos.some(function (g) { return g.fechaObj && g.fechaObj < hoy; });
+
+  nuevos.sort(function(a,b){ return (a.fechaObj||0) - (b.fechaObj||0); });
 
   // Agrupar por fecha de inicio para no repetirla en cada opción
   var porFecha = {};
   var ordenFechas = [];
-  grupos.forEach(function (g) {
+  nuevos.forEach(function (g) {
     var clave = g.fechaObj ? formatFechaDDMMM(g.fechaObj) : 'Sin fecha';
     if (!porFecha[clave]) { porFecha[clave] = { fechaObj: g.fechaObj, grupos: [] }; ordenFechas.push(clave); }
     porFecha[clave].grupos.push(g);
   });
 
-  selGrupo.innerHTML = ordenFechas.map(function (clave) {
+  var html = ordenFechas.map(function (clave) {
     var bloque = porFecha[clave];
-    var enCurso = bloque.fechaObj && bloque.fechaObj < hoy;
-    var etiquetaFecha = (enCurso ? '🔵 En curso · inició' : '🟢 Nuevo · inicia') + ' ' + clave;
+    var etiquetaFecha = '🟢 Nuevo · inicia ' + clave;
     var opciones = bloque.grupos.map(function (g) {
       return '<option value="' + g.id + '" ' + niColorGrupoAttr(g.nombre) + '>' +
         g.id + ' — ' + (g.nombre || '—') + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)' +
@@ -1134,6 +1154,18 @@ function niCargarGrupos() {
     }).join('');
     return '<optgroup label="' + etiquetaFecha + '">' + opciones + '</optgroup>';
   }).join('');
+
+  if (hayEnCurso) {
+    html += '<optgroup label="🎓 Colocación">' +
+      '<option value="COLOCACION">Evaluación de colocación (sin grupo asignado aún)</option>' +
+    '</optgroup>';
+  }
+
+  if (!html) {
+    selGrupo.innerHTML = '<option value="">Sin grupos disponibles</option>';
+  } else {
+    selGrupo.innerHTML = html;
+  }
   info.textContent = '';
 }
 
@@ -1238,9 +1270,11 @@ function confirmarNuevaInscripcion() {
   var calNI = calendarios['cal-ni'];
   if (!esBecado && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
 
-  var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
+  var esColocacionSinGrupo = idGrupo === 'COLOCACION';
+  var idGrupoEnviar = esColocacionSinGrupo ? '' : idGrupo;
+  var grupoSel = esColocacionSinGrupo ? null : gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
   var hoy = new Date(); hoy.setHours(0,0,0,0);
-  var esColocacion = grupoSel && grupoSel.fechaObj && grupoSel.fechaObj < hoy;
+  var esColocacion = esColocacionSinGrupo || (grupoSel && grupoSel.fechaObj && grupoSel.fechaObj < hoy);
 
   btn.disabled = true; btn.textContent = 'Registrando...';
 
@@ -1249,7 +1283,7 @@ function confirmarNuevaInscripcion() {
     body: JSON.stringify({
       action: 'registrarInscripcionConPago',
       nombre: nombre, whatsapp: cleanWA(whatsapp), email: email,
-      idGrupo: idGrupo, idAsesor: asesorData.id,
+      idGrupo: idGrupoEnviar, idAsesor: asesorData.id,
       tipoInscripcion: tipo, esColocacion: esColocacion,
       edad: edad, fechaNacimiento: fechaNac, lugarResidencia: residencia,
       tutorNombre: tutorNombre, tutorWhatsapp: tutorWhatsapp ? cleanWA(tutorWhatsapp) : '',
@@ -1259,7 +1293,7 @@ function confirmarNuevaInscripcion() {
       base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre
     })
   }).then(function (r) { return r.json(); }).then(function (data) {
-    btn.disabled = false; btn.textContent = 'Registrar y validar';
+    btn.disabled = false;
     if (data.success) {
       status.style.display = 'block';
       status.style.background = 'rgba(34,197,94,0.12)';
@@ -1268,14 +1302,22 @@ function confirmarNuevaInscripcion() {
 
       var destinoNombre = data.esMenor ? data.tutorNombre : nombre;
       var destinoWA = data.esMenor ? cleanWA(data.tutorWhatsapp) : cleanWA(whatsapp);
+      var btnWA = document.getElementById('ni-btn-whatsapp');
       if (destinoWA) {
-        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupo, grupoSel ? grupoSel.horario : '', tipo);
-        setTimeout(function () {
-          window.open('https://wa.me/' + destinoWA + '?text=' + encodeURIComponent(msg), '_blank');
-        }, 600);
+        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupoEnviar, grupoSel ? grupoSel.horario : '', tipo);
+        // IMPORTANTE: no se abre WhatsApp automáticamente aquí — la mayoría
+        // de los navegadores bloquean window.open() cuando no viene de un
+        // clic directo del usuario. En vez de eso se muestra un botón real
+        // que el asesor debe presionar (eso sí siempre funciona).
+        btnWA.href = 'https://wa.me/' + destinoWA + '?text=' + encodeURIComponent(msg);
+        btnWA.style.display = '';
+      } else {
+        btnWA.style.display = 'none';
       }
-      setTimeout(function () { cerrarModalNuevaInscripcion(); cargarDatos(); }, 1800);
+      btn.textContent = '✓ Registrado';
+      document.getElementById('ni-btn-cancelar').textContent = 'Cerrar';
     } else {
+      btn.textContent = 'Registrar y validar';
       mostrarError(data.error || 'No se pudo registrar.');
     }
   }).catch(function () {
