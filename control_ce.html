@@ -114,10 +114,14 @@ body {
 /* TABLAS */
 .card { background: var(--blanco); border-radius: 12px; box-shadow: var(--sombra); margin-bottom: 1.25rem; overflow: hidden; }
 .pa-lista-compacta { display:flex; flex-direction:column; }
+.pa-encabezados { display:flex; align-items:center; gap:14px; padding:10px 20px; background:#f5f5f5; border-bottom:2px solid #ddd; font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:.5px; }
+.pa-lista-scroll { max-height:520px; overflow-y:auto; }
+.pa-fila-editar-header { width:50px; flex-shrink:0; }
 .pa-fila { display:flex; align-items:center; gap:14px; padding:10px 20px; border-bottom:1px solid #eee; font-size:13px; }
 .pa-fila:last-child { border-bottom:none; }
 .pa-fila:nth-child(even) { background:#fafafa; }
 .pa-fila-id { font-family:monospace; color:#555; width:70px; flex-shrink:0; }
+.pa-fila-nombre { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#222; }
 .pa-fila-fecha { color:#777; width:110px; flex-shrink:0; }
 .pa-fila-monto { font-weight:700; color:#222; width:80px; flex-shrink:0; }
 .pa-fila-editar { margin-left:auto; color:#f97316; font-weight:700; cursor:pointer; text-decoration:none; flex-shrink:0; }
@@ -560,7 +564,14 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <div id="sec-pagos-alumnos" class="seccion">
       <div class="card">
         <div class="card-header"><div><div class="card-titulo">Pagos de alumnos</div><div class="card-sub">Listado completo de pagos registrados — da clic en "Editar" para modificar cualquier dato</div></div></div>
-        <div class="pa-lista-compacta" id="lista-pagos-alumnos"><div class="cargando">Cargando...</div></div>
+        <div class="pa-encabezados">
+          <span class="pa-fila-id">ID</span>
+          <span class="pa-fila-nombre">Nombre</span>
+          <span class="pa-fila-fecha">Fecha</span>
+          <span class="pa-fila-monto">Monto</span>
+          <span class="pa-fila-editar-header"></span>
+        </div>
+        <div class="pa-lista-scroll"><div class="pa-lista-compacta" id="lista-pagos-alumnos"><div class="cargando">Cargando...</div></div></div>
       </div>
     </div>
 
@@ -1291,6 +1302,7 @@ function cargarPagosAlumnos() {
       var montoStr = '$' + (Number(p.monto) || 0);
       return '<div class="pa-fila">' +
         '<span class="pa-fila-id">' + p.idAlumno + '</span>' +
+        '<span class="pa-fila-nombre">' + (p.nombreAlumno || '—') + '</span>' +
         '<span class="pa-fila-fecha">' + fechaStr + '</span>' +
         '<span class="pa-fila-monto">' + montoStr + '</span>' +
         '<a class="pa-fila-editar" onclick="abrirModalEditarPago(' + idx + ')">Editar</a>' +
