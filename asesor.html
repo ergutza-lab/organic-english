@@ -264,16 +264,40 @@
     <div class="modal-titulo">➕ Nueva inscripción</div>
     <div class="modal-sub">Registra al alumno y valida su pago en un solo paso.</div>
 
-    <span class="monto-label">Nivel</span>
-    <select id="ni-nivel" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niCargarGrupos()">
-      <option value="">Cargando niveles...</option>
-    </select>
+    <!-- PASO 1: elegir el tipo de inscripción ANTES que nada -->
+    <div id="ni-paso1">
+      <span class="monto-label">¿Cómo se va a inscribir este alumno?</span>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+        <button type="button" onclick="niElegirTipo('DIRECTO')" style="text-align:left;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.35);border-radius:12px;padding:14px 16px;cursor:pointer;color:#f1f5f9;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px;">🆕 Asignación directa</div>
+          <div style="font-size:12px;color:#94a3b8;">El alumno entra a un grupo nuevo que aún no comienza — se elige nivel y grupo específico.</div>
+        </button>
+        <button type="button" onclick="niElegirTipo('COLOCACION')" style="text-align:left;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.35);border-radius:12px;padding:14px 16px;cursor:pointer;color:#f1f5f9;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px;">🎓 Colocación</div>
+          <div style="font-size:12px;color:#94a3b8;">El alumno quiere un grupo que ya está en curso — sin grupo asignado aún; primero pasa por evaluación del maestro de colocación.</div>
+        </button>
+      </div>
+    </div>
 
-    <span class="monto-label">Grupo</span>
-    <select id="ni-grupo" onchange="niToggleCoberturaPorGrupo()" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
-      <option value="">Elige un nivel primero</option>
-    </select>
-    <div id="ni-grupo-info" style="font-size:11px;color:#94a3b8;margin:-6px 0 12px;"></div>
+    <!-- PASO 2: formulario (aparece hasta elegir el tipo) -->
+    <div id="ni-paso2" style="display:none;">
+      <div id="ni-resumen-tipo" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        <span id="ni-resumen-tipo-texto" style="font-size:12px;font-weight:700;color:#f1f5f9;"></span>
+        <a onclick="niVolverPaso1()" style="font-size:12px;color:#f97316;font-weight:700;cursor:pointer;">Cambiar</a>
+      </div>
+
+      <div id="ni-bloque-nivel-grupo">
+        <span class="monto-label">Nivel</span>
+        <select id="ni-nivel" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niCargarGrupos()">
+          <option value="">Cargando niveles...</option>
+        </select>
+
+        <span class="monto-label">Grupo</span>
+        <select id="ni-grupo" onchange="niToggleCoberturaPorGrupo()" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
+          <option value="">Elige un nivel primero</option>
+        </select>
+        <div id="ni-grupo-info" style="font-size:11px;color:#94a3b8;margin:-6px 0 12px;"></div>
+      </div>
 
     <span class="monto-label">Nombre completo del alumno</span>
     <input type="text" id="ni-nombre" placeholder="Ej. María García López" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
@@ -349,6 +373,7 @@
       <button class="btn-cancelar" onclick="cerrarModalNuevaInscripcion()" id="ni-btn-cancelar">Cancelar</button>
       <button class="btn-confirmar-validar" id="btnConfirmarNI" onclick="confirmarNuevaInscripcion()">Registrar y validar</button>
     </div>
+    </div><!-- fin ni-paso2 -->
   </div>
 </div>
 
@@ -1077,6 +1102,57 @@ function calRender(containerId){
   cont.innerHTML = html;
 }
 
+var niTipoSeleccionado = null; // 'DIRECTO' o 'COLOCACION'
+
+function niElegirTipo(tipo) {
+  niTipoSeleccionado = tipo;
+  document.getElementById('ni-paso1').style.display = 'none';
+  document.getElementById('ni-paso2').style.display = '';
+  var resumen = document.getElementById('ni-resumen-tipo-texto');
+
+  if (tipo === 'COLOCACION') {
+    resumen.textContent = '🎓 Colocación — sin grupo asignado aún';
+    document.getElementById('ni-bloque-nivel-grupo').style.display = 'none';
+    document.getElementById('ni-bloque-calendario').style.display = 'none';
+    document.getElementById('ni-nota-colocacion').style.display = '';
+  } else {
+    resumen.textContent = '🆕 Asignación directa a grupo nuevo';
+    document.getElementById('ni-bloque-nivel-grupo').style.display = '';
+    document.getElementById('ni-nota-colocacion').style.display = 'none';
+    // El calendario de cobertura se vuelve a mostrar/ocultar según el grupo
+    // que se elija (niToggleCoberturaPorGrupo), pero al entrar aquí siempre
+    // aplica porque en este camino SIEMPRE hay un grupo específico.
+    document.getElementById('ni-bloque-calendario').style.display = '';
+
+    var selNivel = document.getElementById('ni-nivel');
+    selNivel.innerHTML = '<option value="">Cargando niveles...</option>';
+    document.getElementById('ni-grupo').innerHTML = '<option value="">Elige un nivel primero</option>';
+    cargarGruposInscripcion(function () {
+      var nivelesVistos = {};
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      // Solo cuentan niveles con grupos NUEVOS (por comenzar) — un grupo ya
+      // en curso nunca se asigna directo, eso siempre pasa por colocación.
+      gruposCacheInsc.forEach(function (g) {
+        if (g.fechaObj && g.fechaObj < hoy) return;
+        var n = normalizarNivel(g.nivel); if (n) nivelesVistos[n] = true;
+      });
+      var lista = NIVELES_ORDEN.filter(function (n) { return nivelesVistos[n]; });
+      var otros = Object.keys(nivelesVistos).filter(function (n) { return NIVELES_ORDEN.indexOf(n) === -1; }).sort();
+      lista = lista.concat(otros);
+      selNivel.innerHTML = lista.length
+        ? lista.map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('')
+        : '<option value="">Sin grupos nuevos disponibles</option>';
+      if (lista.length) niCargarGrupos();
+    });
+  }
+}
+
+function niVolverPaso1() {
+  document.getElementById('ni-paso1').style.display = '';
+  document.getElementById('ni-paso2').style.display = 'none';
+  niTipoSeleccionado = null;
+}
+
 function abrirModalNuevaInscripcion() {
   // Reiniciar formulario
   ['ni-nombre','ni-whatsapp','ni-edad','ni-email','ni-residencia','ni-fecha-nac','ni-tutor-nombre','ni-tutor-whatsapp','ni-monto'].forEach(function(id){
@@ -1094,21 +1170,7 @@ function abrirModalNuevaInscripcion() {
   niQuitarArchivo();
   calInit('cal-ni');
 
-  var selNivel = document.getElementById('ni-nivel');
-  selNivel.innerHTML = '<option value="">Cargando niveles...</option>';
-  document.getElementById('ni-grupo').innerHTML = '<option value="">Elige un nivel primero</option>';
-
-  cargarGruposInscripcion(function () {
-    var nivelesVistos = {};
-    gruposCacheInsc.forEach(function (g) { var n = normalizarNivel(g.nivel); if (n) nivelesVistos[n] = true; });
-    var lista = NIVELES_ORDEN.filter(function (n) { return nivelesVistos[n]; });
-    var otros = Object.keys(nivelesVistos).filter(function (n) { return NIVELES_ORDEN.indexOf(n) === -1; }).sort();
-    lista = lista.concat(otros);
-    selNivel.innerHTML = lista.length
-      ? lista.map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('')
-      : '<option value="">Sin niveles disponibles</option>';
-    if (lista.length) niCargarGrupos();
-  });
+  niVolverPaso1();
 
   document.getElementById('modalNuevaInscripcion').classList.add('active');
 }
@@ -1123,19 +1185,17 @@ function niCargarGrupos() {
   var selGrupo = document.getElementById('ni-grupo');
   var info = document.getElementById('ni-grupo-info');
   var hoy = new Date(); hoy.setHours(0,0,0,0);
-  var todos = gruposCacheInsc.filter(function (g) { return normalizarNivel(g.nivel) === nivel; });
-  if (!todos.length) {
+  // Aquí (camino de asignación directa) solo importan los grupos NUEVOS —
+  // los grupos en curso ya se filtraron desde la lista de niveles, así que
+  // ni deberían aparecer, pero por seguridad se filtran también aquí.
+  var nuevos = gruposCacheInsc.filter(function (g) {
+    return normalizarNivel(g.nivel) === nivel && (!g.fechaObj || g.fechaObj >= hoy);
+  });
+  if (!nuevos.length) {
     selGrupo.innerHTML = '<option value="">Sin grupos disponibles</option>';
     info.textContent = '';
     return;
   }
-
-  // Los grupos NUEVOS (aún no inician) sí se pueden elegir directo.
-  // Los grupos EN CURSO ya NO se listan individualmente — un alumno que
-  // llega a un grupo ya iniciado siempre pasa primero por colocación, sin
-  // que el asesor le asigne un grupo específico.
-  var nuevos = todos.filter(function (g) { return !g.fechaObj || g.fechaObj >= hoy; });
-  var hayEnCurso = todos.some(function (g) { return g.fechaObj && g.fechaObj < hoy; });
 
   nuevos.sort(function(a,b){ return (a.fechaObj||0) - (b.fechaObj||0); });
 
@@ -1158,12 +1218,6 @@ function niCargarGrupos() {
     }).join('');
     return '<optgroup label="' + etiquetaFecha + '">' + opciones + '</optgroup>';
   }).join('');
-
-  if (hayEnCurso) {
-    html += '<optgroup label="🎓 Colocación">' +
-      '<option value="COLOCACION">Evaluación de colocación (sin grupo asignado aún)</option>' +
-    '</optgroup>';
-  }
 
   if (!html) {
     selGrupo.innerHTML = '<option value="">Sin grupos disponibles</option>';
@@ -1192,9 +1246,11 @@ function niToggleBecado() {
 }
 
 function niToggleCoberturaPorGrupo() {
-  var esColocacionSel = document.getElementById('ni-grupo').value === 'COLOCACION';
-  document.getElementById('ni-bloque-calendario').style.display = esColocacionSel ? 'none' : '';
-  document.getElementById('ni-nota-colocacion').style.display = esColocacionSel ? '' : 'none';
+  // La opción de colocación ya no vive en este selector (se elige en el
+  // paso 1), así que aquí siempre se trata de un grupo específico nuevo —
+  // el calendario de cobertura siempre aplica.
+  document.getElementById('ni-bloque-calendario').style.display = '';
+  document.getElementById('ni-nota-colocacion').style.display = 'none';
 }
 
 function niArchivoSeleccionado(input) {
@@ -1269,7 +1325,7 @@ function confirmarNuevaInscripcion() {
     status.textContent = '❌ ' + txt;
   }
 
-  if (!idGrupo)    return mostrarError('Selecciona un grupo.');
+  if (niTipoSeleccionado === 'DIRECTO' && !idGrupo) return mostrarError('Selecciona un grupo.');
   if (!nombre)     return mostrarError('Ingresa el nombre del alumno.');
   if (!whatsapp)   return mostrarError('Ingresa el WhatsApp del alumno.');
   if (!edad)       return mostrarError('Ingresa la edad del alumno.');
@@ -1278,14 +1334,14 @@ function confirmarNuevaInscripcion() {
   if (!esBecado && !niArchivoBase64) return mostrarError('Sube el comprobante de pago.');
   if (!esBecado && !monto) return mostrarError('Ingresa el monto del pago.');
 
-  var esColocacionSinGrupo = idGrupo === 'COLOCACION';
+  var esColocacionSinGrupo = niTipoSeleccionado === 'COLOCACION';
   var calNI = calendarios['cal-ni'];
   if (!esBecado && !esColocacionSinGrupo && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
 
   var idGrupoEnviar = esColocacionSinGrupo ? '' : idGrupo;
   var grupoSel = esColocacionSinGrupo ? null : gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
   var hoy = new Date(); hoy.setHours(0,0,0,0);
-  var esColocacion = esColocacionSinGrupo || (grupoSel && grupoSel.fechaObj && grupoSel.fechaObj < hoy);
+  var esColocacion = esColocacionSinGrupo;
 
   btn.disabled = true; btn.textContent = 'Registrando...';
 
