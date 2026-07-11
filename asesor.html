@@ -270,7 +270,7 @@
     </select>
 
     <span class="monto-label">Grupo</span>
-    <select id="ni-grupo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
+    <select id="ni-grupo" onchange="niToggleCoberturaPorGrupo()" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
       <option value="">Elige un nivel primero</option>
     </select>
     <div id="ni-grupo-info" style="font-size:11px;color:#94a3b8;margin:-6px 0 12px;"></div>
@@ -332,9 +332,13 @@
         <button class="upload-preview-remove" onclick="niQuitarArchivo()">✕</button>
       </div>
 
-      <div class="cal-cobertura">
+      <div class="cal-cobertura" id="ni-bloque-calendario">
         <span class="cal-cobertura-label">¿Qué semana(s) cubre este pago?</span>
         <div id="cal-ni"></div>
+      </div>
+      <div class="cal-cobertura" id="ni-nota-colocacion" style="display:none;background:rgba(249,115,22,0.08);border-color:rgba(249,115,22,0.3);">
+        <span class="cal-cobertura-label" style="color:#fb923c;">Sobre la vigencia de este pago</span>
+        <p style="font-size:12px;color:#94a3b8;margin:0;">Como este alumno aún no tiene grupo asignado, la vigencia de su pago se calculará automáticamente en cuanto el maestro de colocación le asigne un grupo — puede ser uno que ya inició o uno que arranque varias semanas después.</p>
       </div>
     </div>
 
@@ -1187,6 +1191,12 @@ function niToggleBecado() {
   document.getElementById('ni-bloque-pago').style.display = esBecado ? 'none' : '';
 }
 
+function niToggleCoberturaPorGrupo() {
+  var esColocacionSel = document.getElementById('ni-grupo').value === 'COLOCACION';
+  document.getElementById('ni-bloque-calendario').style.display = esColocacionSel ? 'none' : '';
+  document.getElementById('ni-nota-colocacion').style.display = esColocacionSel ? '' : 'none';
+}
+
 function niArchivoSeleccionado(input) {
   var file = input.files[0];
   if (!file) return;
@@ -1267,10 +1277,11 @@ function confirmarNuevaInscripcion() {
   if (esMenor && (!fechaNac || !tutorNombre || !tutorWhatsapp)) return mostrarError('Para menores de edad, la fecha de nacimiento y los datos del tutor son obligatorios.');
   if (!esBecado && !niArchivoBase64) return mostrarError('Sube el comprobante de pago.');
   if (!esBecado && !monto) return mostrarError('Ingresa el monto del pago.');
-  var calNI = calendarios['cal-ni'];
-  if (!esBecado && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
 
   var esColocacionSinGrupo = idGrupo === 'COLOCACION';
+  var calNI = calendarios['cal-ni'];
+  if (!esBecado && !esColocacionSinGrupo && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
+
   var idGrupoEnviar = esColocacionSinGrupo ? '' : idGrupo;
   var grupoSel = esColocacionSinGrupo ? null : gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
   var hoy = new Date(); hoy.setHours(0,0,0,0);
