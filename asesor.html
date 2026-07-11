@@ -336,6 +336,8 @@
       <option value="Normal">Normal ($140/semana)</option>
       <option value="Normal_Mensual">Normal por 4 semanas ($500)</option>
       <option value="Beca_Parcial">Beca parcial ($100 + 3 semanas gratis)</option>
+      <option value="Kids">Kids ($150/semana)</option>
+      <option value="Kids_Mensual">Kids por 4 semanas ($550)</option>
       <option value="Becado">Becado 100%</option>
     </select>
 
@@ -368,6 +370,15 @@
 
     <div class="upload-status" id="ni-status"></div>
     <a class="btn-compartir-wa" id="ni-btn-whatsapp" href="#" target="_blank" style="display:none;margin-bottom:10px;">📲 Enviar mensaje de bienvenida por WhatsApp</a>
+    <a class="btn-compartir-wa" id="ni-btn-whatsapp-asistente" href="#" target="_blank" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);">📲 Notificar al Asistente CE</a>
+    <a class="btn-compartir-wa" id="ni-btn-whatsapp-maestro" href="#" target="_blank" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);">📲 Notificar al Maestro</a>
+    <div id="ni-bloque-elegir-colocador" style="display:none;margin-bottom:10px;">
+      <span class="monto-label">¿Quién atenderá esta colocación?</span>
+      <div id="ni-lista-colocadores" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
+    </div>
+    <a class="btn-compartir-wa" id="ni-btn-whatsapp-colocador" href="#" target="_blank" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);">📲 Notificar al Maestro de Colocación</a>
+
+    <button type="button" onclick="niVerificarDatosWhatsApp()" class="btn-compartir-wa" style="width:100%;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:none;margin-bottom:10px;cursor:pointer;">Verificar datos por WhatsApp antes de registrar</button>
 
     <div class="modal-actions-row">
       <button class="btn-cancelar" onclick="cerrarModalNuevaInscripcion()" id="ni-btn-cancelar">Cancelar</button>
@@ -417,6 +428,8 @@
       <option value="Normal">Normal ($140/semana)</option>
       <option value="Normal_Mensual">Normal por 4 semanas ($500)</option>
       <option value="Beca_Parcial">Beca parcial ($100 + 3 semanas gratis)</option>
+      <option value="Kids">Kids ($150/semana)</option>
+      <option value="Kids_Mensual">Kids por 4 semanas ($550)</option>
       <option value="Becado">Becado 100%</option>
     </select>
     <span class="monto-label">Fecha de nacimiento</span>
@@ -1164,6 +1177,10 @@ function abrirModalNuevaInscripcion() {
   document.getElementById('ni-status').textContent = '';
   document.getElementById('ni-status').style.display = 'none';
   document.getElementById('ni-btn-whatsapp').style.display = 'none';
+  document.getElementById('ni-btn-whatsapp-asistente').style.display = 'none';
+  document.getElementById('ni-btn-whatsapp-maestro').style.display = 'none';
+  document.getElementById('ni-btn-whatsapp-colocador').style.display = 'none';
+  document.getElementById('ni-bloque-elegir-colocador').style.display = 'none';
   document.getElementById('btnConfirmarNI').textContent = 'Registrar y validar';
   document.getElementById('btnConfirmarNI').disabled = false;
   document.getElementById('ni-btn-cancelar').textContent = 'Cancelar';
@@ -1275,13 +1292,73 @@ function niQuitarArchivo() {
   document.getElementById('niUploadPreview').style.display = 'none';
 }
 
+var NI_TIPO_ETIQUETAS = {
+  'Promo':          'Promocion ($100/semana)',
+  'Promo_Mensual':  'Promocion por 4 semanas ($400)',
+  'Normal':         'Normal ($140/semana)',
+  'Normal_Mensual': 'Normal por 4 semanas ($500)',
+  'Beca_Parcial':   'Beca parcial ($100 + 3 semanas gratis)',
+  'Kids':           'Kids ($150/semana)',
+  'Kids_Mensual':   'Kids por 4 semanas ($550)',
+  'Becado':         'Becado 100%'
+};
+
+function niVerificarDatosWhatsApp() {
+  var nombre       = document.getElementById('ni-nombre').value.trim();
+  var whatsapp     = document.getElementById('ni-whatsapp').value.trim();
+  var edad         = document.getElementById('ni-edad').value.trim();
+  var email        = document.getElementById('ni-email').value.trim();
+  var residencia   = document.getElementById('ni-residencia').value.trim();
+  var tipo         = document.getElementById('ni-tipo').value;
+  var monto        = document.getElementById('ni-monto').value.trim();
+  var esMenor      = Number(edad) > 0 && Number(edad) < 18;
+  var tutorNombre  = document.getElementById('ni-tutor-nombre').value.trim();
+  var tutorWA      = document.getElementById('ni-tutor-whatsapp').value.trim();
+
+  var esColocacionSel = niTipoSeleccionado === 'COLOCACION';
+  var grupoTexto;
+  if (esColocacionSel) {
+    grupoTexto = 'Colocacion (sin grupo asignado aun, pendiente de evaluacion)';
+  } else {
+    var idGrupoSel = document.getElementById('ni-grupo').value;
+    var g = gruposCacheInsc.find(function (x) { return x.id === idGrupoSel; });
+    grupoTexto = g ? (g.id + ' - ' + g.nombre + ' - ' + g.horario) : 'Sin seleccionar aun';
+  }
+
+  var msg = 'Por favor confirma que estos datos sean correctos:\n\n' +
+    '- Nombre: ' + (nombre || '(sin capturar)') + '\n' +
+    '- WhatsApp: ' + (whatsapp || '(sin capturar)') + '\n' +
+    '- Edad: ' + (edad || '(sin capturar)') + '\n' +
+    '- Correo: ' + (email || '(sin capturar)') + '\n' +
+    '- Lugar de residencia: ' + (residencia || '(sin capturar)') + '\n' +
+    '- Grupo: ' + grupoTexto + '\n' +
+    '- Tipo de inscripcion: ' + (NI_TIPO_ETIQUETAS[tipo] || tipo) + '\n' +
+    (monto ? '- Monto a pagar: $' + monto + ' MXN\n' : '');
+
+  if (esMenor) {
+    msg += '- Tutor: ' + (tutorNombre || '(sin capturar)') + '\n' +
+           '- WhatsApp del tutor: ' + (tutorWA || '(sin capturar)') + '\n';
+  }
+
+  msg += '\nSi todos los datos son correctos, responde por aqui para continuar con la inscripcion.';
+
+  var destino = esMenor ? tutorWA : whatsapp;
+  if (!destino) {
+    alert('Ingresa el WhatsApp' + (esMenor ? ' del tutor' : '') + ' antes de verificar los datos.');
+    return;
+  }
+  window.open('https://wa.me/' + cleanWA(destino) + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
 function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo) {
   var opciones = {
     'Promo': '· $100 MXN — Pago semanal (Promoción).',
     'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción).',
     'Normal': '· $140 MXN — Pago semanal.',
     'Normal_Mensual': '· $500 MXN — Pago por 4 semanas.',
-    'Beca_Parcial': '· $100 MXN — Pago único (con 3 semanas adicionales de beca).'
+    'Beca_Parcial': '· $100 MXN — Pago único (con 3 semanas adicionales de beca).',
+    'Kids': '· $150 MXN — Pago semanal (Kids).',
+    'Kids_Mensual': '· $550 MXN — Pago por 4 semanas (Kids).'
   };
   var infoGrupo = idGrupo ? ('en el grupo *' + idGrupo + '*' + (horario ? ' con horario ' + horario : '')) : '';
 
@@ -1381,6 +1458,47 @@ function confirmarNuevaInscripcion() {
       } else {
         btnWA.style.display = 'none';
       }
+
+      // Notificar al Asistente CE y al Maestro (solo aplica en asignación
+      // directa, cuando el grupo ya se conoce)
+      var btnAsis = document.getElementById('ni-btn-whatsapp-asistente');
+      if (data.asistente && data.asistente.whatsapp) {
+        var msgAsis = 'Hola ' + data.asistente.nombre + ', se registró un nuevo alumno en tu grupo ' + idGrupoEnviar + ': ' + nombre + '. Ya puedes dar seguimiento a su expediente.';
+        btnAsis.href = 'https://wa.me/' + cleanWA(data.asistente.whatsapp) + '?text=' + encodeURIComponent(msgAsis);
+        btnAsis.style.display = '';
+      } else {
+        btnAsis.style.display = 'none';
+      }
+      var btnMae = document.getElementById('ni-btn-whatsapp-maestro');
+      if (data.maestro && data.maestro.whatsapp) {
+        var msgMae = 'Hola ' + data.maestro.nombre + ', hay un nuevo alumno en tu grupo ' + idGrupoEnviar + ': ' + nombre + '. Ya cuenta con acceso a su panel personal.';
+        btnMae.href = 'https://wa.me/' + cleanWA(data.maestro.whatsapp) + '?text=' + encodeURIComponent(msgMae);
+        btnMae.style.display = '';
+      } else {
+        btnMae.style.display = 'none';
+      }
+
+      // Notificar al Maestro de Colocación (solo aplica en colocación)
+      var btnCol = document.getElementById('ni-btn-whatsapp-colocador');
+      var bloqueElegirCol = document.getElementById('ni-bloque-elegir-colocador');
+      if (data.colocadores && data.colocadores.length === 1) {
+        var col = data.colocadores[0];
+        var msgCol = 'Hola ' + col.nombre + ', hay un alumno que necesita ser colocado: ' + nombre + '. Por favor contáctalo para agendar su evaluación y asignarle un grupo.';
+        btnCol.href = 'https://wa.me/' + cleanWA(col.whatsapp) + '?text=' + encodeURIComponent(msgCol);
+        btnCol.style.display = '';
+        bloqueElegirCol.style.display = 'none';
+      } else if (data.colocadores && data.colocadores.length > 1) {
+        bloqueElegirCol.style.display = '';
+        btnCol.style.display = 'none';
+        document.getElementById('ni-lista-colocadores').innerHTML = data.colocadores.map(function (col) {
+          var msgCol = encodeURIComponent('Hola ' + col.nombre + ', hay un alumno que necesita ser colocado: ' + nombre + '. Por favor contáctalo para agendar su evaluación y asignarle un grupo.');
+          return '<a class="btn-compartir-wa" href="https://wa.me/' + cleanWA(col.whatsapp) + '?text=' + msgCol + '" target="_blank" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);">📲 Notificar a ' + col.nombre + '</a>';
+        }).join('');
+      } else {
+        btnCol.style.display = 'none';
+        bloqueElegirCol.style.display = 'none';
+      }
+
       btn.textContent = '✓ Registrado';
       document.getElementById('ni-btn-cancelar').textContent = 'Cerrar';
     } else {
