@@ -130,6 +130,24 @@
   .btn-notificar { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; border-radius: 100px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
   .btn-colocador-opcion { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
   .btn-colocador-opcion:hover { opacity: 0.9; }
+
+  /* ── CALENDARIO DE COBERTURA DE PAGO ── */
+  .cal-cobertura{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px;margin-bottom:14px}
+  .cal-cobertura-label{font-size:12px;font-weight:700;color:#94a3b8;display:block;margin-bottom:8px}
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cal-header button{background:none;border:none;font-size:18px;color:#f97316;cursor:pointer;padding:2px 10px;font-weight:700}
+  .cal-header button:hover{background:rgba(249,115,22,0.15);border-radius:6px}
+  .cal-header span{font-size:13px;font-weight:700;color:#e2e8f0;text-transform:capitalize}
+  .cal-grid-head{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+  .cal-grid-head span{text-align:center;font-size:10px;font-weight:700;color:#64748b;padding:2px 0}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-day{text-align:center;font-size:12px;padding:6px 0;border-radius:6px;color:#94a3b8}
+  .cal-day.cal-otro-mes{opacity:.3}
+  .cal-day.cal-no-clase{color:#475569;background:transparent}
+  .cal-day.cal-clase{cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);font-weight:600}
+  .cal-day.cal-clase:hover{border-color:#fb923c;background:rgba(249,115,22,0.15)}
+  .cal-day.cal-selected{background:#f97316!important;color:#fff!important;border-color:#f97316!important}
+  .cal-resumen{margin-top:8px;font-size:12px;color:#f97316;font-weight:700;text-align:center;min-height:16px}
   .btn-notificar:hover { opacity: 0.9; }
   .btn-cerrar-modal { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 100px; padding: 13px; font-size: 14px; cursor: pointer; }
 </style>
@@ -312,6 +330,11 @@
         <span class="upload-preview-icon">📄</span>
         <span class="upload-preview-name" id="niUploadPreviewName"></span>
         <button class="upload-preview-remove" onclick="niQuitarArchivo()">✕</button>
+      </div>
+
+      <div class="cal-cobertura">
+        <span class="cal-cobertura-label">¿Qué semana(s) cubre este pago?</span>
+        <div id="cal-ni"></div>
       </div>
     </div>
 
@@ -956,6 +979,93 @@ function cargarGruposInscripcion(callback) {
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// CALENDARIO DE SEMANAS DE COBERTURA (mismo módulo que asistente-ce.html)
+// Clic en un día lunes-jueves selecciona esa semana completa (lun→jue).
+// Un segundo clic en otra semana extiende el rango. Un tercer clic reinicia.
+// ══════════════════════════════════════════════════════════════════════════
+var calendarios = {};
+
+function calLunesDe(d){var x=new Date(d);x.setHours(0,0,0,0);var dia=x.getDay();x.setDate(x.getDate()-(dia===0?6:dia-1));return x;}
+function calJuevesDe(lunes){var j=new Date(lunes);j.setDate(j.getDate()+3);return j;}
+
+function calInit(containerId){
+  calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0 };
+  calRender(containerId);
+}
+
+function calMes(containerId, delta){
+  var st = calendarios[containerId];
+  st.mes = new Date(st.mes.getFullYear(), st.mes.getMonth()+delta, 1);
+  calRender(containerId);
+}
+
+function calClickDia(containerId, timestamp){
+  var st = calendarios[containerId];
+  var d = new Date(timestamp);
+  var lunes = calLunesDe(d);
+  var jueves = calJuevesDe(lunes);
+
+  if (st.paso === 0 || st.paso === 2) {
+    st.inicio = lunes;
+    st.fin = jueves;
+    st.paso = 1;
+  } else {
+    if (lunes < st.inicio) {
+      st.fin = calJuevesDe(st.inicio);
+      st.inicio = lunes;
+    } else {
+      st.fin = jueves;
+    }
+    st.paso = 2;
+  }
+  calRender(containerId);
+}
+
+function calFormatoCorto(d){
+  var meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return d.getDate()+' '+meses[d.getMonth()];
+}
+
+function calRender(containerId){
+  var st = calendarios[containerId];
+  var cont = document.getElementById(containerId);
+  if (!cont) return;
+  var mes = st.mes;
+  var nombresMes=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var primerDia = new Date(mes.getFullYear(), mes.getMonth(), 1);
+  var inicioGrid = calLunesDe(primerDia);
+
+  var html = '<div class="cal-header">'+
+    '<button type="button" onclick="calMes(\''+containerId+'\',-1)">‹</button>'+
+    '<span>'+nombresMes[mes.getMonth()]+' '+mes.getFullYear()+'</span>'+
+    '<button type="button" onclick="calMes(\''+containerId+'\',1)">›</button></div>';
+  html += '<div class="cal-grid-head"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>';
+  html += '<div class="cal-grid">';
+
+  for (var i=0;i<42;i++){
+    var d = new Date(inicioGrid);
+    d.setDate(inicioGrid.getDate()+i);
+    var esOtroMes = d.getMonth() !== mes.getMonth();
+    var diaSemana = d.getDay();
+    var esClaseDia = diaSemana>=1 && diaSemana<=4;
+    var enRango = esClaseDia && st.inicio && st.fin && d >= st.inicio && d <= st.fin;
+    var cls = 'cal-day'+(esOtroMes?' cal-otro-mes':'')+(esClaseDia?' cal-clase':' cal-no-clase')+(enRango?' cal-selected':'');
+    var clickAttr = esClaseDia ? ' onclick="calClickDia(\''+containerId+'\','+d.getTime()+')"' : '';
+    html += '<div class="'+cls+'"'+clickAttr+'>'+d.getDate()+'</div>';
+  }
+  html += '</div>';
+
+  var resumen = 'Toca cualquier día lunes a jueves para elegir la semana que cubre el pago.';
+  if (st.inicio && st.fin) {
+    var semanas = Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1;
+    resumen = 'Cubre del ' + calFormatoCorto(st.inicio) + ' al ' + calFormatoCorto(st.fin) + ' ('+semanas+' semana'+(semanas!==1?'s':'')+')';
+  }
+  html += '<div class="cal-resumen">'+resumen+'</div>';
+
+  cont.innerHTML = html;
+}
+
 function abrirModalNuevaInscripcion() {
   // Reiniciar formulario
   ['ni-nombre','ni-whatsapp','ni-edad','ni-email','ni-residencia','ni-fecha-nac','ni-tutor-nombre','ni-tutor-whatsapp','ni-monto'].forEach(function(id){
@@ -966,6 +1076,7 @@ function abrirModalNuevaInscripcion() {
   document.getElementById('ni-bloque-pago').style.display = '';
   document.getElementById('ni-status').textContent = '';
   niQuitarArchivo();
+  calInit('cal-ni');
 
   var selNivel = document.getElementById('ni-nivel');
   selNivel.innerHTML = '<option value="">Cargando niveles...</option>';
@@ -1124,6 +1235,8 @@ function confirmarNuevaInscripcion() {
   if (esMenor && (!fechaNac || !tutorNombre || !tutorWhatsapp)) return mostrarError('Para menores de edad, la fecha de nacimiento y los datos del tutor son obligatorios.');
   if (!esBecado && !niArchivoBase64) return mostrarError('Sube el comprobante de pago.');
   if (!esBecado && !monto) return mostrarError('Ingresa el monto del pago.');
+  var calNI = calendarios['cal-ni'];
+  if (!esBecado && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
 
   var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
   var hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -1141,6 +1254,8 @@ function confirmarNuevaInscripcion() {
       edad: edad, fechaNacimiento: fechaNac, lugarResidencia: residencia,
       tutorNombre: tutorNombre, tutorWhatsapp: tutorWhatsapp ? cleanWA(tutorWhatsapp) : '',
       monto: monto,
+      coberturaInicio: calNI && calNI.inicio ? calNI.inicio.toISOString() : '',
+      coberturaFin:    calNI && calNI.fin    ? calNI.fin.toISOString()    : '',
       base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre
     })
   }).then(function (r) { return r.json(); }).then(function (data) {
