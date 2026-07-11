@@ -113,6 +113,15 @@ body {
 
 /* TABLAS */
 .card { background: var(--blanco); border-radius: 12px; box-shadow: var(--sombra); margin-bottom: 1.25rem; overflow: hidden; }
+.pa-lista-compacta { display:flex; flex-direction:column; }
+.pa-fila { display:flex; align-items:center; gap:14px; padding:10px 20px; border-bottom:1px solid #eee; font-size:13px; }
+.pa-fila:last-child { border-bottom:none; }
+.pa-fila:nth-child(even) { background:#fafafa; }
+.pa-fila-id { font-family:monospace; color:#555; width:70px; flex-shrink:0; }
+.pa-fila-fecha { color:#777; width:110px; flex-shrink:0; }
+.pa-fila-monto { font-weight:700; color:#222; width:80px; flex-shrink:0; }
+.pa-fila-editar { margin-left:auto; color:#f97316; font-weight:700; cursor:pointer; text-decoration:none; flex-shrink:0; }
+.pa-fila-editar:hover { text-decoration:underline; }
 .card-header { padding: 1rem 1.25rem; border-bottom: 1.5px solid var(--borde); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .card-titulo { font-size: .95rem; font-weight: 700; color: var(--azul); }
 .card-sub { font-size: .78rem; color: var(--gris); margin-top: .1rem; }
@@ -301,6 +310,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <button class="tab" onclick="cambiarTab('asistentes',this)">Asistentes CE</button>
     <button class="tab" onclick="cambiarTab('seguimiento',this)">Seguimiento de alumnos</button>
     <button class="tab" onclick="cambiarTab('alertas',this)" id="tab-alertas">Alertas</button>
+    <button class="tab" onclick="cambiarTab('pagos-alumnos',this); cargarPagosAlumnos();">Pagos Alumnos</button>
   </div>
 
   <div class="contenido">
@@ -546,6 +556,55 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
       </div>
     </div>
 
+    <!-- TAB: PAGOS ALUMNOS -->
+    <div id="sec-pagos-alumnos" class="seccion">
+      <div class="card">
+        <div class="card-header"><div><div class="card-titulo">Pagos de alumnos</div><div class="card-sub">Listado completo de pagos registrados — da clic en "Editar" para modificar cualquier dato</div></div></div>
+        <div class="pa-lista-compacta" id="lista-pagos-alumnos"><div class="cargando">Cargando...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: EDITAR PAGO DE ALUMNO -->
+<div class="modal-overlay" id="modal-editar-pago">
+  <div class="modal">
+    <div class="modal-titulo">Editar pago</div>
+    <div class="modal-sub" id="modal-editar-pago-sub">—</div>
+    <div class="modal-campo">
+      <label>Fecha de pago</label>
+      <input type="datetime-local" id="ep-fecha" />
+    </div>
+    <div class="modal-campo">
+      <label>Monto</label>
+      <input type="number" id="ep-monto" />
+    </div>
+    <div class="modal-campo">
+      <label>Validado por (ID)</label>
+      <input type="text" id="ep-validado-por" />
+    </div>
+    <div class="modal-campo">
+      <label>URL del comprobante</label>
+      <input type="text" id="ep-comprobante" />
+    </div>
+    <div class="modal-campo">
+      <label>Cobertura — inicio</label>
+      <input type="date" id="ep-cobertura-inicio" />
+    </div>
+    <div class="modal-campo">
+      <label>Cobertura — fin</label>
+      <input type="date" id="ep-cobertura-fin" />
+    </div>
+    <div class="modal-campo">
+      <label>Comentario / estatus</label>
+      <input type="text" id="ep-comentario" />
+    </div>
+    <div class="modal-status" id="ep-status" style="display:none;margin-bottom:10px;font-size:13px;"></div>
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-editar-pago')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionPago()">Guardar cambios</button>
+    </div>
   </div>
 </div>
 
@@ -1215,6 +1274,99 @@ document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.classList.remove('abierto'); });
 });
 
+var pagosAlumnosCache = [];
+
+function cargarPagosAlumnos() {
+  var lista = document.getElementById('lista-pagos-alumnos');
+  lista.innerHTML = '<div class="cargando">Cargando...</div>';
+  api({ action: 'getPagosAlumnoCE' }).then(function (res) {
+    if (!res.success) { lista.innerHTML = '<div class="cargando">Error al cargar.</div>'; return; }
+    pagosAlumnosCache = res.pagos || [];
+    if (!pagosAlumnosCache.length) {
+      lista.innerHTML = '<div class="cargando">No hay pagos registrados.</div>';
+      return;
+    }
+    lista.innerHTML = pagosAlumnosCache.map(function (p, idx) {
+      var fechaStr = p.fecha ? formatFecha(p.fecha) : '—';
+      var montoStr = '$' + (Number(p.monto) || 0);
+      return '<div class="pa-fila">' +
+        '<span class="pa-fila-id">' + p.idAlumno + '</span>' +
+        '<span class="pa-fila-fecha">' + fechaStr + '</span>' +
+        '<span class="pa-fila-monto">' + montoStr + '</span>' +
+        '<a class="pa-fila-editar" onclick="abrirModalEditarPago(' + idx + ')">Editar</a>' +
+      '</div>';
+    }).join('');
+  }).catch(function () {
+    lista.innerHTML = '<div class="cargando">Error de conexión.</div>';
+  });
+}
+
+function fechaParaInputDatetime(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') +
+    'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function fechaParaInputDate(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+var epIdxActual = null;
+function abrirModalEditarPago(idx) {
+  var p = pagosAlumnosCache[idx];
+  if (!p) return;
+  epIdxActual = idx;
+  document.getElementById('modal-editar-pago-sub').textContent = 'Alumno: ' + p.idAlumno;
+  document.getElementById('ep-fecha').value = fechaParaInputDatetime(p.fecha);
+  document.getElementById('ep-monto').value = p.monto || '';
+  document.getElementById('ep-validado-por').value = p.validadoPor || '';
+  document.getElementById('ep-comprobante').value = p.comprobanteUrl || '';
+  document.getElementById('ep-cobertura-inicio').value = fechaParaInputDate(p.coberturaInicio);
+  document.getElementById('ep-cobertura-fin').value = fechaParaInputDate(p.coberturaFin);
+  document.getElementById('ep-comentario').value = p.comentario || '';
+  document.getElementById('ep-status').style.display = 'none';
+  document.getElementById('modal-editar-pago').classList.add('abierto');
+}
+
+function guardarEdicionPago() {
+  var p = pagosAlumnosCache[epIdxActual];
+  if (!p) return;
+  var status = document.getElementById('ep-status');
+  status.style.display = 'block'; status.style.color = '#666';
+  status.textContent = 'Guardando...';
+
+  api({
+    action: 'actualizarPagoAlumnoCE',
+    idAlumno: p.idAlumno,
+    fechaOriginal: p.fecha,
+    fecha: document.getElementById('ep-fecha').value,
+    monto: document.getElementById('ep-monto').value,
+    validadoPor: document.getElementById('ep-validado-por').value.trim(),
+    comprobanteUrl: document.getElementById('ep-comprobante').value.trim(),
+    coberturaInicio: document.getElementById('ep-cobertura-inicio').value,
+    coberturaFin: document.getElementById('ep-cobertura-fin').value,
+    comentario: document.getElementById('ep-comentario').value.trim(),
+    idCE: estado.idCE
+  }).then(function (res) {
+    if (res.success) {
+      status.style.color = '#2e7d32';
+      status.textContent = '✅ Cambios guardados.';
+      setTimeout(function () { cerrarModal('modal-editar-pago'); cargarPagosAlumnos(); }, 900);
+    } else {
+      status.style.color = '#c62828';
+      status.textContent = '❌ ' + (res.error || 'No se pudo guardar.');
+    }
+  }).catch(function () {
+    status.style.color = '#c62828';
+    status.textContent = '❌ Error de conexión.';
+  });
+}
+
 function cambiarTab(seccion, boton) {
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('activo');});
   document.querySelectorAll('.seccion').forEach(function(s){s.classList.remove('activa');});
@@ -1222,7 +1374,7 @@ function cambiarTab(seccion, boton) {
   document.getElementById('sec-'+seccion).classList.add('activa');
 }
 function irATab(seccion) {
-  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6};
+  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'pagos-alumnos':7};
   var tabs=document.querySelectorAll('.tab'); var idx=mapa[seccion]; if(idx===undefined) return;
   tabs.forEach(function(t){t.classList.remove('activo');}); document.querySelectorAll('.seccion').forEach(function(s){s.classList.remove('activa');});
   tabs[idx].classList.add('activo'); document.getElementById('sec-'+seccion).classList.add('activa');
