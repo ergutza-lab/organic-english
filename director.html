@@ -285,6 +285,16 @@
     <div id="tab-usuarios"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando usuarios...</div></div></div>
 
     <div class="sec-label">Grupos</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn-historico" onclick="abrirModalPlanilla()">
+        <span class="oe-icon-sm"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+        Programación semanal (planilla)
+      </button>
+      <button class="btn-historico" onclick="abrirModalGrupoEspecial()">
+        <span class="oe-icon-sm"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+        Grupo especial adicional
+      </button>
+    </div>
     <div class="grupos-filtro" id="gruposFiltro"></div>
     <div id="tablaGrupos" style="display:none"><div class="tabla-wrap"><div class="loading">Selecciona un nivel para ver grupos.</div></div></div>
 
@@ -302,6 +312,142 @@
       <button class="btn-cerrar" onclick="cerrarHistorico()">Cerrar</button>
     </div>
     <div class="modal-body" id="modalHistoricoBody"><div class="loading">Cargando historial...</div></div>
+  </div>
+</div>
+
+<!-- MODAL PLANILLA (programación semanal por lote) -->
+<div class="modal-overlay" id="modalPlanilla">
+  <div class="modal-box" style="max-width:980px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="oe-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div><h3>Programación semanal</h3><p>Crea varios grupos nuevos de un mismo nivel en un solo lote</p></div>
+      </div>
+      <button class="btn-cerrar" onclick="cerrarModalPlanilla()">Cerrar</button>
+    </div>
+    <div class="modal-body" id="modalPlanillaBody" style="padding:20px 24px;overflow-y:auto;">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
+          <select id="pl-nivel" onchange="alCambiarNivelPlanilla()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;">
+            <option value="">Selecciona un nivel...</option>
+            <option value="PRE-A1">Pre-A1</option>
+            <option value="A1">A1</option>
+            <option value="A2">A2</option>
+            <option value="B1">B1</option>
+            <option value="B2">B2</option>
+            <option value="C1">C1</option>
+            <option value="KIDS">Kids</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Fecha de inicio (todos los grupos de este lote)</label>
+          <input type="date" id="pl-fecha" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+        </div>
+      </div>
+
+      <div id="pl-info-serie" style="display:none;background:var(--orange-dim);border:1px solid var(--orange-brd);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:12px;color:var(--gray);margin-bottom:6px;">Letra de serie para este lote (siguiente disponible tras la última usada)</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="text" id="pl-letra" maxlength="1" style="width:60px;text-align:center;text-transform:uppercase;background:#0f172a;border:1px solid var(--orange-brd);border-radius:8px;padding:10px;color:#fb923c;font-size:18px;font-weight:700;outline:none;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'');alCambiarNivelPlanilla(true)" />
+          <span id="pl-letra-detalle" style="color:var(--gray);font-size:12px;"></span>
+        </div>
+      </div>
+
+      <div id="pl-referencia" style="margin-bottom:18px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cupo máximo por grupo</label>
+          <input type="number" id="pl-cupo" value="10" min="1" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Asistente CE</label>
+          <select id="pl-asistente" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;">
+            <option value="">Cargando asistentes...</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horarios de la semana (marca los que vas a abrir)</label>
+      <div id="pl-grid-horarios" style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px;max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;padding:10px;"></div>
+
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="pl-confirmo" style="width:18px;height:18px;accent-color:var(--orange);flex-shrink:0;" />
+        <label for="pl-confirmo" style="font-size:13px;color:var(--off-white);cursor:pointer;">Confirmo que revisé los horarios, el nivel, la letra de serie y los datos de este lote — son correctos.</label>
+      </div>
+
+      <div id="pl-status" style="display:none;margin-bottom:14px;padding:12px 16px;border-radius:10px;font-size:13px;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-logout" onclick="cerrarModalPlanilla()">Cancelar</button>
+        <button class="btn-login" id="pl-btn-crear" style="width:auto;padding:12px 28px;margin:0;" onclick="crearGruposPlanilla()" disabled>Crear grupos seleccionados</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GRUPO ESPECIAL ADICIONAL -->
+<div class="modal-overlay" id="modalGrupoEspecial">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="oe-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div><h3>Grupo especial adicional</h3><p>Crea un grupo suelto fuera de la planilla semanal</p></div>
+      </div>
+      <button class="btn-cerrar" onclick="cerrarModalGrupoEspecial()">Cerrar</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px;overflow-y:auto;">
+
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
+      <select id="ge-nivel" onchange="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;">
+        <option value="">Selecciona un nivel...</option>
+        <option value="PRE-A1">Pre-A1</option>
+        <option value="A1">A1</option>
+        <option value="A2">A2</option>
+        <option value="B1">B1</option>
+        <option value="B2">B2</option>
+        <option value="C1">C1</option>
+        <option value="KIDS">Kids</option>
+      </select>
+
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Fecha de inicio</label>
+      <input type="date" id="ge-fecha" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+
+      <div id="ge-id-preview" style="display:none;background:var(--orange-dim);border:1px solid var(--orange-brd);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--gray);margin-bottom:4px;">ID de grupo (consecutivo a la última serie en uso)</div>
+        <div style="color:#fb923c;font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="ge-id-valor"></div>
+      </div>
+
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nombre del grupo</label>
+      <input type="text" id="ge-nombre" placeholder="Ej. ADULTS, TEENS, KIDS" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
+      <input type="text" id="ge-horario" placeholder="Ej. 7:00 PM" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cupo máximo</label>
+          <input type="number" id="ge-cupo" value="10" min="1" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Asistente CE</label>
+          <select id="ge-asistente" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;">
+            <option value="">Cargando asistentes...</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="ge-status" style="display:none;margin-bottom:14px;padding:12px 16px;border-radius:10px;font-size:13px;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-logout" onclick="cerrarModalGrupoEspecial()">Cancelar</button>
+        <button class="btn-login" style="width:auto;padding:12px 28px;margin:0;" onclick="crearGrupoEspecial()">Crear grupo</button>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -717,6 +863,268 @@
   }
 
   function cerrarHistorico() { document.getElementById('modalHistorico').classList.remove('active'); }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // CREACIÓN DE GRUPOS — planilla semanal (lote) y grupo especial (suelto)
+  // ══════════════════════════════════════════════════════════════════════
+
+  function analizarSeriesIds(grupos) {
+    var maxPorLetra = {};
+    (grupos || []).forEach(function (g) {
+      var id = String(g.idGrupo || '').trim().toUpperCase();
+      var m = id.match(/^([A-Z])(\d{2,})$/);
+      if (!m) return;
+      var letra = m[1];
+      var num = parseInt(m[2], 10);
+      if (!(letra in maxPorLetra) || num > maxPorLetra[letra]) maxPorLetra[letra] = num;
+    });
+    var letras = Object.keys(maxPorLetra).sort();
+    var ultimaLetra = letras.length ? letras[letras.length - 1] : null;
+    var siguienteLetra = ultimaLetra ? String.fromCharCode(ultimaLetra.charCodeAt(0) + 1) : 'A';
+    var maxNumeroUltimaLetra = ultimaLetra ? maxPorLetra[ultimaLetra] : 0;
+    return {
+      ultimaLetra: ultimaLetra,
+      siguienteLetra: siguienteLetra,
+      maxNumeroUltimaLetra: maxNumeroUltimaLetra,
+      siguienteNumeroEnSerie: maxNumeroUltimaLetra + 1,
+      maxPorLetra: maxPorLetra
+    };
+  }
+
+  function poblarSelectAsistentes(selectId) {
+    var sel = document.getElementById(selectId);
+    var lista = (directorCache && directorCache.asistentes) || [];
+    if (!lista.length) { sel.innerHTML = '<option value="">Sin asistentes disponibles</option>'; return; }
+    sel.innerHTML = '<option value="">Selecciona...</option>' +
+      lista.map(function (a) { return '<option value="' + a.id + '">' + a.nombre + '</option>'; }).join('');
+  }
+
+  function abrirModalPlanilla() {
+    document.getElementById('pl-nivel').value = '';
+    document.getElementById('pl-fecha').value = '';
+    document.getElementById('pl-letra').value = '';
+    document.getElementById('pl-info-serie').style.display = 'none';
+    document.getElementById('pl-referencia').innerHTML = '';
+    document.getElementById('pl-grid-horarios').innerHTML = '<div style="color:var(--gray);font-size:13px;padding:10px;">Selecciona un nivel para ver los horarios.</div>';
+    document.getElementById('pl-cupo').value = 10;
+    document.getElementById('pl-confirmo').checked = false;
+    document.getElementById('pl-status').style.display = 'none';
+    document.getElementById('pl-btn-crear').disabled = true;
+    poblarSelectAsistentes('pl-asistente');
+    document.getElementById('modalPlanilla').classList.add('active');
+  }
+  function cerrarModalPlanilla() { document.getElementById('modalPlanilla').classList.remove('active'); }
+
+  function horariosDelDia() {
+    var lista = [];
+    for (var h = 8; h <= 22; h++) {
+      var h12 = h > 12 ? h - 12 : h;
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      lista.push(h12 + ':00 ' + ampm);
+    }
+    return lista;
+  }
+
+  function alCambiarNivelPlanilla(soloLetraManual) {
+    var nivel = document.getElementById('pl-nivel').value;
+    if (!nivel) return;
+
+    var gruposNivel = (todosGrupos || []).filter(function (g) {
+      return String(g.nivel || '').toUpperCase().indexOf(nivel) !== -1;
+    });
+
+    if (!soloLetraManual) {
+      var analisis = analizarSeriesIds(todosGrupos || []);
+      document.getElementById('pl-letra').value = analisis.siguienteLetra;
+      document.getElementById('pl-info-serie').style.display = '';
+      document.getElementById('pl-letra-detalle').textContent =
+        analisis.ultimaLetra
+          ? 'Última letra en uso: ' + analisis.ultimaLetra + ' (hasta el número ' + analisis.maxNumeroUltimaLetra + '). Se sugiere la siguiente: ' + analisis.siguienteLetra + '.'
+          : 'Aún no hay grupos con este formato de ID — se sugiere iniciar con A.';
+
+      var ref = document.getElementById('pl-referencia');
+      if (!gruposNivel.length) {
+        ref.innerHTML = '<div style="color:var(--gray);font-size:13px;">No hay grupos existentes de este nivel todavía.</div>';
+      } else {
+        ref.innerHTML =
+          '<div style="font-size:11px;color:var(--gray);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Grupos existentes de este nivel (referencia)</div>' +
+          '<div style="max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+          gruposNivel.map(function (g) {
+            return '<tr style="border-bottom:1px solid var(--border);">' +
+              '<td style="padding:6px 10px;color:#fb923c;font-family:monospace;">' + g.idGrupo + '</td>' +
+              '<td style="padding:6px 10px;color:var(--off-white);">' + (g.nombre || '—') + '</td>' +
+              '<td style="padding:6px 10px;color:var(--gray);">' + (g.horario || '—') + '</td>' +
+              '<td style="padding:6px 10px;color:var(--gray);">' + (g.inscritos || 0) + '/' + ((g.inscritos||0)+(g.lugares||0)) + ' lugares</td>' +
+            '</tr>';
+          }).join('') +
+          '</table></div>';
+      }
+    }
+
+    renderGridHorariosPlanilla();
+  }
+
+  function renderGridHorariosPlanilla() {
+    var letra = (document.getElementById('pl-letra').value || 'A').toUpperCase();
+    var analisis = analizarSeriesIds(todosGrupos || []);
+    var siguienteNumero = (analisis.maxPorLetra[letra] || 0) + 1;
+
+    var horarios = horariosDelDia();
+    var grid = document.getElementById('pl-grid-horarios');
+    grid.innerHTML = horarios.map(function (h, idx) {
+      var num = siguienteNumero + idx;
+      var idPreview = letra + String(num).padStart(2, '0');
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;">' +
+        '<input type="checkbox" class="pl-check" data-horario="' + h + '" data-id="' + idPreview + '" style="width:16px;height:16px;accent-color:var(--orange);flex-shrink:0;" onchange="validarBotonCrearPlanilla()" />' +
+        '<span style="width:80px;color:var(--off-white);font-size:13px;font-weight:600;">' + h + '</span>' +
+        '<span style="width:64px;color:#fb923c;font-family:monospace;font-size:12px;">' + idPreview + '</span>' +
+        '<input type="text" placeholder="Nombre del grupo (ej. ADULTS)" class="pl-nombre-input" style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;outline:none;" />' +
+      '</div>';
+    }).join('');
+    validarBotonCrearPlanilla();
+  }
+
+  function validarBotonCrearPlanilla() {
+    var haySeleccion = document.querySelectorAll('#pl-grid-horarios .pl-check:checked').length > 0;
+    document.getElementById('pl-btn-crear').disabled = !(haySeleccion && document.getElementById('pl-confirmo').checked);
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'pl-confirmo') validarBotonCrearPlanilla();
+  });
+
+  function crearGruposPlanilla() {
+    var nivel   = document.getElementById('pl-nivel').value;
+    var fecha   = document.getElementById('pl-fecha').value;
+    var cupo    = document.getElementById('pl-cupo').value;
+    var idAsis  = document.getElementById('pl-asistente').value;
+    var status  = document.getElementById('pl-status');
+
+    if (!nivel || !fecha || !idAsis) {
+      status.style.display = '';
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Faltan datos: nivel, fecha de inicio y asistente son obligatorios.';
+      return;
+    }
+
+    var filas = Array.from(document.querySelectorAll('#pl-grid-horarios > div'));
+    var seleccionados = filas.filter(function (f) { return f.querySelector('.pl-check').checked; })
+      .map(function (f) {
+        return {
+          idGrupo: f.querySelector('.pl-check').dataset.id,
+          horario: f.querySelector('.pl-check').dataset.horario,
+          nombre:  f.querySelector('.pl-nombre-input').value.trim() || 'GRUPO'
+        };
+      });
+
+    if (!seleccionados.length) return;
+
+    var btn = document.getElementById('pl-btn-crear');
+    btn.disabled = true; btn.textContent = 'Creando 0/' + seleccionados.length + '...';
+    status.style.display = ''; status.style.background = 'rgba(96,165,250,0.1)'; status.style.color = '#60a5fa';
+    status.textContent = 'Creando grupos, por favor espera...';
+
+    var creados = []; var errores = [];
+
+    function crearSiguiente(i) {
+      if (i >= seleccionados.length) {
+        status.style.background = errores.length ? 'rgba(248,113,113,0.1)' : 'rgba(34,197,94,0.1)';
+        status.style.color = errores.length ? '#f87171' : '#22c55e';
+        status.textContent = 'Listo: ' + creados.length + ' grupo(s) creado(s).' + (errores.length ? ' Errores: ' + errores.join('; ') : '');
+        btn.textContent = 'Crear grupos seleccionados';
+        cargarDatos();
+        return;
+      }
+      var g = seleccionados[i];
+      btn.textContent = 'Creando ' + (i + 1) + '/' + seleccionados.length + '...';
+      fetch(APPS_SCRIPT, {
+        method: 'POST',
+        body: new URLSearchParams({
+          action: 'crearGrupo',
+          idGrupo: g.idGrupo, nombre: g.nombre, horario: g.horario,
+          fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
+          linkZoom: 'https://organicenglish1.com', idAsistente: idAsis
+        })
+      }).then(function (r) { return r.text(); }).then(function (text) {
+        var data = JSON.parse(text);
+        if (data.ok) creados.push(g.idGrupo); else errores.push(g.idGrupo + ': ' + data.error);
+        crearSiguiente(i + 1);
+      }).catch(function () {
+        errores.push(g.idGrupo + ': error de conexión');
+        crearSiguiente(i + 1);
+      });
+    }
+    crearSiguiente(0);
+  }
+
+  function abrirModalGrupoEspecial() {
+    document.getElementById('ge-nivel').value = '';
+    document.getElementById('ge-fecha').value = '';
+    document.getElementById('ge-id-preview').style.display = 'none';
+    document.getElementById('ge-nombre').value = '';
+    document.getElementById('ge-horario').value = '';
+    document.getElementById('ge-cupo').value = 10;
+    document.getElementById('ge-status').style.display = 'none';
+    poblarSelectAsistentes('ge-asistente');
+    document.getElementById('modalGrupoEspecial').classList.add('active');
+  }
+  function cerrarModalGrupoEspecial() { document.getElementById('modalGrupoEspecial').classList.remove('active'); }
+
+  function alCambiarNivelEspecial() {
+    var nivel = document.getElementById('ge-nivel').value;
+    if (!nivel) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
+    var analisis = analizarSeriesIds(todosGrupos || []);
+    var letra = analisis.ultimaLetra || 'A';
+    var numero = analisis.siguienteNumeroEnSerie;
+    var idPreview = letra + String(numero).padStart(2, '0');
+    document.getElementById('ge-id-valor').textContent = idPreview;
+    document.getElementById('ge-id-preview').style.display = '';
+  }
+
+  function crearGrupoEspecial() {
+    var nivel    = document.getElementById('ge-nivel').value;
+    var fecha    = document.getElementById('ge-fecha').value;
+    var nombre   = document.getElementById('ge-nombre').value.trim();
+    var horario  = document.getElementById('ge-horario').value.trim();
+    var cupo     = document.getElementById('ge-cupo').value;
+    var idAsis   = document.getElementById('ge-asistente').value;
+    var idPreview = document.getElementById('ge-id-valor').textContent;
+    var status   = document.getElementById('ge-status');
+
+    if (!nivel || !fecha || !nombre || !horario || !idAsis || !idPreview) {
+      status.style.display = '';
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Faltan datos obligatorios.';
+      return;
+    }
+
+    status.style.display = ''; status.style.background = 'rgba(96,165,250,0.1)'; status.style.color = '#60a5fa';
+    status.textContent = 'Creando grupo...';
+
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'crearGrupo',
+        idGrupo: idPreview, nombre: nombre, horario: horario,
+        fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
+        linkZoom: 'https://organicenglish1.com', idAsistente: idAsis
+      })
+    }).then(function (r) { return r.text(); }).then(function (text) {
+      var data = JSON.parse(text);
+      if (data.ok) {
+        status.style.background = 'rgba(34,197,94,0.1)'; status.style.color = '#22c55e';
+        status.textContent = 'Grupo ' + data.idGrupo + ' creado correctamente.';
+        cargarDatos();
+        setTimeout(cerrarModalGrupoEspecial, 1400);
+      } else {
+        status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+        status.textContent = 'Error: ' + data.error;
+      }
+    }).catch(function () {
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Error de conexión.';
+    });
+  }
 
   function renderHistorico(historial) {
     if (!historial||!historial.length) {
