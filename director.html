@@ -294,6 +294,10 @@
         <span class="oe-icon-sm"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
         Grupo especial adicional
       </button>
+      <button class="btn-historico" onclick="abrirModalCancelarGrupo()" style="border-color:rgba(248,113,113,0.35);color:#f87171;">
+        <span class="oe-icon-sm" style="background:rgba(248,113,113,0.15);"><svg viewBox="0 0 24 24" style="stroke:#f87171;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>
+        Cancelar grupo
+      </button>
     </div>
     <div class="grupos-filtro" id="gruposFiltro"></div>
     <div id="tablaGrupos" style="display:none"><div class="tabla-wrap"><div class="loading">Selecciona un nivel para ver grupos.</div></div></div>
@@ -317,7 +321,7 @@
 
 <!-- MODAL PLANILLA (programación semanal por lote) -->
 <div class="modal-overlay" id="modalPlanilla">
-  <div class="modal-box" style="max-width:980px;">
+  <div class="modal-box" style="max-width:1180px;">
     <div class="modal-header">
       <div class="modal-header-left">
         <div class="oe-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
@@ -357,21 +361,8 @@
 
       <div id="pl-referencia" style="margin-bottom:18px;"></div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
-        <div>
-          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cupo máximo por grupo</label>
-          <input type="number" id="pl-cupo" value="10" min="1" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
-        </div>
-        <div>
-          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Asistente CE</label>
-          <select id="pl-asistente" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;">
-            <option value="">Cargando asistentes...</option>
-          </select>
-        </div>
-      </div>
-
-      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horarios de la semana (marca los que vas a abrir)</label>
-      <div id="pl-grid-horarios" style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px;max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;padding:10px;"></div>
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horarios de la semana (marca los que vas a abrir — cada uno con su propio nombre, cupo y asistente)</label>
+      <div id="pl-grid-horarios" style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px;max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;padding:10px;"></div>
 
       <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
         <input type="checkbox" id="pl-confirmo" style="width:18px;height:18px;accent-color:var(--orange);flex-shrink:0;" />
@@ -410,7 +401,6 @@
         <option value="B1">B1</option>
         <option value="B2">B2</option>
         <option value="C1">C1</option>
-        <option value="KIDS">Kids</option>
       </select>
 
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Fecha de inicio</label>
@@ -422,10 +412,10 @@
       </div>
 
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nombre del grupo</label>
-      <input type="text" id="ge-nombre" placeholder="Ej. ADULTS, TEENS, KIDS" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+      <select id="ge-nombre" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;font-size:14px;outline:none;margin-bottom:14px;font-weight:700;"></select>
 
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
-      <input type="text" id="ge-horario" placeholder="Ej. 7:00 PM" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+      <select id="ge-horario" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;"></select>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
         <div>
@@ -445,6 +435,36 @@
       <div style="display:flex;gap:10px;justify-content:flex-end;">
         <button class="btn-logout" onclick="cerrarModalGrupoEspecial()">Cancelar</button>
         <button class="btn-login" style="width:auto;padding:12px 28px;margin:0;" onclick="crearGrupoEspecial()">Crear grupo</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CANCELAR GRUPO -->
+<div class="modal-overlay" id="modalCancelarGrupo">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="oe-icon" style="background:rgba(248,113,113,0.15);border-color:rgba(248,113,113,0.3);"><svg viewBox="0 0 24 24" style="stroke:#f87171;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+        <div><h3>Cancelar grupo</h3><p>Solo se pueden cancelar grupos sin ningún alumno inscrito</p></div>
+      </div>
+      <button class="btn-cerrar" onclick="cerrarModalCancelarGrupo()">Cerrar</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px;overflow-y:auto;">
+
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Selecciona el grupo a cancelar</label>
+      <select id="cg-grupo" onchange="alSeleccionarGrupoCancelar()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;">
+        <option value="">Selecciona...</option>
+      </select>
+
+      <div id="cg-detalle" style="display:none;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--gray);"></div>
+
+      <div id="cg-status" style="display:none;margin-bottom:14px;padding:12px 16px;border-radius:10px;font-size:13px;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-logout" onclick="cerrarModalCancelarGrupo()">Cerrar</button>
+        <button class="btn-login" style="width:auto;padding:12px 28px;margin:0;background:linear-gradient(135deg,#f87171,#dc2626);box-shadow:0 8px 24px rgba(248,113,113,0.35);" id="cg-btn-cancelar" onclick="confirmarCancelarGrupo()" disabled>Cancelar este grupo</button>
       </div>
 
     </div>
@@ -868,6 +888,24 @@
   // CREACIÓN DE GRUPOS — planilla semanal (lote) y grupo especial (suelto)
   // ══════════════════════════════════════════════════════════════════════
 
+  // Opciones vigentes de nombre de grupo, con su color de identificación
+  var NOMBRES_GRUPO = [
+    { valor: 'ADULTS',  label: 'ADULTS',  color: '#f1f5f9' }, // blanco
+    { valor: 'TEENS',   label: 'TEENS',   color: '#fbbf24' }, // amarillo
+    { valor: 'KIDS',    label: 'KIDS',    color: '#22c55e' }, // verde
+    { valor: 'KIDS JR', label: 'KIDS JR', color: '#c084fc' }  // lila
+  ];
+  function colorPorNombreGrupo(nombre) {
+    var n = String(nombre || '').trim().toUpperCase();
+    var match = NOMBRES_GRUPO.find(function (x) { return x.valor === n; });
+    return match ? match.color : '#94a3b8'; // gris por defecto si no coincide con ninguna opcion vigente
+  }
+  function opcionesNombreGrupoHTML(seleccionado) {
+    return NOMBRES_GRUPO.map(function (x) {
+      return '<option value="' + x.valor + '" ' + (x.valor === seleccionado ? 'selected' : '') + ' style="color:' + x.color + ';background:#0f172a;">' + x.label + '</option>';
+    }).join('');
+  }
+
   function analizarSeriesIds(grupos) {
     var maxPorLetra = {};
     (grupos || []).forEach(function (g) {
@@ -906,11 +944,9 @@
     document.getElementById('pl-info-serie').style.display = 'none';
     document.getElementById('pl-referencia').innerHTML = '';
     document.getElementById('pl-grid-horarios').innerHTML = '<div style="color:var(--gray);font-size:13px;padding:10px;">Selecciona un nivel para ver los horarios.</div>';
-    document.getElementById('pl-cupo').value = 10;
     document.getElementById('pl-confirmo').checked = false;
     document.getElementById('pl-status').style.display = 'none';
     document.getElementById('pl-btn-crear').disabled = true;
-    poblarSelectAsistentes('pl-asistente');
     document.getElementById('modalPlanilla').classList.add('active');
   }
   function cerrarModalPlanilla() { document.getElementById('modalPlanilla').classList.remove('active'); }
@@ -948,12 +984,15 @@
       } else {
         ref.innerHTML =
           '<div style="font-size:11px;color:var(--gray);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Grupos existentes de este nivel (referencia)</div>' +
-          '<div style="max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;">' +
+          '<div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;">' +
           '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
           gruposNivel.map(function (g) {
+            var color = colorPorNombreGrupo(g.nombre);
+            var fechaTxt = g.fechaInicio ? new Date(g.fechaInicio).toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'}) : '—';
             return '<tr style="border-bottom:1px solid var(--border);">' +
               '<td style="padding:6px 10px;color:#fb923c;font-family:monospace;">' + g.idGrupo + '</td>' +
-              '<td style="padding:6px 10px;color:var(--off-white);">' + (g.nombre || '—') + '</td>' +
+              '<td style="padding:6px 10px;color:' + color + ';font-weight:700;">' + (g.nombre || '—') + '</td>' +
+              '<td style="padding:6px 10px;color:var(--gray);">' + fechaTxt + '</td>' +
               '<td style="padding:6px 10px;color:var(--gray);">' + (g.horario || '—') + '</td>' +
               '<td style="padding:6px 10px;color:var(--gray);">' + (g.inscritos || 0) + '/' + ((g.inscritos||0)+(g.lugares||0)) + ' lugares</td>' +
             '</tr>';
@@ -970,18 +1009,28 @@
     var analisis = analizarSeriesIds(todosGrupos || []);
     var siguienteNumero = (analisis.maxPorLetra[letra] || 0) + 1;
 
+    var listaAsis = (directorCache && directorCache.asistentes) || [];
+    var opcionesAsistentes = '<option value="">Asistente...</option>' +
+      listaAsis.map(function (a) { return '<option value="' + a.id + '">' + a.nombre + '</option>'; }).join('');
+
     var horarios = horariosDelDia();
     var grid = document.getElementById('pl-grid-horarios');
     grid.innerHTML = horarios.map(function (h, idx) {
       var num = siguienteNumero + idx;
       var idPreview = letra + String(num).padStart(2, '0');
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;">' +
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;flex-wrap:wrap;">' +
         '<input type="checkbox" class="pl-check" data-horario="' + h + '" data-id="' + idPreview + '" style="width:16px;height:16px;accent-color:var(--orange);flex-shrink:0;" onchange="validarBotonCrearPlanilla()" />' +
-        '<span style="width:80px;color:var(--off-white);font-size:13px;font-weight:600;">' + h + '</span>' +
-        '<span style="width:64px;color:#fb923c;font-family:monospace;font-size:12px;">' + idPreview + '</span>' +
-        '<input type="text" placeholder="Nombre del grupo (ej. ADULTS)" class="pl-nombre-input" style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;outline:none;" />' +
+        '<span style="width:74px;color:var(--off-white);font-size:13px;font-weight:600;">' + h + '</span>' +
+        '<span style="width:56px;color:#fb923c;font-family:monospace;font-size:12px;">' + idPreview + '</span>' +
+        '<select class="pl-nombre-select" style="width:110px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 6px;font-size:12px;outline:none;font-weight:700;" onchange="this.style.color=colorPorNombreGrupo(this.value)">' + opcionesNombreGrupoHTML('ADULTS') + '</select>' +
+        '<input type="number" class="pl-cupo-input" value="10" min="1" placeholder="Cupo" style="width:66px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 8px;color:#fff;font-size:12px;outline:none;" />' +
+        '<select class="pl-asistente-select" style="flex:1;min-width:130px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 8px;color:#fff;font-size:12px;outline:none;">' + opcionesAsistentes + '</select>' +
       '</div>';
     }).join('');
+    // Aplicar el color inicial (ADULTS) a cada select recien creado
+    document.querySelectorAll('#pl-grid-horarios .pl-nombre-select').forEach(function (sel) {
+      sel.style.color = colorPorNombreGrupo(sel.value);
+    });
     validarBotonCrearPlanilla();
   }
 
@@ -996,14 +1045,12 @@
   function crearGruposPlanilla() {
     var nivel   = document.getElementById('pl-nivel').value;
     var fecha   = document.getElementById('pl-fecha').value;
-    var cupo    = document.getElementById('pl-cupo').value;
-    var idAsis  = document.getElementById('pl-asistente').value;
     var status  = document.getElementById('pl-status');
 
-    if (!nivel || !fecha || !idAsis) {
+    if (!nivel || !fecha) {
       status.style.display = '';
       status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
-      status.textContent = 'Faltan datos: nivel, fecha de inicio y asistente son obligatorios.';
+      status.textContent = 'Faltan datos: nivel y fecha de inicio son obligatorios.';
       return;
     }
 
@@ -1011,13 +1058,23 @@
     var seleccionados = filas.filter(function (f) { return f.querySelector('.pl-check').checked; })
       .map(function (f) {
         return {
-          idGrupo: f.querySelector('.pl-check').dataset.id,
-          horario: f.querySelector('.pl-check').dataset.horario,
-          nombre:  f.querySelector('.pl-nombre-input').value.trim() || 'GRUPO'
+          idGrupo:    f.querySelector('.pl-check').dataset.id,
+          horario:    f.querySelector('.pl-check').dataset.horario,
+          nombre:     f.querySelector('.pl-nombre-select').value,
+          cupo:       f.querySelector('.pl-cupo-input').value || 10,
+          idAsistente: f.querySelector('.pl-asistente-select').value
         };
       });
 
     if (!seleccionados.length) return;
+
+    var sinAsistente = seleccionados.filter(function (g) { return !g.idAsistente; });
+    if (sinAsistente.length) {
+      status.style.display = '';
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Falta asignar asistente en ' + sinAsistente.length + ' de los horarios marcados.';
+      return;
+    }
 
     var btn = document.getElementById('pl-btn-crear');
     btn.disabled = true; btn.textContent = 'Creando 0/' + seleccionados.length + '...';
@@ -1042,8 +1099,8 @@
         body: new URLSearchParams({
           action: 'crearGrupo',
           idGrupo: g.idGrupo, nombre: g.nombre, horario: g.horario,
-          fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
-          linkZoom: 'https://organicenglish1.com', idAsistente: idAsis
+          fechaInicio: fecha, nivel: nivel, cupoMax: g.cupo,
+          linkZoom: 'https://organicenglish1.com', idAsistente: g.idAsistente
         })
       }).then(function (r) { return r.text(); }).then(function (text) {
         var data = JSON.parse(text);
@@ -1061,8 +1118,10 @@
     document.getElementById('ge-nivel').value = '';
     document.getElementById('ge-fecha').value = '';
     document.getElementById('ge-id-preview').style.display = 'none';
-    document.getElementById('ge-nombre').value = '';
-    document.getElementById('ge-horario').value = '';
+    document.getElementById('ge-nombre').innerHTML = opcionesNombreGrupoHTML('ADULTS');
+    document.getElementById('ge-nombre').style.color = colorPorNombreGrupo('ADULTS');
+    document.getElementById('ge-nombre').onchange = function () { this.style.color = colorPorNombreGrupo(this.value); };
+    document.getElementById('ge-horario').innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
     document.getElementById('ge-cupo').value = 10;
     document.getElementById('ge-status').style.display = 'none';
     poblarSelectAsistentes('ge-asistente');
@@ -1123,6 +1182,73 @@
     }).catch(function () {
       status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
       status.textContent = 'Error de conexión.';
+    });
+  }
+
+  // ── CANCELAR GRUPO ───────────────────────────────────────────────────
+  function abrirModalCancelarGrupo() {
+    var sel = document.getElementById('cg-grupo');
+    var elegibles = (todosGrupos || []).filter(function (g) { return (g.inscritos || 0) === 0; });
+    if (!elegibles.length) {
+      sel.innerHTML = '<option value="">No hay grupos sin alumnos para cancelar</option>';
+    } else {
+      sel.innerHTML = '<option value="">Selecciona...</option>' +
+        elegibles.map(function (g) {
+          return '<option value="' + g.idGrupo + '">' + g.idGrupo + ' — ' + (g.nombre || '—') + ' (' + (g.nivel || '—') + ', ' + (g.horario || '—') + ')</option>';
+        }).join('');
+    }
+    document.getElementById('cg-detalle').style.display = 'none';
+    document.getElementById('cg-status').style.display = 'none';
+    document.getElementById('cg-btn-cancelar').disabled = true;
+    document.getElementById('modalCancelarGrupo').classList.add('active');
+  }
+  function cerrarModalCancelarGrupo() { document.getElementById('modalCancelarGrupo').classList.remove('active'); }
+
+  function alSeleccionarGrupoCancelar() {
+    var idGrupo = document.getElementById('cg-grupo').value;
+    var detalle = document.getElementById('cg-detalle');
+    var btn = document.getElementById('cg-btn-cancelar');
+    if (!idGrupo) { detalle.style.display = 'none'; btn.disabled = true; return; }
+
+    var g = (todosGrupos || []).find(function (x) { return x.idGrupo === idGrupo; });
+    if (!g) { detalle.style.display = 'none'; btn.disabled = true; return; }
+
+    detalle.style.display = '';
+    detalle.innerHTML =
+      '<strong style="color:var(--off-white);">' + g.idGrupo + ' — ' + (g.nombre || '—') + '</strong><br>' +
+      'Nivel: ' + (g.nivel || '—') + ' · Horario: ' + (g.horario || '—') + ' · Alumnos inscritos: ' + (g.inscritos || 0) + '<br><br>' +
+      '<span style="color:#f87171;">Al cancelar, este grupo dejará de aparecer como disponible para inscripciones (se marcará como lleno). Esta acción no se puede deshacer desde aquí.</span>';
+    btn.disabled = (g.inscritos || 0) > 0;
+  }
+
+  function confirmarCancelarGrupo() {
+    var idGrupo = document.getElementById('cg-grupo').value;
+    var status  = document.getElementById('cg-status');
+    if (!idGrupo) return;
+
+    status.style.display = ''; status.style.background = 'rgba(96,165,250,0.1)'; status.style.color = '#60a5fa';
+    status.textContent = 'Cancelando grupo...';
+    document.getElementById('cg-btn-cancelar').disabled = true;
+
+    fetch(APPS_SCRIPT, {
+      method: 'POST',
+      body: new URLSearchParams({ action: 'cancelarGrupoDirector', idGrupo: idGrupo })
+    }).then(function (r) { return r.text(); }).then(function (text) {
+      var data = JSON.parse(text);
+      if (data.ok) {
+        status.style.background = 'rgba(34,197,94,0.1)'; status.style.color = '#22c55e';
+        status.textContent = 'Grupo ' + data.idGrupo + ' cancelado correctamente.';
+        cargarDatos();
+        setTimeout(cerrarModalCancelarGrupo, 1400);
+      } else {
+        status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+        status.textContent = 'Error: ' + data.error;
+        document.getElementById('cg-btn-cancelar').disabled = false;
+      }
+    }).catch(function () {
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Error de conexión.';
+      document.getElementById('cg-btn-cancelar').disabled = false;
     });
   }
 
