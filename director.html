@@ -40,6 +40,7 @@
   .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
 .login-box { background: #1e2a4a; border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; }
   .login-box h1 { color: #fff; font-size: 22px; font-weight: 600; margin: 0 0 10px 0; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) brightness(1.4); cursor: pointer; }
   .login-box p { color: #64748b; font-size: 13px; margin: 0 0 16px 0; }
   .login-logo { width: 340px; height: auto; display: block; margin: 0 auto; }
   .field { margin-bottom:18px; text-align:left; }
@@ -336,18 +337,11 @@
           <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
           <select id="pl-nivel" onchange="alCambiarNivelPlanilla()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;">
             <option value="">Selecciona un nivel...</option>
-            <option value="PRE-A1">Pre-A1</option>
-            <option value="A1">A1</option>
-            <option value="A2">A2</option>
-            <option value="B1">B1</option>
-            <option value="B2">B2</option>
-            <option value="C1">C1</option>
-            <option value="KIDS">Kids</option>
           </select>
         </div>
         <div>
           <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Fecha de inicio (todos los grupos de este lote)</label>
-          <input type="date" id="pl-fecha" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+          <input type="date" id="pl-fecha" oninput="alCambiarNivelPlanilla()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
         </div>
       </div>
 
@@ -395,16 +389,10 @@
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
       <select id="ge-nivel" onchange="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;">
         <option value="">Selecciona un nivel...</option>
-        <option value="PRE-A1">Pre-A1</option>
-        <option value="A1">A1</option>
-        <option value="A2">A2</option>
-        <option value="B1">B1</option>
-        <option value="B2">B2</option>
-        <option value="C1">C1</option>
       </select>
 
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Fecha de inicio</label>
-      <input type="date" id="ge-fecha" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+      <input type="date" id="ge-fecha" oninput="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
 
       <div id="ge-id-preview" style="display:none;background:var(--orange-dim);border:1px solid var(--orange-brd);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
         <div style="font-size:12px;color:var(--gray);margin-bottom:4px;">ID de grupo (consecutivo a la última serie en uso)</div>
@@ -906,8 +894,33 @@
     }).join('');
   }
 
+  // Niveles vigentes (valor = sufijo que ya espera crearGrupo tras el prefijo "NIVEL ")
+  var NIVELES_OPCIONES = [
+    'PRE A-1',
+    'A1-Bloque 1', 'A1-Bloque 2',
+    'A2-Bloque 1', 'A2-Bloque 2',
+    'B1-Bloque 1', 'B1-Bloque 2',
+    'B2-Bloque 1', 'B2-Bloque 2',
+    'C1-Bloque 1', 'C1-Bloque 2'
+  ];
+  function poblarSelectNiveles(selectId) {
+    var sel = document.getElementById(selectId);
+    var actual = sel.value;
+    sel.innerHTML = '<option value="">Selecciona un nivel...</option>' +
+      NIVELES_OPCIONES.map(function (n) { return '<option value="' + n + '">NIVEL ' + n + '</option>'; }).join('');
+    sel.value = actual;
+  }
+
+  // Analiza los IDs de grupo existentes (formato LETRA + número, ej. E01,
+  // E02...) e ignora cualquier otro formato (como los IDs de 2 letras de
+  // los grupos demo, ej. AA01) para no confundir la serie real.
+  // IMPORTANTE: la letra de serie está ligada a la FECHA DE INICIO — todos
+  // los grupos que abren el mismo día comparten la misma letra. Solo se usa
+  // una letra nueva cuando la fecha es distinta a cualquier fecha ya usada.
   function analizarSeriesIds(grupos) {
     var maxPorLetra = {};
+    var numerosPorLetra = {};
+    var letraPorFecha = {};
     (grupos || []).forEach(function (g) {
       var id = String(g.idGrupo || '').trim().toUpperCase();
       var m = id.match(/^([A-Z])(\d{2,})$/);
@@ -915,6 +928,10 @@
       var letra = m[1];
       var num = parseInt(m[2], 10);
       if (!(letra in maxPorLetra) || num > maxPorLetra[letra]) maxPorLetra[letra] = num;
+      if (!numerosPorLetra[letra]) numerosPorLetra[letra] = {};
+      numerosPorLetra[letra][num] = true;
+      var fechaG = g.fechaInicio ? new Date(g.fechaInicio).toISOString().slice(0, 10) : null;
+      if (fechaG && !(fechaG in letraPorFecha)) letraPorFecha[fechaG] = letra;
     });
     var letras = Object.keys(maxPorLetra).sort();
     var ultimaLetra = letras.length ? letras[letras.length - 1] : null;
@@ -925,8 +942,33 @@
       siguienteLetra: siguienteLetra,
       maxNumeroUltimaLetra: maxNumeroUltimaLetra,
       siguienteNumeroEnSerie: maxNumeroUltimaLetra + 1,
-      maxPorLetra: maxPorLetra
+      maxPorLetra: maxPorLetra,
+      numerosPorLetra: numerosPorLetra,
+      letraPorFecha: letraPorFecha
     };
+  }
+
+  // Devuelve la letra que corresponde a una fecha específica: si esa fecha
+  // ya tiene grupos (letra ya asignada), se reutiliza esa misma letra —
+  // así los IDs que no se hayan usado en esa serie quedan disponibles para
+  // grupos adicionales de la MISMA fecha. Si la fecha es nueva, se usa la
+  // siguiente letra disponible.
+  function letraParaFecha(analisis, fechaISO) {
+    if (fechaISO && analisis.letraPorFecha[fechaISO]) {
+      return { letra: analisis.letraPorFecha[fechaISO], esFechaNueva: false };
+    }
+    return { letra: analisis.siguienteLetra, esFechaNueva: true };
+  }
+
+  // Encuentra, para una letra dada, el primer número disponible (llenando
+  // huecos) a partir de 1 — considerando también los números ya "reservados"
+  // en este mismo lote (reservadosExtra), para no repetir IDs entre filas de
+  // una misma planilla antes de guardarlas.
+  function siguienteNumeroDisponible(analisis, letra, reservadosExtra) {
+    var usados = analisis.numerosPorLetra[letra] || {};
+    var n = 1;
+    while (usados[n] || (reservadosExtra && reservadosExtra[n])) n++;
+    return n;
   }
 
   function poblarSelectAsistentes(selectId) {
@@ -938,6 +980,7 @@
   }
 
   function abrirModalPlanilla() {
+    poblarSelectNiveles('pl-nivel');
     document.getElementById('pl-nivel').value = '';
     document.getElementById('pl-fecha').value = '';
     document.getElementById('pl-letra').value = '';
@@ -963,20 +1006,25 @@
 
   function alCambiarNivelPlanilla(soloLetraManual) {
     var nivel = document.getElementById('pl-nivel').value;
+    var fecha = document.getElementById('pl-fecha').value;
     if (!nivel) return;
 
     var gruposNivel = (todosGrupos || []).filter(function (g) {
-      return String(g.nivel || '').toUpperCase().indexOf(nivel) !== -1;
+      return String(g.nivel || '').toUpperCase().indexOf(nivel.toUpperCase()) !== -1;
     });
 
     if (!soloLetraManual) {
       var analisis = analizarSeriesIds(todosGrupos || []);
-      document.getElementById('pl-letra').value = analisis.siguienteLetra;
+      var resultado = letraParaFecha(analisis, fecha);
+      document.getElementById('pl-letra').value = resultado.letra;
       document.getElementById('pl-info-serie').style.display = '';
-      document.getElementById('pl-letra-detalle').textContent =
-        analisis.ultimaLetra
-          ? 'Última letra en uso: ' + analisis.ultimaLetra + ' (hasta el número ' + analisis.maxNumeroUltimaLetra + '). Se sugiere la siguiente: ' + analisis.siguienteLetra + '.'
-          : 'Aún no hay grupos con este formato de ID — se sugiere iniciar con A.';
+      document.getElementById('pl-letra-detalle').textContent = !fecha
+        ? 'Elige la fecha de inicio para confirmar la letra de serie.'
+        : (resultado.esFechaNueva
+            ? (analisis.ultimaLetra
+                ? 'Fecha nueva — se sugiere la siguiente letra disponible: ' + resultado.letra + ' (última usada: ' + analisis.ultimaLetra + ').'
+                : 'Aún no hay grupos con este formato de ID — se sugiere iniciar con A.')
+            : 'Esta fecha ya tiene grupos abiertos con la letra ' + resultado.letra + ' — se reutiliza la misma letra, llenando los números disponibles.');
 
       var ref = document.getElementById('pl-referencia');
       if (!gruposNivel.length) {
@@ -1007,7 +1055,7 @@
   function renderGridHorariosPlanilla() {
     var letra = (document.getElementById('pl-letra').value || 'A').toUpperCase();
     var analisis = analizarSeriesIds(todosGrupos || []);
-    var siguienteNumero = (analisis.maxPorLetra[letra] || 0) + 1;
+    var reservados = {};
 
     var listaAsis = (directorCache && directorCache.asistentes) || [];
     var opcionesAsistentes = '<option value="">Asistente...</option>' +
@@ -1015,8 +1063,9 @@
 
     var horarios = horariosDelDia();
     var grid = document.getElementById('pl-grid-horarios');
-    grid.innerHTML = horarios.map(function (h, idx) {
-      var num = siguienteNumero + idx;
+    grid.innerHTML = horarios.map(function (h) {
+      var num = siguienteNumeroDisponible(analisis, letra, reservados);
+      reservados[num] = true;
       var idPreview = letra + String(num).padStart(2, '0');
       return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;flex-wrap:wrap;">' +
         '<input type="checkbox" class="pl-check" data-horario="' + h + '" data-id="' + idPreview + '" style="width:16px;height:16px;accent-color:var(--orange);flex-shrink:0;" onchange="validarBotonCrearPlanilla()" />' +
@@ -1090,6 +1139,7 @@
         status.textContent = 'Listo: ' + creados.length + ' grupo(s) creado(s).' + (errores.length ? ' Errores: ' + errores.join('; ') : '');
         btn.textContent = 'Crear grupos seleccionados';
         cargarDatos();
+        if (!errores.length) setTimeout(cerrarModalPlanilla, 1600);
         return;
       }
       var g = seleccionados[i];
@@ -1115,6 +1165,7 @@
   }
 
   function abrirModalGrupoEspecial() {
+    poblarSelectNiveles('ge-nivel');
     document.getElementById('ge-nivel').value = '';
     document.getElementById('ge-fecha').value = '';
     document.getElementById('ge-id-preview').style.display = 'none';
@@ -1131,11 +1182,12 @@
 
   function alCambiarNivelEspecial() {
     var nivel = document.getElementById('ge-nivel').value;
-    if (!nivel) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
+    var fecha = document.getElementById('ge-fecha').value;
+    if (!nivel || !fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
     var analisis = analizarSeriesIds(todosGrupos || []);
-    var letra = analisis.ultimaLetra || 'A';
-    var numero = analisis.siguienteNumeroEnSerie;
-    var idPreview = letra + String(numero).padStart(2, '0');
+    var resultado = letraParaFecha(analisis, fecha);
+    var numero = siguienteNumeroDisponible(analisis, resultado.letra, null);
+    var idPreview = resultado.letra + String(numero).padStart(2, '0');
     document.getElementById('ge-id-valor').textContent = idPreview;
     document.getElementById('ge-id-preview').style.display = '';
   }
