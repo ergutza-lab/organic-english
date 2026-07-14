@@ -1594,8 +1594,9 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 <!-- MODAL EVAL ALUMNO -->
 <div id="modalEvalAlumno" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;">
   <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:460px;max-height:88vh;overflow-y:auto;padding:24px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <h3 id="modalEvalTitulo" style="color:#f1f5f9;margin:0;font-size:16px;"></h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;">
+      <h3 id="modalEvalTitulo" style="color:#f1f5f9;margin:0;font-size:16px;flex:1;"></h3>
+      <button onclick="abrirEditarAlumnoDirector()" style="background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.35);color:#fb923c;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">✏️ Editar datos</button>
       <button onclick="document.getElementById('modalEvalAlumno').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
     </div>
     <div id="modalEvalBody"></div>
@@ -1640,7 +1641,10 @@ function abrirAlumnosGrupo(grupo) {
   modal.style.display = 'flex';
 }
 
+var alumnoActualDirector = null;
+
 function abrirEvalAlumno(idAlumno, nombre, idGrupo) {
+  alumnoActualDirector = idAlumno;
   var modal = document.getElementById('modalEvalAlumno');
   if (!modal) return;
   document.getElementById('modalEvalTitulo').textContent = nombre;
@@ -1676,6 +1680,98 @@ function abrirEvalAlumno(idAlumno, nombre, idGrupo) {
     document.getElementById('modalEvalBody').innerHTML = html;
   })
   .catch(function(e){ document.getElementById('modalEvalBody').innerHTML='<p style="color:#f87171;text-align:center;">Error: '+e.message+'</p>'; });
+}
+
+// ── EDITAR DATOS DEL ALUMNO (director puede editar cualquier alumno) ───────
+function abrirEditarAlumnoDirector() {
+  if (!alumnoActualDirector) return;
+  var body = document.getElementById('modalEvalBody');
+  body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;">Cargando datos del alumno...</div>';
+
+  fetch(APPS_SCRIPT + '?action=getAlumnoDetalleDirector&idAlumno=' + encodeURIComponent(alumnoActualDirector), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.success) { body.innerHTML = '<p style="color:#f87171;text-align:center;">Error: ' + (d.error || 'sin datos') + '</p>'; return; }
+
+      var edad = Number(d.edad) || 0;
+      var esMenor = edad > 0 && edad < 18;
+
+      var campo = function (label, id, value, type) {
+        type = type || 'text';
+        return '<label style="display:block;color:#94a3b8;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">' + label + '</label>' +
+          '<input type="' + type + '" id="' + id + '" value="' + (value || '').toString().replace(/"/g,'&quot;') + '" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;" />';
+      };
+
+      var html = '<div style="font-size:11px;color:#64748b;margin-bottom:14px;">ID: ' + d.idAlumno + ' &middot; Grupo: ' + (d.idGrupo || '—') + ' &middot; Estatus: ' + (d.estatus || '—') + '</div>';
+      html += campo('Nombre completo', 'edir-nombre', d.nombre);
+      html += campo('WhatsApp', 'edir-whatsapp', d.whatsapp);
+      html += campo('Email', 'edir-email', d.email, 'email');
+      html += campo('Edad', 'edir-edad', d.edad, 'number');
+      html += campo('Fecha de nacimiento', 'edir-fecha-nac', d.fechaNacimiento, 'date');
+      html += campo('Lugar de residencia', 'edir-residencia', d.lugarResidencia);
+
+      html += '<label style="display:block;color:#94a3b8;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Tipo de inscripción</label>' +
+        '<select id="edir-tipo" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;outline:none;margin-bottom:12px;">' +
+        ['Promo','Promo_Mensual','Normal','Normal_Mensual','Beca_Parcial','Kids','Kids_Mensual','Becado'].map(function (t) {
+          return '<option value="' + t + '" ' + (t === d.tipoInscripcion ? 'selected' : '') + '>' + t + '</option>';
+        }).join('') + '</select>';
+
+      html += '<div id="edir-bloque-tutor" style="' + (esMenor ? '' : 'display:none;') + 'background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+        '<div style="font-size:11px;font-weight:700;color:#fb923c;margin-bottom:8px;">⚠️ Alumno menor de edad — datos del tutor</div>' +
+        campo('Nombre del tutor', 'edir-tutor-nombre', d.tutorNombre) +
+        campo('WhatsApp del tutor', 'edir-tutor-whatsapp', d.tutorWhatsapp) +
+      '</div>';
+
+      html += '<div id="edir-status" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:12px;"></div>';
+      html += '<div style="display:flex;gap:8px;">' +
+        '<button onclick="abrirEvalAlumno(\'' + d.idAlumno + '\', document.getElementById(\'modalEvalTitulo\').textContent, \'' + (d.idGrupo||'') + '\')" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:12px;cursor:pointer;font-weight:700;font-size:13px;">Cancelar</button>' +
+        '<button onclick="guardarEdicionAlumnoDirector()" style="flex:2;background:linear-gradient(135deg,#f97316,#ea580c);border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-weight:700;font-size:13px;">Guardar cambios</button>' +
+      '</div>';
+
+      body.innerHTML = html;
+
+      document.getElementById('edir-edad').addEventListener('input', function () {
+        var e = Number(this.value) || 0;
+        document.getElementById('edir-bloque-tutor').style.display = (e > 0 && e < 18) ? '' : 'none';
+      });
+    })
+    .catch(function (e) { body.innerHTML = '<p style="color:#f87171;text-align:center;">Error: ' + e.message + '</p>'; });
+}
+
+function guardarEdicionAlumnoDirector() {
+  var status = document.getElementById('edir-status');
+  status.style.display = ''; status.style.background = 'rgba(96,165,250,0.1)'; status.style.color = '#60a5fa';
+  status.textContent = 'Guardando...';
+
+  fetch(APPS_SCRIPT, {
+    method: 'POST',
+    body: new URLSearchParams({
+      action: 'actualizarAlumnoDirector',
+      idAlumno: alumnoActualDirector,
+      nombre: document.getElementById('edir-nombre').value,
+      whatsapp: document.getElementById('edir-whatsapp').value,
+      email: document.getElementById('edir-email').value,
+      edad: document.getElementById('edir-edad').value,
+      fechaNacimiento: document.getElementById('edir-fecha-nac').value,
+      lugarResidencia: document.getElementById('edir-residencia').value,
+      tipoInscripcion: document.getElementById('edir-tipo').value,
+      tutorNombre: document.getElementById('edir-tutor-nombre') ? document.getElementById('edir-tutor-nombre').value : '',
+      tutorWhatsapp: document.getElementById('edir-tutor-whatsapp') ? document.getElementById('edir-tutor-whatsapp').value : ''
+    })
+  }).then(function (r) { return r.text(); }).then(function (text) {
+    var data = JSON.parse(text);
+    if (data.success) {
+      status.style.background = 'rgba(34,197,94,0.1)'; status.style.color = '#22c55e';
+      status.textContent = 'Datos actualizados correctamente.';
+      cargarDatos();
+    } else {
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Error: ' + data.error;
+    }
+  }).catch(function () {
+    status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+    status.textContent = 'Error de conexión.';
+  });
 }
 
 function abrirEvalMaestro(m) {
