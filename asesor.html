@@ -372,7 +372,7 @@
     <div class="upload-status" id="ni-status"></div>
     <a class="btn-compartir-wa" id="ni-btn-whatsapp" href="#" target="_blank" style="display:none;margin-bottom:10px;">📲 Enviar mensaje de bienvenida por WhatsApp</a>
     <a class="btn-compartir-wa" id="ni-btn-whatsapp-asistente" href="#" target="_blank" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);">📲 Notificar al Asistente CE</a>
-    <a class="btn-compartir-wa" id="ni-btn-whatsapp-maestro" href="#" target="_blank" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);">📲 Notificar al Maestro</a>
+    <button type="button" class="btn-compartir-wa" id="ni-btn-whatsapp-maestro" onclick="niNotificarMaestro()" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:none;cursor:pointer;">📲 Notificar al Maestro</button>
     <div id="ni-bloque-elegir-colocador" style="display:none;margin-bottom:10px;">
       <span class="monto-label">¿Quién atenderá esta colocación?</span>
       <div id="ni-lista-colocadores" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
@@ -1495,14 +1495,17 @@ function confirmarNuevaInscripcion() {
       } else {
         btnAsis.style.display = 'none';
       }
-      var btnMae = document.getElementById('ni-btn-whatsapp-maestro');
-      if (data.maestro && data.maestro.whatsapp) {
-        var msgMae = 'Hola ' + data.maestro.nombre + ', hay un nuevo alumno en tu grupo ' + idGrupoEnviar + ': ' + nombre + '. Ya cuenta con acceso a su panel personal.';
-        btnMae.href = 'https://wa.me/' + cleanWA(data.maestro.whatsapp) + '?text=' + encodeURIComponent(msgMae);
-        btnMae.style.display = '';
-      } else {
-        btnMae.style.display = 'none';
-      }
+     var btnMae = document.getElementById('ni-btn-whatsapp-maestro');
+if (!esColocacion) {
+  niMaestroData = {
+    maestro: data.maestro || null,
+    alumnoNombre: nombre,
+    idGrupo: idGrupoEnviar
+  };
+  btnMae.style.display = '';   // siempre visible en inscripción directa
+} else {
+  btnMae.style.display = 'none'; // en colocación no aplica, se usa el botón de colocador
+}
 
       // Notificar al Maestro de Colocación (solo aplica en colocación)
       var btnCol = document.getElementById('ni-btn-whatsapp-colocador');
@@ -1598,6 +1601,16 @@ function cerrarModalEditarAlumno() {
   document.getElementById('modalEditarAlumno').classList.remove('active');
 }
 
+function niNotificarMaestro() {
+  var m = niMaestroData && niMaestroData.maestro;
+  if (m && m.whatsapp) {
+    var msgMae = 'Hola ' + m.nombre + ', hay un nuevo alumno en tu grupo ' + niMaestroData.idGrupo + ': ' + niMaestroData.alumnoNombre + '. Ya cuenta con acceso a su panel personal.';
+    window.open('https://wa.me/' + cleanWA(m.whatsapp) + '?text=' + encodeURIComponent(msgMae), '_blank');
+  } else {
+    alert('Este grupo aún no tiene un maestro asignado (o no tiene WhatsApp registrado), así que no se puede notificar todavía. En cuanto se asigne, podrás avisarle desde aquí.');
+  }
+}
+ 
 function guardarEdicionAlumno() {
   var a = misAlumnosCache[eaIdxActual];
   if (!a) return;
