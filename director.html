@@ -608,8 +608,10 @@
 
   function tablaPersonal(id, cols, filas) {
     var el = document.getElementById(id);
-    if (!filas||!filas.length){ el.innerHTML='<div class="tabla-wrap"><div class="loading">Sin registros.</div></div>'; return; }
-    var html = '<div class="tabla-wrap"><table><thead><tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    var periodo = (directorCache && directorCache.financiero && directorCache.financiero.periodo) || '';
+    var etiquetaPeriodo = periodo ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;padding:6px 12px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:100px;display:inline-block;">📅 Datos de la catorcena: <strong style="color:#fb923c;">'+periodo+'</strong></div>' : '';
+    if (!filas||!filas.length){ el.innerHTML=etiquetaPeriodo+'<div class="tabla-wrap"><div class="loading">Sin registros.</div></div>'; return; }
+    var html = etiquetaPeriodo+'<div class="tabla-wrap"><table><thead><tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
     filas.forEach(function(f){ html += '<tr>'+f.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>'; });
     el.innerHTML = html + '</tbody></table></div>';
   }
@@ -663,7 +665,7 @@
   }
 
   function renderAsesores(asesores) {
-    tablaPersonal('tab-asesores',['Asesor','Inscritos esta semana','Comisión x inscripción','Comisión semana','Contacto'],
+    tablaPersonal('tab-asesores',['Asesor','Inscritos esta catorcena','Comisión x inscripción','Comisión catorcena','Contacto'],
       (asesores||[]).map(function(a){return[
         fotoCell(a.foto,a.nombre,a.id),
         '<span class="chip chip-orange">'+a.inscritos+' alumnos</span>',
