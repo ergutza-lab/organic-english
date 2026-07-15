@@ -715,8 +715,26 @@ function renderFiltroAsesores() {
   }).join('');
 }
 
-function abrirHistoricoAsesor(id, nombre) {
-  document.getElementById('tituloHistoricoAsesor').textContent = 'Histórico — ' + nombre;
+function cambiarActivoAsesor(idAsesor, nuevoValor, nombre) {
+  var accion = nuevoValor ? 'activar' : 'desactivar';
+  if (!confirm('¿Seguro que quieres ' + accion + ' a ' + nombre + '?')) return;
+
+  fetch(APPS + '?action=toggleActivoAsesor&idAsesor=' + encodeURIComponent(idAsesor) + '&activo=' + nuevoValor, {redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      if (d.status === 'ok') {
+        cargarDatos(); // refresca todo, incluyendo la lista de asesores ya actualizada
+      } else {
+        alert('No se pudo actualizar: ' + (d.mensaje || 'error desconocido'));
+      }
+    })
+    .catch(function() {
+      alert('Error de conexión al intentar ' + accion + ' al asesor.');
+    });
+}
+
+function abrirHistoricoAsesor(id, nombre, totalAlumnos) {
+  document.getElementById('tituloHistoricoAsesor').textContent = 'Histórico — ' + nombre + ' (' + totalAlumnos + ' alumnos inscritos en total)';
   document.getElementById('cuerpoHistoricoAsesor').innerHTML = '<div style="text-align:center;color:#64748b;padding:20px;">Cargando...</div>';
   document.getElementById('modalHistoricoAsesor').style.display = 'flex';
 
@@ -813,10 +831,10 @@ function renderAsesores() {
     var totalAlumnosA = (a.alumnosActivos||0) + (a.alumnosBaja||0);
     var retencion = totalAlumnosA > 0 ? Math.round((a.alumnosActivos/totalAlumnosA)*100) : null;
     var sinComisionAlerta = a.activo && (a.comisionCatorcena||0) === 0;
-    var medalla = medallas[a.id] ? ' ' + medallas[a.id] : '';
+    var medalla = medallas[a.id] ? ' <span style="font-size:22px;vertical-align:middle;">' + medallas[a.id] + '</span>' : '';
 
     html +=
-      '<div style="background:#1a2540;border:1px solid ' + (sinComisionAlerta ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)') + ';border-radius:14px;padding:14px 20px;display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:14px;">' +
+      '<div style="background:#1a2540;border:1px solid ' + (sinComisionAlerta ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)') + ';border-radius:14px;padding:14px 20px;display:grid;grid-template-columns:250px 1fr auto auto auto;align-items:center;gap:14px;">' +
 
         // Avatar + nombre
         '<div style="display:flex;align-items:center;gap:12px;">' +
@@ -824,9 +842,7 @@ function renderAsesores() {
           '<div>' +
             '<div style="font-size:14px;font-weight:700;color:#f1f5f9;line-height:1.3;">' + a.nombre + medalla + '</div>' +
             '<div style="font-size:11px;color:#475569;margin-top:2px;">' + a.id +
-              (a.activo
-                ? ' &nbsp;<span style="color:#22c55e;font-weight:700;">● Activo</span>'
-                : ' &nbsp;<span style="color:#ef4444;font-weight:700;">● Inactivo</span>') +
+              ' &nbsp;<button onclick="cambiarActivoAsesor(\'' + a.id + '\',' + (!a.activo) + ',\'' + a.nombre.replace(/'/g,"\\'") + '\')" style="border:none;background:none;padding:0;cursor:pointer;font-size:11px;font-weight:700;' + (a.activo ? 'color:#22c55e;' : 'color:#ef4444;') + '" title="Clic para ' + (a.activo?'desactivar':'activar') + '">● ' + (a.activo ? 'Activo' : 'Inactivo') + '</button>' +
             '</div>' +
             (a.whatsapp ? '<div style="font-size:11px;color:#475569;margin-top:1px;">📱 ' + a.whatsapp + '</div>' : '') +
             (sinComisionAlerta ? '<div style="font-size:10px;color:#ef4444;font-weight:700;margin-top:2px;">⚠ Sin comisión esta catorcena</div>' : '') +
@@ -857,7 +873,7 @@ function renderAsesores() {
         '</div>' +
 
         // Boton historico
-        '<button onclick="abrirHistoricoAsesor(\'' + a.id + '\',\'' + a.nombre.replace(/'/g,"\\'") + '\')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;padding:9px 14px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📊 Histórico</button>' +
+        '<button onclick="abrirHistoricoAsesor(\'' + a.id + '\',\'' + a.nombre.replace(/'/g,"\\'") + '\',' + totalAlumnosA + ')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;padding:9px 14px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📊 Histórico</button>' +
 
         // Botón WhatsApp
         '<div>' +
