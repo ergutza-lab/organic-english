@@ -563,10 +563,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <!-- TAB: PAGOS ALUMNOS -->
     <div id="sec-pagos-alumnos" class="seccion">
       <div class="card">
-        <div class="card-header">
-          <div><div class="card-titulo">Pagos de alumnos</div><div class="card-sub">Listado completo de pagos registrados — da clic en "Editar" para modificar cualquier dato</div></div>
-          <input class="filtro-input" type="text" placeholder="Buscar por nombre o ID..." id="filtro-pagos-alumnos" oninput="filtrarPagosAlumnos()" />
-        </div>
+        <div class="card-header"><div><div class="card-titulo">Pagos de alumnos</div><div class="card-sub">Listado completo de pagos registrados — da clic en "Editar" para modificar cualquier dato</div></div></div>
         <div class="pa-encabezados">
           <span class="pa-fila-id">ID</span>
           <span class="pa-fila-nombre">Nombre</span>
@@ -656,6 +653,24 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   </div>
 </div>
 
+<!-- MODAL: CANCELAR GRUPO -->
+<div class="modal-overlay" id="modal-cancelar-grupo">
+  <div class="modal-cancelar-box">
+    <div class="modal-cancelar-icono">🚫</div>
+    <div class="modal-cancelar-titulo">Cancelar grupo</div>
+    <div class="modal-cancelar-info">
+      <strong id="cancelar-grupo-id">—</strong>
+      <span id="cancelar-grupo-detalle">—</span>
+      <br><br>Esta acción cambiará el estado del grupo a <strong>Cancelado</strong>. No se puede deshacer.
+    </div>
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-cancelar-grupo')">No cancelar</button>
+      <button class="btn btn-rojo" id="btn-confirmar-cancelar" style="display:none;">Sí, cancelar grupo</button>
+    </div>
+    <div class="modal-msg" id="modal-cancelar-msg"></div>
+  </div>
+</div>
+
 <!-- MODAL: EVALUAR ASISTENTE CE -->
 <div class="modal-overlay" id="modal-evaluar">
   <div class="modal" style="max-width:480px">
@@ -700,6 +715,7 @@ var estado = {
   grupos:[], asistentes:[], sinAsistente:[],
   todosAlumnos:[], alertasFusion:[],
   grupoEnModal:'', alumnoEnModal:'',
+  grupoCancelarEnModal:'',
   asisEvalEnModal:'',
   evalActitud:0, evalServicio:0,
   evaluaciones:{}
@@ -710,35 +726,6 @@ function api(params) {
     return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
   }).join('&');
   return fetch(url, { redirect:'follow' }).then(function(r) { return r.json(); });
-}
-
-// Envía datos sensibles (contraseñas, información bancaria) en el cuerpo POST
-// en vez de la URL, para que no queden expuestos en historial del navegador
-// ni en logs de acceso. Requiere que el Apps Script tenga un doPost(e) que
-// lea e.postData.contents como JSON (ver nota al final del archivo).
-function apiPost(params) {
-  return fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(params)
-  }).then(function(r) { return r.json(); });
-}
-
-// Escapa HTML para evitar que nombres/textos con comillas o < > rompan el
-// markup o los atributos onclick, y evita inyección de HTML/JS desde datos.
-function esc(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-// Variante para usar dentro de atributos onclick="...('valor')" — escapa
-// comillas simples sin convertir &, para no romper el string de JS inline.
-function escJs(str) {
-  if (str === null || str === undefined) return '';
-  return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 function nombreColor(nombre) {
@@ -759,7 +746,7 @@ function iniciarLogin() {
   var errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
   if (!id || !clave) { errEl.textContent='Ingresa tu ID y clave.'; errEl.style.display='block'; return; }
-  apiPost({ action:'loginCE', id:id, clave:clave }).then(function(res) {
+  api({ action:'loginCE', id:id, clave:clave }).then(function(res) {
     if (res.ok) {
       estado.idCE = id; estado.nombreCE = res.nombre;
       document.getElementById('badge-id-ce').textContent = id;
@@ -877,22 +864,22 @@ function renderGrupos(filtro) {
     else if (inscritos>=1) chipEstado='<span class="chip" style="background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd">Para fusión</span>';
     else                   chipEstado='<span class="chip chip-gris">Sin alumnos</span>';
     var chipAsi = g.idAsistente
-      ? '<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>'
+      ? '<span class="chip chip-azul">'+g.idAsistente+'</span>'
       : '<span class="chip chip-naranja">Sin asignar</span>';
     var btnWA = inscritos===0
-      ? ' <button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+escJs(g.id)+'\')">Notificar al Coord. IT</button>'
+      ? ' <button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+g.id+'\')">Notificar al Coord. IT</button>'
       : '';
     var colorNombre = nombreColor(g.nombre);
-    return '<tr style="cursor:pointer" onclick="abrirModalAlumnosGrupo(\''+escJs(g.id)+'\')" title="Ver alumnos del grupo">'+
-      '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
-      '<td>'+esc(g.nivel)+'</td>'+
-      '<td><span style="'+colorNombre+'">'+esc(g.nombre)+'</span></td>'+
-      '<td>'+esc(g.horario)+'</td>'+
+    return '<tr style="cursor:pointer" onclick="abrirModalAlumnosGrupo(\''+g.id+'\')" title="Ver alumnos del grupo">'+
+      '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+g.id+'</strong></td>'+
+      '<td>'+g.nivel+'</td>'+
+      '<td><span style="'+colorNombre+'">'+g.nombre+'</span></td>'+
+      '<td>'+g.horario+'</td>'+
       '<td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
-      '<td><strong>'+esc(g.inscritos)+'</strong> / '+esc(g.cupoMax)+'</td>'+
+      '<td><strong>'+g.inscritos+'</strong> / '+g.cupoMax+'</td>'+
       '<td>'+chipEstado+'</td>'+
       '<td>'+chipAsi+'</td>'+
-      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnWA+'</td>'+
+      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="abrirModalAsignar(\''+g.id+'\')">Asignar CE</button>'+btnWA+'</td>'+
     '</tr>';
   }).join('');
 }
@@ -904,23 +891,23 @@ function renderAsistentes() {
   if (!estado.asistentes.length) { grid.innerHTML='<div class="vacio">Sin asistentes registrados</div>'; return; }
   grid.innerHTML = estado.asistentes.map(function(a) {
     var foto = a.fotoUrl
-      ? '<img src="'+esc(a.fotoUrl)+'" class="asistente-foto" alt="'+esc(a.nombre)+'" onerror="this.style.background=\'#e8ecf8\'" />'
-      : '<div class="asistente-foto" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#1c2b5e;font-size:1.1rem">'+esc(a.nombre[0]||'?')+'</div>';
+      ? '<img src="'+a.fotoUrl+'" class="asistente-foto" alt="'+a.nombre+'" onerror="this.style.background=\'#e8ecf8\'" />'
+      : '<div class="asistente-foto" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#1c2b5e;font-size:1.1rem">'+(a.nombre[0]||'?')+'</div>';
     var ev = estado.evaluaciones[a.id];
     var evalHtml = '';
     if (ev && ev.totalEvals>0) {
       var ultima = ev.evaluaciones[0];
-      evalHtml = '<div class="asistente-eval"><span class="eval-promedio"><span class="estrella">★</span> '+esc(ev.promedioGeneral)+' promedio ('+esc(ev.totalEvals)+' eval'+(ev.totalEvals!==1?'s':'')+')</span></div>'+
-        '<div style="font-size:.72rem;color:var(--gris);margin-top:.2rem">Última: '+esc(ultima.fecha)+' · Actitud '+esc(ultima.actitud)+'★ · Servicio '+esc(ultima.servicio)+'★</div>';
+      evalHtml = '<div class="asistente-eval"><span class="eval-promedio"><span class="estrella">★</span> '+ev.promedioGeneral+' promedio ('+ev.totalEvals+' eval'+(ev.totalEvals!==1?'s':'')+')</span></div>'+
+        '<div style="font-size:.72rem;color:var(--gris);margin-top:.2rem">Última: '+ultima.fecha+' · Actitud '+ultima.actitud+'★ · Servicio '+ultima.servicio+'★</div>';
     } else {
       evalHtml = '<div class="asistente-eval"><span class="eval-promedio sin-eval">Sin evaluaciones aún</span></div>';
     }
     return '<div class="asistente-card" style="flex-direction:column;align-items:flex-start;gap:.5rem">'+
       '<div style="display:flex;align-items:center;gap:.75rem;width:100%">'+foto+
-        '<div class="asistente-info"><div class="asistente-nombre">'+esc(a.nombre)+'</div><div class="asistente-id">'+esc(a.id)+'</div>'+
-        '<div class="asistente-grupos">'+esc(a.grupos)+' grupos</div></div></div>'+
+        '<div class="asistente-info"><div class="asistente-nombre">'+a.nombre+'</div><div class="asistente-id">'+a.id+'</div>'+
+        '<div class="asistente-grupos">'+a.grupos+' grupos</div></div></div>'+
       evalHtml+
-      '<button class="btn-evaluar" onclick="abrirModalEvaluar(\''+escJs(a.id)+'\',\''+escJs(a.nombre)+'\')">+ Evaluar esta semana</button>'+
+      '<button class="btn-evaluar" onclick="abrirModalEvaluar(\''+a.id+'\',\''+a.nombre.replace(/'/g,'')+'\')">+ Evaluar esta semana</button>'+
     '</div>';
   }).join('');
 }
@@ -948,11 +935,11 @@ function renderSeguimiento(filtroTexto, filtroSit) {
     } else if (a.estatus==='Baja') {
       chipEstatus = '<span class="chip chip-gris">Baja</span>';
     } else {
-      chipEstatus = '<span class="chip chip-gris">'+esc(a.estatus)+'</span>';
+      chipEstatus = '<span class="chip chip-gris">'+a.estatus+'</span>';
     }
     // Becados no tienen fecha de vencimiento
     var pagoHasta = esBecado ? '<span style="color:var(--oro-text);font-size:.78rem">Beca vigente</span>' : (a.periodoFin ? formatFecha(a.periodoFin) : '—');
-    var chipSit = '<span class="chip '+sit.chipClass+'">'+esc(sit.etiqueta)+'</span>';
+    var chipSit = '<span class="chip '+sit.chipClass+'">'+sit.etiqueta+'</span>';
 
     // Acciones según situación
     var accionPago = '';
@@ -962,14 +949,14 @@ function renderSeguimiento(filtroTexto, filtroSit) {
       var wa=(a.whatsappCE||'').replace(/\D/g,'');
       var msg=encodeURIComponent('Hola, te contacto sobre el alumno '+a.nombre+' ('+a.idAlumno+') del grupo '+a.idGrupo+'. Su situación de pago requiere atención.');
       if (wa) accionPago='<a href="https://wa.me/'+cleanWA(wa)+'?text='+msg+'" target="_blank" class="btn btn-verde btn-sm">Contactar CE</a>';
-      else    accionPago='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+escJs(a.idAlumno)+'\',\''+escJs(a.nombre)+'\')">Cambiar grupo</button>';
+      else    accionPago='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
     } else if (sit.clave==='vigente') {
-      accionPago='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+escJs(a.idAlumno)+'\',\''+escJs(a.nombre)+'\')">Cambiar grupo</button>';
+      accionPago='<button class="btn btn-outline btn-sm" onclick="abrirModalCambioGrupo(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\')">Cambiar grupo</button>';
     }
 
     // Botón cambiar estatus — disponible para todos
     var btnEstatus = '<button class="btn btn-sm" style="background:#1c2b5e;color:#fff;border:none;" '
-      + 'onclick="abrirModalEstatus(\''+escJs(a.idAlumno)+'\',\''+escJs(a.nombre)+'\',\''+escJs(a.estatus)+'\',\''+escJs((a.whatsapp||'').replace(/\D/g,''))+'\',\''+escJs(a.email||'')+'\')">&#9998; Estatus</button>';
+      + 'onclick="abrirModalEstatus(\''+a.idAlumno+'\',\''+a.nombre.replace(/'/g,"\\'")+'\',\''+a.estatus+'\',\''+(a.whatsapp||'').replace(/\D/g,'')+'\',\''+(a.email||'')+'\')">&#9998; Estatus</button>';
 
     var accion = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
       + (accionPago ? accionPago : '')
@@ -977,9 +964,9 @@ function renderSeguimiento(filtroTexto, filtroSit) {
       + '</div>';
 
     return '<tr>'+
-      '<td><span class="chip chip-azul">'+esc(a.idAlumno)+'</span></td>'+
-      '<td><strong style="cursor:pointer;color:var(--azul);text-decoration:underline dotted;" onclick="abrirFichaAlumno(\''+escJs(a.idAlumno)+'\')">'+esc(a.nombre)+'</strong>'+(a.observaciones?'<span title="'+esc(a.observaciones)+'" style="margin-left:5px;cursor:help;font-size:.75rem;background:rgba(251,146,60,0.15);color:#fb923c;border-radius:4px;padding:1px 5px;font-weight:700;" >nota</span>':'')+'</td>'+
-      '<td><span class="chip chip-gris">'+esc(a.idGrupo)+'</span></td>'+
+      '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
+      '<td><strong style="cursor:pointer;color:var(--azul);text-decoration:underline dotted;" onclick="abrirFichaAlumno(\''+a.idAlumno+'\')">'+a.nombre+'</strong>'+(a.observaciones?'<span title="'+a.observaciones.replace(/"/g,'&quot;')+'" style="margin-left:5px;cursor:help;font-size:.75rem;background:rgba(251,146,60,0.15);color:#fb923c;border-radius:4px;padding:1px 5px;font-weight:700;" >nota</span>':'')+'</td>'+
+      '<td><span class="chip chip-gris">'+a.idGrupo+'</span></td>'+
       '<td>'+chipEstatus+'</td>'+
       '<td style="font-size:.82rem;color:var(--gris)">'+pagoHasta+'</td>'+
       '<td>'+chipSit+'</td>'+
@@ -1121,15 +1108,15 @@ function renderAlertas() {
       var alumnosGrupo = estado.todosAlumnos.filter(function(a){return a.idGrupo===g.id;});
       var listaAlumnos = alumnosGrupo.length ? alumnosGrupo.map(function(a){return a.idAlumno+' '+a.nombre;}).join(', ') : 'ver panel';
       var btnWhats = whatsapp
-        ? '<button class="btn btn-verde btn-sm" onclick="avisarFusionWhats(\''+escJs(g.id)+'\',\''+escJs(whatsapp)+'\',\''+escJs(g.inscritos)+'\',\''+escJs(listaAlumnos)+'\')">Avisar al CE por WhatsApp</button>'
+        ? '<button class="btn btn-verde btn-sm" onclick="avisarFusionWhats(\''+g.id+'\',\''+whatsapp+'\',\''+g.inscritos+'\',\''+listaAlumnos.replace(/'/g,'')+'\')">Avisar al CE por WhatsApp</button>'
         : '<span class="chip chip-gris">Sin CE asignado</span>';
       var colorNombre = nombreColor(g.nombre);
-      return '<tr><td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
-        '<td>'+esc(g.nivel)+'</td>'+
-        '<td><span style="'+colorNombre+'">'+esc(g.nombre)+'</span></td>'+
-        '<td>'+esc(g.horario)+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
-        '<td><span class="chip chip-rojo">'+esc(g.inscritos)+' alumno(s)</span></td>'+
-        '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
+      return '<tr><td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+g.id+'</strong></td>'+
+        '<td>'+g.nivel+'</td>'+
+        '<td><span style="'+colorNombre+'">'+g.nombre+'</span></td>'+
+        '<td>'+g.horario+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
+        '<td><span class="chip chip-rojo">'+g.inscritos+' alumno(s)</span></td>'+
+        '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+g.idAsistente+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
         '<td>'+btnWhats+'</td></tr>';
     }).join('');
   }
@@ -1143,13 +1130,13 @@ function renderAlertas() {
     tbodyC.innerHTML = cancelables.map(function(g) {
       var colorNombre = nombreColor(g.nombre);
       return '<tr>'+
-        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
-        '<td>'+esc(g.nivel)+'</td>'+
-        '<td><span style="'+colorNombre+'">'+esc(g.nombre)+'</span></td>'+
-        '<td>'+esc(g.horario)+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
-        '<td><span class="chip chip-gris">'+esc(g.idMaestro||'—')+'</span></td>'+
-        '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
-        '<td><button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+escJs(g.id)+'\')">Notificar al Coord. IT</button></td>'+
+        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+g.id+'</strong></td>'+
+        '<td>'+g.nivel+'</td>'+
+        '<td><span style="'+colorNombre+'">'+g.nombre+'</span></td>'+
+        '<td>'+g.horario+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
+        '<td><span class="chip chip-gris">'+(g.idMaestro||'—')+'</span></td>'+
+        '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+g.idAsistente+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
+        '<td><button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+g.id+'\')">Notificar al Coord. IT</button></td>'+
       '</tr>';
     }).join('');
   }
@@ -1162,12 +1149,12 @@ function renderAlertas() {
     tbodyS.innerHTML = estado.sinAsistente.map(function(g) {
       var colorNombre = nombreColor(g.nombre);
       return '<tr>'+
-        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
-        '<td>'+esc(g.nivel)+'</td>'+
-        '<td><span style="'+colorNombre+'">'+esc(g.nombre)+'</span></td>'+
-        '<td>'+esc(g.horario)+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
-        '<td><strong>'+esc(g.inscritos)+'</strong> / '+esc(g.cupoMax)+'</td>'+
-        '<td><button class="btn btn-naranja btn-sm" onclick="abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar ahora</button></td>'+
+        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+g.id+'</strong></td>'+
+        '<td>'+g.nivel+'</td>'+
+        '<td><span style="'+colorNombre+'">'+g.nombre+'</span></td>'+
+        '<td>'+g.horario+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
+        '<td><strong>'+g.inscritos+'</strong> / '+g.cupoMax+'</td>'+
+        '<td><button class="btn btn-naranja btn-sm" onclick="abrirModalAsignar(\''+g.id+'\')">Asignar ahora</button></td>'+
       '</tr>';
     }).join('');
   }
@@ -1181,10 +1168,10 @@ function renderAlertas() {
     tbodyB.innerHTML = becados.map(function(a) {
       var grupo = estado.grupos.find(function(g){ return g.id === a.idGrupo; });
       return '<tr>'+
-        '<td><span class="chip chip-azul">'+esc(a.idAlumno)+'</span></td>'+
-        '<td><strong>'+esc(a.nombre)+'</strong></td>'+
-        '<td><span class="chip chip-gris">'+esc(a.idGrupo)+'</span></td>'+
-        '<td>'+esc(grupo?grupo.nivel:'—')+'</td>'+
+        '<td><span class="chip chip-azul">'+a.idAlumno+'</span></td>'+
+        '<td><strong>'+a.nombre+'</strong></td>'+
+        '<td><span class="chip chip-gris">'+a.idGrupo+'</span></td>'+
+        '<td>'+(grupo?grupo.nivel:'—')+'</td>'+
       '</tr>';
     }).join('');
   }
@@ -1249,6 +1236,26 @@ function confirmarCambioGrupo() {
   });
 }
 
+// ── MODAL CANCELAR GRUPO ──
+function abrirModalCancelar(idGrupo, nombre, horario, nivel, idMaestro) {
+  estado.grupoCancelarEnModal = idGrupo;
+  document.getElementById('cancelar-grupo-id').textContent    = idGrupo+' — '+nombre;
+  document.getElementById('cancelar-grupo-detalle').textContent = nivel+' · '+horario+(idMaestro?' · Maestro: '+idMaestro:'');
+  document.getElementById('modal-cancelar-msg').className = 'modal-msg';
+  document.getElementById('modal-cancelar-msg').textContent = '';
+  document.getElementById('btn-confirmar-cancelar').disabled = false;
+  document.getElementById('btn-confirmar-cancelar').textContent = 'Sí, cancelar grupo';
+  document.getElementById('modal-cancelar-grupo').classList.add('abierto');
+}
+function confirmarCancelacion() {
+  var btn=document.getElementById('btn-confirmar-cancelar'), msgEl=document.getElementById('modal-cancelar-msg');
+  btn.textContent='Cancelando...'; btn.disabled=true;
+  api({ action:'cancelarGrupo', idGrupo:estado.grupoCancelarEnModal, idCE:estado.idCE }).then(function(res) {
+    if (res.ok) { msgEl.textContent='Grupo cancelado.'; msgEl.className='modal-msg ok'; setTimeout(function(){cerrarModal('modal-cancelar-grupo');cargarDatos();},2000); }
+    else { msgEl.textContent=res.error||'Error al cancelar.'; msgEl.className='modal-msg error'; btn.textContent='Sí, cancelar grupo'; btn.disabled=false; }
+  }).catch(function() { msgEl.textContent='Error de conexión.'; msgEl.className='modal-msg error'; btn.textContent='Sí, cancelar grupo'; btn.disabled=false; });
+}
+
 // ── HELPERS ──
 function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
   var mensaje='Hola, te informo que el grupo '+idGrupo+' tiene '+inscritos+' alumno(s) activo(s) y sera fusionado. Por favor gestiona el cambio de: '+listaAlumnos;
@@ -1258,18 +1265,18 @@ function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
 function poblarSelectAsistentes() {
   var sel=document.getElementById('modal-select-asistente');
   sel.innerHTML='<option value="">-- Elige asistente --</option>';
-  estado.asistentes.forEach(function(a){ sel.innerHTML+='<option value="'+esc(a.id)+'">'+esc(a.id)+' — '+esc(a.nombre)+' ('+esc(a.grupos)+' grupos)</option>'; });
+  estado.asistentes.forEach(function(a){ sel.innerHTML+='<option value="'+a.id+'">'+a.id+' — '+a.nombre+' ('+a.grupos+' grupos)</option>'; });
 }
 function poblarSelectAsistentesForm() {
   var sel=document.getElementById('ng-asistente');
   sel.innerHTML='<option value="">-- Selecciona asistente --</option>';
-  estado.asistentes.forEach(function(a){ sel.innerHTML+='<option value="'+esc(a.id)+'">'+esc(a.id)+' — '+esc(a.nombre)+' ('+esc(a.grupos)+' grupos)</option>'; });
+  estado.asistentes.forEach(function(a){ sel.innerHTML+='<option value="'+a.id+'">'+a.id+' — '+a.nombre+' ('+a.grupos+' grupos)</option>'; });
 }
 function poblarSelectGruposDestino() {
   var sel=document.getElementById('modal-select-grupo-destino');
   sel.innerHTML='<option value="">-- Elige grupo --</option>';
   estado.grupos.filter(function(g){return g.estado!=='LLENO'&&g.estado!=='Cancelado';}).forEach(function(g){
-    sel.innerHTML+='<option value="'+esc(g.id)+'">'+esc(g.id)+' — '+esc(g.nombre||'')+' '+esc(g.horario)+' ('+esc(g.inscritos)+'/'+esc(g.cupoMax)+')</option>';
+    sel.innerHTML+='<option value="'+g.id+'">'+g.id+' — '+(g.nombre||'')+' '+g.horario+' ('+g.inscritos+'/'+g.cupoMax+')</option>';
   });
 }
 
@@ -1286,46 +1293,25 @@ function cargarPagosAlumnos() {
   api({ action: 'getPagosAlumnoCE' }).then(function (res) {
     if (!res.success) { lista.innerHTML = '<div class="cargando">Error al cargar.</div>'; return; }
     pagosAlumnosCache = res.pagos || [];
-    document.getElementById('filtro-pagos-alumnos').value = '';
-    renderPagosAlumnos();
+    if (!pagosAlumnosCache.length) {
+      lista.innerHTML = '<div class="cargando">No hay pagos registrados.</div>';
+      return;
+    }
+    lista.innerHTML = pagosAlumnosCache.map(function (p, idx) {
+      var fechaStr = p.fecha ? formatFecha(p.fecha) : '—';
+      var montoStr = '$' + (Number(p.monto) || 0);
+      return '<div class="pa-fila">' +
+        '<span class="pa-fila-id">' + p.idAlumno + '</span>' +
+        '<span class="pa-fila-nombre">' + (p.nombreAlumno || '—') + '</span>' +
+        '<span class="pa-fila-fecha">' + fechaStr + '</span>' +
+        '<span class="pa-fila-monto">' + montoStr + '</span>' +
+        '<a class="pa-fila-editar" onclick="abrirModalEditarPago(' + idx + ')">Editar</a>' +
+      '</div>';
+    }).join('');
   }).catch(function () {
     lista.innerHTML = '<div class="cargando">Error de conexión.</div>';
   });
 }
-
-function renderPagosAlumnos(filtro) {
-  var lista = document.getElementById('lista-pagos-alumnos');
-  if (!pagosAlumnosCache.length) {
-    lista.innerHTML = '<div class="cargando">No hay pagos registrados.</div>';
-    return;
-  }
-  // Guardamos el índice original de cada pago antes de filtrar, para que
-  // "Editar" siga apuntando al registro correcto de pagosAlumnosCache.
-  var filas = pagosAlumnosCache.map(function(p, idx){ return {p:p, idx:idx}; });
-  if (filtro) {
-    var f = filtro.toLowerCase();
-    filas = filas.filter(function(x){
-      return (x.p.idAlumno||'').toLowerCase().includes(f) || (x.p.nombreAlumno||'').toLowerCase().includes(f);
-    });
-  }
-  if (!filas.length) {
-    lista.innerHTML = '<div class="vacio">Sin pagos que coincidan con la búsqueda.</div>';
-    return;
-  }
-  lista.innerHTML = filas.map(function (x) {
-    var p = x.p, idx = x.idx;
-    var fechaStr = p.fecha ? formatFecha(p.fecha) : '—';
-    var montoStr = '$' + (Number(p.monto) || 0);
-    return '<div class="pa-fila">' +
-      '<span class="pa-fila-id">' + esc(p.idAlumno) + '</span>' +
-      '<span class="pa-fila-nombre">' + esc(p.nombreAlumno || '—') + '</span>' +
-      '<span class="pa-fila-fecha">' + fechaStr + '</span>' +
-      '<span class="pa-fila-monto">' + esc(montoStr) + '</span>' +
-      '<a class="pa-fila-editar" onclick="abrirModalEditarPago(' + idx + ')">Editar</a>' +
-    '</div>';
-  }).join('');
-}
-function filtrarPagosAlumnos() { renderPagosAlumnos(document.getElementById('filtro-pagos-alumnos').value); }
 
 function fechaParaInputDatetime(iso) {
   if (!iso) return '';
@@ -1366,7 +1352,7 @@ function guardarEdicionPago() {
   status.style.display = 'block'; status.style.color = '#666';
   status.textContent = 'Guardando...';
 
-  apiPost({
+  api({
     action: 'actualizarPagoAlumnoCE',
     idAlumno: p.idAlumno,
     fechaOriginal: p.fecha,
@@ -1377,11 +1363,7 @@ function guardarEdicionPago() {
     coberturaInicio: document.getElementById('ep-cobertura-inicio').value,
     coberturaFin: document.getElementById('ep-cobertura-fin').value,
     comentario: document.getElementById('ep-comentario').value.trim(),
-    idCE: estado.idCE,
-    // Auditoría automática: quién hizo esta edición y cuándo — independiente
-    // del campo "Validado por" (que es un dato de negocio, no de auditoría).
-    editadoPorCE: estado.idCE,
-    fechaEdicion: new Date().toISOString()
+    idCE: estado.idCE
   }).then(function (res) {
     if (res.success) {
       status.style.color = '#2e7d32';
@@ -1452,7 +1434,7 @@ function crearAsistente() {
   if (!nombre||!whatsapp||!email||!clave||!nomina||!banco||!infoBancaria) { msgEl.textContent='Completa todos los campos.'; msgEl.className='form-msg error'; return; }
   if (!/^\d{10}$/.test(whatsapp)) { msgEl.textContent='WhatsApp debe tener 10 dígitos.'; msgEl.className='form-msg error'; return; }
   var btn=document.querySelector('#sec-nuevo-asistente .btn-primario'); btn.textContent='Guardando...'; btn.disabled=true;
-  apiPost({ action:'crearAsistenteCE', nombre:nombre, whatsapp:whatsapp, email:email, clave:clave, nomina:nomina, banco:banco, infoBancaria:infoBancaria, foto:foto, idCE:estado.idCE }).then(function(res) {
+  api({ action:'crearAsistenteCE', nombre:nombre, whatsapp:whatsapp, email:email, clave:clave, nomina:nomina, banco:banco, infoBancaria:infoBancaria, foto:foto, idCE:estado.idCE }).then(function(res) {
     btn.textContent='Dar de alta'; btn.disabled=false;
     if (res.ok) { msgEl.textContent='Asistente '+res.idAsistente+' dado de alta.'; msgEl.className='form-msg ok'; limpiarFormAsistente(); cargarDatos(); }
     else { msgEl.textContent=res.error||'Error.'; msgEl.className='form-msg error'; }
@@ -1520,18 +1502,18 @@ function abrirModalAlumnosGrupo(idGrupo) {
         : a.estatus === 'Validado' ? '<span class="chip chip-azul">Validado</span>'
         : a.estatus === 'Pendiente' ? '<span class="chip chip-naranja">Pendiente</span>'
         : a.estatus === 'Baja' ? '<span class="chip chip-gris">Baja</span>'
-        : '<span class="chip chip-gris">' + esc(a.estatus) + '</span>';
+        : '<span class="chip chip-gris">' + a.estatus + '</span>';
       var pagoHasta = esBecado
         ? '<span style="color:var(--oro-text);font-size:.78rem">Beca vigente</span>'
         : (a.periodoFin ? formatFecha(a.periodoFin) : '—');
-      var chipSit = '<span class="chip ' + sit.chipClass + '">' + esc(sit.etiqueta) + '</span>';
+      var chipSit = '<span class="chip ' + sit.chipClass + '">' + sit.etiqueta + '</span>';
       var rowBg = sit.clave === 'vencido' ? 'background:rgba(220,38,38,0.04)'
         : sit.clave === 'proximo' ? 'background:rgba(217,119,6,0.04)'
         : sit.clave === 'becado' ? 'background:rgba(200,169,110,0.06)'
         : '';
       return '<tr style="border-bottom:1px solid var(--borde);' + rowBg + '">' +
-        '<td style="padding:.65rem 1rem"><span class="chip chip-azul">' + esc(a.idAlumno) + '</span></td>' +
-        '<td style="padding:.65rem 1rem"><strong>' + esc(a.nombre) + '</strong></td>' +
+        '<td style="padding:.65rem 1rem"><span class="chip chip-azul">' + a.idAlumno + '</span></td>' +
+        '<td style="padding:.65rem 1rem"><strong>' + a.nombre + '</strong></td>' +
         '<td style="padding:.65rem 1rem">' + chipEstatus + '</td>' +
         '<td style="padding:.65rem 1rem;font-size:.82rem;color:var(--gris)">' + pagoHasta + '</td>' +
         '<td style="padding:.65rem 1rem">' + chipSit + '</td>' +
@@ -1543,7 +1525,7 @@ function abrirModalAlumnosGrupo(idGrupo) {
 }
 
 function cerrarSesion() {
-  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:'',fichaAlumnoEnModal:''};
+  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:'',fichaAlumnoEnModal:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
@@ -1866,10 +1848,8 @@ function cerrarHorario() {
   document.body.style.overflow = '';
 }
 
-// Escuchar mensaje de cierre desde el iframe (solo si viene del mismo origen,
-// ya que horario.html se sirve desde este mismo dominio)
+// Escuchar mensaje de cierre desde el iframe
 window.addEventListener('message', function(e) {
-  if (e.origin !== window.location.origin) return;
   if (e.data === 'cerrarHorario') cerrarHorario();
 });
 
