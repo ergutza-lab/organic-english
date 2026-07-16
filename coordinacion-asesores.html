@@ -258,14 +258,22 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
 <div class="modal-bg" id="modalReporte" onclick="closeMbgReporte(event)">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-header">
-      <div><div class="modal-titulo">Mandar reporte</div><div class="modal-sub">Elige nivel y nombre de grupo para filtrar</div></div>
+      <div><div class="modal-titulo">Mandar reporte</div><div class="modal-sub">Elige tipo, nivel y nombre de grupo para filtrar</div></div>
       <button class="modal-x" onclick="closeModalReporte()">x</button>
     </div>
     <div class="modal-body">
       <div class="field">
+        <label>Tipo de grupo</label>
+        <select id="repTipo" onchange="poblarNivelesReporte()">
+          <option value="">-- Selecciona tipo --</option>
+          <option value="futuros">Grupos futuros (aun no inician)</option>
+          <option value="iniciados">Grupos ya iniciados</option>
+        </select>
+      </div>
+      <div class="field">
         <label>Nivel</label>
-        <select id="repNivel" onchange="poblarNombresReporte()">
-          <option value="">-- Selecciona nivel --</option>
+        <select id="repNivel" onchange="poblarNombresReporte()" disabled>
+          <option value="">-- Primero elige el tipo --</option>
         </select>
       </div>
       <div class="field">
@@ -628,6 +636,16 @@ function horarioAMinutos(h){
   return hh*60+mm;
 }
 
+// Determina si un grupo ya inicio (fechaInicio <= hoy) o es futuro
+function esGrupoIniciado(g){
+  var parts=(g.fechaInicio||'').split('/');
+  if(parts.length!==3) return false;
+  var d=new Date(parseInt(parts[2],10),parseInt(parts[1],10)-1,parseInt(parts[0],10));
+  d.setHours(0,0,0,0);
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  return d<=hoy;
+}
+
 function gruposConVacantes(){
   var out=[];
   dataMeses.forEach(function(mes){
@@ -638,23 +656,24 @@ function gruposConVacantes(){
   return out;
 }
 
+// Grupos con vacantes, filtrados por tipo (futuros / iniciados)
+function gruposPorTipo(tipo){
+  var out=gruposConVacantes();
+  if(tipo==='iniciados') out=out.filter(esGrupoIniciado);
+  else if(tipo==='futuros') out=out.filter(function(g){return !esGrupoIniciado(g);});
+  return out;
+}
+
 function abrirModalReporte(){
   var grupos=gruposConVacantes();
   if(!grupos.length){
     alert('No hay grupos con vacantes disponibles.');
     return;
   }
-  var niveles=[];
-  grupos.forEach(function(g){
-    var nv=(g.nivel||'').trim();
-    if(nv && niveles.indexOf(nv)===-1) niveles.push(nv);
-  });
-  niveles.sort();
-
+  document.getElementById('repTipo').value='';
   var selNivel=document.getElementById('repNivel');
-  selNivel.innerHTML='<option value="">-- Selecciona nivel --</option>'+
-    niveles.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('');
-
+  selNivel.innerHTML='<option value="">-- Primero elige el tipo --</option>';
+  selNivel.disabled=true;
   var selNombre=document.getElementById('repNombre');
   selNombre.innerHTML='<option value="">-- Primero elige un nivel --</option>';
   selNombre.disabled=true;
@@ -663,7 +682,41 @@ function abrirModalReporte(){
   document.getElementById('modalReporte').classList.add('open');
 }
 
+function poblarNivelesReporte(){
+  var tipo=document.getElementById('repTipo').value;
+  var selNivel=document.getElementById('repNivel');
+  var selNombre=document.getElementById('repNombre');
+  document.getElementById('repVacio').style.display='none';
+  selNombre.innerHTML='<option value="">-- Primero elige un nivel --</option>';
+  selNombre.disabled=true;
+
+  if(!tipo){
+    selNivel.innerHTML='<option value="">-- Primero elige el tipo --</option>';
+    selNivel.disabled=true;
+    return;
+  }
+
+  var grupos=gruposPorTipo(tipo);
+  var niveles=[];
+  grupos.forEach(function(g){
+    var nv=(g.nivel||'').trim();
+    if(nv && niveles.indexOf(nv)===-1) niveles.push(nv);
+  });
+  niveles.sort();
+
+  if(!niveles.length){
+    selNivel.innerHTML='<option value="">-- Sin grupos para este tipo --</option>';
+    selNivel.disabled=true;
+    return;
+  }
+
+  selNivel.innerHTML='<option value="">-- Selecciona nivel --</option>'+
+    niveles.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('');
+  selNivel.disabled=false;
+}
+
 function poblarNombresReporte(){
+  var tipo=document.getElementById('repTipo').value;
   var nivel=document.getElementById('repNivel').value;
   var selNombre=document.getElementById('repNombre');
   document.getElementById('repVacio').style.display='none';
@@ -675,7 +728,7 @@ function poblarNombresReporte(){
   }
 
   var nombres=[];
-  gruposConVacantes().forEach(function(g){
+  gruposPorTipo(tipo).forEach(function(g){
     if((g.nivel||'').trim()!==nivel) return;
     var nom=(g.nombre||'').trim();
     if(nom && nombres.indexOf(nom)===-1) nombres.push(nom);
@@ -697,15 +750,16 @@ function closeModalReporte(){document.getElementById('modalReporte').classList.r
 function closeMbgReporte(e){if(e.target===document.getElementById('modalReporte'))closeModalReporte();}
 
 function generarReporteFiltrado(){
+  var tipo=document.getElementById('repTipo').value;
   var nivel=document.getElementById('repNivel').value;
   var nombre=document.getElementById('repNombre').value;
 
-  if(!nivel||!nombre){
-    alert('Selecciona nivel y nombre de grupo antes de generar el reporte.');
+  if(!tipo||!nivel||!nombre){
+    alert('Selecciona tipo, nivel y nombre de grupo antes de generar el reporte.');
     return;
   }
 
-  var seleccionados=gruposConVacantes().filter(function(g){
+  var seleccionados=gruposPorTipo(tipo).filter(function(g){
     return (g.nivel||'').trim()===nivel && (g.nombre||'').trim()===nombre;
   });
 
@@ -756,9 +810,10 @@ function generarReporteFiltrado(){
     });
   });
 
+  var etiquetaTipo=tipo==='iniciados'?'GRUPOS YA INICIADOS':'GRUPOS FUTUROS';
   var sep='━━━━━━━━━━━━━━━━━━━━━━';
   var reporte=
-    '*REPORTE DE DISPONIBILIDAD*\n'+
+    '*REPORTE DE DISPONIBILIDAD -- '+etiquetaTipo+'*\n'+
     '*'+nivel+' · '+nombre+'*\n'+
     '*Organic English*  |  _'+fechaStr+'_  |  _'+horaStr+'_\n'+
     sep+
