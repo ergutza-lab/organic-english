@@ -884,45 +884,53 @@ function renderNuevos(){
 }
 
 function marcarPresentado(idAlumno, btn){
-  // Guardar en localStorage con clave por asistente (persiste en este dispositivo/navegador)
-  const _claveM = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
-  const presentados = JSON.parse(localStorage.getItem(_claveM) || '[]');
-  if(!presentados.includes(idAlumno)){
-    presentados.push(idAlumno);
-    localStorage.setItem(_claveM, JSON.stringify(presentados));
-  }
-  // Llamar al backend para persistir en Google Sheets (multi-dispositivo)
-  fetch(APPS_SCRIPT + '?action=marcarPresentado&idAlumno=' + encodeURIComponent(idAlumno) + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : ''))
-    .catch(function(e){ console.warn('No se pudo guardar presentado en servidor:', e); });
-  // Desaparecer la tarjeta con animacion suave
-  const card = btn ? btn.closest('.nuevo-card') : null;
-  if(card){
-    card.style.transition='opacity 0.35s ease, transform 0.35s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
-    card.style.opacity='0';
-    card.style.transform='translateX(40px)';
-    card.style.maxHeight=card.offsetHeight+'px';
-    setTimeout(function(){
-      card.style.maxHeight='0';
-      card.style.marginBottom='0';
-      card.style.padding='0';
-      card.style.overflow='hidden';
-    }, 340);
-    setTimeout(function(){
-      card.remove();
-      // Actualizar badge y resumen
-      renderResumen();
-      // Si no quedan tarjetas, mostrar estado vacio
-      var lista = document.getElementById('lista-nuevos');
-      if(lista && !lista.querySelector('.nuevo-card')){
-        lista.innerHTML='<div style="text-align:center;color:var(--gris-400);padding:24px;font-size:13px;">Sin alumnos nuevos pendientes de presentacion.</div>';
-      }
-    }, 750);
-  } else {
-    renderNuevos();
-  }
-  mostrarToast('Alumno marcado como presentado','success');
-}
+  if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
 
+  fetch(APPS_SCRIPT + '?action=marcarPresentado&idAlumno=' + encodeURIComponent(idAlumno) + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : ''))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data || data.ok !== true){
+        throw new Error(data && data.error ? data.error : 'Respuesta inválida del servidor');
+      }
+      // Solo si el backend confirmó, lo guardamos también en localStorage (respaldo local)
+      const _claveM = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+      const presentados = JSON.parse(localStorage.getItem(_claveM) || '[]');
+      if(!presentados.includes(idAlumno)){
+        presentados.push(idAlumno);
+        localStorage.setItem(_claveM, JSON.stringify(presentados));
+      }
+      // Desaparecer la tarjeta con animacion suave
+      const card = btn ? btn.closest('.nuevo-card') : null;
+      if(card){
+        card.style.transition='opacity 0.35s ease, transform 0.35s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
+        card.style.opacity='0';
+        card.style.transform='translateX(40px)';
+        card.style.maxHeight=card.offsetHeight+'px';
+        setTimeout(function(){
+          card.style.maxHeight='0';
+          card.style.marginBottom='0';
+          card.style.padding='0';
+          card.style.overflow='hidden';
+        }, 340);
+        setTimeout(function(){
+          card.remove();
+          renderResumen();
+          var lista = document.getElementById('lista-nuevos');
+          if(lista && !lista.querySelector('.nuevo-card')){
+            lista.innerHTML='<div style="text-align:center;color:var(--gris-400);padding:24px;font-size:13px;">Sin alumnos nuevos pendientes de presentacion.</div>';
+          }
+        }, 750);
+      } else {
+        renderNuevos();
+      }
+      mostrarToast('Alumno marcado como presentado','success');
+    })
+    .catch(function(e){
+      console.warn('No se pudo guardar presentado en servidor:', e);
+      if(btn){ btn.disabled=false; btn.textContent='✓ Listo'; }
+      mostrarToast('No se pudo guardar. Revisa tu conexión e intenta de nuevo.','error');
+    });
+}
 function renderAlertas(){
   const cont=document.getElementById('lista-alertas');
   const lista=datosPanel?.sin_pago||[];
