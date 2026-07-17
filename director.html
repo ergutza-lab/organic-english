@@ -312,7 +312,7 @@
     <div class="modal-header">
       <div class="modal-header-left">
         <div class="oe-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
-        <div><h3>Historico financiero</h3><p>Resumen catorcenal desde el inicio de operaciones</p></div>
+        <div><h3>Historico financiero</h3><p>Resumen semanal desde el inicio de operaciones</p></div>
       </div>
       <button class="btn-cerrar" onclick="cerrarHistorico()">Cerrar</button>
     </div>
@@ -609,7 +609,7 @@
   function tablaPersonal(id, cols, filas) {
     var el = document.getElementById(id);
     var periodo = (directorCache && directorCache.financiero && directorCache.financiero.periodo) || '';
-    var etiquetaPeriodo = periodo ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;padding:6px 12px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:100px;display:inline-block;">📅 Datos de la catorcena: <strong style="color:#fb923c;">'+periodo+'</strong></div>' : '';
+    var etiquetaPeriodo = periodo ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;padding:6px 12px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:100px;display:inline-block;">📅 Datos de la semana: <strong style="color:#fb923c;">'+periodo+'</strong></div>' : '';
     if (!filas||!filas.length){ el.innerHTML=etiquetaPeriodo+'<div class="tabla-wrap"><div class="loading">Sin registros.</div></div>'; return; }
     var html = etiquetaPeriodo+'<div class="tabla-wrap"><table><thead><tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
     filas.forEach(function(f){ html += '<tr>'+f.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>'; });
@@ -628,7 +628,7 @@
   }
 
   function renderMaestros(maestros) {
-    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','% Eval','Pago catorcena','Cuenta','Banco','Contacto'],
+    tablaPersonal('tab-maestros',['Maestro','Grupos','Clases','Costo/clase','% Eval','Pago semana','Cuenta','Banco','Contacto'],
       (maestros||[]).map(function(m){return[
         '<span style="cursor:pointer;color:#60a5fa;text-decoration:underline;" data-id="'+m.id+'" onclick="var _m=directorCache.maestros.find(function(x){return x.id===this.dataset.id;},this);if(_m)abrirEvalMaestro(_m);">'+fotoCell(m.foto,m.nombre,m.id)+'</span>', m.grupos,
         '<span class="chip chip-blue">'+m.clases+'</span>',
@@ -665,7 +665,7 @@
   }
 
   function renderAsesores(asesores) {
-    tablaPersonal('tab-asesores',['Asesor','Inscritos esta catorcena','Comisión x inscripción','Comisión catorcena','Contacto'],
+    tablaPersonal('tab-asesores',['Asesor','Inscritos esta semana','Comisión x inscripción','Comisión semana','Contacto'],
       (asesores||[]).map(function(a){return[
         fotoCell(a.foto,a.nombre,a.id),
         '<span class="chip chip-orange">'+a.inscritos+' alumnos</span>',
@@ -1330,7 +1330,7 @@
     historial.forEach(function(h, idx){
       var bal  = Number(h.balance)||0;
       var bCls = bal >= 0 ? 'td-green' : 'td-red';
-      var label = h.esInicial ? 'Periodo inicial ('+h.semana+')' : 'Catorcena '+h.semana;
+      var label = h.esInicial ? 'Periodo inicial ('+h.semana+')' : 'Semana '+h.semana;
       html += '<tr>' +
         '<td style="color:#fff;font-weight:500">'+label+'</td>' +
         '<td class="td-green">'+fmt(h.ingresos)+'</td>' +
@@ -1377,7 +1377,7 @@
 
     // Header
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #f97316;">';
-    html += '<div><img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logotransparente.png" style="height:52px;object-fit:contain;display:block;" /><div style="font-size:12px;color:#64748b;margin-top:6px;">Reporte Financiero Catorcenal</div></div>';
+    html += '<div><img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logotransparente.png" style="height:52px;object-fit:contain;display:block;" /><div style="font-size:12px;color:#64748b;margin-top:6px;">Reporte Financiero Semanal</div></div>';
     html += '<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#f97316;">'+titulo+'</div><div style="font-size:11px;color:#94a3b8;margin-top:3px;">Periodo: '+(d.periodo||'—')+'</div><div style="font-size:11px;color:#94a3b8;">Generado: '+fecha+'</div></div>';
     html += '</div>';
 
@@ -1416,7 +1416,7 @@
     // 4. Nomina asistentes CE
     html += seccion('4','EGRESOS — NOMINA ASISTENTES CE','#0369a1');
     html += tabla(
-      ['Asistente','ID','Sueldo Catorcena','Cuenta','Banco'],
+      ['Asistente','ID','Sueldo Semana','Cuenta','Banco'],
       (d.nominaAsistentes||[]).map(function(a){ return [a.nombre, a.id, fmt2(a.sueldo), a.cuenta||'—', a.banco||'—']; }),
       'SUBTOTAL ASISTENTES CE', fmt2(d.totalNominaAsistentes)
     );
@@ -1424,7 +1424,7 @@
     // 5. Nomina coordinadores
     html += seccion('5','EGRESOS — NOMINA COORDINADORES','#0f766e');
     html += tabla(
-      ['Coordinador','ID','Rol','Sueldo Catorcena','Cuenta','Banco'],
+      ['Coordinador','ID','Rol','Sueldo Semana','Cuenta','Banco'],
       (d.nominaCoordinadores||[]).map(function(c){
         return [c.nombre, c.id, c.rol, c.sueldo > 0 ? fmt2(c.sueldo) : '', c.cuenta||'—', c.banco||'—'];
       }),
@@ -1434,7 +1434,7 @@
     // 6. Nomina direccion
     html += seccion('6','EGRESOS — NOMINA DIRECCION','#92400e');
     html += tabla(
-      ['Director','ID','Sueldo Catorcena','Cuenta','Banco'],
+      ['Director','ID','Sueldo Semana','Cuenta','Banco'],
       (d.nominaDireccion||[]).map(function(dir){ return [dir.nombre, dir.id, fmt2(dir.sueldo), dir.cuenta||'—', dir.banco||'—']; }),
       'SUBTOTAL DIRECCION', fmt2(d.totalNominaDireccion)
     );
@@ -1470,7 +1470,7 @@
     fetch(APPS_SCRIPT + '?action=getDetalleCatorcenaActual').then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      generarReportePDF(d, 'Catorcena Actual');
+      generarReportePDF(d, 'Semana Actual');
     }).catch(function(e){ alert('Error de conexion: '+e.message); });
   }
 
@@ -1478,7 +1478,7 @@
     fetch(APPS_SCRIPT + '?action=getDetalleCatorcena&inicio='+encodeURIComponent(inicioISO)+'&fin='+encodeURIComponent(finISO)).then(r => r.text()).then(text => {
       var d = JSON.parse(text);
       if (!d.success) { alert('Error: '+(d.error||'')); return; }
-      generarReportePDF(d, 'Reporte Catorcenal');
+      generarReportePDF(d, 'Reporte Semanal');
     }).catch(function(e){ alert('Error: '+e.message); });
   }
 
