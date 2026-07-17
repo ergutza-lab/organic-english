@@ -834,8 +834,40 @@ function renderNuevos(){
   const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
   if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
+
+  // Parsear fecha dd/MM/yyyy a objeto Date para comparar
+  function parseFechaDMY(str){
+    if(!str) return null;
+    const p=str.split('/');
+    if(p.length!==3) return null;
+    const d=new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  const hoy=new Date();
+  hoy.setHours(0,0,0,0);
+  const listaGrupos=(datosPanel?.todos_grupos||datosPanel?.grupos||[]);
+
   cont.innerHTML=sinPresentar.map(a=>{
-    const msg=encodeURIComponent(`¡Hola ${a.nombre}! 👋 Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. 🎉\n\nEstoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. 😊\n\n📌 IMPORTANTE: Por favor sube tus comprobantes de pago desde tu panel personal. Después de subirlo, notifícame por aquí para que pueda validarlo y confirmar tu pago en el sistema.\n\n¡Bienvenido/a a Organic English!`);
+    const g=listaGrupos.find(gr=>gr.id===a.grupo)||{};
+    const idGrupo=g.id||a.grupo||'—';
+    const nivel=g.nivel||a.nivel||'—';
+    const horario=g.horario||a.horario||'—';
+    const fechaInicioGrupo=g.fecha_inicio||a.fecha_inicio||null;
+    const fechaGrupoObj=parseFechaDMY(fechaInicioGrupo);
+
+    // Si el grupo aún no comienza -> mostrar fecha de inicio del grupo
+    // Si el grupo ya comenzó -> mostrar fecha de inicio de vigencia del alumno (columna F "Vig_del" de PAGO_ALUMNO)
+    let etiquetaFecha, fechaMostrada;
+    if(fechaGrupoObj && fechaGrupoObj > hoy){
+      etiquetaFecha='Fecha de inicio de tu grupo';
+      fechaMostrada=fechaInicioGrupo;
+    }else{
+      etiquetaFecha='Fecha de inicio de tu vigencia';
+      fechaMostrada=a.Vig_del||'Pendiente de confirmar';
+    }
+
+    const msg=encodeURIComponent(`¡Hola ${a.nombre}! 👋 Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. 🎉\n\nEstoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. 😊\n\n📋 Datos de tu grupo:\n🆔 ID de grupo: ${idGrupo}\n📚 Nivel: ${nivel}\n🕒 Horario: ${horario}\n📅 ${etiquetaFecha}: ${fechaMostrada}\n\n📌 IMPORTANTE: Por favor sube tus comprobantes de pago desde tu panel personal. Después de subirlo, notifícame por aquí para que pueda validarlo y confirmar tu pago en el sistema.\n\n¡Bienvenido/a a Organic English!`);
     return `
     <div class="nuevo-card">
       <div class="nuevo-info">
