@@ -400,6 +400,7 @@
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="cerrarModalMaestro()">Cerrar</button>
       <button onclick="abrirDisponibilidad()" style="background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:8px;">&#128197; Disponibilidad</button>
+      <button onclick="abrirEditorDisponibilidad()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:8px;">&#128221; Registrar disponibilidad</button>
       <button class="btn-modal-confirm" id="btnWaMaestro" onclick="abrirWaMaestro()" style="background:#16a34a;">WhatsApp</button>
     </div>
   </div>
@@ -414,6 +415,22 @@
     </div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Horarios disponibles Lunes a Jueves. Verde = libre, naranja = ya tiene grupo asignado.</p>
     <div id="modalDisponibilidadBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Editor de disponibilidad registrada (dia x horario) -->
+<div id="modalEditorDisponibilidad" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h3 id="modalEditorDispTitulo" style="color:var(--text);margin:0;font-size:16px;">Registrar disponibilidad</h3>
+      <button onclick="document.getElementById('modalEditorDisponibilidad').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Marca los dias y horarios en los que este maestro puede dar clase. Esto se usara para sugerirlo (o no) al asignar grupos.</p>
+    <div id="modalEditorDispBody"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="guardarEditorDisponibilidad()" style="flex:1;background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Guardar disponibilidad</button>
+    </div>
+    <div id="editorDispStatus" style="font-size:12px;margin-top:8px;text-align:center;"></div>
   </div>
 </div>
 
@@ -505,7 +522,7 @@ function callASWithResponse(params, callback){
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
-var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[];
+var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
 
 // ── TABULADOR ──
 var NIVELES=[
@@ -582,18 +599,47 @@ function cargarDatos(callback){
       });
       renderEvaluaciones();
       poblarSelectGrupos();
-      fetch(APPS_SCRIPT+'?action=getHorariosBloqueados',{redirect:'follow'})
+      var pBloqueos = fetch(APPS_SCRIPT+'?action=getHorariosBloqueados',{redirect:'follow'})
         .then(function(r){ return r.json(); })
-        .then(function(bd){
-          bloqueosData = (bd.status==='ok') ? (bd.bloqueos||[]) : [];
-          if(typeof callback === 'function') callback();
-        })
-        .catch(function(){ bloqueosData=[]; if(typeof callback === 'function') callback(); });
+        .then(function(bd){ bloqueosData = (bd.status==='ok') ? (bd.bloqueos||[]) : []; })
+        .catch(function(){ bloqueosData=[]; });
+      var pDisponibilidad = fetch(APPS_SCRIPT+'?action=getDisponibilidadMaestros',{redirect:'follow'})
+        .then(function(r){ return r.json(); })
+        .then(function(dd){ disponibilidadData = (dd.status==='ok') ? (dd.disponibilidad||[]) : []; })
+        .catch(function(){ disponibilidadData=[]; });
+      Promise.all([pBloqueos, pDisponibilidad]).then(function(){
+        if(typeof callback === 'function') callback();
+      });
     });
 }
 
+var DIAS_DISPONIBILIDAD = ['Lunes','Martes','Miércoles','Jueves'];
+
 function estaBloqueado(idMaestro, horario) {
   return bloqueosData.some(function(b){ return b.idMaestro===idMaestro && b.horario===horario; });
+}
+
+// ¿Este maestro ya tiene ALGUNA disponibilidad registrada por el coordinador?
+// Mientras no tenga ninguna, el sistema sigue asumiendo que esta disponible
+// (comportamiento anterior) para no romper nada retroactivamente.
+function maestroTieneDispRegistrada(idMaestro) {
+  return disponibilidadData.some(function(d){ return d.idMaestro===idMaestro; });
+}
+
+// Dias (de Lunes a Jueves) que el maestro marco como disponibles para ese horario.
+function diasDisponiblesHorario(idMaestro, horario) {
+  return disponibilidadData
+    .filter(function(d){ return d.idMaestro===idMaestro && normHca(d.horario)===normHca(horario); })
+    .map(function(d){ return d.dia; });
+}
+
+// Un maestro cuenta como disponible para un horario (para asignarle un grupo
+// que se ve Lunes a Jueves) solo si registro los 4 dias en ese horario -- si
+// tiene registro pero es parcial, o no tiene registro aun, se maneja aparte.
+function maestroDisponibleCompletoHorario(idMaestro, horario) {
+  if (!maestroTieneDispRegistrada(idMaestro)) return true; // aun no registrado -> comportamiento anterior
+  var dias = diasDisponiblesHorario(idMaestro, horario);
+  return DIAS_DISPONIBILIDAD.every(function(d){ return dias.indexOf(d)!==-1; });
 }
 
 function cargarFechasRegistradas(){
@@ -1266,6 +1312,95 @@ function renderDisponibilidad(idMaestro) {
 
   document.getElementById('modalDisponibilidadBody').innerHTML = html;
 }
+// ── EDITOR DE DISPONIBILIDAD REGISTRADA (dia x horario) ─────────────────────
+function abrirEditorDisponibilidad() {
+  var modal = document.getElementById('modalEditorDisponibilidad');
+  if (!modal) return;
+  var nombre = document.getElementById('modalMaestroNombre').textContent;
+  var idText = document.getElementById('modalMaestroId').textContent;
+  var idMaestro = idText.split(' \u00b7 ')[0];
+  document.getElementById('modalEditorDispTitulo').textContent = 'Disponibilidad — ' + nombre;
+
+  var horariosSet = {};
+  (gruposData||[]).forEach(function(g){
+    var h = (g.horario||'').trim();
+    if (h && String(g.demo||'').toUpperCase() !== 'DEMO' && typeof g.fechaInicio !== 'undefined') horariosSet[h] = true;
+  });
+  function horarioAMinutosED(h){
+    var m = (h||'').match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!m) return 99999;
+    var hh = parseInt(m[1],10), mm = parseInt(m[2],10), ap = m[3].toUpperCase();
+    if (ap==='PM' && hh!==12) hh+=12;
+    if (ap==='AM' && hh===12) hh=0;
+    return hh*60+mm;
+  }
+  var horarios = Object.keys(horariosSet).sort(function(a,b){ return horarioAMinutosED(a)-horarioAMinutosED(b); });
+
+  var cont = document.getElementById('modalEditorDispBody');
+  if (!horarios.length) {
+    cont.innerHTML = '<div style="text-align:center;color:#64748b;padding:20px;">Sin horarios registrados todavia.</div>';
+    document.getElementById('editorDispStatus').textContent = '';
+    modal.style.display = 'flex';
+    return;
+  }
+
+  var dias = diasDisponiblesHorario.bind(null); // solo para claridad
+  var html = '<div style="overflow-x:auto;">';
+  html += '<table data-idmaestro="'+idMaestro+'" style="width:100%;border-collapse:collapse;font-size:12px;">';
+  html += '<thead><tr><th style="text-align:left;padding:6px;color:#94a3b8;">Horario</th>' +
+    DIAS_DISPONIBILIDAD.map(function(d){ return '<th style="padding:6px;color:#94a3b8;">'+d.substring(0,3)+'</th>'; }).join('') + '</tr></thead><tbody>';
+
+  horarios.forEach(function(h){
+    var yaMarcados = diasDisponiblesHorario(idMaestro, h);
+    html += '<tr><td style="padding:6px;color:#f1f5f9;font-weight:600;white-space:nowrap;">'+h+'</td>';
+    DIAS_DISPONIBILIDAD.forEach(function(d){
+      var checked = yaMarcados.indexOf(d)!==-1 ? 'checked' : '';
+      html += '<td style="text-align:center;padding:6px;"><input type="checkbox" class="chkDisp" data-dia="'+d+'" data-horario="'+h+'" '+checked+' style="width:16px;height:16px;cursor:pointer;"></td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  if (!maestroTieneDispRegistrada(idMaestro)) {
+    html = '<div style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;">Este maestro aun no tiene disponibilidad registrada -- por ahora se le sigue considerando disponible en todos los horarios libres. En cuanto guardes aqui, esto reemplaza ese comportamiento.</div>' + html;
+  }
+
+  cont.innerHTML = html;
+  document.getElementById('editorDispStatus').textContent = '';
+  modal.style.display = 'flex';
+}
+
+function guardarEditorDisponibilidad() {
+  var tabla = document.querySelector('#modalEditorDispBody table');
+  var idMaestro = tabla ? tabla.dataset.idmaestro : null;
+  if (!idMaestro) { return; }
+
+  var seleccion = [];
+  document.querySelectorAll('#modalEditorDispBody .chkDisp:checked').forEach(function(chk){
+    seleccion.push({ dia: chk.dataset.dia, horario: chk.dataset.horario });
+  });
+
+  var status = document.getElementById('editorDispStatus');
+  status.style.color = '#94a3b8';
+  status.textContent = 'Guardando...';
+
+  fetch(APPS_SCRIPT+'?action=guardarDisponibilidadMaestro&idMaestro='+encodeURIComponent(idMaestro)+'&disponibilidad='+encodeURIComponent(JSON.stringify(seleccion)), {redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data && data.status==='ok') {
+        // Reflejo inmediato local
+        disponibilidadData = disponibilidadData.filter(function(d){ return d.idMaestro!==idMaestro; });
+        seleccion.forEach(function(s){ disponibilidadData.push({idMaestro:idMaestro, dia:s.dia, horario:s.horario}); });
+        status.style.color = '#4ade80';
+        status.textContent = '✅ Disponibilidad guardada (' + seleccion.length + ' horarios marcados).';
+      } else {
+        status.style.color = '#f87171';
+        status.textContent = '❌ Error: ' + (data && (data.mensaje||data.error) || 'Sin respuesta');
+      }
+    })
+    .catch(function(){ status.style.color = '#f87171'; status.textContent = '❌ Error de conexión.'; });
+}
+
 function bloquearHorario(idMaestro, horario) {
   bloqueosData.push({idMaestro:idMaestro, horario:horario}); // reflejo inmediato
   renderDisponibilidad(idMaestro);
@@ -1417,6 +1552,11 @@ function renderGruposSinMaestroGlobal(filtroTexto) {
       if (bloqueado) {
         return '<option value="" disabled>'+m.nombre+' -- no disponible a esa hora</option>';
       }
+      if (!maestroDisponibleCompletoHorario(m.id, g.horario)) {
+        var diasOk = diasDisponiblesHorario(m.id, g.horario);
+        var etiqueta = diasOk.length ? 'disponible solo '+diasOk.join('/') : 'sin disponibilidad registrada aqui';
+        return '<option value="" disabled>'+m.nombre+' -- '+etiqueta+'</option>';
+      }
       return '<option value="'+m.id+'">'+m.nombre+'</option>';
     }).join('');
 
@@ -1482,13 +1622,18 @@ function abrirModalPorHorario() {
   }
 
   cont.innerHTML = horarios.map(function(h){
-    var ocupados = [], bloqueados = [], libres = [];
+    var ocupados = [], bloqueados = [], libres = [], parciales = [];
     maestrosActivos.forEach(function(m){
       var grupoOcupa = (gruposData||[]).find(function(gg){
         return String(gg.idMaestro||'').trim()===m.id && normHca(gg.horario)===normHca(h);
       });
       if (grupoOcupa) { ocupados.push(m.nombre+' ('+grupoOcupa.id+')'); return; }
       if (estaBloqueado(m.id, h)) { bloqueados.push(m.nombre); return; }
+      if (!maestroDisponibleCompletoHorario(m.id, h)) {
+        var diasOk = diasDisponiblesHorario(m.id, h);
+        parciales.push(m.nombre + (diasOk.length ? ' (solo '+diasOk.join('/')+')' : ' (sin registro aqui)'));
+        return;
+      }
       libres.push(m);
     });
 
@@ -1529,6 +1674,7 @@ function abrirModalPorHorario() {
       '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">🕒 '+h+'</div>' +
       '<div style="font-size:12px;color:#4ade80;margin-bottom:4px;"><strong>Libres:</strong> '+(libres.length?libres.map(function(m){return m.nombre;}).join(', '):'Ninguno')+'</div>' +
       '<div style="font-size:12px;color:#fb923c;margin-bottom:4px;"><strong>Ocupados:</strong> '+(ocupados.length?ocupados.join(', '):'Ninguno')+'</div>' +
+      (parciales.length ? '<div style="font-size:12px;color:#c4b5fd;margin-bottom:4px;"><strong>Disponibilidad parcial:</strong> '+parciales.join(', ')+'</div>' : '') +
       (bloqueados.length ? '<div style="font-size:12px;color:#64748b;"><strong>No disponibles:</strong> '+bloqueados.join(', ')+'</div>' : '') +
       bloqueSinMaestro +
     '</div>';
