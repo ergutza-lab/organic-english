@@ -237,8 +237,9 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Todos los maestros</span>
-          <span style="font-size:12px;color:var(--muted);">Clic en la burbuja para ver detalles</span>
+          <button onclick="abrirModalPorHorario()" style="background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.35);color:#60a5fa;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">🕒 Ver por horario</button>
         </div>
+        <input type="text" id="buscarMaestro" oninput="renderMaestrosBurbujas()" placeholder="Buscar maestro por nombre o ID..." style="width:100%;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:16px;">
         <div class="maestros-grid" id="maestrosGrid"><div class="empty-state">Cargando...</div></div>
       </div>
     </div>
@@ -428,6 +429,18 @@
   </div>
 </div>
 
+<!-- MODAL: Vista por horario (que maestro esta libre a que hora) -->
+<div id="modalPorHorario" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:92%;max-width:640px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="color:var(--text);margin:0;font-size:16px;">Disponibilidad por horario</h3>
+      <button onclick="document.getElementById('modalPorHorario').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Quien esta libre, ocupado o no disponible en cada horario real.</p>
+    <div id="modalPorHorarioBody"></div>
+  </div>
+</div>
+
 <!-- MODAL: Evaluaciones del grupo (vista desde maestro) -->
 <div id="modalGrupoEval" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('visible')">
   <div class="modal-box" style="max-width:700px;">
@@ -492,7 +505,7 @@ function callASWithResponse(params, callback){
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
-var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[];
+var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[];
 
 // ── TABULADOR ──
 var NIVELES=[
@@ -569,8 +582,18 @@ function cargarDatos(callback){
       });
       renderEvaluaciones();
       poblarSelectGrupos();
-      if(typeof callback === 'function') callback();
+      fetch(APPS_SCRIPT+'?action=getHorariosBloqueados',{redirect:'follow'})
+        .then(function(r){ return r.json(); })
+        .then(function(bd){
+          bloqueosData = (bd.status==='ok') ? (bd.bloqueos||[]) : [];
+          if(typeof callback === 'function') callback();
+        })
+        .catch(function(){ bloqueosData=[]; if(typeof callback === 'function') callback(); });
     });
+}
+
+function estaBloqueado(idMaestro, horario) {
+  return bloqueosData.some(function(b){ return b.idMaestro===idMaestro && b.horario===horario; });
 }
 
 function cargarFechasRegistradas(){
@@ -610,6 +633,14 @@ function renderMaestrosBurbujas(){
   var grid=document.getElementById('maestrosGrid');
   if(!maestrosData.length){grid.innerHTML='<div class="empty-state">Sin maestros registrados</div>';return;}
   var maestrosFiltrados=maestrosData.filter(function(m){return m.id!=='VID';});
+  var buscarEl = document.getElementById('buscarMaestro');
+  var q = buscarEl ? (buscarEl.value||'').trim().toLowerCase() : '';
+  if (q) {
+    maestrosFiltrados = maestrosFiltrados.filter(function(m){
+      return (m.nombre||'').toLowerCase().indexOf(q)!==-1 || (m.id||'').toLowerCase().indexOf(q)!==-1;
+    });
+  }
+  if (!maestrosFiltrados.length) { grid.innerHTML='<div class="empty-state">Sin resultados para tu busqueda.</div>'; return; }
   grid.innerHTML=maestrosFiltrados.map(function(m){
     var foto=m.foto?'<img src="'+m.foto+'" class="burbuja-foto" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><div class="burbuja-fallback" style="display:none">'+(m.nombre[0]||'M')+'</div>':'<div class="burbuja-fallback">'+(m.nombre[0]||'M')+'</div>';
     // Contar grupos reales (sin DEMO) desde gruposData
@@ -1179,18 +1210,13 @@ function renderDisponibilidad(idMaestro) {
            String(g.demo||'').toUpperCase() !== 'DEMO';
   });
 
-  // Horarios bloqueados (localStorage)
-  var bloqKey = 'disp_bloq_'+idMaestro;
-  var bloqueados = {};
-  try { bloqueados = JSON.parse(localStorage.getItem(bloqKey)||'{}'); } catch(e){}
-
   function normH(h){ return (h||'').replace(/\s+/g,' ').trim().toUpperCase(); }
 
   var html = '';
   horarios.forEach(function(hor) {
     var h = hor.label;
     var gOcupa    = misGrupos.find(function(g){ return normH(g.horario) === normH(h); });
-    var bloq      = bloqueados[h];
+    var bloq      = estaBloqueado(idMaestro, h);
     var dispGrupos = sinMaestro.filter(function(g){ return normH(g.horario) === normH(h); });
 
     html += '<div style="margin-bottom:10px;">';
@@ -1241,21 +1267,19 @@ function renderDisponibilidad(idMaestro) {
   document.getElementById('modalDisponibilidadBody').innerHTML = html;
 }
 function bloquearHorario(idMaestro, horario) {
-  var key = 'disp_bloq_'+idMaestro;
-  var bloq = {};
-  try { bloq = JSON.parse(localStorage.getItem(key)||'{}'); } catch(e){}
-  bloq[horario] = true;
-  localStorage.setItem(key, JSON.stringify(bloq));
+  bloqueosData.push({idMaestro:idMaestro, horario:horario}); // reflejo inmediato
   renderDisponibilidad(idMaestro);
+  fetch(APPS_SCRIPT+'?action=bloquearHorarioMaestro&idMaestro='+encodeURIComponent(idMaestro)+'&horario='+encodeURIComponent(horario), {redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .catch(function(){});
 }
 
 function desbloquearHorario(idMaestro, horario) {
-  var key = 'disp_bloq_'+idMaestro;
-  var bloq = {};
-  try { bloq = JSON.parse(localStorage.getItem(key)||'{}'); } catch(e){}
-  delete bloq[horario];
-  localStorage.setItem(key, JSON.stringify(bloq));
+  bloqueosData = bloqueosData.filter(function(b){ return !(b.idMaestro===idMaestro && b.horario===horario); });
   renderDisponibilidad(idMaestro);
+  fetch(APPS_SCRIPT+'?action=desbloquearHorarioMaestro&idMaestro='+encodeURIComponent(idMaestro)+'&horario='+encodeURIComponent(horario), {redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .catch(function(){});
 }
 
 function mostrarToast(msg, tipo) {
@@ -1323,14 +1347,34 @@ function abrirModalGruposSinMaestro() {
   renderGruposSinMaestroGlobal();
 }
 
-function renderGruposSinMaestroGlobal() {
+function normHca(h){ return (h||'').replace(/\s+/g,' ').trim().toUpperCase(); }
+
+function filtrarGruposSinMaestroGlobal() {
+  var q = (document.getElementById('buscarGrupoSinMaestro').value||'').trim();
+  renderGruposSinMaestroGlobal(q);
+}
+
+function renderGruposSinMaestroGlobal(filtroTexto) {
   var cont = document.getElementById('modalGruposSinMaestroBody');
 
   var sinMaestro = (gruposData||[]).filter(function(g){
+    // typeof g.fechaInicio==='undefined' identifica grupos CANCELADOS: getDatosCA
+    // les manda un objeto incompleto (sin fechaInicio ni inscritos) -- no deben
+    // aparecer aqui porque ya no necesitan maestro.
+    if (typeof g.fechaInicio === 'undefined') return false;
     var idM = String(g.idMaestro||'').trim();
     return (!idM || idM === 'SIN ASIG.' || idM === 'S-01') &&
            String(g.demo||'').toUpperCase() !== 'DEMO';
   });
+
+  if (filtroTexto) {
+    var f = filtroTexto.toLowerCase();
+    sinMaestro = sinMaestro.filter(function(g){
+      return (g.id||'').toLowerCase().indexOf(f)!==-1 ||
+             (g.nivel||'').toLowerCase().indexOf(f)!==-1 ||
+             (g.horario||'').toLowerCase().indexOf(f)!==-1;
+    });
+  }
 
   sinMaestro.sort(function(a,b){
     var fa = parseFechaDDMMYYYYca(a.fechaInicio) || new Date(0);
@@ -1338,24 +1382,52 @@ function renderGruposSinMaestroGlobal() {
     return fa - fb;
   });
 
+  var buscador = '<input type="text" id="buscarGrupoSinMaestro" oninput="filtrarGruposSinMaestroGlobal()" placeholder="Buscar por ID, nivel u horario..." value="'+(filtroTexto||'')+'" style="width:100%;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:14px;">';
+
   if (!sinMaestro.length) {
-    cont.innerHTML = '<div style="text-align:center;color:#64748b;padding:30px;">✅ Todos los grupos tienen maestro asignado.</div>';
+    cont.innerHTML = buscador + '<div style="text-align:center;color:#64748b;padding:30px;">'+(filtroTexto?'Sin resultados para tu busqueda.':'✅ Todos los grupos tienen maestro asignado.')+'</div>';
     return;
   }
 
   var maestrosActivos = (maestrosData||[]).filter(function(m){ return m.activo; });
-  var opcionesMaestros = '<option value="">-- Elige maestro --</option>' +
-    maestrosActivos.map(function(m){ return '<option value="'+m.id+'">'+m.nombre+'</option>'; }).join('');
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
 
-  cont.innerHTML = sinMaestro.map(function(g){
+  cont.innerHTML = buscador + sinMaestro.map(function(g){
+    // Semaforo de urgencia segun dias para el inicio
+    var fi = parseFechaDDMMYYYYca(g.fechaInicio);
+    var dias = fi ? Math.round((fi-hoy)/(1000*60*60*24)) : null;
+    var urgColor = '#64748b', urgTexto = g.fechaInicio||'Sin fecha';
+    if (dias !== null) {
+      if (dias < 0)      { urgColor = '#64748b'; urgTexto = g.fechaInicio+' (ya inicio)'; }
+      else if (dias <= 3){ urgColor = '#ef4444'; urgTexto = g.fechaInicio+' (en '+dias+' dia'+(dias===1?'':'s')+')'; }
+      else if (dias <= 7){ urgColor = '#f59e0b'; urgTexto = g.fechaInicio+' (en '+dias+' dias)'; }
+      else               { urgColor = '#22c55e'; urgTexto = g.fechaInicio+' (en '+dias+' dias)'; }
+    }
+
+    // Para cada maestro activo, ver si ya esta ocupado en ese horario
+    // (por otro grupo asignado o por un bloqueo que el mismo pidio).
+    var opciones = '<option value="">-- Elige maestro --</option>' + maestrosActivos.map(function(m){
+      var grupoOcupa = (gruposData||[]).find(function(gg){
+        return String(gg.idMaestro||'').trim()===m.id && normHca(gg.horario)===normHca(g.horario);
+      });
+      var bloqueado = estaBloqueado(m.id, g.horario);
+      if (grupoOcupa) {
+        return '<option value="" disabled>'+m.nombre+' -- ocupado ('+grupoOcupa.id+')</option>';
+      }
+      if (bloqueado) {
+        return '<option value="" disabled>'+m.nombre+' -- no disponible a esa hora</option>';
+      }
+      return '<option value="'+m.id+'">'+m.nombre+'</option>';
+    }).join('');
+
     return '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:10px;">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
         '<div><span style="font-size:13px;font-weight:700;color:#f1f5f9;">'+g.id+'</span> <span style="font-size:12px;color:#94a3b8;">'+ (g.nivel||'') +'</span></div>' +
-        '<div style="font-size:11px;color:#64748b;">'+ (g.fechaInicio||'Sin fecha') +'</div>' +
+        '<div style="font-size:11px;color:'+urgColor+';font-weight:700;">'+ urgTexto +'</div>' +
       '</div>' +
       '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">🕒 '+(g.horario||'—')+' &nbsp;·&nbsp; 👥 '+(g.inscritos||0)+' inscritos</div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<select id="selMae_'+g.id+'" style="flex:1;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;font-size:12px;">'+opcionesMaestros+'</select>' +
+        '<select id="selMae_'+g.id+'" style="flex:1;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;font-size:12px;">'+opciones+'</select>' +
         '<button onclick="asignarGrupoDesdeGlobal(\''+g.id+'\')" style="font-size:12px;font-weight:700;color:#4ade80;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px 14px;cursor:pointer;white-space:nowrap;">Asignar</button>' +
       '</div>' +
     '</div>';
@@ -1365,7 +1437,7 @@ function renderGruposSinMaestroGlobal() {
 function asignarGrupoDesdeGlobal(idGrupo) {
   var sel = document.getElementById('selMae_'+idGrupo);
   var idMaestro = sel ? sel.value : '';
-  if (!idMaestro) { alert('Selecciona un maestro primero.'); return; }
+  if (!idMaestro) { alert('Selecciona un maestro libre en ese horario primero.'); return; }
   if (!confirm('Asignar grupo '+idGrupo+' a este maestro?')) return;
   fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idMaestro), {redirect:'follow'})
   .then(function(r){return r.json();})
@@ -1380,6 +1452,53 @@ function asignarGrupoDesdeGlobal(idGrupo) {
     }
   })
   .catch(function(){ alert('❌ Error de conexión'); });
+}
+
+// ── VISTA POR HORARIO: quien esta libre/ocupado/no-disponible en cada horario ──
+function abrirModalPorHorario() {
+  document.getElementById('modalPorHorario').style.display = 'flex';
+
+  var horariosSet = {};
+  (gruposData||[]).forEach(function(g){
+    var h = (g.horario||'').trim();
+    if (h && String(g.demo||'').toUpperCase() !== 'DEMO' && typeof g.fechaInicio !== 'undefined') horariosSet[h] = true;
+  });
+  function horarioAMinutosPH(h){
+    var m = (h||'').match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!m) return 99999;
+    var hh = parseInt(m[1],10), mm = parseInt(m[2],10), ap = m[3].toUpperCase();
+    if (ap==='PM' && hh!==12) hh+=12;
+    if (ap==='AM' && hh===12) hh=0;
+    return hh*60+mm;
+  }
+  var horarios = Object.keys(horariosSet).sort(function(a,b){ return horarioAMinutosPH(a)-horarioAMinutosPH(b); });
+
+  var maestrosActivos = (maestrosData||[]).filter(function(m){ return m.activo && m.id!=='VID'; });
+
+  var cont = document.getElementById('modalPorHorarioBody');
+  if (!horarios.length) {
+    cont.innerHTML = '<div style="text-align:center;color:#64748b;padding:30px;">Sin horarios registrados todavia.</div>';
+    return;
+  }
+
+  cont.innerHTML = horarios.map(function(h){
+    var ocupados = [], bloqueados = [], libres = [];
+    maestrosActivos.forEach(function(m){
+      var grupoOcupa = (gruposData||[]).find(function(gg){
+        return String(gg.idMaestro||'').trim()===m.id && normHca(gg.horario)===normHca(h);
+      });
+      if (grupoOcupa) { ocupados.push(m.nombre+' ('+grupoOcupa.id+')'); return; }
+      if (estaBloqueado(m.id, h)) { bloqueados.push(m.nombre); return; }
+      libres.push(m.nombre);
+    });
+
+    return '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:10px;">' +
+      '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">🕒 '+h+'</div>' +
+      '<div style="font-size:12px;color:#4ade80;margin-bottom:4px;"><strong>Libres:</strong> '+(libres.length?libres.join(', '):'Ninguno')+'</div>' +
+      '<div style="font-size:12px;color:#fb923c;margin-bottom:4px;"><strong>Ocupados:</strong> '+(ocupados.length?ocupados.join(', '):'Ninguno')+'</div>' +
+      (bloqueados.length ? '<div style="font-size:12px;color:#64748b;"><strong>No disponibles:</strong> '+bloqueados.join(', ')+'</div>' : '') +
+    '</div>';
+  }).join('');
 }
 
 </script>
