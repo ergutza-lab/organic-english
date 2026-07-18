@@ -901,8 +901,14 @@ function filtrarGrupos() { renderGrupos(document.getElementById('filtro-grupos')
 // ── RENDER ASISTENTES ──
 function renderAsistentes() {
   var grid = document.getElementById('asistentes-grid');
-  if (!estado.asistentes.length) { grid.innerHTML='<div class="vacio">Sin asistentes registrados</div>'; return; }
-  grid.innerHTML = estado.asistentes.map(function(a) {
+  // AVILLAO y VID son directores registrados solo para poder entrar al
+  // modulo -- no son asistentes CE reales y no deben aparecer en esta lista.
+  var asistentesVisibles = estado.asistentes.filter(function(a){
+    var id = (a.id||'').toString().trim().toUpperCase();
+    return id !== 'AVILLAO' && id !== 'VID';
+  });
+  if (!asistentesVisibles.length) { grid.innerHTML='<div class="vacio">Sin asistentes registrados</div>'; return; }
+  grid.innerHTML = asistentesVisibles.map(function(a) {
     var foto = a.fotoUrl
       ? '<img src="'+esc(a.fotoUrl)+'" class="asistente-foto" alt="'+esc(a.nombre)+'" onerror="this.style.background=\'#e8ecf8\'" />'
       : '<div class="asistente-foto" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#1c2b5e;font-size:1.1rem">'+esc(a.nombre[0]||'?')+'</div>';
