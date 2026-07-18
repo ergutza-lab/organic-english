@@ -982,8 +982,23 @@
     return n;
   }
 
-  function poblarSelectAsistentes(selectId) {
+  function poblarSelectAsistentes(selectId, intentos) {
+    intentos = intentos || 0;
     var sel = document.getElementById(selectId);
+    // Si directorCache todavia no llega (cargarDatos es una llamada pesada y
+    // puede tardar unos segundos), no mostrar "Sin asistentes disponibles"
+    // -- eso hacia parecer que no habia asistentes cuando en realidad los
+    // datos simplemente no habian terminado de cargar. Reintentar en vez de
+    // rendirse (con un limite, por si de verdad hay un problema de conexion).
+    if (!directorCache) {
+      if (intentos >= 25) {
+        sel.innerHTML = '<option value="">Error al cargar -- reintenta abrir este formulario</option>';
+        return;
+      }
+      sel.innerHTML = '<option value="">Cargando asistentes...</option>';
+      setTimeout(function(){ poblarSelectAsistentes(selectId, intentos + 1); }, 400);
+      return;
+    }
     var lista = (directorCache && directorCache.asistentes) || [];
     if (!lista.length) { sel.innerHTML = '<option value="">Sin asistentes disponibles</option>'; return; }
     sel.innerHTML = '<option value="">Selecciona...</option>' +
