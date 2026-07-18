@@ -583,7 +583,11 @@
       '</div>';
     document.getElementById('finComSub').innerHTML =
       '<div class="fin-sub-inner"><span class="fin-sub-titulo">Comisiones de asesores</span>'+
-      '<span class="fin-sub-note">Por alumnos inscritos y validados en el periodo</span></div>';
+      '<span class="fin-sub-note">Por alumnos inscritos y validados en el periodo</span>'+
+      '<div class="fin-nom-breakdown">'+
+        '<span>Por inscripción: <strong>'+fmt(f.comisionesBaseSemana||0)+'</strong></span>'+
+        '<span>Bonificación: <strong style="color:#22c55e;">'+fmt(f.comisionesBonoSemana||0)+'</strong></span>'+
+      '</div></div>';
     document.getElementById('finNomSub').innerHTML =
       '<div class="fin-sub-inner"><span class="fin-sub-titulo">Desglose de nomina</span>'+
       '<div class="fin-nom-breakdown">'+
@@ -665,11 +669,16 @@
   }
 
   function renderAsesores(asesores) {
-    tablaPersonal('tab-asesores',['Asesor','Inscritos esta semana','Comisión x inscripción','Comisión semana','Contacto'],
-      (asesores||[]).map(function(a){return[
+    tablaPersonal('tab-asesores',['Asesor','Inscritos esta semana','Comisión x inscripción','Desglose comisiones','Comisión semana','Contacto'],
+      (asesores||[]).map(function(a){
+        var desglose = (a.comisionesBono>0)
+          ? a.comisionesBase+' insc. + <span style="color:#22c55e;">'+a.comisionesBono+' bono</span> = '+a.comisionesTotal
+          : (a.comisionesBase||0)+' insc.';
+        return[
         fotoCell(a.foto,a.nombre,a.id),
         '<span class="chip chip-orange">'+a.inscritos+' alumnos</span>',
         '<span class="td-gray">'+fmt(a.comxInsc)+'</span>',
+        '<span style="font-size:12px;">'+desglose+'</span>',
         '<span class="td-orange">'+fmt(a.comision)+'</span>',
         waBtn(a.whatsapp)
       ];}));
@@ -1311,8 +1320,8 @@
       document.getElementById('modalHistoricoBody').innerHTML = '<div class="loading">Sin registros historicos aun.</div>';
       return;
     }
-    var totI=0, totC=0, totN=0, totB=0;
-    historial.forEach(function(h){ totI+=Number(h.ingresos)||0; totC+=Number(h.comisiones)||0; totN+=Number(h.nomina)||0; totB+=Number(h.balance)||0; });
+    var totI=0, totC=0, totCBase=0, totCBono=0, totN=0, totB=0;
+    historial.forEach(function(h){ totI+=Number(h.ingresos)||0; totC+=Number(h.comisiones)||0; totCBase+=Number(h.comisionesBase)||0; totCBono+=Number(h.comisionesBono)||0; totN+=Number(h.nomina)||0; totB+=Number(h.balance)||0; });
     var balCls = totB >= 0 ? 'green' : 'red';
 
     var html =
@@ -1321,7 +1330,7 @@
       '</div>'+
       '<div class="acumulado-grid">' +
         '<div class="acum-card"><div class="acum-label">Ingresos totales</div><div class="acum-val green">'+fmt(totI)+'</div></div>' +
-        '<div class="acum-card"><div class="acum-label">Comisiones totales</div><div class="acum-val red">'+fmt(totC)+'</div></div>' +
+        '<div class="acum-card"><div class="acum-label">Comisiones totales</div><div class="acum-val red">'+fmt(totC)+'</div><div style="font-size:10px;color:#64748b;margin-top:3px;">'+fmt(totCBase)+' insc. + '+fmt(totCBono)+' bono</div></div>' +
         '<div class="acum-card"><div class="acum-label">Nomina total</div><div class="acum-val orange">'+fmt(totN)+'</div></div>' +
         '<div class="acum-card"><div class="acum-label">Balance acumulado</div><div class="acum-val '+balCls+'">'+fmt(totB)+'</div></div>' +
       '</div>' +
@@ -1331,10 +1340,14 @@
       var bal  = Number(h.balance)||0;
       var bCls = bal >= 0 ? 'td-green' : 'td-red';
       var label = h.esInicial ? 'Periodo inicial ('+h.semana+')' : 'Semana '+h.semana;
+      var comBono = Number(h.comisionesBono)||0;
+      var comSub = comBono>0
+        ? '<div style="font-size:10px;color:#64748b;margin-top:2px;">'+fmt(h.comisionesBase)+' insc. + <span style="color:#22c55e;">'+fmt(comBono)+' bono</span></div>'
+        : '';
       html += '<tr>' +
         '<td style="color:#fff;font-weight:500">'+label+'</td>' +
         '<td class="td-green">'+fmt(h.ingresos)+'</td>' +
-        '<td class="td-red">'+fmt(h.comisiones)+'</td>' +
+        '<td class="td-red">'+fmt(h.comisiones)+comSub+'</td>' +
         '<td class="td-orange">'+fmt(h.nomina)+'</td>' +
         '<td class="'+bCls+'">'+fmt(bal)+'</td>'+
         '<td><button onclick="descargarDetalleCatorcena(\''+h.inicioISO+'\',\''+h.finISO+'\')" style="background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:#fb923c;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">CSV</button></td>'+
@@ -1400,9 +1413,11 @@
     // 2. Comisiones asesores
     html += seccion('2','EGRESOS — COMISIONES A ASESORES DE VENTAS','#dc2626');
     html += tabla(
-      ['Asesor','ID','Alumnos en Periodo','Comision x Inscripcion','Total'],
-      (d.comisionesAsesores||[]).filter(function(a){ return a.comxInsc > 0; }).map(function(a){ return [a.nombre, a.id, a.alumnos, fmt2(a.comxInsc), fmt2(a.total)]; }),
-      'SUBTOTAL COMISIONES', fmt2(d.totalComisiones)
+      ['Asesor','ID','Alumnos en Periodo','Comision x Inscripcion','Com. Inscripcion','Com. Bonificacion','Total'],
+      (d.comisionesAsesores||[]).filter(function(a){ return a.comxInsc > 0; }).map(function(a){
+        return [a.nombre, a.id, a.alumnos, fmt2(a.comxInsc), fmt2(a.montoBase), fmt2(a.montoBono), fmt2(a.total)];
+      }),
+      'SUBTOTAL COMISIONES', fmt2(d.totalComisiones) + ' (Insc: '+fmt2(d.totalComisionesBase||0)+' + Bono: '+fmt2(d.totalComisionesBono||0)+')'
     );
 
     // 3. Nomina maestros
