@@ -205,9 +205,13 @@
       </select>
       <button class="btn-compartir-wa" onclick="compartirGruposWA(this)">Compartir grupos</button>
     </div>
-    <div style="margin-top:16px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between">
-      <span style="color:#64748b;font-size:12px">Comisiones esta semana</span>
-      <span id="comisionCatorcena" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
+    <div style="margin-top:16px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="color:#64748b;font-size:12px">Comisiones esta semana</span>
+        <span id="comisionCatorcena" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
+      </div>
+      <div id="comisionDesglose" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:#94a3b8;line-height:1.6;"></div>
+      <button onclick="abrirHistoricoComisiones()" style="width:100%;margin-top:10px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📊 Ver histórico de comisiones</button>
     </div>
   </div>
 </div>
@@ -401,6 +405,18 @@
   </div>
 </div>
 
+<!-- MODAL HISTORICO DE COMISIONES -->
+<div class="modal-overlay" id="modalHistoricoComisiones">
+  <div class="modal-box" style="max-width:560px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-titulo">📊 Histórico de comisiones</div>
+    <div class="modal-sub">Comisiones por inscripción y por bonificación, semana a semana.</div>
+    <div id="hc-lista"><div class="loading">Cargando...</div></div>
+    <div class="modal-actions-row">
+      <button class="btn-cancelar" onclick="cerrarHistoricoComisiones()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR ALUMNO -->
 <div class="modal-overlay" id="modalEditarAlumno">
   <div class="modal-box" style="max-width:440px;max-height:88vh;overflow-y:auto;">
@@ -521,11 +537,57 @@
     document.getElementById('screenPanel').classList.add('active');
     document.getElementById('asesorNombre').textContent = asesorData.nombre;
     document.getElementById('comisionCatorcena').textContent = '$' + asesorData.comisionCatorcena + ' MXN';
+    var desglose = document.getElementById('comisionDesglose');
+    if (desglose) {
+      var base = asesorData.comisionesBase || 0;
+      var bono = asesorData.comisionesBono || 0;
+      var inscritos = asesorData.inscritosCatorcena || 0;
+      if (bono > 0) {
+        desglose.innerHTML = inscritos + ' ' + (inscritos===1?'inscripción':'inscripciones') + ' esta semana &rarr; ' +
+          '<strong style="color:#f1f5f9;">' + base + '</strong> ' + (base===1?'comisión':'comisiones') + ' por inscripción + ' +
+          '<strong style="color:#22c55e;">' + bono + '</strong> de bonificación (x' + (asesorData.tasaBonoPorBloque||2) + ' por cada 10) = ' +
+          '<strong style="color:#fb923c;">' + asesorData.comisionesTotal + '</strong> comisiones en total';
+      } else {
+        desglose.innerHTML = inscritos + ' ' + (inscritos===1?'inscripción':'inscripciones') + ' esta semana &rarr; ' +
+          '<strong style="color:#f1f5f9;">' + base + '</strong> ' + (base===1?'comisión':'comisiones') + ' por inscripción. ' +
+          'Con 10 inscripciones en la semana se activa un bono extra.';
+      }
+    }
     var foto = document.getElementById('asesorFoto');
     if (asesorData.foto) { foto.src = asesorData.foto; foto.style.display = ''; }
     else { foto.style.display = 'none'; }
     document.getElementById('bloque-compartir-grupos').style.display = COMPARTIR_GRUPOS_ACTIVO ? '' : 'none';
     cargarNivelesDropdown();
+  }
+
+  function abrirHistoricoComisiones() {
+    document.getElementById('modalHistoricoComisiones').classList.add('active');
+    var cont = document.getElementById('hc-lista');
+    cont.innerHTML = '<div class="loading">Cargando...</div>';
+    fetch(APPS_SCRIPT + '?action=getHistoricoComisionesAsesor&idAsesor=' + encodeURIComponent(asesorData.id) + '&n=8')
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (res.status !== 'ok' || !res.historial || !res.historial.length) {
+          cont.innerHTML = '<p style="color:#64748b;font-size:13px;">Sin datos disponibles.</p>';
+          return;
+        }
+        cont.innerHTML = res.historial.map(function(h){
+          var tieneBono = h.comisionesBono > 0;
+          return '<div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;margin-bottom:8px;">' +
+            '<div style="font-size:12px;color:#94a3b8;font-weight:700;margin-bottom:6px;">' + h.semana + '</div>' +
+            '<div style="font-size:12px;color:#cbd5e1;line-height:1.6;">' +
+              h.inscritos + ' ' + (h.inscritos===1?'inscripción':'inscripciones') + ' &rarr; ' +
+              '<strong style="color:#f1f5f9;">' + h.comisionesBase + '</strong> por inscripción' +
+              (tieneBono ? ' + <strong style="color:#22c55e;">' + h.comisionesBono + '</strong> de bonificación' : '') +
+              ' = <strong style="color:#fb923c;">' + h.comisionesTotal + '</strong> comisiones ($' + h.montoTotal + ' MXN)' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      })
+      .catch(function(){ cont.innerHTML = '<p style="color:#ef4444;font-size:13px;">Error al cargar el histórico.</p>'; });
+  }
+  function cerrarHistoricoComisiones() {
+    document.getElementById('modalHistoricoComisiones').classList.remove('active');
   }
 
   // ── MODAL VALIDAR PAGO ──
