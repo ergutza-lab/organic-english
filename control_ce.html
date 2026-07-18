@@ -1118,7 +1118,12 @@ function renderAlertas() {
     tbodyF.innerHTML = estado.alertasFusion.map(function(g) {
       var asistente = estado.asistentes.find(function(a){return a.id===g.idAsistente;});
       var whatsapp  = asistente ? asistente.whatsapp : '';
-      var alumnosGrupo = estado.todosAlumnos.filter(function(a){return a.idGrupo===g.id;});
+      // Solo alumnos activos (Validado/Becado) -- antes se incluian tambien
+      // los dados de baja o cancelados, lo cual confundia al asistente CE
+      // al momento de gestionar el cambio de grupo.
+      var alumnosGrupo = estado.todosAlumnos.filter(function(a){
+        return a.idGrupo===g.id && (a.estatus==='Validado' || a.estatus==='Becado');
+      });
       var listaAlumnos = alumnosGrupo.length ? alumnosGrupo.map(function(a){return a.idAlumno+' '+a.nombre;}).join(', ') : 'ver panel';
       var btnWhats = whatsapp
         ? '<button class="btn btn-verde btn-sm" onclick="avisarFusionWhats(\''+escJs(g.id)+'\',\''+escJs(whatsapp)+'\',\''+escJs(g.inscritos)+'\',\''+escJs(listaAlumnos)+'\')">Avisar al CE por WhatsApp</button>'
