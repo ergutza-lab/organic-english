@@ -268,6 +268,17 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
   </div>
 </div>
 
+<!-- MODAL: HISTORICO DE UN ASESOR EN PARTICULAR (con detalle de alumnos por periodo) -->
+<div class="modal-bg" id="modalDetalleAsesor" onclick="closeMbgDetalleAsesor(event)">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <div><div class="modal-titulo" id="da-titulo">Historial del asesor</div><div class="modal-sub">Comisiones y alumnos registrados por semana</div></div>
+      <button class="modal-x" onclick="closeDetalleAsesor()">x</button>
+    </div>
+    <div class="modal-body" id="da-lista"><div style="text-align:center;color:#64748b;padding:20px;">Cargando...</div></div>
+  </div>
+</div>
+
 <!-- MODAL: FILTROS DE REPORTE -->
 <div class="modal-bg" id="modalReporte" onclick="closeMbgReporte(event)">
   <div class="modal-box" style="max-width:420px;">
@@ -885,6 +896,7 @@ function cambiarTab(tab) {
 
 // ── ASESORES ─────────────────────────────────────────────────────────────
 function cleanWAca(w){ return (w||'').replace(/\D/g,''); }
+function escJsCA(str){ return (str||'').toString().replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 function renderAsesores() {
   var cont = document.getElementById('listaAsesores');
@@ -919,13 +931,19 @@ function renderAsesores() {
     '</div>' +
   '</div>';
 
-  // Lista de asesores
+  // Lista de asesores -- ordenada por comision de la semana (de mayor a
+  // menor) para que el ranking de medallas tenga sentido visualmente.
+  var ordenados = dataAsesores.slice().sort(function(a,b){ return (b.comisionCatorcena||0) - (a.comisionCatorcena||0); });
+  var medallas = ['🥇','🥈','🥉'];
+
   html += '<div style="display:flex;flex-direction:column;gap:10px;">';
-  dataAsesores.forEach(function(a) {
+  ordenados.forEach(function(a, idx) {
     var waLink = a.whatsapp
       ? 'https://wa.me/52' + cleanWAca(a.whatsapp) + '?text=' + encodeURIComponent('Hola ' + a.nombre + ', te contacta Coordinación de Asesores de Organic English.')
       : '';
     var colorCom = a.comisionCatorcena >= 500 ? '#22c55e' : a.comisionCatorcena >= 200 ? '#f97316' : '#94a3b8';
+    // Medalla solo para los 3 primeros lugares, y solo si de verdad tuvieron comision esta semana.
+    var medalla = (idx < 3 && a.comisionCatorcena > 0) ? '<span style="font-size:18px;margin-right:4px;" title="Top '+(idx+1)+' de la semana">'+medallas[idx]+'</span>' : '';
 
     html +=
       '<div style="background:#1a2540;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 20px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;">' +
@@ -936,7 +954,7 @@ function renderAsesores() {
             a.nombre.charAt(0).toUpperCase() +
           '</div>' +
           '<div>' +
-            '<div style="font-size:14px;font-weight:700;color:#f1f5f9;line-height:1.3;">' + a.nombre + '</div>' +
+            '<div style="font-size:14px;font-weight:700;color:#f1f5f9;line-height:1.3;cursor:pointer;text-decoration:underline dotted;" onclick="abrirHistorialAsesorDetalle(\''+escJsCA(a.id)+'\',\''+escJsCA(a.nombre)+'\')" title="Ver historial de este asesor">' + medalla + a.nombre + '</div>' +
             '<div style="font-size:11px;color:#475569;margin-top:2px;">' + a.id +
               (a.activo
                 ? ' &nbsp;<span style="color:#22c55e;font-weight:700;">● Activo</span>'
@@ -1017,6 +1035,80 @@ function abrirHistoricoComisionesTodos() {
 }
 function closeHistoricoComisionesTodos() { document.getElementById('modalHistoricoComisionesTodos').classList.remove('open'); }
 function closeMbgHistComisiones(e) { if (e.target === document.getElementById('modalHistoricoComisionesTodos')) closeHistoricoComisionesTodos(); }
+
+// ── HISTORIAL DETALLADO DE UN ASESOR (mismo patron que en asesor.html) ──
+var detalleAsesorData = [];
+
+function abrirHistorialAsesorDetalle(idAsesor, nombreAsesor) {
+  document.getElementById('modalDetalleAsesor').classList.add('open');
+  document.getElementById('da-titulo').textContent = 'Historial — ' + nombreAsesor;
+  var cont = document.getElementById('da-lista');
+  cont.innerHTML = '<div style="text-align:center;color:#64748b;padding:20px;">Cargando...</div>';
+
+  fetch(APPS + '?action=getHistoricoComisionesAsesor&idAsesor=' + encodeURIComponent(idAsesor) + '&n=8')
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res.status !== 'ok' || !res.historial || !res.historial.length) {
+        cont.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px;">Sin inscripciones registradas todavia.</p>';
+        return;
+      }
+      detalleAsesorData = res.historial;
+      cont.innerHTML = res.historial.map(function(h, idx){
+        var tieneBono = h.comisionesBono > 0;
+        return '<div style="background:#1a2540;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;">' +
+          '<div style="cursor:pointer;" onclick="toggleDetalleAsesorPeriodo('+idx+')">' +
+            '<div style="font-size:12px;color:#94a3b8;font-weight:700;margin-bottom:6px;">' + h.semana + ' <span style="float:right;color:#64748b;" id="da-flecha-'+idx+'">▾</span></div>' +
+            '<div style="font-size:12px;color:#cbd5e1;line-height:1.6;">' +
+              h.inscritos + ' ' + (h.inscritos===1?'inscripción':'inscripciones') + ' &rarr; ' +
+              '<strong style="color:#f1f5f9;">' + h.comisionesBase + '</strong> por inscripción' +
+              (tieneBono ? ' + <strong style="color:#22c55e;">' + h.comisionesBono + '</strong> de bonificación' : '') +
+              ' = <strong style="color:#fb923c;">' + h.comisionesTotal + '</strong> comisiones ($' + h.montoTotal + ' MXN)' +
+            '</div>' +
+          '</div>' +
+          '<div id="da-detalle-'+idx+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);"></div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(function(){ cont.innerHTML = '<p style="color:#ef4444;text-align:center;padding:20px;">Error al cargar el historial.</p>'; });
+}
+
+function toggleDetalleAsesorPeriodo(idx) {
+  var det = document.getElementById('da-detalle-'+idx);
+  var flecha = document.getElementById('da-flecha-'+idx);
+  if (!det) return;
+  if (det.style.display === 'block') {
+    det.style.display = 'none';
+    if (flecha) flecha.textContent = '▾';
+    return;
+  }
+  document.querySelectorAll('[id^="da-detalle-"]').forEach(function(d){ d.style.display = 'none'; });
+  document.querySelectorAll('[id^="da-flecha-"]').forEach(function(f){ f.textContent = '▾'; });
+
+  var h = detalleAsesorData[idx];
+  if (!h) return;
+  var tieneBono = h.comisionesBono > 0;
+
+  var filasAlumnos = (h.alumnos||[]).map(function(al){
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;color:#cbd5e1;padding:3px 0;">' +
+      '<span>' + al.nombre + ' <span style="color:#64748b;">(' + al.id + ')</span></span>' +
+      '<span style="color:#64748b;">' + al.fecha + '</span>' +
+    '</div>';
+  }).join('');
+
+  det.innerHTML =
+    '<div style="font-size:11px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Alumnos inscritos</div>' +
+    filasAlumnos +
+    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;">' +
+      '<div style="display:flex;justify-content:space-between;color:#cbd5e1;"><span>Subtotal (' + h.comisionesBase + ' insc.)</span><span>$' + h.montoBase + ' MXN</span></div>' +
+      (tieneBono ? '<div style="display:flex;justify-content:space-between;color:#22c55e;margin-top:2px;"><span>Bonificación (' + h.comisionesBono + ')</span><span>$' + h.montoBono + ' MXN</span></div>' : '') +
+      '<div style="display:flex;justify-content:space-between;color:#fb923c;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);"><span>Total del periodo</span><span>$' + h.montoTotal + ' MXN</span></div>' +
+    '</div>';
+  det.style.display = 'block';
+  if (flecha) flecha.textContent = '▴';
+}
+
+function closeDetalleAsesor() { document.getElementById('modalDetalleAsesor').classList.remove('open'); }
+function closeMbgDetalleAsesor(e) { if (e.target === document.getElementById('modalDetalleAsesor')) closeDetalleAsesor(); }
 </script>
 </body>
 </html>
