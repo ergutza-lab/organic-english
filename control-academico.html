@@ -458,6 +458,17 @@
   </div>
 </div>
 
+<!-- MODAL: Historial completo del alumno (asistencia + calificaciones diarias) -->
+<div id="modalHistorialAlumno" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:94%;max-width:760px;max-height:90vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="modalHistorialTitulo" style="color:var(--text);margin:0;font-size:16px;">Historial del alumno</h3>
+      <button onclick="document.getElementById('modalHistorialAlumno').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <div id="modalHistorialBody"><div class="empty-state">Cargando...</div></div>
+  </div>
+</div>
+
 <!-- MODAL: Evaluaciones del grupo (vista desde maestro) -->
 <div id="modalGrupoEval" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('visible')">
   <div class="modal-box" style="max-width:700px;">
@@ -1104,7 +1115,7 @@ function cargarReporteGrupo(){
         var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
         return '<tr>'+
           '<td>'+r.alumno.id+'</td>'+
-          '<td style="font-weight:600;color:var(--text);">'+r.alumno.nombre+'</td>'+
+          '<td style="font-weight:600;color:#60a5fa;cursor:pointer;text-decoration:underline dotted;" onclick="abrirHistorialAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+String(r.alumno.nombre).replace(/'/g,"\\'")+'\')" title="Ver historial completo">'+r.alumno.nombre+'</td>'+
           '<td style="color:'+(r.asistencia>=80?'#4ade80':r.asistencia>=75?'#facc15':'#f87171')+';">'+r.asistencia+'%</td>'+
           '<td style="color:#ef4444;">'+gp(1)+'%</td>'+
           '<td style="color:#facc15;">'+gp(2)+'%</td>'+
@@ -1700,6 +1711,157 @@ function asignarGrupoDesdeHorario(idGrupo) {
   })
   .catch(function(){ alert('❌ Error de conexión'); });
 }
+
+// ── HISTORIAL COMPLETO DEL ALUMNO (asistencia + calificaciones diarias) ────
+var historialAlumnoActual = null;
+
+function abrirHistorialAlumno(idAlumno, idGrupo, nombreAlumno) {
+  var modal = document.getElementById('modalHistorialAlumno');
+  var cont  = document.getElementById('modalHistorialBody');
+  document.getElementById('modalHistorialTitulo').textContent = 'Historial — ' + nombreAlumno;
+  cont.innerHTML = '<div class="empty-state">Cargando...</div>';
+  modal.style.display = 'flex';
+  historialAlumnoActual = null;
+
+  fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo), {redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.success) { cont.innerHTML = '<div class="empty-state">Error al cargar el historial.</div>'; return; }
+      historialAlumnoActual = data;
+
+      var res = data.resumen || {};
+      var resumenHtml = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">' +
+        '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#4ade80;">'+(res.asistenciaPct||0)+'%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Asistencia</div></div>' +
+        '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#facc15;">'+(res.positivosPct||0)+'%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div></div>' +
+        '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#f1f5f9;">'+(res.totalClases||0)+'</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Clases registradas</div></div>' +
+        '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#60a5fa;">'+(res.presentes||0)+'</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Presentes</div></div>' +
+      '</div>';
+
+      var colorNombre = {1:'Rojo',2:'Amarillo',3:'Verde',4:'Azul'};
+      var colorHex    = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'};
+      var filasHtml = (data.historial||[]).length
+        ? '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+          '<thead><tr><th style="text-align:left;padding:6px;color:#94a3b8;">Fecha</th><th style="text-align:left;padding:6px;color:#94a3b8;">Asistencia</th><th style="text-align:left;padding:6px;color:#94a3b8;">Color</th><th style="text-align:left;padding:6px;color:#94a3b8;">Observación</th></tr></thead><tbody>' +
+          data.historial.map(function(h){
+            return '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+              '<td style="padding:6px;color:#f1f5f9;white-space:nowrap;">'+h.fecha+'</td>' +
+              '<td style="padding:6px;color:'+(h.asistencia?'#4ade80':'#f87171')+';">'+(h.asistencia?'Presente':'Ausente')+'</td>' +
+              '<td style="padding:6px;color:'+(h.asistencia?colorHex[h.color]||'#64748b':'#334155')+';">'+(h.asistencia?(colorNombre[h.color]||'—'):'—')+'</td>' +
+              '<td style="padding:6px;color:#94a3b8;">'+(h.obs||'—')+'</td>' +
+            '</tr>';
+          }).join('') + '</tbody></table>'
+        : '<div class="empty-state">Sin registros de clase todavia.</div>';
+
+      var challengesHtml = (data.challenges||[]).length
+        ? '<div style="margin-top:16px;"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Challenges</div>' +
+          data.challenges.map(function(c){
+            return '<div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;">' +
+              '<span style="color:#f1f5f9;">'+c.tipo+' Challenge — '+(c.fecha||'—')+'</span>' +
+              '<span style="color:'+(c.aprobado?'#4ade80':'#f87171')+';">'+(c.aprobado?'Aprobado':'No aprobado')+'</span>' +
+            '</div>';
+          }).join('') + '</div>'
+        : '';
+
+      cont.innerHTML = resumenHtml +
+        '<div style="max-height:320px;overflow-y:auto;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:4px 10px;">'+filasHtml+'</div>' +
+        challengesHtml +
+        '<div style="text-align:center;margin-top:18px;"><button onclick="descargarHistorialAlumnoPDF()" style="background:#f97316;color:#fff;border:none;border-radius:10px;padding:11px 30px;font-size:13px;font-weight:700;cursor:pointer;">📄 Descargar reporte en PDF</button></div>';
+    })
+    .catch(function(){ cont.innerHTML = '<div class="empty-state">Error de conexión.</div>'; });
+}
+
+function descargarHistorialAlumnoPDF() {
+  var data = historialAlumnoActual;
+  if (!data) { alert('Espera a que cargue el historial primero.'); return; }
+
+  var alumno = data.alumno || {};
+  var grupo  = data.grupo  || {};
+  var res    = data.resumen || {};
+  var fecha  = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+  var colorNombre = {1:'Rojo',2:'Amarillo',3:'Verde',4:'Azul'};
+  var colorHex    = {1:'#dc2626',2:'#ca8a04',3:'#16a34a',4:'#2563eb'};
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>Historial — '+(alumno.nombre||'')+'</title>'+
+    '<style>body{font-family:Arial,sans-serif;background:#fff;color:#1e293b;margin:0;padding:0;}'+
+    'table{width:100%;border-collapse:collapse;font-size:12px;}'+
+    'th{background:#f1f5f9;padding:7px 10px;text-align:left;border-bottom:2px solid #e2e8f0;color:#475569;font-weight:700;}'+
+    'td{padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#334155;}'+
+    '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
+    '</style></head><body style="padding:32px 40px;max-width:900px;margin:0 auto;">';
+
+  // Header con logo
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #f97316;">';
+  html += '<div><img src="https://raw.githubusercontent.com/erguteza-lab/organic-english/main/images/logotransparente.png" style="height:52px;object-fit:contain;display:block;" /><div style="font-size:12px;color:#64748b;margin-top:6px;">Historial de Asistencia y Calificaciones</div></div>';
+  html += '<div style="text-align:right;"><div style="font-size:11px;color:#94a3b8;">Generado: '+fecha+'</div></div>';
+  html += '</div>';
+
+  // Datos del alumno, grupo y maestro
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">';
+  html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;">'+
+    '<div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Datos del alumno</div>'+
+    '<div style="font-size:14px;font-weight:700;color:#1e293b;">'+(alumno.nombre||'—')+'</div>'+
+    '<div style="font-size:12px;color:#64748b;margin-top:2px;">ID: '+(alumno.id||'—')+'</div>'+
+    '<div style="font-size:12px;color:#64748b;">Inscrito desde: '+(alumno.fechaInscripcion||'—')+'</div>'+
+  '</div>';
+  html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;">'+
+    '<div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Grupo y maestro</div>'+
+    '<div style="font-size:13px;color:#1e293b;">Grupo: <strong>'+(grupo.id||'—')+' · '+(grupo.nivel||'')+'</strong></div>'+
+    '<div style="font-size:12px;color:#64748b;margin-top:2px;">Horario: '+(grupo.horario||'—')+' · Inicio: '+(grupo.fechaInicio||'—')+'</div>'+
+    '<div style="font-size:12px;color:#64748b;">Maestro: '+(data.maestro||'—')+'</div>'+
+  '</div>';
+  html += '</div>';
+
+  // Resumen ejecutivo
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">';
+  html += '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#16a34a;">'+(res.asistenciaPct||0)+'%</div><div style="font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase;">Asistencia</div></div>';
+  html += '<div style="background:#fefce8;border:1.5px solid #fde047;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#ca8a04;">'+(res.positivosPct||0)+'%</div><div style="font-size:10px;font-weight:700;color:#a16207;text-transform:uppercase;">Verde + Azul</div></div>';
+  html += '<div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#2563eb;">'+(res.totalClases||0)+'</div><div style="font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;">Clases registradas</div></div>';
+  html += '<div style="background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#334155;">'+(res.presentes||0)+'</div><div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;">Presentes</div></div>';
+  html += '</div>';
+
+  // Historial dia por dia
+  html += '<div style="background:#1c2b5e;color:#fff;padding:10px 18px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;letter-spacing:.5px;">HISTORIAL DIARIO DE ASISTENCIA Y CALIFICACIONES</div>';
+  html += '<table><thead><tr><th>Fecha</th><th>Bloque</th><th>Semana</th><th>Asistencia</th><th>Color</th><th>Observación</th></tr></thead><tbody>';
+  (data.historial||[]).forEach(function(h, i){
+    html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';">'+
+      '<td>'+h.fecha+'</td>'+
+      '<td>'+(h.bloque||'—')+'</td>'+
+      '<td>'+(h.semana||'—')+'</td>'+
+      '<td style="color:'+(h.asistencia?'#16a34a':'#dc2626')+';font-weight:700;">'+(h.asistencia?'Presente':'Ausente')+'</td>'+
+      '<td style="color:'+(h.asistencia?(colorHex[h.color]||'#64748b'):'#94a3b8')+';font-weight:700;">'+(h.asistencia?(colorNombre[h.color]||'—'):'—')+'</td>'+
+      '<td>'+(h.obs||'—')+'</td>'+
+    '</tr>';
+  });
+  if (!(data.historial||[]).length) {
+    html += '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">Sin registros de clase todavia.</td></tr>';
+  }
+  html += '</tbody></table>';
+
+  // Challenges
+  if ((data.challenges||[]).length) {
+    html += '<div style="background:#7c3aed;color:#fff;padding:10px 18px;border-radius:8px 8px 0 0;margin-top:24px;font-size:13px;font-weight:700;letter-spacing:.5px;">CHALLENGES</div>';
+    html += '<table><thead><tr><th>Tipo</th><th>Fecha</th><th>Resultado</th><th>Retroalimentación</th></tr></thead><tbody>';
+    data.challenges.forEach(function(c, i){
+      html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';">'+
+        '<td>'+c.tipo+' Challenge</td>'+
+        '<td>'+(c.fecha||'—')+'</td>'+
+        '<td style="color:'+(c.aprobado?'#16a34a':'#dc2626')+';font-weight:700;">'+(c.aprobado?'Aprobado':'No aprobado')+'</td>'+
+        '<td>'+(c.feedback||'—')+'</td>'+
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  // Boton imprimir
+  html += '<div class="no-print" style="text-align:center;margin-top:32px;"><button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:10px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button></div>';
+  html += '</body></html>';
+
+  var w = window.open('', '_blank', 'width=1000,height=800');
+  w.document.write(html);
+  w.document.close();
+}
+
 
 </script>
 
