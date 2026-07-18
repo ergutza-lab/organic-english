@@ -560,6 +560,8 @@
     cargarNivelesDropdown();
   }
 
+  var historicoComisionesData = [];
+
   function abrirHistoricoComisiones() {
     document.getElementById('modalHistoricoComisiones').classList.add('active');
     var cont = document.getElementById('hc-lista');
@@ -571,20 +573,60 @@
           cont.innerHTML = '<p style="color:#64748b;font-size:13px;">Sin datos disponibles.</p>';
           return;
         }
-        cont.innerHTML = res.historial.map(function(h){
+        historicoComisionesData = res.historial;
+        cont.innerHTML = res.historial.map(function(h, idx){
           var tieneBono = h.comisionesBono > 0;
           return '<div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;margin-bottom:8px;">' +
-            '<div style="font-size:12px;color:#94a3b8;font-weight:700;margin-bottom:6px;">' + h.semana + '</div>' +
+            '<div style="cursor:pointer;" onclick="toggleDetalleComision('+idx+')">' +
+            '<div style="font-size:12px;color:#94a3b8;font-weight:700;margin-bottom:6px;">' + h.semana + ' <span style="float:right;color:#64748b;" id="hc-flecha-'+idx+'">▾</span></div>' +
             '<div style="font-size:12px;color:#cbd5e1;line-height:1.6;">' +
               h.inscritos + ' ' + (h.inscritos===1?'inscripción':'inscripciones') + ' &rarr; ' +
               '<strong style="color:#f1f5f9;">' + h.comisionesBase + '</strong> por inscripción' +
               (tieneBono ? ' + <strong style="color:#22c55e;">' + h.comisionesBono + '</strong> de bonificación' : '') +
               ' = <strong style="color:#fb923c;">' + h.comisionesTotal + '</strong> comisiones ($' + h.montoTotal + ' MXN)' +
             '</div>' +
+            '</div>' +
+            '<div id="hc-detalle-'+idx+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);"></div>' +
           '</div>';
         }).join('');
       })
       .catch(function(){ cont.innerHTML = '<p style="color:#ef4444;font-size:13px;">Error al cargar el histórico.</p>'; });
+  }
+
+  function toggleDetalleComision(idx) {
+    var det = document.getElementById('hc-detalle-'+idx);
+    var flecha = document.getElementById('hc-flecha-'+idx);
+    if (!det) return;
+    if (det.style.display === 'block') {
+      det.style.display = 'none';
+      if (flecha) flecha.textContent = '▾';
+      return;
+    }
+    // Cerrar cualquier otro detalle abierto
+    document.querySelectorAll('[id^="hc-detalle-"]').forEach(function(d){ d.style.display = 'none'; });
+    document.querySelectorAll('[id^="hc-flecha-"]').forEach(function(f){ f.textContent = '▾'; });
+
+    var h = historicoComisionesData[idx];
+    if (!h) return;
+    var tieneBono = h.comisionesBono > 0;
+
+    var filasAlumnos = (h.alumnos||[]).map(function(al){
+      return '<div style="display:flex;justify-content:space-between;font-size:12px;color:#cbd5e1;padding:3px 0;">' +
+        '<span>' + al.nombre + ' <span style="color:#64748b;">(' + al.id + ')</span></span>' +
+        '<span style="color:#64748b;">' + al.fecha + '</span>' +
+      '</div>';
+    }).join('');
+
+    det.innerHTML =
+      '<div style="font-size:11px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Alumnos inscritos</div>' +
+      filasAlumnos +
+      '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;">' +
+        '<div style="display:flex;justify-content:space-between;color:#cbd5e1;"><span>Subtotal (' + h.comisionesBase + ' insc.)</span><span>$' + h.montoBase + ' MXN</span></div>' +
+        (tieneBono ? '<div style="display:flex;justify-content:space-between;color:#22c55e;margin-top:2px;"><span>Bonificación (' + h.comisionesBono + ')</span><span>$' + h.montoBono + ' MXN</span></div>' : '') +
+        '<div style="display:flex;justify-content:space-between;color:#fb923c;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);"><span>Total del periodo</span><span>$' + h.montoTotal + ' MXN</span></div>' +
+      '</div>';
+    det.style.display = 'block';
+    if (flecha) flecha.textContent = '▴';
   }
   function cerrarHistoricoComisiones() {
     document.getElementById('modalHistoricoComisiones').classList.remove('active');
