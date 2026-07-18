@@ -208,7 +208,7 @@
     <div class="stats-row">
       <div class="stat-card orange"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Maestros activos</div></div>
       <div class="stat-card blue"><div class="stat-num" id="statGrupos">—</div><div class="stat-label">Grupos cubiertos</div></div>
-      <div class="stat-card" style="border-color:rgba(239,68,68,0.4);"><div class="stat-num" id="statSinMaestro" style="color:#f87171;">—</div><div class="stat-label">Grupos sin maestro</div></div>
+      <div class="stat-card" style="border-color:rgba(239,68,68,0.4);cursor:pointer;" onclick="abrirModalGruposSinMaestro()" title="Ver lista completa"><div class="stat-num" id="statSinMaestro" style="color:#f87171;">—</div><div class="stat-label">Grupos sin maestro</div></div>
       <div class="stat-card green"><div class="stat-num" id="statClasesHoy">—</div><div class="stat-label">Clases registradas hoy</div></div>
       <div class="stat-card purple"><div class="stat-num" id="statSemana">—</div><div class="stat-label">Clases esta semana</div></div>
     </div>
@@ -413,6 +413,18 @@
     </div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Horarios disponibles Lunes a Jueves. Verde = libre, naranja = ya tiene grupo asignado.</p>
     <div id="modalDisponibilidadBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Grupos sin maestro (vista global, todos los horarios) -->
+<div id="modalGruposSinMaestro" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:92%;max-width:640px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="color:var(--text);margin:0;font-size:16px;">Grupos sin maestro asignado</h3>
+      <button onclick="document.getElementById('modalGruposSinMaestro').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Todos los grupos (incluyendo los que aun no comienzan), ordenados por fecha de inicio.</p>
+    <div id="modalGruposSinMaestroBody"></div>
   </div>
 </div>
 
@@ -1135,15 +1147,25 @@ function abrirDisponibilidad() {
 }
 
 function renderDisponibilidad(idMaestro) {
-  var horarios = [
-    {label:'9:00 AM',  key:'9AM'},
-    {label:'11:00 AM', key:'11AM'},
-    {label:'5:00 PM',  key:'5PM'},
-    {label:'6:00 PM',  key:'6PM'},
-    {label:'7:00 PM',  key:'7PM'},
-    {label:'8:00 PM',  key:'8PM'},
-    {label:'9:00 PM',  key:'9PM'}
-  ];
+  // Horarios generados dinamicamente a partir de los horarios reales que
+  // existen en gruposData -- antes era una lista fija de 7 horarios y
+  // cualquier grupo con un horario fuera de esa lista jamas aparecia aqui.
+  var horariosSet = {};
+  (gruposData||[]).forEach(function(g){
+    var h = (g.horario||'').trim();
+    if (h && String(g.demo||'').toUpperCase() !== 'DEMO') horariosSet[h] = true;
+  });
+  function horarioAMinutos(h){
+    var m = (h||'').match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!m) return 99999;
+    var hh = parseInt(m[1],10), mm = parseInt(m[2],10), ap = m[3].toUpperCase();
+    if (ap==='PM' && hh!==12) hh+=12;
+    if (ap==='AM' && hh===12) hh=0;
+    return hh*60+mm;
+  }
+  var horarios = Object.keys(horariosSet)
+    .sort(function(a,b){ return horarioAMinutos(a)-horarioAMinutos(b); })
+    .map(function(h){ return {label:h, key:h}; });
 
   // Grupos asignados a este maestro
   var misGrupos = (gruposData||[]).filter(function(g){
@@ -1281,6 +1303,78 @@ function asignarGrupoAMaestro(idMaestro, idGrupo) {
       gruposData.forEach(function(g){ if(g.id===idGrupo) g.idMaestro=idMaestro; });
       renderDisponibilidad(idMaestro);
       setTimeout(function(){ cargarDatos(function(){ renderDisponibilidad(idMaestro); }); }, 2000);
+    } else {
+      alert('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'));
+    }
+  })
+  .catch(function(){ alert('❌ Error de conexión'); });
+}
+
+// ── VISTA GLOBAL: GRUPOS SIN MAESTRO (todos los horarios, ordenados por fecha) ──
+function parseFechaDDMMYYYYca(str) {
+  if (!str) return null;
+  var p = str.split('/');
+  if (p.length !== 3) return null;
+  return new Date(parseInt(p[2],10), parseInt(p[1],10)-1, parseInt(p[0],10));
+}
+
+function abrirModalGruposSinMaestro() {
+  document.getElementById('modalGruposSinMaestro').style.display = 'flex';
+  renderGruposSinMaestroGlobal();
+}
+
+function renderGruposSinMaestroGlobal() {
+  var cont = document.getElementById('modalGruposSinMaestroBody');
+
+  var sinMaestro = (gruposData||[]).filter(function(g){
+    var idM = String(g.idMaestro||'').trim();
+    return (!idM || idM === 'SIN ASIG.' || idM === 'S-01') &&
+           String(g.demo||'').toUpperCase() !== 'DEMO';
+  });
+
+  sinMaestro.sort(function(a,b){
+    var fa = parseFechaDDMMYYYYca(a.fechaInicio) || new Date(0);
+    var fb = parseFechaDDMMYYYYca(b.fechaInicio) || new Date(0);
+    return fa - fb;
+  });
+
+  if (!sinMaestro.length) {
+    cont.innerHTML = '<div style="text-align:center;color:#64748b;padding:30px;">✅ Todos los grupos tienen maestro asignado.</div>';
+    return;
+  }
+
+  var maestrosActivos = (maestrosData||[]).filter(function(m){ return m.activo; });
+  var opcionesMaestros = '<option value="">-- Elige maestro --</option>' +
+    maestrosActivos.map(function(m){ return '<option value="'+m.id+'">'+m.nombre+'</option>'; }).join('');
+
+  cont.innerHTML = sinMaestro.map(function(g){
+    return '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:10px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<div><span style="font-size:13px;font-weight:700;color:#f1f5f9;">'+g.id+'</span> <span style="font-size:12px;color:#94a3b8;">'+ (g.nivel||'') +'</span></div>' +
+        '<div style="font-size:11px;color:#64748b;">'+ (g.fechaInicio||'Sin fecha') +'</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">🕒 '+(g.horario||'—')+' &nbsp;·&nbsp; 👥 '+(g.inscritos||0)+' inscritos</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<select id="selMae_'+g.id+'" style="flex:1;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;font-size:12px;">'+opcionesMaestros+'</select>' +
+        '<button onclick="asignarGrupoDesdeGlobal(\''+g.id+'\')" style="font-size:12px;font-weight:700;color:#4ade80;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px 14px;cursor:pointer;white-space:nowrap;">Asignar</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function asignarGrupoDesdeGlobal(idGrupo) {
+  var sel = document.getElementById('selMae_'+idGrupo);
+  var idMaestro = sel ? sel.value : '';
+  if (!idMaestro) { alert('Selecciona un maestro primero.'); return; }
+  if (!confirm('Asignar grupo '+idGrupo+' a este maestro?')) return;
+  fetch(APPS_SCRIPT+'?action=reasignarGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&idMaestroNuevo='+encodeURIComponent(idMaestro), {redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if (data && (data.status==='ok'||data.ok)) {
+      alert('✅ Grupo '+idGrupo+' asignado correctamente.');
+      gruposData.forEach(function(g){ if(g.id===idGrupo) g.idMaestro=idMaestro; });
+      renderGruposSinMaestroGlobal();
+      setTimeout(function(){ cargarDatos(function(){ renderGruposSinMaestroGlobal(); }); }, 2000);
     } else {
       alert('❌ Error: '+(data&&(data.mensaje||data.error)||'Sin respuesta'));
     }
