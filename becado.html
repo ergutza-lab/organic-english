@@ -165,6 +165,27 @@
     .info-alumno-bar { flex-direction: column; align-items: flex-start; }
     .card { padding: 14px; }
   }
+
+  /* ── Modal subir video challenge ── */
+  .modal-video-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
+  .modal-video-overlay.visible { display: flex; }
+  .modal-video-box { background: #1a2540; border-radius: 22px; border: 1px solid rgba(249,115,22,0.35); padding: 28px 24px; width: 100%; max-width: 440px; box-shadow: 0 0 60px rgba(249,115,22,0.18); }
+  .modal-video-titulo { font-size: 18px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 4px; }
+  .modal-video-sub { font-size: 12px; color: #f97316; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px; }
+  .modal-video-drop { border: 2px dashed rgba(249,115,22,0.45); border-radius: 14px; padding: 28px 20px; text-align: center; cursor: pointer; transition: background 0.2s; margin-bottom: 16px; }
+  .modal-video-drop:hover, .modal-video-drop.dragover { background: rgba(249,115,22,0.08); }
+  .modal-video-drop-icon { font-size: 36px; margin-bottom: 8px; }
+  .modal-video-drop-text { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+  .modal-video-drop-text strong { color: #fb923c; }
+  .modal-video-nombre { font-size: 12px; color: #34d399; margin-top: 8px; font-weight: 600; display: none; }
+  .modal-video-progress { height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; margin: 14px 0; overflow: hidden; display: none; }
+  .modal-video-progress-bar { height: 100%; background: linear-gradient(90deg,#f97316,#fbbf24); border-radius: 99px; width: 0%; transition: width 0.3s; }
+  .modal-video-status { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 14px; min-height: 18px; }
+  .btn-subir-video { width: 100%; padding: 13px; background: linear-gradient(135deg,#f97316,#ea580c); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  .btn-subir-video:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-cerrar-video { width: 100%; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #64748b; font-size: 13px; cursor: pointer; margin-top: 10px; }
+  .btn-video-orange { display: block; width: 100%; margin-top: 10px; padding: 7px 0; background: linear-gradient(135deg,#f97316,#ea580c); border: none; border-radius: 9px; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; }
+  .link-video-subido { display: block; margin-top: 8px; font-size: 10px; color: #34d399; word-break: break-all; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -417,6 +438,27 @@
       <div style="font-size:12px;color:#8a7060;">Necesitas mantener <strong style="color:#c4956a;">mínimo 80%</strong> tanto en asistencia como en aprovechamiento.</div>
     </div>
     <button onclick="cerrarInfoEvaluacion()" style="width:100%;background:linear-gradient(135deg,#c4956a,#a07550);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
+<!-- ══ Modal Subir Video Challenge ══ -->
+<div id="modalVideoChallenge" class="modal-video-overlay">
+  <div class="modal-video-box">
+    <div style="font-size:36px;text-align:center;margin-bottom:6px;" id="modalVideoIcono">🎬</div>
+    <div class="modal-video-titulo" id="modalVideoTitulo">Subir Video</div>
+    <div class="modal-video-sub" id="modalVideoSub">Mini Challenge</div>
+    <div class="modal-video-drop" id="videoDropZone" onclick="document.getElementById('videoFileInput').click()">
+      <div class="modal-video-drop-icon">📹</div>
+      <div class="modal-video-drop-text">Arrastra tu video aquí o <strong>haz clic para seleccionar</strong><br><span style="font-size:11px;color:#475569;">MP4, MOV, AVI · Máx. 500 MB</span></div>
+      <div class="modal-video-nombre" id="videoNombreArchivo"></div>
+    </div>
+    <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="onVideoSeleccionado(this)">
+    <div class="modal-video-progress" id="videoProgressWrap">
+      <div class="modal-video-progress-bar" id="videoProgressBar"></div>
+    </div>
+    <div class="modal-video-status" id="videoStatus"></div>
+    <button class="btn-subir-video" id="btnEnviarVideo" onclick="subirVideoChallenge()" disabled>📤 Subir Video</button>
+    <button class="btn-cerrar-video" onclick="cerrarModalVideo()">Cerrar</button>
   </div>
 </div>
 
@@ -712,6 +754,12 @@
     html += '<div style="font-size:9px;font-weight:700;color:#facc15;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
     html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbMini+'</div></div>';
   }
+  // Botón subir video Mini Challenge
+  if (!tieneMini) {
+    html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Mini\')">📹 Subir mi video</button>';
+  }
+  var urlMini = miniCh && miniCh.urlVideo ? miniCh.urlVideo : '';
+  html += '<a id="linkVideoMini" class="link-video-subido" href="'+urlMini+'" target="_blank" style="display:'+(urlMini?'block':'none')+'">▶ Ver mi video subido</a>';
   html += '</div>';
 
   var grandExiste = grandCh !== undefined;
@@ -728,6 +776,12 @@
     html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
     html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbGrand+'</div></div>';
   }
+  // Botón subir video Grand Challenge
+  if (!tieneGrand) {
+    html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Grand\')">📹 Subir mi video</button>';
+  }
+  var urlGrand = grandCh && grandCh.urlVideo ? grandCh.urlVideo : '';
+  html += '<a id="linkVideoGrand" class="link-video-subido" href="'+urlGrand+'" target="_blank" style="display:'+(urlGrand?'block':'none')+'">▶ Ver mi video subido</a>';
   html += '</div>';
   html += '</div>';
   html += '<div style="font-size:10px;color:#475569;text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
@@ -767,6 +821,159 @@
   document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('inputEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});
   });
+
+  // ── SUBIR VIDEO CHALLENGE ──
+  var _videoTipoChallenge = ''; // 'Mini' o 'Grand'
+  var _videoArchivo = null;
+
+  function abrirModalVideo(tipo) {
+    _videoTipoChallenge = tipo;
+    _videoArchivo = null;
+    document.getElementById('videoFileInput').value = '';
+    document.getElementById('videoNombreArchivo').style.display = 'none';
+    document.getElementById('videoNombreArchivo').textContent = '';
+    document.getElementById('videoProgressWrap').style.display = 'none';
+    document.getElementById('videoProgressBar').style.width = '0%';
+    document.getElementById('videoStatus').textContent = '';
+    document.getElementById('btnEnviarVideo').disabled = true;
+
+    if (tipo === 'Mini') {
+      document.getElementById('modalVideoIcono').textContent = '🎖️';
+      document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Mini Challenge';
+      document.getElementById('modalVideoSub').textContent = 'Semana 4 · Tu video de presentación';
+    } else {
+      document.getElementById('modalVideoIcono').textContent = '🏆';
+      document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Grand Challenge';
+      document.getElementById('modalVideoSub').textContent = 'Semana 8 · Tu proyecto final';
+    }
+    document.getElementById('modalVideoChallenge').classList.add('visible');
+  }
+
+  function cerrarModalVideo() {
+    document.getElementById('modalVideoChallenge').classList.remove('visible');
+  }
+
+  function onVideoSeleccionado(input) {
+    var file = input.files[0];
+    if (!file) return;
+    _videoArchivo = file;
+    var nombre = document.getElementById('videoNombreArchivo');
+    nombre.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+    nombre.style.display = 'block';
+    document.getElementById('btnEnviarVideo').disabled = false;
+    document.getElementById('videoStatus').textContent = 'Archivo listo para subir.';
+  }
+
+  // Drag & drop
+  (function(){
+    var dz = document.getElementById('videoDropZone');
+    dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
+    dz.addEventListener('drop', function(e){
+      e.preventDefault(); dz.classList.remove('dragover');
+      var file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('video/')) {
+        _videoArchivo = file;
+        var input = document.getElementById('videoFileInput');
+        // Asignar via DataTransfer para que el input tenga el archivo
+        try { var dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; } catch(err){}
+        var nombre = document.getElementById('videoNombreArchivo');
+        nombre.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+        nombre.style.display = 'block';
+        document.getElementById('btnEnviarVideo').disabled = false;
+        document.getElementById('videoStatus').textContent = 'Archivo listo para subir.';
+      } else {
+        document.getElementById('videoStatus').textContent = '⚠️ Por favor selecciona un archivo de video.';
+      }
+    });
+  })();
+
+  function subirVideoChallenge() {
+    if (!_videoArchivo || !alumnoData) return;
+    var btn = document.getElementById('btnEnviarVideo');
+    btn.disabled = true;
+    document.getElementById('videoProgressWrap').style.display = 'block';
+    document.getElementById('videoStatus').textContent = 'Preparando subida…';
+
+    var idCarpeta = _videoTipoChallenge === 'Mini'
+      ? '1GGUDvzHQfuul0oaCbftiUl2nY93pN2h6'
+      : '1tqUtChzZQlyZWfAlEeremlNMbbd7T7Pi';
+
+    var idAlumno     = alumnoData.alumno.id;
+    var nombreAlumno = alumnoData.alumno.nombre || '';
+    var idGrupo      = alumnoData.alumno.idGrupo || alumnoData.grupo && alumnoData.grupo.id || '';
+    var nombreFinal  = idAlumno + '_' + idGrupo + '_' + _videoTipoChallenge + '_' + _videoArchivo.name;
+
+    var prog   = document.getElementById('videoProgressBar');
+    var pct    = 0;
+    var ticker = setInterval(function(){
+      pct = Math.min(pct + Math.random()*5, 80);
+      prog.style.width = pct + '%';
+    }, 400);
+
+    // Paso 1: obtener token de Google
+    fetch(APPS_SCRIPT + '?action=getUploadToken', { redirect: 'follow' })
+    .then(function(r) { return r.text(); })
+    .then(function(txt) {
+      var res = JSON.parse(txt);
+      if (!res.token) throw new Error('No se obtuvo token');
+      document.getElementById('videoStatus').textContent = 'Subiendo video a Drive…';
+
+      // Paso 2: subir archivo directo a Drive API
+      var metadata = JSON.stringify({ name: nombreFinal, parents: [idCarpeta] });
+
+      var form = new FormData();
+      form.append('metadata', new Blob([metadata], { type: 'application/json' }));
+      form.append('file', _videoArchivo);
+
+      return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + res.token },
+        body: form
+      });
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(driveResp) {
+      if (!driveResp.id) throw new Error('Drive error: ' + JSON.stringify(driveResp));
+      var urlVideo = driveResp.webViewLink;
+      clearInterval(ticker);
+      prog.style.width = '90%';
+      document.getElementById('videoStatus').textContent = 'Registrando en sistema…';
+
+      // Paso 3: registrar link en Sheets via Apps Script GET
+      return fetch(APPS_SCRIPT +
+        '?action=registrarLinkVideo' +
+        '&idAlumno=' + encodeURIComponent(idAlumno) +
+        '&idGrupo='  + encodeURIComponent(idGrupo) +
+        '&bloque='   + encodeURIComponent(Math.max(1, bloqueActual || 1)) +
+        '&tipo='     + encodeURIComponent(_videoTipoChallenge) +
+        '&url='      + encodeURIComponent(urlVideo),
+        { redirect: 'follow' }
+      )
+      .then(function(r) { return r.text(); })
+      .then(function(txt) {
+        var ok = false;
+        try { ok = JSON.parse(txt).success !== false; } catch(e) { ok = true; }
+        clearInterval(ticker);
+        prog.style.width = '100%';
+        document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
+        var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
+        var linkEl = document.getElementById(linkId);
+        if (linkEl) {
+          linkEl.href = urlVideo;
+          linkEl.textContent = '▶ Ver mi video subido';
+          linkEl.style.display = 'block';
+        }
+        setTimeout(cerrarModalVideo, 2500);
+      });
+    })
+    .catch(function(err) {
+      clearInterval(ticker);
+      document.getElementById('videoStatus').textContent = '❌ Error: ' + err.message;
+      console.log('ERROR VIDEO:', err);
+      btn.disabled = false;
+    });
+  }
 </script>
 </body>
 </html>
