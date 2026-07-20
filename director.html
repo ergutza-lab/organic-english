@@ -131,7 +131,8 @@
   .tab-content.active { display:block; }
 
   /* TABLA */
-  .tabla-wrap { background:var(--glass); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .tabla-wrap { background:var(--glass); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:14px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; }
+  .tabla-wrap table { min-width:600px; }
   table { width:100%; border-collapse:collapse; }
   thead tr { background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); }
   thead th { padding:10px 14px; color:var(--gray); font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; text-align:left; white-space:nowrap; }
@@ -201,6 +202,22 @@
 
   @media(max-width:1100px){ .resumen-grid{grid-template-columns:repeat(4,1fr);} .financiero-grid{grid-template-columns:repeat(2,1fr);} .acumulado-grid{grid-template-columns:repeat(2,1fr);} }
   @media(max-width:700px) { .resumen-grid{grid-template-columns:repeat(2,1fr);} .financiero-grid{grid-template-columns:1fr;} .panel-header{flex-direction:column;align-items:flex-start;} .acumulado-grid{grid-template-columns:1fr;} }
+  @media(max-width:480px) {
+    .modal-overlay { padding:8px; }
+    .modal-box { border-radius:16px; max-height:92vh; }
+    .modal-header { padding:16px 16px; }
+    .modal-header h3 { font-size:15px; }
+    .modal-header p { font-size:11px; }
+    .modal-body { padding:14px 16px; }
+    .resumen-card { padding:10px 8px; }
+    .resumen-card .r-val { font-size:18px; letter-spacing:-0.5px; }
+    .acum-card { padding:12px; }
+    .acum-val { font-size:16px; }
+    .tabs { width:100%; }
+    .filtro-btn { padding:5px 9px; font-size:10px; }
+    .hist-table thead th, .hist-table tbody td { padding:8px 10px; font-size:12px; }
+    .form-grid-2 { grid-template-columns:1fr !important; }
+  }
 </style>
 </head>
 <body>
@@ -332,7 +349,7 @@
     </div>
     <div class="modal-body" id="modalPlanillaBody" style="padding:20px 24px;overflow-y:auto;">
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+      <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
         <div>
           <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
           <select id="pl-nivel" onchange="alCambiarNivelPlanilla()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;">
@@ -405,7 +422,7 @@
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
       <select id="ge-horario" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;"></select>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+      <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
         <div>
           <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cupo máximo</label>
           <input type="number" id="ge-cupo" value="10" min="1" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
@@ -999,7 +1016,7 @@
       setTimeout(function(){ poblarSelectAsistentes(selectId, intentos + 1); }, 400);
       return;
     }
-    var lista = (directorCache && directorCache.asistentes) || [];
+    var lista = ((directorCache && directorCache.asistentes) || []).filter(function(a){ return a && a.id && a.nombre; });
     if (!lista.length) { sel.innerHTML = '<option value="">Sin asistentes disponibles</option>'; return; }
     sel.innerHTML = '<option value="">Selecciona...</option>' +
       lista.map(function (a) { return '<option value="' + a.id + '">' + a.nombre + '</option>'; }).join('');
@@ -1349,7 +1366,7 @@
         '<div class="acum-card"><div class="acum-label">Nomina total</div><div class="acum-val orange">'+fmt(totN)+'</div></div>' +
         '<div class="acum-card"><div class="acum-label">Balance acumulado</div><div class="acum-val '+balCls+'">'+fmt(totB)+'</div></div>' +
       '</div>' +
-      '<table class="hist-table"><thead><tr><th>Periodo</th><th>Ingresos</th><th>Comisiones</th><th>Nomina</th><th>Balance</th><th>Detalle</th></tr></thead><tbody>';
+      '<div class="tabla-wrap"><table class="hist-table"><thead><tr><th>Periodo</th><th>Ingresos</th><th>Comisiones</th><th>Nomina</th><th>Balance</th><th>Detalle</th></tr></thead><tbody>';
 
     historial.forEach(function(h, idx){
       var bal  = Number(h.balance)||0;
@@ -1368,7 +1385,7 @@
         '<td><button onclick="descargarDetalleCatorcena(\''+h.inicioISO+'\',\''+h.finISO+'\')" style="background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:#fb923c;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">CSV</button></td>'+
         '</tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     document.getElementById('modalHistoricoBody').innerHTML = html;
   }
 
