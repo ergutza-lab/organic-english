@@ -85,6 +85,29 @@
   .semana-bar { background:linear-gradient(90deg,#1c2b5e,#f97316); height:6px; border-radius:4px; }
   .semana-nums { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); }
   .semana-nums span { color:var(--text); font-weight:700; }
+  /* Nav lateral: Evaluaciones de Colocación */
+  .evalcoloc-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9998; display:none; }
+  .evalcoloc-overlay.open { display:block; }
+  .evalcoloc-nav { position:fixed; top:0; right:-420px; width:400px; max-width:92vw; height:100vh; background:var(--surface); border-left:1px solid var(--border); z-index:9999; transition:right 0.3s ease; display:flex; flex-direction:column; padding:22px; overflow-y:auto; box-shadow:-10px 0 40px rgba(0,0,0,0.4); }
+  .evalcoloc-nav.open { right:0; }
+  .evalcoloc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .evalcoloc-header h3 { font-size:16px; color:var(--text); font-weight:700; }
+  .evalcoloc-header button { background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:8px; padding:4px 12px; cursor:pointer; }
+  .evalcoloc-sub { font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .evalcoloc-search { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); outline:none; margin-bottom:14px; }
+  .evalcoloc-search:focus { border-color:var(--purple); }
+  .evalcoloc-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:border-color 0.2s; }
+  .evalcoloc-card:hover { border-color:rgba(139,92,246,0.4); }
+  .evalcoloc-card .ec-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; gap:8px; }
+  .evalcoloc-card .ec-nombre { color:var(--text); font-size:14px; font-weight:700; }
+  .evalcoloc-card .ec-nivel { background:rgba(139,92,246,0.18); color:#c4b5fd; font-size:11px; font-weight:700; padding:3px 10px; border-radius:100px; white-space:nowrap; }
+  .evalcoloc-card .ec-meta { color:var(--muted); font-size:11px; }
+  .eval-detalle-row { display:flex; justify-content:space-between; gap:14px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:13px; }
+  .eval-detalle-row .edr-label { color:var(--muted); flex-shrink:0; }
+  .eval-detalle-row .edr-value { color:var(--text); font-weight:600; text-align:right; }
+  .tabla-resumen-niveles { width:100%; border-collapse:collapse; font-size:12px; margin:12px 0 16px; }
+  .tabla-resumen-niveles th { background:rgba(255,255,255,0.04); color:var(--muted); padding:6px 8px; text-align:center; }
+  .tabla-resumen-niveles td { padding:6px 8px; text-align:center; color:var(--text); border-bottom:1px solid rgba(255,255,255,0.05); }
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
   .modal-overlay.visible { display:flex; }
   .modal-box { background:var(--surface); border-radius:18px; border:1px solid var(--border); padding:28px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; }
@@ -195,10 +218,11 @@
 
     <div class="top-bar">
       <div class="logo-area">
-        <a href="https://organicenglish1.com/staff.html"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" /></a>
+        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" />
         <span style="font-size:16px;font-weight:600;color:var(--text);">Coordinador Académico</span>
       </div>
       <div class="top-right">
+        <button class="btn-sm" style="border-color:rgba(139,92,246,0.35);color:#c4b5fd;" onclick="abrirEvalColocacionNav()">🎓 Evaluaciones de Colocación</button>
         <div class="avatar" id="avatarInitials">CA</div>
         <button class="btn-logout" onclick="logout()">Salir</button>
       </div>
@@ -493,6 +517,23 @@
       <button class="btn-modal-confirm" style="background:#ef4444;" onclick="confirmarBaja()">Sí, dar de baja</button>
     </div>
   </div>
+</div>
+
+<!-- NAV LATERAL: Evaluaciones de Colocación -->
+<div id="evalColocacionOverlay" class="evalcoloc-overlay" onclick="if(event.target===this)cerrarEvalColocacionNav()"></div>
+<div id="evalColocacionNav" class="evalcoloc-nav">
+  <div class="evalcoloc-header">
+    <h3>🎓 Evaluaciones de Colocación</h3>
+    <button onclick="cerrarEvalColocacionNav()">X</button>
+  </div>
+  <p class="evalcoloc-sub">Alumnos evaluados por el equipo de Colocación. Haz clic en un nombre para ver la evaluación completa.</p>
+  <input type="text" id="buscarEvalColocacion" class="evalcoloc-search" placeholder="Buscar por nombre o ID..." oninput="filtrarEvalColocacionNav()">
+  <div id="listaEvalColocacionNav"><div class="empty-state">Cargando...</div></div>
+</div>
+
+<!-- MODAL: Detalle de evaluación de colocación -->
+<div id="modalDetalleEvalColocacion" class="modal-overlay" style="z-index:10000;" onclick="if(event.target===this)cerrarDetalleEvalColocacion()">
+  <div class="modal-box" style="max-width:560px;" id="detalleEvalColocacionContenido"></div>
 </div>
 
 <script>
@@ -1486,6 +1527,115 @@ function parseFechaDDMMYYYYca(str) {
   var p = str.split('/');
   if (p.length !== 3) return null;
   return new Date(parseInt(p[2],10), parseInt(p[1],10)-1, parseInt(p[0],10));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// NAV: EVALUACIONES DE COLOCACIÓN (historial completo, solo lectura)
+// ══════════════════════════════════════════════════════════════════════
+var evalColocacionCache = [];
+
+function abrirEvalColocacionNav() {
+  document.getElementById('evalColocacionOverlay').classList.add('open');
+  document.getElementById('evalColocacionNav').classList.add('open');
+  document.getElementById('buscarEvalColocacion').value = '';
+  document.getElementById('listaEvalColocacionNav').innerHTML = '<div class="empty-state">Cargando...</div>';
+  fetch(APPS_SCRIPT + '?action=getEvaluacionesColocacion', { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        evalColocacionCache = data.evaluaciones || [];
+        renderListaEvalColocacionNav();
+      } else {
+        document.getElementById('listaEvalColocacionNav').innerHTML = '<div class="empty-state" style="color:#f87171;">' + (data.error || 'Error al cargar.') + '</div>';
+      }
+    })
+    .catch(function() {
+      document.getElementById('listaEvalColocacionNav').innerHTML = '<div class="empty-state" style="color:#f87171;">Error de conexión.</div>';
+    });
+}
+
+function cerrarEvalColocacionNav() {
+  document.getElementById('evalColocacionOverlay').classList.remove('open');
+  document.getElementById('evalColocacionNav').classList.remove('open');
+}
+
+function filtrarEvalColocacionNav() {
+  renderListaEvalColocacionNav(document.getElementById('buscarEvalColocacion').value.trim().toLowerCase());
+}
+
+function renderListaEvalColocacionNav(filtro) {
+  var cont = document.getElementById('listaEvalColocacionNav');
+  var items = evalColocacionCache;
+  if (filtro) {
+    items = items.filter(function(ev) {
+      return ((ev.nombreProspecto || '') + ' ' + (ev.idAlumno || '')).toLowerCase().indexOf(filtro) !== -1;
+    });
+  }
+  if (!items.length) {
+    cont.innerHTML = '<div class="empty-state">' + (filtro ? 'Sin resultados para tu búsqueda.' : 'Aún no hay alumnos evaluados por Colocación.') + '</div>';
+    return;
+  }
+  // Más reciente primero
+  var ordenados = items.map(function(ev, i){ return {ev:ev, i:i}; }).sort(function(a,b){
+    return new Date(b.ev.fecha) - new Date(a.ev.fecha);
+  });
+  cont.innerHTML = ordenados.map(function(o) {
+    var ev = o.ev;
+    var fecha = ev.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) : '—';
+    return '<div class="evalcoloc-card" onclick="verDetalleEvalColocacion(' + o.i + ')">' +
+      '<div class="ec-top">' +
+        '<span class="ec-nombre">' + (ev.nombreProspecto || '—') + '</span>' +
+        '<span class="ec-nivel">' + (ev.nivelRecomendado || '—') + '</span>' +
+      '</div>' +
+      '<div class="ec-meta">' + fecha + ' · ' + (ev.idAlumno || '') + (ev.nombreColocador ? ' · Evaluó: ' + ev.nombreColocador : '') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function verDetalleEvalColocacion(idx) {
+  var ev = evalColocacionCache[idx];
+  if (!ev) return;
+
+  var niveles = ev.resumenNiveles;
+  if (typeof niveles === 'string') {
+    try { niveles = JSON.parse(niveles); } catch(e) { niveles = []; }
+  }
+  var filas = (niveles || []).map(function(n) {
+    return '<tr><td>' + n.nivel + '</td><td>' + n.blue + '</td><td>' + n.green + '</td><td>' + n.yellow + '</td><td>' + n.red + '</td></tr>';
+  }).join('');
+
+  var fortalezas = ev.fortalezas;
+  if (Array.isArray(fortalezas)) fortalezas = fortalezas.join(', ');
+  var areas = ev.areasOportunidad;
+  if (Array.isArray(areas)) areas = areas.join(', ');
+
+  var fecha = ev.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }) : '—';
+
+  document.getElementById('detalleEvalColocacionContenido').innerHTML =
+    '<div class="modal-title">' + (ev.nombreProspecto || '—') + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Evaluado el ' + fecha + (ev.nombreColocador ? ' por ' + ev.nombreColocador : '') + '</div>' +
+    (filas ? '<table class="tabla-resumen-niveles"><thead><tr><th>Nivel</th><th>🔵</th><th>🟢</th><th>🟡</th><th>🔴</th></tr></thead><tbody>' + filas + '</tbody></table>' : '') +
+    '<div class="eval-detalle-row"><span class="edr-label">ID Alumno</span><span class="edr-value">' + (ev.idAlumno || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Edad</span><span class="edr-value">' + (ev.edad || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">WhatsApp</span><span class="edr-value">' + (ev.whatsapp || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Correo</span><span class="edr-value">' + (ev.correo || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Horario de interés</span><span class="edr-value">' + (ev.horarioInteres || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Experiencia previa</span><span class="edr-value">' + (ev.experienciaPrevia === 'ninguna' ? 'Ninguna' : (ev.experienciaPrevia || '—')) + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Objetivo del alumno</span><span class="edr-value">' + (ev.objetivoAlumno || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Nivel recomendado</span><span class="edr-value">' + (ev.nivelRecomendado || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Bloque recomendado</span><span class="edr-value">' + (ev.bloqueRecomendado || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Lección de ingreso</span><span class="edr-value">' + (ev.leccionIngreso || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Motivo principal</span><span class="edr-value">' + (ev.motivoPrincipal || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Fortalezas</span><span class="edr-value">' + (fortalezas || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Áreas de oportunidad</span><span class="edr-value">' + (areas || '—') + '</span></div>' +
+    '<div class="eval-detalle-row"><span class="edr-label">Comentarios</span><span class="edr-value">' + (ev.comentariosTeacher || '—') + '</span></div>' +
+    '<div class="modal-actions"><button class="btn-modal-cancel" style="width:100%;" onclick="cerrarDetalleEvalColocacion()">Cerrar</button></div>';
+
+  document.getElementById('modalDetalleEvalColocacion').classList.add('visible');
+}
+
+function cerrarDetalleEvalColocacion() {
+  document.getElementById('modalDetalleEvalColocacion').classList.remove('visible');
 }
 
 function abrirModalGruposSinMaestro() {
