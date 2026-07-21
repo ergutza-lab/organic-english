@@ -1474,15 +1474,78 @@ async function ejecutarValidarCE() {
       status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado correctamente.';
       // Recargar datos en segundo plano de una vez, sin esperar a que cierren el modal
       cargarDatos();
-      // Botón claro para cerrar, en vez de cerrarse solo (para no confundir)
-      btnCancelar.style.display='none';
+      // Botón para cerrar
       btn.disabled=false;
       btn.textContent='✓ Cerrar';
       btn.style.background='#334155';
       btn.onclick=function(){ cerrarModalValidarCE(); };
+      // Botón verde para notificar al alumno por WhatsApp -- mensaje distinto
+      // si fue una reactivacion (Baja -> Validado) o una validacion normal.
+      btnCancelar.style.display='';
+      btnCancelar.textContent='📱 Notificar al alumno';
+      btnCancelar.style.background='var(--verde)';
+      btnCancelar.style.color='#fff';
+      btnCancelar.style.border='none';
+      btnCancelar.onclick=function(){ notificarValidarCE(idAlumno, !!data.reactivado, cal.inicio, cal.fin); };
     }
     else{throw new Error(data.error||'Error');}
   }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
+}
+
+// Sabado siguiente a una fecha (usado para la fecha limite del proximo pago).
+function sabadoSiguienteA(fecha) {
+  var f = new Date(fecha);
+  var diasHastaSabado = (6 - f.getDay() + 7) % 7;
+  if (diasHastaSabado === 0) diasHastaSabado = 7;
+  f.setDate(f.getDate() + diasHastaSabado);
+  return f;
+}
+function formatoFechaConDia(fecha) {
+  var f = new Date(fecha);
+  var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()];
+}
+
+// Notifica por WhatsApp tras validar desde el flujo de "subir y validar
+// directo" (modal-validar-ce) -- usado tanto para pagos normales como para
+// reactivaciones (Baja -> Validado), con un mensaje distinto para cada caso.
+function notificarValidarCE(idAlumno, reactivado, coberturaInicio, coberturaFin) {
+  var nombre = idAlumno, whatsapp = '';
+
+  var candidatos = [].concat(
+    (datosPanel && datosPanel.sin_pago) || [],
+    (datosPanel && datosPanel.alumnos_baja) || [],
+    (datosPanel && datosPanel.pagos_pendientes || []).map(function(p){ return { id: p.id_alumno, whatsapp: p.whatsapp, nombre: p.nombre }; })
+  );
+  var encontrado = candidatos.find(function(a){ return a.id === idAlumno; });
+  if (encontrado) { whatsapp = encontrado.whatsapp || ''; nombre = encontrado.nombre || nombre; }
+
+  if ((!whatsapp || nombre === idAlumno) && datosPanel && datosPanel.grupos) {
+    for (var g = 0; g < datosPanel.grupos.length; g++) {
+      var al = (datosPanel.grupos[g].alumnos || []).find(function(a){ return a.id === idAlumno; });
+      if (al) { whatsapp = whatsapp || al.whatsapp || ''; if (nombre === idAlumno) nombre = al.nombre || nombre; break; }
+    }
+  }
+
+  if (!whatsapp) { mostrarToast('No se encontró el WhatsApp de este alumno.', 'error'); return; }
+
+  var mensaje;
+  if (reactivado) {
+    mensaje = 'Hola ' + nombre + ', tu pago fue recibido y tu acceso a la plataforma fue reactivado.' +
+      '\n\nEn breve recibirás un correo con las instrucciones para volver a ingresar a tu plataforma.' +
+      '\n\nCualquier duda, quedo a tus órdenes.';
+  } else {
+    mensaje = 'Hola ' + nombre + ', te confirmo que tu pago fue validado correctamente.';
+    if (coberturaInicio && coberturaFin) {
+      var fechaLimite = sabadoSiguienteA(new Date(coberturaFin));
+      mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(coberturaInicio) + ' al ' + formatoFechaConDia(coberturaFin) + '.';
+      mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
+    }
+    mensaje += '\n\nCualquier duda respecto a tus pagos, quedo a tus órdenes.';
+  }
+
+  window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + encodeURIComponent(mensaje), '_blank');
 }
 
 
