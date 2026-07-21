@@ -350,7 +350,6 @@
     <div class="header-right">
       <img id="header-avatar" class="header-avatar" src="" alt="" onerror="this.style.display='none'">
       <span class="header-name" id="header-name"></span>
-      <button onclick="compartirVideoTutorial()" style="background:#25D366;border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📤 Compartir video tutorial</button>
       <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
   </div>
@@ -360,6 +359,7 @@
     <div class="tab" onclick="cambiarTab('pagos',this)">Pagos por validar <span class="tab-badge cero" id="badge-pagos">0</span></div>
     <div class="tab" onclick="cambiarTab('nuevos',this)">Nuevos <span class="tab-badge cero" id="badge-nuevos">0</span></div>
     <div class="tab" onclick="cambiarTab('alertas',this)">Sin Pago <span class="tab-badge cero" id="badge-alertas">0</span></div>
+    <div class="tab" onclick="cambiarTab('bajas',this)">Bajas <span class="tab-badge cero" id="badge-bajas">0</span></div>
     <div class="tab" onclick="cambiarTab('cambios',this)">Cambios de Grupo</div>
   </div>
 
@@ -386,8 +386,14 @@
 
     <div id="sec-alertas" class="section">
       <div class="sec-header"><h2 class="sec-title">Alumnos sin pago esta semana</h2></div>
-      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">La baja es automática cada sábado. Listado informativo para dar seguimiento.</p>
+      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">La baja automática ocurre el lunes a las 11:59 PM después del fin de su vigencia (solo grupos H en adelante). Listado informativo para dar seguimiento.</p>
       <div id="lista-alertas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
+    </div>
+
+    <div id="sec-bajas" class="section">
+      <div class="sec-header"><h2 class="sec-title">Alumnos dados de baja</h2></div>
+      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">Solo de tus grupos. Si un alumno te manda su comprobante para reactivarse, valida su pago aquí — se reactiva y se le manda su correo automáticamente.</p>
+      <div id="lista-bajas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
     </div>
 
     <div id="sec-cambios" class="section">
@@ -491,7 +497,7 @@ function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
 
 let asistente=null,datosPanel=null;
-let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null,pagoActivoCoberturaInicio=null,pagoActivoCoberturaFin=null;
+let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null;
 
 setTimeout(()=>{
@@ -527,15 +533,6 @@ function mostrarPanel(){
   cargarDatos();
 }
 
-// Comparte por WhatsApp el link del video de introduccion para el alumno.
-// No va dirigido a un numero especifico -- abre el selector de contactos de
-// WhatsApp para que el asistente elija a quien enviarselo (el alumno nuevo).
-function compartirVideoTutorial() {
-  var link = 'https://organicenglish1.com/tutorial_alumno.html';
-  var mensaje = 'Hola, te comparto un video corto de introducción a tu plataforma de alumno:\n' + link;
-  window.open('https://wa.me/?text=' + encodeURIComponent(mensaje), '_blank');
-}
-
 function cerrarSesion(){
   asistente=null;datosPanel=null;nivelActivo=null;
   document.getElementById('nivel-selector').innerHTML='';
@@ -549,7 +546,7 @@ async function cargarDatos(){
   try{
     const resp=await fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(asistente.id)}`);
     datosPanel=await resp.json();
-    renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderCambios();
+    renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderBajas();renderCambios();
   }catch(e){mostrarToast('Error al cargar datos.','error');}
 }
 
@@ -568,16 +565,17 @@ function renderResumen(){
   // Excluir becados del conteo sin_pago
   const sinPagoReales = sin_pago.filter(a => !esBecado(a));
 
-  // El backend (alumnos_nuevos) ya excluye a los presentados via
-  // PRESENTACIONES_CE -- no se vuelve a filtrar aqui con localStorage, ya
-  // que eso es por dispositivo y puede quedar desincronizado entre el
-  // celular y la PC del mismo asistente, o entre distintos usuarios.
-  const nuevosPendientes = alumnos_nuevos;
+  // Excluir presentados del conteo de nuevos (clave por ID de asistente)
+  const _claveP = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_claveP) || '[]');
+  const nuevosPendientes = alumnos_nuevos.filter(a => !presentados.includes(a.id));
 
-  const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
+  const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas'),bb=document.getElementById('badge-bajas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
   bn.textContent=nuevosPendientes.length;bn.className='tab-badge'+(nuevosPendientes.length?'':' cero');
   ba.textContent=sinPagoReales.length;ba.className='tab-badge'+(sinPagoReales.length?'':' cero');
+  const alumnosBajaCount=(datosPanel.alumnos_baja||[]).length;
+  bb.textContent=alumnosBajaCount;bb.className='tab-badge'+(alumnosBajaCount?'':' cero');
   document.getElementById('resumen-cards').innerHTML=`
     <div class="summary-card"><div class="ic">📋</div><div class="num">${grupos.length}</div><div class="lbl">Mis grupos</div></div>
     <div class="summary-card"><div class="ic">👥</div><div class="num">${totalAlumnos}</div><div class="lbl">Alumnos activos</div></div>
@@ -839,9 +837,10 @@ function renderPagos(){
 
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
-  // El backend ya excluye a los presentados via PRESENTACIONES_CE -- no se
-  // vuelve a filtrar con localStorage (ver nota en renderResumen).
-  const sinPresentar=datosPanel?.alumnos_nuevos||[];
+  const nuevos=datosPanel?.alumnos_nuevos||[];
+  const _clavePN = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_clavePN) || '[]');
+  const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
   if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
 
@@ -902,13 +901,12 @@ function marcarPresentado(idAlumno, btn){
       if(!data || data.ok !== true){
         throw new Error(data && data.error ? data.error : 'Respuesta inválida del servidor');
       }
-      // El backend ya lo registro en PRESENTACIONES_CE (fuente unica de
-      // verdad, compartida entre todos los dispositivos) -- ya no se
-      // duplica en localStorage. Se actualiza datosPanel en memoria para
-      // que el conteo/lista se vea correcto de inmediato, sin esperar a
-      // la siguiente recarga completa desde el servidor.
-      if (datosPanel && datosPanel.alumnos_nuevos) {
-        datosPanel.alumnos_nuevos = datosPanel.alumnos_nuevos.filter(function(a){ return a.id !== idAlumno; });
+      // Solo si el backend confirmó, lo guardamos también en localStorage (respaldo local)
+      const _claveM = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+      const presentados = JSON.parse(localStorage.getItem(_claveM) || '[]');
+      if(!presentados.includes(idAlumno)){
+        presentados.push(idAlumno);
+        localStorage.setItem(_claveM, JSON.stringify(presentados));
       }
       // Desaparecer la tarjeta con animacion suave
       const card = btn ? btn.closest('.nuevo-card') : null;
@@ -1007,6 +1005,34 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
         <div class="alerta-badge">Sin pago vigente</div>
       </div>
       <div id="detalle-alerta-${a.id}" class="alumno-detalle" style="width:100%;margin:0;"></div>
+    </div>`;
+  }).join('');
+}
+
+function renderBajas(){
+  const cont=document.getElementById('lista-bajas');
+  const lista=datosPanel?.alumnos_baja||[];
+
+  if(!lista.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alumnos dados de baja</h3></div>`;return;}
+
+  cont.innerHTML=lista.map(a=>{
+    const diasTexto = a.dias_baja===null || a.dias_baja===undefined
+      ? ''
+      : (a.dias_baja===0 ? 'Hoy' : a.dias_baja===1 ? 'Hace 1 día' : `Hace ${a.dias_baja} días`);
+    const waLink = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}" target="_blank" style="padding:6px 12px">💬 WhatsApp</a>` : '';
+    return `
+    <div class="alerta-card" style="flex-wrap:wrap;gap:6px;border-left-color:var(--gris-400);">
+      <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
+        <div class="alerta-icon">🔒</div>
+        <div class="alerta-info" style="flex:1;min-width:0;">
+          <div class="alerta-nombre">${a.nombre}</div>
+          <div class="alerta-meta">${a.id} · Grupo ${a.grupo}${a.fecha_baja ? ' · Baja: '+a.fecha_baja : ''}${diasTexto ? ' · '+diasTexto : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${waLink}
+          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1262,8 +1288,6 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
       mostrarToast('✓ Pago validado correctamente','success');
       const pago = (datosPanel?.pagos_pendientes || []).find(p => p.id_alumno === idAlumno);
       if (pago) { pagoActivoNombre = pago.nombre; pagoActivoWA = pago.whatsapp; }
-      pagoActivoCoberturaInicio = coberturaInicio || null;
-      pagoActivoCoberturaFin    = coberturaFin    || null;
       document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
       document.getElementById('modal-notif-pago').classList.add('open');
       await cargarDatos();
@@ -1274,40 +1298,12 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
 
 function cerrarModalNotifPago(){
   document.getElementById('modal-notif-pago').classList.remove('open');
-  pagoActivoNombre=null; pagoActivoWA=null; pagoActivoCoberturaInicio=null; pagoActivoCoberturaFin=null;
-}
-
-// El sabado siguiente a la fecha de fin de vigencia -- esa es la fecha
-// limite para cubrir el siguiente pago.
-function sabadoSiguienteA(fecha) {
-  var f = new Date(fecha);
-  var diasHastaSabado = (6 - f.getDay() + 7) % 7;
-  // Si la fecha de fin de vigencia YA es sabado, el limite es el sabado
-  // siguiente (7 dias despues), no el mismo dia.
-  if (diasHastaSabado === 0) diasHastaSabado = 7;
-  f.setDate(f.getDate() + diasHastaSabado);
-  return f;
-}
-
-function formatoFechaConDia(fecha) {
-  var f = new Date(fecha);
-  var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()];
+  pagoActivoNombre=null; pagoActivoWA=null;
 }
 
 function notificarAlumnoPago(){
   if(pagoActivoWA){
-    var saludo = pagoActivoNombre ? ('Hola ' + pagoActivoNombre + ',') : 'Hola,';
-    var mensaje = saludo + ' te confirmo que tu pago fue validado correctamente.';
-    if (pagoActivoCoberturaInicio && pagoActivoCoberturaFin) {
-      var fechaFin = new Date(pagoActivoCoberturaFin);
-      var fechaLimite = sabadoSiguienteA(fechaFin);
-      mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(pagoActivoCoberturaInicio) + ' al ' + formatoFechaConDia(pagoActivoCoberturaFin) + '.';
-      mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
-    }
-    mensaje += '\n\nCualquier duda respecto a tus pagos, quedo a tus órdenes.';
-    const msg = encodeURIComponent(mensaje);
+    const msg = encodeURIComponent('Hola! Te informo que tu pago ha sido validado correctamente. Ya puedes asistir a tus clases. ¡Bienvenido/a!');
     window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${msg}`,'_blank');
   }
   cerrarModalNotifPago();
@@ -1421,6 +1417,10 @@ function abrirModalValidarCE(idAlumno) {
     var found = (datosPanel.sin_pago||[]).find(function(a){ return a.id === idAlumno; });
     if (found) nombre = found.nombre;
   }
+  if (nombre === idAlumno && datosPanel && datosPanel.alumnos_baja) {
+    var foundBaja = (datosPanel.alumnos_baja||[]).find(function(a){ return a.id === idAlumno; });
+    if (foundBaja) nombre = foundBaja.nombre;
+  }
   validarCEAlumnoId = idAlumno;
   document.getElementById('validar-ce-alumno-info').innerHTML =
     '<strong style="color:#f1f5f9;">'+nombre+'</strong> <span style="color:#64748b;">'+idAlumno+'</span>';
@@ -1474,57 +1474,15 @@ async function ejecutarValidarCE() {
       status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado correctamente.';
       // Recargar datos en segundo plano de una vez, sin esperar a que cierren el modal
       cargarDatos();
-      // Botones tras validar: notificar al alumno por WhatsApp, o cerrar
+      // Botón claro para cerrar, en vez de cerrarse solo (para no confundir)
+      btnCancelar.style.display='none';
       btn.disabled=false;
       btn.textContent='✓ Cerrar';
       btn.style.background='#334155';
       btn.onclick=function(){ cerrarModalValidarCE(); };
-
-      btnCancelar.style.display='';
-      btnCancelar.textContent='📱 Notificar al alumno';
-      btnCancelar.style.background='var(--verde)';
-      btnCancelar.style.color='#fff';
-      btnCancelar.style.border='none';
-      btnCancelar.onclick=function(){ notificarAlumnoPagoDirecto(idAlumno, cal.inicio, cal.fin); };
     }
     else{throw new Error(data.error||'Error');}
   }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
-}
-
-// Notifica por WhatsApp al alumno cuyo pago se acaba de validar desde el
-// flujo de "subir comprobante y validar directo" (modal-validar-ce) -- este
-// flujo antes no tenia ninguna forma de avisar al alumno, solo un boton de
-// Cerrar.
-function notificarAlumnoPagoDirecto(idAlumno, coberturaInicio, coberturaFin) {
-  var whatsapp = '', nombre = '';
-  var candidatos = [].concat(
-    (datosPanel && datosPanel.sin_pago) || [],
-    (datosPanel && datosPanel.pagos_pendientes || []).map(function(p){ return { id: p.id_alumno, whatsapp: p.whatsapp, nombre: p.nombre }; })
-  );
-  var encontrado = candidatos.find(function(a){ return a.id === idAlumno; });
-  if (encontrado) { whatsapp = encontrado.whatsapp || ''; nombre = encontrado.nombre || ''; }
-
-  if ((!whatsapp || !nombre) && datosPanel && datosPanel.grupos) {
-    for (var g = 0; g < datosPanel.grupos.length; g++) {
-      var al = (datosPanel.grupos[g].alumnos || []).find(function(a){ return a.id === idAlumno; });
-      if (al) { whatsapp = whatsapp || al.whatsapp || ''; nombre = nombre || al.nombre || ''; break; }
-    }
-  }
-
-  if (!whatsapp) {
-    mostrarToast('No se encontró el WhatsApp de este alumno.', 'error');
-    return;
-  }
-
-  var saludo = nombre ? ('Hola ' + nombre + ',') : 'Hola,';
-  var mensaje = saludo + ' te confirmo que tu pago fue validado correctamente.';
-  if (coberturaInicio && coberturaFin) {
-    var fechaLimite = sabadoSiguienteA(new Date(coberturaFin));
-    mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(coberturaInicio) + ' al ' + formatoFechaConDia(coberturaFin) + '.';
-    mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
-  }
-  mensaje += '\n\nCualquier duda respecto a tus pagos, quedo a tus órdenes.';
-  window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + encodeURIComponent(mensaje), '_blank');
 }
 
 
