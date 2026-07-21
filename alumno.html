@@ -702,6 +702,16 @@
   </div>
 </div>
 
+<!-- MODAL DÍAS PERMITIDOS PARA CAMBIO DE GRUPO -->
+<div id="modalDiaCambioGrupo" class="modal-overlay" onclick="if(event.target===this)cerrarModalDiaCambioGrupo()" style="display:none;">
+  <div class="modal-box" style="max-width:420px;width:100%;padding:24px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:10px;">🗓️</div>
+    <div style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Cambio de grupo</div>
+    <div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:20px;">El trámite de cambio de grupo solo se puede solicitar de <strong style="color:#f1f5f9">jueves a sábado</strong>. Por favor vuelve a intentarlo en esos días.</div>
+    <button onclick="cerrarModalDiaCambioGrupo()" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
@@ -1171,8 +1181,16 @@
   }
 
   // ── CAMBIO DE GRUPO ──────────────────────────────────────────────
+  function abrirModalDiaCambioGrupo() { document.getElementById('modalDiaCambioGrupo').style.display='flex'; }
+  function cerrarModalDiaCambioGrupo() { document.getElementById('modalDiaCambioGrupo').style.display='none'; }
+
   function solicitarCambioGrupoWhatsApp() {
     if (!alumnoData) return;
+    var dia = new Date().getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
+    if (dia !== 4 && dia !== 5 && dia !== 6) {
+      abrirModalDiaCambioGrupo();
+      return;
+    }
     var s = alumnoData.asistente, a = alumnoData.alumno, g = alumnoData.grupo;
     if (!s || !s.whatsapp) return;
     var msg = encodeURIComponent(
