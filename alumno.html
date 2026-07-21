@@ -818,7 +818,6 @@
     renderCalificaciones(g);
     cargarMapaAlumno(a.id, g ? g.id : '');
     verificarRecordatorio(alumnoData.pago);
-    mostrarAlertaBajaLunes();
   }
 
   // ── EVALUACIONES ─────────────────────────────────────────────────
@@ -909,62 +908,49 @@
 
   // ── PAGO ─────────────────────────────────────────────────────────
   function verificarRecordatorio(p) {
-    var hoy=new Date(), dia=hoy.getDay(), horaActual=hoy.getHours();
+    var hoy = new Date();
 
-    // Verificar vigencia del pago
-    var pagoVigente = false;
+    // Ventana de alerta de pago pendiente: desde el jueves (ultimo dia de
+    // vigencia) hasta el domingo siguiente (4 dias, ambos inclusive). El
+    // mensaje siempre dice que la fecha limite es el SABADO -- el sistema
+    // por dentro da un poco mas de margen (hasta el lunes 11:59pm), pero
+    // eso no se le informa al alumno a proposito.
     if (p && p.periodoFin) {
-      var finPago = new Date(p.periodoFin);
-      finPago.setHours(23,59,59,0);
-      pagoVigente = finPago >= hoy;
-    }
+      var finVigencia = new Date(p.periodoFin);
+      finVigencia.setHours(23, 59, 59, 999);
 
-    // Verificar si el límite semanal ya venció
-    var limiteVencido = false;
-    if (p && p.limiteSiguiente) {
-      limiteVencido = Date.now() > new Date(p.limiteSiguiente).getTime();
-    }
+      var inicioVentana = new Date(finVigencia); inicioVentana.setHours(0, 0, 0, 0);
+      var finVentana = new Date(finVigencia); finVentana.setDate(finVentana.getDate() + 3); finVentana.setHours(23, 59, 59, 999);
 
-
-    // LUNES sin pago vigente y antes de las 22:00 → modal alerta baja
-    if (dia===1 && !pagoVigente && horaActual < 22) {
-      mostrarAlertaBajaLunes();
-      return;
-    }
-
-    // SAB o DOM después del límite y sin pago vigente → modal alerta baja
-    if ((dia===0||dia===6) && limiteVencido && !pagoVigente) {
-      mostrarAlertaBajaLunes();
-      return;
+      if (hoy >= inicioVentana && hoy <= finVentana) {
+        var sabadoLimite = new Date(finVigencia);
+        sabadoLimite.setDate(sabadoLimite.getDate() + 2); // jueves + 2 = sabado
+        mostrarAlertaPagoPendiente(sabadoLimite);
+        return;
+      }
     }
 
     // Sin pago registrado en ningún día → no mostrar recordatorio normal
     if (!p||!p.periodoFin) return;
 
     // Recordatorio de pago próximo a vencer: solo 1 día antes de la fecha de vencimiento
+    // (aviso temprano, antes de entrar a la ventana jueves-domingo de arriba)
     var fin2=new Date(p.periodoFin);
     var dias=Math.ceil((fin2-hoy)/(1000*60*60*24));
     if (dias>1) return;
     mostrarModalPago(p, dias);
   }
 
-  function mostrarAlertaBajaLunes() {
-    // ── SUSPENDIDO TEMPORALMENTE ──────────────────────────────────────────
-    // Para reactivar: eliminar las dos líneas siguientes
-    return;
-    // ─────────────────────────────────────────────────────────────────────
-    // Verificar condiciones antes de mostrar
-    var p = alumnoData ? alumnoData.pago : null;
-    var hoy = new Date(), dia = hoy.getDay(), hora = hoy.getHours();
-    var pagoVigente = p && p.periodoFin && new Date(p.periodoFin).setHours(23,59,59,0) >= Date.now();
-    var limiteVencido = p && p.limiteSiguiente && Date.now() > new Date(p.limiteSiguiente).getTime();
-    // Solo mostrar lunes sin pago (antes 22h) o sáb/dom con límite vencido
-    if (!((dia===1 && !pagoVigente && hora < 22) || ((dia===0||dia===6) && limiteVencido && !pagoVigente))) return;
+  function mostrarAlertaPagoPendiente(sabadoLimite) {
     var s = alumnoData ? alumnoData.asistente : null;
     var waLink = s && s.whatsapp
       ? 'https://wa.me/'+cleanWA(s.whatsapp)
       : 'https://wa.me/';
     var asisNombre = s ? (s.nombre||'tu asistente CE') : 'tu asistente CE';
+
+    var nombresDias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var fechaTexto = nombresDias[sabadoLimite.getDay()] + ' ' + sabadoLimite.getDate() + ' de ' + meses[sabadoLimite.getMonth()];
 
     // Crear modal si no existe
     var modalId = 'modalAlertaBaja';
@@ -972,26 +958,20 @@
       var div = document.createElement('div');
       div.id = modalId;
       div.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;';
-      div.innerHTML =
+      document.body.appendChild(div);
+    }
+
+    document.getElementById(modalId).innerHTML =
         '<div style="background:#1e1e2e;border:2px solid #ef4444;border-radius:16px;width:92%;max-width:420px;padding:24px;box-shadow:0 0 40px rgba(239,68,68,0.3);">' +
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">' +
             '<span style="font-size:28px;">🚨</span>' +
-            '<h3 style="color:#f87171;margin:0;font-size:17px;font-weight:800;">Pago no reflejado</h3>' +
+            '<h3 style="color:#f87171;margin:0;font-size:17px;font-weight:800;">Pago pendiente</h3>' +
           '</div>' +
           '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:16px;">' +
             '<p style="color:#fca5a5;font-size:13px;line-height:1.7;margin:0;">' +
-              'En el sistema <strong style="color:#f87171;">no se ha reflejado el pago</strong> de tu colegiatura para esta semana.' +
+              'Tu colegiatura de esta semana <strong style="color:#f87171;">aún no se ha reflejado</strong> en el sistema.' +
               '<br><br>' +
-              (function(){
-                var lun = new Date();
-                var d = lun.getDay();
-                // Calcular el próximo lunes (o hoy si ya es lunes)
-                if (d !== 1) lun.setDate(lun.getDate() + (d === 0 ? 1 : 8 - d));
-                var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-                var dias = ['dom','lun','mar','mié','jue','vie','sáb'];
-                var fechaLunes = lun.getDate()+' de '+meses[lun.getMonth()];
-                return 'Tienes hasta el <strong style="color:#fbbf24;">lunes '+fechaLunes+' a las 10:00 PM</strong> para que tu pago sea validado.';
-              })()+
+              'Tu fecha límite de pago es el <strong style="color:#fbbf24;">' + fechaTexto + '</strong>.' +
               '<br><br>' +
               'Si ya realizaste tu pago pero no ha sido reflejado, comunícate de inmediato con tu asistente de control escolar.' +
             '</p>' +
@@ -999,10 +979,8 @@
           '<a href="' + waLink + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#4ade80;border-radius:10px;padding:12px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:12px;">' +
             '💬 Contactar a ' + asisNombre +
           '</a>' +
-          '<button onclick="document.getElementById(\"modalAlertaBaja\").style.display=\"none\";" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">Entendido — pagaré hoy</button>' +
+          '<button onclick="document.getElementById(\'modalAlertaBaja\').style.display=\'none\';" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">Entendido</button>' +
         '</div>';
-      document.body.appendChild(div);
-    }
 
     document.getElementById(modalId).style.display = 'flex';
   }
