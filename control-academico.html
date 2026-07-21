@@ -774,9 +774,16 @@ function abrirModalMaestro(idMaestro){
   if(misGrupos.length){
     gruposHtml='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Grupos asignados</div>';
     gruposHtml+=misGrupos.map(function(g){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
-        '<div><div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+'</div><div style="font-size:11px;color:var(--muted);">'+g.horario+'</div></div>'+
-        '<span style="font-size:11px;color:var(--orange);font-weight:700;">Ver eval ›</span>'+
+      var zoom = getZoomGrupo(g);
+      var btnZoom = zoom
+        ? '<button onclick="event.stopPropagation();compartirZoomGrupo(\''+g.id+'\',\''+(g.nombre||g.nivel||'').replace(/'/g,"\\'")+'\',\''+(g.horario||'').replace(/'/g,"\\'")+'\',\''+encodeURIComponent(zoom)+'\')" style="background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.4);color:#25d366;border-radius:6px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1;" title="Compartir liga de Zoom por WhatsApp">📲</button>'
+        : '<span style="font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap;" title="El maestro no ha registrado la liga de Zoom">Sin liga</span>';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;gap:8px;">'+
+        '<div style="cursor:pointer;flex:1;min-width:0;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
+          '<div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+'</div><div style="font-size:11px;color:var(--muted);">'+g.horario+'</div>'+
+        '</div>'+
+        '<span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer;flex-shrink:0;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">Ver eval ›</span>'+
+        btnZoom+
       '</div>';
     }).join('');
   }
@@ -784,6 +791,17 @@ function abrirModalMaestro(idMaestro){
   document.getElementById('modalMaestro').classList.add('visible');
 }
 function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.remove('visible');}
+
+// Lee el link de Zoom del grupo (columna J de la pestaña GRUPOS) tolerando distintos nombres de campo
+function getZoomGrupo(g){
+  return g.zoom || g.zoomLink || g.ligaZoom || g.liga || g.linkZoom || g.link || g.Zoom || g.LigaZoom || '';
+}
+
+function compartirZoomGrupo(idGrupo, nombreGrupo, horario, zoomEncoded){
+  var zoom = decodeURIComponent(zoomEncoded);
+  var texto = 'Hola 👋 Te comparto la liga de Zoom de la clase *'+(nombreGrupo||idGrupo)+'* ('+(horario||'')+'):\n'+zoom;
+  window.open('https://wa.me/?text='+encodeURIComponent(texto), '_blank');
+}
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
 
 // ── VER EVALUACIONES DEL GRUPO (desde modal maestro) ──
