@@ -1471,15 +1471,55 @@ async function ejecutarValidarCE() {
       status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado correctamente.';
       // Recargar datos en segundo plano de una vez, sin esperar a que cierren el modal
       cargarDatos();
-      // Botón claro para cerrar, en vez de cerrarse solo (para no confundir)
-      btnCancelar.style.display='none';
+      // Botones tras validar: notificar al alumno por WhatsApp, o cerrar
       btn.disabled=false;
       btn.textContent='✓ Cerrar';
       btn.style.background='#334155';
       btn.onclick=function(){ cerrarModalValidarCE(); };
+
+      btnCancelar.style.display='';
+      btnCancelar.textContent='📱 Notificar al alumno';
+      btnCancelar.style.background='var(--verde)';
+      btnCancelar.style.color='#fff';
+      btnCancelar.style.border='none';
+      btnCancelar.onclick=function(){ notificarAlumnoPagoDirecto(idAlumno, cal.inicio, cal.fin); };
     }
     else{throw new Error(data.error||'Error');}
   }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
+}
+
+// Notifica por WhatsApp al alumno cuyo pago se acaba de validar desde el
+// flujo de "subir comprobante y validar directo" (modal-validar-ce) -- este
+// flujo antes no tenia ninguna forma de avisar al alumno, solo un boton de
+// Cerrar.
+function notificarAlumnoPagoDirecto(idAlumno, coberturaInicio, coberturaFin) {
+  var whatsapp = '';
+  var candidatos = [].concat(
+    (datosPanel && datosPanel.sin_pago) || [],
+    (datosPanel && datosPanel.pagos_pendientes || []).map(function(p){ return { id: p.id_alumno, whatsapp: p.whatsapp }; })
+  );
+  var encontrado = candidatos.find(function(a){ return a.id === idAlumno; });
+  if (encontrado) whatsapp = encontrado.whatsapp || '';
+
+  if (!whatsapp && datosPanel && datosPanel.grupos) {
+    for (var g = 0; g < datosPanel.grupos.length; g++) {
+      var al = (datosPanel.grupos[g].alumnos || []).find(function(a){ return a.id === idAlumno; });
+      if (al) { whatsapp = al.whatsapp || ''; break; }
+    }
+  }
+
+  if (!whatsapp) {
+    mostrarToast('No se encontró el WhatsApp de este alumno.', 'error');
+    return;
+  }
+
+  var mensaje = 'Hola! Te confirmo que tu pago fue validado correctamente.';
+  if (coberturaInicio && coberturaFin) {
+    var fechaLimite = sabadoSiguienteA(new Date(coberturaFin));
+    mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(coberturaInicio) + ' al ' + formatoFechaConDia(coberturaFin) + '.';
+    mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
+  }
+  window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + encodeURIComponent(mensaje), '_blank');
 }
 
 
