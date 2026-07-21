@@ -491,7 +491,7 @@ function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
 
 let asistente=null,datosPanel=null;
-let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
+let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null,pagoActivoCoberturaInicio=null,pagoActivoCoberturaFin=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null;
 
 setTimeout(()=>{
@@ -1261,6 +1261,8 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
       mostrarToast('✓ Pago validado correctamente','success');
       const pago = (datosPanel?.pagos_pendientes || []).find(p => p.id_alumno === idAlumno);
       if (pago) { pagoActivoNombre = pago.nombre; pagoActivoWA = pago.whatsapp; }
+      pagoActivoCoberturaInicio = coberturaInicio || null;
+      pagoActivoCoberturaFin    = coberturaFin    || null;
       document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
       document.getElementById('modal-notif-pago').classList.add('open');
       await cargarDatos();
@@ -1271,12 +1273,38 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
 
 function cerrarModalNotifPago(){
   document.getElementById('modal-notif-pago').classList.remove('open');
-  pagoActivoNombre=null; pagoActivoWA=null;
+  pagoActivoNombre=null; pagoActivoWA=null; pagoActivoCoberturaInicio=null; pagoActivoCoberturaFin=null;
+}
+
+// El sabado siguiente a la fecha de fin de vigencia -- esa es la fecha
+// limite para cubrir el siguiente pago.
+function sabadoSiguienteA(fecha) {
+  var f = new Date(fecha);
+  var diasHastaSabado = (6 - f.getDay() + 7) % 7;
+  // Si la fecha de fin de vigencia YA es sabado, el limite es el sabado
+  // siguiente (7 dias despues), no el mismo dia.
+  if (diasHastaSabado === 0) diasHastaSabado = 7;
+  f.setDate(f.getDate() + diasHastaSabado);
+  return f;
+}
+
+function formatoFechaConDia(fecha) {
+  var f = new Date(fecha);
+  var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()];
 }
 
 function notificarAlumnoPago(){
   if(pagoActivoWA){
-    const msg = encodeURIComponent('Hola! Te informo que tu pago ha sido validado correctamente. Ya puedes asistir a tus clases. ¡Bienvenido/a!');
+    var mensaje = 'Hola! Te confirmo que tu pago fue validado correctamente.';
+    if (pagoActivoCoberturaInicio && pagoActivoCoberturaFin) {
+      var fechaFin = new Date(pagoActivoCoberturaFin);
+      var fechaLimite = sabadoSiguienteA(fechaFin);
+      mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(pagoActivoCoberturaInicio) + ' al ' + formatoFechaConDia(pagoActivoCoberturaFin) + '.';
+      mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
+    }
+    const msg = encodeURIComponent(mensaje);
     window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${msg}`,'_blank');
   }
   cerrarModalNotifPago();
