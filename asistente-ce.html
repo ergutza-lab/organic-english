@@ -487,6 +487,23 @@
   </div>
 </div>
 
+<!-- MODAL OTORGAR PRÓRROGA -->
+<div class="modal-confirm-overlay" id="modal-prorroga">
+  <div class="modal-confirm-box" style="text-align:left;">
+    <div class="modal-confirm-titulo">⏳ Otorgar prórroga</div>
+    <div class="modal-confirm-sub" id="prorroga-alumno-nombre" style="margin-bottom:14px;">—</div>
+    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Horas de prórroga</label>
+    <input type="number" id="prorroga-horas" min="1" placeholder="Ej. 24" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;">
+    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Motivo (obligatorio)</label>
+    <textarea id="prorroga-motivo" rows="3" placeholder="Ej. El alumno confirmó que paga el martes por transferencia bancaria" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:6px;box-sizing:border-box;font-family:inherit;resize:vertical;"></textarea>
+    <div id="prorroga-status" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;"></div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-ok" id="btn-otorgar-prorroga" style="background:#8b5cf6" onclick="otorgarProrrogaUI()">Otorgar prórroga</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalProrroga()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -983,6 +1000,9 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
     const tipoChip = a.tipoInscripcion
       ? `<span style="font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
       : '';
+    const prorrogaInfo = a.prorroga
+      ? `<div style="width:100%;font-size:11px;color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:8px;padding:6px 10px;margin-top:6px;">⏳ Prórroga activa (${a.prorroga.horas}h) hasta <strong>${a.prorroga.hasta}</strong> — ${a.prorroga.motivo}</div>`
+      : '';
     return `
     <div class="alerta-card" style="flex-wrap:wrap;gap:6px;">
       <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
@@ -1002,8 +1022,10 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${waBtn}
           <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
+          <button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 12px;" onclick="abrirModalProrroga('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">⏳ Prórroga</button>
         </div>
         <div class="alerta-badge">Sin pago vigente</div>
+        ${prorrogaInfo}
       </div>
       <div id="detalle-alerta-${a.id}" class="alumno-detalle" style="width:100%;margin:0;"></div>
     </div>`;
@@ -1308,6 +1330,65 @@ function notificarAlumnoPago(){
     window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${msg}`,'_blank');
   }
   cerrarModalNotifPago();
+}
+
+// ── PRÓRROGA (caso especial: posponer la baja automática de un alumno) ──
+var prorrogaAlumnoActivoId = null;
+
+function abrirModalProrroga(idAlumno, nombre) {
+  prorrogaAlumnoActivoId = idAlumno;
+  document.getElementById('prorroga-alumno-nombre').innerHTML = `<strong>${nombre}</strong> <span style="color:var(--gris-400);">${idAlumno}</span>`;
+  document.getElementById('prorroga-horas').value = '';
+  document.getElementById('prorroga-motivo').value = '';
+  document.getElementById('prorroga-status').style.display = 'none';
+  var btn = document.getElementById('btn-otorgar-prorroga');
+  btn.disabled = false; btn.textContent = 'Otorgar prórroga';
+  document.getElementById('modal-prorroga').classList.add('open');
+}
+
+function cerrarModalProrroga() {
+  document.getElementById('modal-prorroga').classList.remove('open');
+  prorrogaAlumnoActivoId = null;
+}
+
+function otorgarProrrogaUI() {
+  var horas = document.getElementById('prorroga-horas').value.trim();
+  var motivo = document.getElementById('prorroga-motivo').value.trim();
+  var status = document.getElementById('prorroga-status');
+  var btn = document.getElementById('btn-otorgar-prorroga');
+
+  if (!horas || Number(horas) <= 0) {
+    status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+    status.textContent = 'Ingresa un número de horas válido.';
+    return;
+  }
+  if (!motivo) {
+    status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+    status.textContent = 'El motivo es obligatorio.';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  status.style.display = 'none';
+
+  fetch(`${APPS_SCRIPT}?action=otorgarProrroga&idAlumno=${encodeURIComponent(prorrogaAlumnoActivoId)}&horas=${encodeURIComponent(horas)}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}&motivo=${encodeURIComponent(motivo)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        mostrarToast('✅ Prórroga otorgada hasta ' + data.fechaLimiteExtendida, 'success');
+        cargarDatos();
+        cerrarModalProrroga();
+      } else {
+        btn.disabled = false; btn.textContent = 'Otorgar prórroga';
+        status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+        status.textContent = '❌ ' + (data.error || 'Error al otorgar la prórroga.');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false; btn.textContent = 'Otorgar prórroga';
+      status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+      status.textContent = '❌ Error de conexión.';
+    });
 }
 
 function subirLinkWhats(idGrupo) {
