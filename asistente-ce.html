@@ -568,10 +568,11 @@ function renderResumen(){
   // Excluir becados del conteo sin_pago
   const sinPagoReales = sin_pago.filter(a => !esBecado(a));
 
-  // Excluir presentados del conteo de nuevos (clave por ID de asistente)
-  const _claveP = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
-  const presentados = JSON.parse(localStorage.getItem(_claveP) || '[]');
-  const nuevosPendientes = alumnos_nuevos.filter(a => !presentados.includes(a.id));
+  // El backend (alumnos_nuevos) ya excluye a los presentados via
+  // PRESENTACIONES_CE -- no se vuelve a filtrar aqui con localStorage, ya
+  // que eso es por dispositivo y puede quedar desincronizado entre el
+  // celular y la PC del mismo asistente, o entre distintos usuarios.
+  const nuevosPendientes = alumnos_nuevos;
 
   const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
@@ -838,10 +839,9 @@ function renderPagos(){
 
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
-  const nuevos=datosPanel?.alumnos_nuevos||[];
-  const _clavePN = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
-  const presentados = JSON.parse(localStorage.getItem(_clavePN) || '[]');
-  const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
+  // El backend ya excluye a los presentados via PRESENTACIONES_CE -- no se
+  // vuelve a filtrar con localStorage (ver nota en renderResumen).
+  const sinPresentar=datosPanel?.alumnos_nuevos||[];
   if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
 
@@ -902,12 +902,13 @@ function marcarPresentado(idAlumno, btn){
       if(!data || data.ok !== true){
         throw new Error(data && data.error ? data.error : 'Respuesta inválida del servidor');
       }
-      // Solo si el backend confirmó, lo guardamos también en localStorage (respaldo local)
-      const _claveM = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
-      const presentados = JSON.parse(localStorage.getItem(_claveM) || '[]');
-      if(!presentados.includes(idAlumno)){
-        presentados.push(idAlumno);
-        localStorage.setItem(_claveM, JSON.stringify(presentados));
+      // El backend ya lo registro en PRESENTACIONES_CE (fuente unica de
+      // verdad, compartida entre todos los dispositivos) -- ya no se
+      // duplica en localStorage. Se actualiza datosPanel en memoria para
+      // que el conteo/lista se vea correcto de inmediato, sin esperar a
+      // la siguiente recarga completa desde el servidor.
+      if (datosPanel && datosPanel.alumnos_nuevos) {
+        datosPanel.alumnos_nuevos = datosPanel.alumnos_nuevos.filter(function(a){ return a.id !== idAlumno; });
       }
       // Desaparecer la tarjeta con animacion suave
       const card = btn ? btn.closest('.nuevo-card') : null;
