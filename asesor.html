@@ -1573,6 +1573,61 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
   var cierreColocacion = 'Tu inscripción ya fue validada. En breve recibirás un mensaje del maestro de colocación para coordinar tu examen gratuito de colocación.';
   var cierreColocacionTutor = nombreAlumno + ' ya tiene su inscripción validada. En breve recibirán un mensaje del maestro de colocación para coordinar el examen gratuito de colocación.';
 
+  // Mapeos y helpers compartidos por el mensaje detallado (con y sin tutor).
+  var tipoEtiquetasNI = {
+    'Promo': 'Promoción',
+    'Promo_Mensual': 'Promoción Mensual',
+    'Normal': 'Normal',
+    'Normal_Mensual': 'Normal Mensual',
+    'Beca_Parcial': 'Beca Parcial',
+    'Kids': 'Kids',
+    'Kids_Mensual': 'Kids Mensual',
+    'Becado': 'Becado'
+  };
+  var tipoDescripcionNI = {
+    'Promo': '$100.00 MXN por semana',
+    'Promo_Mensual': '$400.00 MXN por 4 semanas',
+    'Normal': '$140.00 MXN por semana',
+    'Normal_Mensual': '$500.00 MXN por 4 semanas',
+    'Beca_Parcial': '$100.00 MXN pago único (con 3 semanas adicionales de beca)',
+    'Kids': '$150.00 MXN por semana',
+    'Kids_Mensual': '$550.00 MXN por 4 semanas',
+    'Becado': 'Sin costo (beca completa)'
+  };
+  function formatoTelefonoMX(numero) {
+    var n = String(numero || '').replace(/\D/g, '');
+    var diez = n.slice(-10);
+    if (diez.length !== 10) return numero || '';
+    return '+52 1 ' + diez.slice(0,3) + ' ' + diez.slice(3,6) + ' ' + diez.slice(6,10);
+  }
+
+  if (esParaTutor && datosExtra) {
+    var horaFinT = sumarUnaHoraHorario(horario);
+    var fechaTextoT = formatoFechaLargaNI(datosExtra.fechaInicio);
+    var tipoTextoT = tipoEtiquetasNI[tipo] || tipo || '';
+    var tipoDescripcionT = tipoDescripcionNI[tipo] || '';
+    var asistenteTelT = datosExtra.asistenteWhatsapp ? formatoTelefonoMX(datosExtra.asistenteWhatsapp) : '';
+
+    return '¡Hola *' + destinoNombre + '*! 👋\n' +
+      'Le confirmamos que *' + nombreAlumno + '* ya quedó inscrito/a en *Organic English* y su pago fue validado.\n' +
+      (tipoTextoT ? 'Plan: *' + tipoTextoT + '*' + (tipoDescripcionT ? ' — ' + tipoDescripcionT : '') + '.\n' : '') +
+      '\n' +
+      'El ID de alumno *' + nombreAlumno + '* es: *' + (datosExtra.idAlumno || '') + '*\n' +
+      'El correo de registro es: ' + (datosExtra.email || '') + '\n' +
+      'Estos datos los tendrá que ingresar para poder acceder a su plataforma personal dándole clic al siguiente enlace:\n' +
+      'https://organicenglish1.com/alumno.html\n\n' +
+      'Las clases están programadas de la siguiente manera:\n' +
+      'El grupo es: *' + idGrupo + '*\n' +
+      'Fecha de inicio: *' + fechaTextoT + '*\n' +
+      'Horario: *' + horario + '* a *' + horaFinT + '* (Hora central/CDMX)\n' +
+      'Las clases serán: Lunes a Jueves.\n\n' +
+      'La asistente de control escolar que le dará seguimiento personalizado a *' + nombreAlumno + '* durante el curso será quien le comparto a continuación 👇🏻\n' +
+      (datosExtra.asistenteNombre ? '*Asistente:* *' + datosExtra.asistenteNombre + '*, \n' : '') +
+      (asistenteTelT || '') + '\n\n' +
+      'Recibirá por correo el acceso a la plataforma personal de alumno, junto con los datos de contacto de la *asistente de control escolar y del maestro*.\n\n' +
+      'Wellcome to *Organic English*.';
+  }
+
   if (esParaTutor) {
     return '¡Hola ' + destinoNombre + '! 👋\n\n' +
       'Le confirmamos que ' + nombreAlumno + ' ya está inscrito/a en Organic English' + (infoGrupo ? ', ' + infoGrupo : '') + '.\n\n' +
@@ -1589,34 +1644,8 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
   if (!esColocacion && datosExtra) {
     var horaFin = sumarUnaHoraHorario(horario);
     var fechaTexto = formatoFechaLargaNI(datosExtra.fechaInicio);
-    var tipoEtiquetasNI = {
-      'Promo': 'Promoción',
-      'Promo_Mensual': 'Promoción Mensual',
-      'Normal': 'Normal',
-      'Normal_Mensual': 'Normal Mensual',
-      'Beca_Parcial': 'Beca Parcial',
-      'Kids': 'Kids',
-      'Kids_Mensual': 'Kids Mensual',
-      'Becado': 'Becado'
-    };
-    var tipoDescripcionNI = {
-      'Promo': '$100.00 MXN por semana',
-      'Promo_Mensual': '$400.00 MXN por 4 semanas',
-      'Normal': '$140.00 MXN por semana',
-      'Normal_Mensual': '$500.00 MXN por 4 semanas',
-      'Beca_Parcial': '$100.00 MXN pago único (con 3 semanas adicionales de beca)',
-      'Kids': '$150.00 MXN por semana',
-      'Kids_Mensual': '$550.00 MXN por 4 semanas',
-      'Becado': 'Sin costo (beca completa)'
-    };
     var tipoTexto = tipoEtiquetasNI[tipo] || tipo || '';
     var tipoDescripcion = tipoDescripcionNI[tipo] || '';
-    function formatoTelefonoMX(numero) {
-      var n = String(numero || '').replace(/\D/g, '');
-      var diez = n.slice(-10);
-      if (diez.length !== 10) return numero || '';
-      return '+52 1 ' + diez.slice(0,3) + ' ' + diez.slice(3,6) + ' ' + diez.slice(6,10);
-    }
     var asistenteTelFormateado = datosExtra.asistenteWhatsapp ? formatoTelefonoMX(datosExtra.asistenteWhatsapp) : '';
 
     var msg = '¡Hola! *' + destinoNombre + '* 🎉\n' +
