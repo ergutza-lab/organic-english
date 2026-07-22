@@ -272,6 +272,7 @@
       <button class="tab" onclick="switchTab('coordventas',this)">Coord. de Ventas</button>
       <button class="tab" onclick="switchTab('coordit',this)">Coord. IT</button>
       <button class="tab" onclick="switchTab('asesores',this)">Asesores</button>
+      <button class="tab" onclick="switchTab('alumnosbaja',this)" style="border:1px solid rgba(239,68,68,0.4);color:#f87171;">Alumnos de Baja</button>
       <button class="tab" onclick="switchTab('usuarios',this)" style="border:1px solid rgba(249,115,22,0.4);color:#fb923c;">Usuarios y claves</button>
     </div>
 
@@ -283,6 +284,7 @@
     <div id="tab-coordventas" class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
     <div id="tab-coordit" class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
     <div id="tab-asesores"   class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
+    <div id="tab-alumnosbaja" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando alumnos dados de baja...</div></div></div>
     <div id="tab-usuarios"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando usuarios...</div></div></div>
 
     <div class="sec-label">Grupos</div>
@@ -704,6 +706,66 @@
         '<span class="td-gray">'+(c.banco||'—')+'</span>',
         waBtn(c.whatsapp)
       ];}));
+  }
+
+  var _alumnosBajaCache = null;
+
+  function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fechaCorta(iso) {
+    if (!iso) return '<span class="td-gray">—</span>';
+    var d = new Date(iso);
+    var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return d.getDate() + ' ' + meses[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  function cargarYRenderAlumnosBaja() {
+    if (_alumnosBajaCache) { renderAlumnosBaja(_alumnosBajaCache); return; }
+    document.getElementById('tab-alumnosbaja').innerHTML = '<div class="tabla-wrap"><div class="loading">Cargando alumnos dados de baja...</div></div>';
+    fetch(APPS_SCRIPT + '?action=getAlumnosBajaDirector')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (!data.success) { document.getElementById('tab-alumnosbaja').innerHTML = '<div class="tabla-wrap"><div class="loading">Error al cargar.</div></div>'; return; }
+        _alumnosBajaCache = data.alumnos || [];
+        renderAlumnosBaja(_alumnosBajaCache);
+      })
+      .catch(function(){
+        document.getElementById('tab-alumnosbaja').innerHTML = '<div class="tabla-wrap"><div class="loading">Error de conexión.</div></div>';
+      });
+  }
+
+  function renderAlumnosBaja(alumnos) {
+    var el = document.getElementById('tab-alumnosbaja');
+    if (!alumnos || !alumnos.length) { el.innerHTML = '<div class="tabla-wrap"><div class="loading">No hay alumnos dados de baja.</div></div>'; return; }
+
+    var cols = ['Alumno','Grupo','Maestro','Asistente CE','Asesor','Fecha de ingreso','Fecha de baja','Último pago','Contacto'];
+    var html = '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;padding:6px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:100px;display:inline-block;">🔻 Total de alumnos en baja: <strong style="color:#f87171;">' + alumnos.length + '</strong></div>';
+    html += '<div class="tabla-wrap"><table><thead><tr>' + cols.map(function(c){ return '<th>'+c+'</th>'; }).join('') + '</tr></thead><tbody>';
+
+    alumnos.forEach(function(a){
+      var ultimoPago = a.ultimoPagoFecha
+        ? fechaCorta(a.ultimoPagoFecha) + (a.ultimoPagoMonto != null ? ' · <span class="td-orange">' + fmt(a.ultimoPagoMonto) + '</span>' : '')
+        : '<span class="td-gray">Sin pagos registrados</span>';
+
+      html += '<tr>' +
+        '<td><div class="nombre-cell"><div><div class="nombre-text">' + esc(a.nombre||'—') + '</div>' +
+          '<div style="font-size:11px;color:#64748b;">' + esc(a.id) + '</div></div></div></td>' +
+        '<td><span class="td-gray">' + esc(a.idGrupo||'—') + (a.nombreGrupo ? ' · ' + esc(a.nombreGrupo) : '') + '</span></td>' +
+        '<td><span class="td-gray">' + esc(a.nombreMaestro || a.idMaestro || '—') + '</span></td>' +
+        '<td><span class="td-gray">' + esc(a.nombreAsistente || a.idAsistente || '—') + '</span></td>' +
+        '<td><span class="td-gray">' + esc(a.nombreAsesor || a.idAsesor || '—') + '</span></td>' +
+        '<td>' + fechaCorta(a.fechaIngreso) + '</td>' +
+        '<td><span style="color:#f87171;font-weight:600;">' + fechaCorta(a.fechaBaja) + '</span></td>' +
+        '<td>' + ultimoPago + '</td>' +
+        '<td>' + waBtn(a.whatsapp) + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
   }
 
   var _usuariosCache = null;
@@ -1532,6 +1594,7 @@
     else if (tab === 'coordventas') renderCoordVentas(directorCache.coordVentas);
     else if (tab === 'coordit')     renderCoordIT(directorCache.coordIT);
     else if (tab === 'asesores')    renderAsesores(directorCache.asesores);
+    else if (tab === 'alumnosbaja') cargarYRenderAlumnosBaja();
     else if (tab === 'usuarios')    renderUsuarios();
   }
 
