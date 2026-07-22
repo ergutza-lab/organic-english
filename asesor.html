@@ -197,7 +197,6 @@
       <button class="btn-nueva-inscripcion" onclick="abrirModalNuevaInscripcion()">➕ Nueva inscripción</button>
       <button class="btn-mis-alumnos" onclick="abrirModalMisAlumnos()">👥 Mis alumnos</button>
     </div>
-    <button onclick="compartirPaginaInfo()" style="width:100%;margin-bottom:10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.35);color:#4ade80;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">📤 Compartir página informativa</button>
     <div id="bloque-compartir-grupos" style="margin-top:20px;padding:18px 20px;background:#1e2a4a;border-radius:14px;border:1px solid rgba(255,255,255,0.06);text-align:center;">
       <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Compartir con candidatos</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Selecciona un nivel y comparte los grupos disponibles por WhatsApp</div>
@@ -696,16 +695,6 @@
   }
   function cerrarReglasComisiones() {
     document.getElementById('modalReglasComisiones').classList.remove('active');
-  }
-
-  // Comparte por WhatsApp el link de la pagina informativa de Organic
-  // English (util para que el asesor se la mande a un candidato/prospecto).
-  // No va dirigido a un numero especifico -- abre el selector de contactos
-  // de WhatsApp para que el asesor elija a quien enviarselo.
-  function compartirPaginaInfo() {
-    var link = 'https://organicenglish1.com/organicenglishinfo.html';
-    var mensaje = 'Hola, te comparto más información sobre Organic English:\n' + link;
-    window.open('https://wa.me/?text=' + encodeURIComponent(mensaje), '_blank');
   }
 
   // ── MODAL VALIDAR PAGO ──
@@ -1549,7 +1538,27 @@ function niVerificarDatosWhatsApp() {
   window.open('https://wa.me/' + cleanWA(destino) + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
-function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo, esColocacion) {
+// Suma 1 hora a un horario tipo "5:00 PM" y regresa "6:00 PM" (las clases
+// duran 1 hora siempre).
+function sumarUnaHoraHorario(horario) {
+  var m = String(horario || '').trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!m) return '';
+  var hh = parseInt(m[1], 10), mm = m[2], ap = m[3].toUpperCase();
+  hh = hh + 1;
+  if (hh === 12) { ap = (ap === 'AM') ? 'PM' : 'AM'; }
+  else if (hh === 13) { hh = 1; }
+  return hh + ':' + mm + ' ' + ap;
+}
+
+function formatoFechaLargaNI(fecha) {
+  if (!fecha) return '';
+  var f = new Date(fecha);
+  var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()];
+}
+
+function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo, esColocacion, datosExtra) {
   var opciones = {
     'Promo': '· $100 MXN — Pago semanal (Promoción).',
     'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción).',
@@ -1573,6 +1582,40 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
         : nombreAlumno + ' recibirá por correo el acceso a su plataforma personal de alumno, junto con los datos de contacto de su Asistente de Control Escolar y de su maestro.') + '\n\n' +
       '¡Bienvenido/a a Organic English! 🙌';
   }
+
+  // Caso especial: inscripcion directa (sin tutor, sin colocacion) -- mensaje
+  // completo aprobado, con todos los datos de acceso y del grupo incluidos
+  // directamente en el WhatsApp (no solo remitiendo al correo).
+  if (!esColocacion && datosExtra) {
+    var horaFin = sumarUnaHoraHorario(horario);
+    var fechaTexto = formatoFechaLargaNI(datosExtra.fechaInicio);
+    var nombreGrupoTexto = datosExtra.nombreGrupo ? (' ' + datosExtra.nombreGrupo) : '';
+    var nivelTexto = datosExtra.nivel ? (', ' + datosExtra.nivel) : '';
+
+    var msg = '¡Hola! ' + destinoNombre + ' 🎉\n' +
+      'Tu inscripción ya quedó registrada y tu pago fue validado.\n' +
+      (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n' : '') +
+      '\n' +
+      'Tu ID de alumno es: el ' + (datosExtra.idAlumno || '') + '\n' +
+      'Tu correo de registro es: ' + (datosExtra.email || '') + '\n' +
+      'Estos datos los tendrás que ingresar para poder acceder a tu plataforma personal\n' +
+      'Dándole clic al siguiente enlace:\n' +
+      'https://organicenglish1.com/alumno.html\n\n' +
+      'Las clases están programadas de la siguiente manera:\n' +
+      'Tu grupo es: ' + idGrupo + nombreGrupoTexto + nivelTexto + '\n' +
+      'Fecha de inicio: ' + fechaTexto + '\n' +
+      'Horario: ' + horario + ' a ' + horaFin + ' (Hora central/CDMX)\n' +
+      'Tus clases serán: Lunes a Jueves.\n\n' +
+      'Tu asistente de control escolar será quien te dará seguimiento personalizado durante el curso.\n' +
+      'Te comparto su contacto 👇🏻 \n' +
+      (datosExtra.asistenteNombre ? '*' + datosExtra.asistenteNombre + '*, \n' : '') +
+      (datosExtra.asistenteWhatsapp || '') + '\n\n' +
+      'Recibirás por correo el acceso a tu plataforma personal de alumno, junto con los datos de contacto de tu *asistente de control escolar y de tu maestro*.\n\n' +
+      'Wellcome to *Organic English*.';
+
+    return msg;
+  }
+
   return '¡Hola! Bienvenido/a a Organic English, ' + destinoNombre + ' 🎉\n\n' +
     'Tu inscripción ya quedó registrada' + (infoGrupo ? ', ' + infoGrupo : '') + (esColocacion ? '' : ', y tu pago fue validado') + '.\n\n' +
     (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n\n' : '') +
@@ -1654,7 +1697,16 @@ function confirmarNuevaInscripcion() {
       var destinoWA = data.esMenor ? cleanWA(data.tutorWhatsapp) : cleanWA(whatsapp);
       var btnWA = document.getElementById('ni-btn-whatsapp');
       if (destinoWA) {
-        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupoEnviar, grupoSel ? grupoSel.horario : '', tipo, esColocacion);
+        var datosExtraNI = {
+          idAlumno:          data.idAlumno,
+          email:             email,
+          nombreGrupo:       grupoSel ? grupoSel.nombre : '',
+          nivel:             grupoSel ? grupoSel.nivel : '',
+          fechaInicio:       grupoSel ? grupoSel.fechaObj : null,
+          asistenteNombre:   data.asistente ? data.asistente.nombre : '',
+          asistenteWhatsapp: data.asistente ? data.asistente.whatsapp : ''
+        };
+        var msg = niMensajePago(destinoNombre, nombre, data.esMenor, idGrupoEnviar, grupoSel ? grupoSel.horario : '', tipo, esColocacion, datosExtraNI);
         // IMPORTANTE: no se abre WhatsApp automáticamente aquí — la mayoría
         // de los navegadores bloquean window.open() cuando no viene de un
         // clic directo del usuario. En vez de eso se muestra un botón real
