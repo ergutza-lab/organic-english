@@ -231,7 +231,7 @@
             <div class="card-icon icon-grupo">📅</div>
             <span class="card-title">Mi grupo</span>
           </div>
-          <button class="btn-cambiar-grupo" onclick="solicitarCambioGrupoWhatsApp()">💬 Solicitar cambio de grupo</button>
+          <button class="btn-cambiar-grupo" onclick="abrirModalCambioGrupo()">⇄ Cambiar grupo</button>
         </div>
         <div class="grupo-grid">
           <div class="grupo-item"><div class="grupo-label">Grupo</div><div class="grupo-val" id="grupoId">—</div><div class="grupo-sub" id="grupoNivel">—</div></div>
@@ -391,12 +391,12 @@
   </div>
 </div>
 
-<!-- MODAL DÍAS PERMITIDOS PARA CAMBIO DE GRUPO -->
+<!-- MODAL CAMBIO DE GRUPO -->
 <div id="modalCambioGrupo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#1a2540;border-radius:22px;border:1px solid rgba(255,255,255,0.1);padding:28px 24px;width:100%;max-width:480px;text-align:center;">
     <div style="font-size:36px;margin-bottom:12px;">🗓️</div>
     <div style="font-size:19px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Cambio de grupo</div>
-    <div style="font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:20px;">El trámite de cambio de grupo solo se puede solicitar de <strong style="color:#f1f5f9">jueves a sábado</strong>. Por favor vuelve a intentarlo en esos días.</div>
+    <div style="font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:20px;">Para solicitar un cambio de grupo contacta a tu asistente de Control Escolar.</div>
     <button onclick="document.getElementById('modalCambioGrupo').style.display='none'" style="width:100%;background:transparent;color:#475569;border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:12px;font-size:14px;cursor:pointer;">Cerrar</button>
   </div>
 </div>
@@ -422,7 +422,7 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
+  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
   var alumnoData = null;
   var evalActual = { M1:0, M2:0, M3:0, C1:0, C2:0 };
   var bloqueActual = 0;
@@ -750,26 +750,6 @@
   // ── CAMBIO GRUPO ──
   function abrirModalCambioGrupo() {
     document.getElementById('modalCambioGrupo').style.display='flex';
-  }
-
-  function solicitarCambioGrupoWhatsApp() {
-    if (!alumnoData) return;
-    var dia = new Date().getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
-    if (dia !== 4 && dia !== 5 && dia !== 6) {
-      abrirModalCambioGrupo();
-      return;
-    }
-    var s = alumnoData.asistente, a = alumnoData.alumno, g = alumnoData.grupo;
-    if (!s || !s.whatsapp) return;
-    var msg = encodeURIComponent(
-      'Hola ' + s.nombre.split(' ')[0] + ' 👋\n\n' +
-      'Me gustaría solicitar un cambio de grupo.\n\n' +
-      '👤 Alumno: ' + a.nombre + '\n' +
-      '🆔 ID: ' + a.id + '\n' +
-      '📚 Grupo actual: ' + (g ? g.id + ' · ' + g.nombre + ' · ' + g.horario : '—') + '\n\n' +
-      'Quedo al pendiente de las opciones disponibles. ¡Gracias! 🙏'
-    );
-    window.open('https://wa.me/' + cleanWA(s.whatsapp) + '?text=' + msg, '_blank');
   }
 
   // ── UTILS ──
