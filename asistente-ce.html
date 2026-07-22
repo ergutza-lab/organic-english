@@ -359,7 +359,6 @@
     <div class="tab" onclick="cambiarTab('pagos',this)">Pagos por validar <span class="tab-badge cero" id="badge-pagos">0</span></div>
     <div class="tab" onclick="cambiarTab('nuevos',this)">Nuevos <span class="tab-badge cero" id="badge-nuevos">0</span></div>
     <div class="tab" onclick="cambiarTab('alertas',this)">Sin Pago <span class="tab-badge cero" id="badge-alertas">0</span></div>
-    <div class="tab" onclick="cambiarTab('bajas',this)">Bajas <span class="tab-badge cero" id="badge-bajas">0</span></div>
     <div class="tab" onclick="cambiarTab('cambios',this)">Cambios de Grupo</div>
   </div>
 
@@ -386,14 +385,8 @@
 
     <div id="sec-alertas" class="section">
       <div class="sec-header"><h2 class="sec-title">Alumnos sin pago esta semana</h2></div>
-      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">La baja automática ocurre el lunes a las 11:59 PM después del fin de su vigencia (solo grupos H en adelante). Listado informativo para dar seguimiento.</p>
+      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">La baja es automática cada sábado. Listado informativo para dar seguimiento.</p>
       <div id="lista-alertas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
-    </div>
-
-    <div id="sec-bajas" class="section">
-      <div class="sec-header"><h2 class="sec-title">Alumnos dados de baja</h2></div>
-      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">Solo de tus grupos. Si un alumno te manda su comprobante para reactivarse, valida su pago aquí — se reactiva y se le manda su correo automáticamente.</p>
-      <div id="lista-bajas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
     </div>
 
     <div id="sec-cambios" class="section">
@@ -487,28 +480,11 @@
   </div>
 </div>
 
-<!-- MODAL OTORGAR PRÓRROGA -->
-<div class="modal-confirm-overlay" id="modal-prorroga">
-  <div class="modal-confirm-box" style="text-align:left;">
-    <div class="modal-confirm-titulo">⏳ Otorgar prórroga</div>
-    <div class="modal-confirm-sub" id="prorroga-alumno-nombre" style="margin-bottom:14px;">—</div>
-    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Horas de prórroga</label>
-    <input type="number" id="prorroga-horas" min="1" placeholder="Ej. 24" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;">
-    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Motivo (obligatorio)</label>
-    <textarea id="prorroga-motivo" rows="3" placeholder="Ej. El alumno confirmó que paga el martes por transferencia bancaria" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:6px;box-sizing:border-box;font-family:inherit;resize:vertical;"></textarea>
-    <div id="prorroga-status" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;"></div>
-    <div class="modal-confirm-acciones">
-      <button class="btn-confirm-ok" id="btn-otorgar-prorroga" style="background:#8b5cf6" onclick="otorgarProrrogaUI()">Otorgar prórroga</button>
-      <button class="btn-confirm-cancel" onclick="cerrarModalProrroga()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
+function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
 
 // ── FIX: helper para detectar si un alumno es becado ──
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
@@ -563,7 +539,7 @@ async function cargarDatos(){
   try{
     const resp=await fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(asistente.id)}`);
     datosPanel=await resp.json();
-    renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderBajas();renderCambios();
+    renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderCambios();
   }catch(e){mostrarToast('Error al cargar datos.','error');}
 }
 
@@ -582,18 +558,15 @@ function renderResumen(){
   // Excluir becados del conteo sin_pago
   const sinPagoReales = sin_pago.filter(a => !esBecado(a));
 
-  // El backend (alumnos_nuevos) ya excluye a los presentados via
-  // PRESENTACIONES_CE -- no se vuelve a filtrar aqui con localStorage, ya
-  // que eso es por dispositivo y puede quedar desincronizado entre el
-  // celular y la PC del mismo asistente, o entre distintos usuarios.
-  const nuevosPendientes = alumnos_nuevos;
+  // Excluir presentados del conteo de nuevos (clave por ID de asistente)
+  const _claveP = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_claveP) || '[]');
+  const nuevosPendientes = alumnos_nuevos.filter(a => !presentados.includes(a.id));
 
-  const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas'),bb=document.getElementById('badge-bajas');
+  const bp=document.getElementById('badge-pagos'),bn=document.getElementById('badge-nuevos'),ba=document.getElementById('badge-alertas');
   bp.textContent=pagos_pendientes.length;bp.className='tab-badge'+(pagos_pendientes.length?'':' cero');
   bn.textContent=nuevosPendientes.length;bn.className='tab-badge'+(nuevosPendientes.length?'':' cero');
   ba.textContent=sinPagoReales.length;ba.className='tab-badge'+(sinPagoReales.length?'':' cero');
-  const alumnosBajaCount=(datosPanel.alumnos_baja||[]).length;
-  bb.textContent=alumnosBajaCount;bb.className='tab-badge'+(alumnosBajaCount?'':' cero');
   document.getElementById('resumen-cards').innerHTML=`
     <div class="summary-card"><div class="ic">📋</div><div class="num">${grupos.length}</div><div class="lbl">Mis grupos</div></div>
     <div class="summary-card"><div class="ic">👥</div><div class="num">${totalAlumnos}</div><div class="lbl">Alumnos activos</div></div>
@@ -855,9 +828,10 @@ function renderPagos(){
 
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
-  // El backend ya excluye a los presentados via PRESENTACIONES_CE -- no se
-  // vuelve a filtrar con localStorage (ver nota en renderResumen).
-  const sinPresentar=datosPanel?.alumnos_nuevos||[];
+  const nuevos=datosPanel?.alumnos_nuevos||[];
+  const _clavePN = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+  const presentados = JSON.parse(localStorage.getItem(_clavePN) || '[]');
+  const sinPresentar = nuevos.filter(a => !presentados.includes(a.id));
   if(!sinPresentar.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">👋</div><h3>Sin presentaciones pendientes</h3></div>`;return;}
   const nombreAsistente = asistente?.nombre || 'Asistente';
 
@@ -918,12 +892,12 @@ function marcarPresentado(idAlumno, btn){
       if(!data || data.ok !== true){
         throw new Error(data && data.error ? data.error : 'Respuesta inválida del servidor');
       }
-      // El backend ya lo registro en PRESENTACIONES_CE (fuente unica de
-      // verdad, compartida entre todos los dispositivos) -- ya no se
-      // duplica en localStorage. Se actualiza datosPanel en memoria para
-      // que el conteo/lista se vea correcto de inmediato.
-      if (datosPanel && datosPanel.alumnos_nuevos) {
-        datosPanel.alumnos_nuevos = datosPanel.alumnos_nuevos.filter(function(a){ return a.id !== idAlumno; });
+      // Solo si el backend confirmó, lo guardamos también en localStorage (respaldo local)
+      const _claveM = 'nuevos_presentados_' + (asistente ? asistente.id : 'x');
+      const presentados = JSON.parse(localStorage.getItem(_claveM) || '[]');
+      if(!presentados.includes(idAlumno)){
+        presentados.push(idAlumno);
+        localStorage.setItem(_claveM, JSON.stringify(presentados));
       }
       // Desaparecer la tarjeta con animacion suave
       const card = btn ? btn.closest('.nuevo-card') : null;
@@ -985,23 +959,19 @@ function renderAlertas(){
       var jue2 = new Date(lun2); jue2.setDate(lun2.getDate()+3);
       periodoTexto = lun2.getDate()+' al '+jue2.getDate()+' de '+meses[jue2.getMonth()];
     }
-    const fechaLimitePago = a.fecha_limite_pago || '';
     const msg = encodeURIComponent(`Hola, ${a.nombre} 😊
 
 Esperamos que te encuentres muy bien.
 
-Te recordamos que el pago de tu colegiatura del ${periodoTexto} continúa pendiente.${fechaLimitePago ? ` Tu fecha límite de pago es el ${fechaLimitePago}.` : ' Por favor cúbrelo lo antes posible.'}
+Te recordamos que el pago de tu colegiatura del ${periodoTexto} continúa pendiente. Para mantener tu inscripción activa en Organic English, es necesario realizarlo el día de hoy antes de las 10:00 p.m.
 
-Después de esa fecha, tu acceso a la plataforma será dado de baja hasta que se reciba tu pago.
+Después de ese horario, el sistema dará de baja automáticamente a los alumnos con pagos pendientes.
 
 Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu registro. Si tienes alguna duda o necesitas apoyo, con gusto estamos para ayudarte. ✨`);
     const waBtn = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank" style="padding:6px 12px">📱 Recordar pago</a>` : '';
     const tipoEtiquetas={'Promo':'PROMO','Normal':'NORMAL','Normal Mensual':'MENSUAL','Beca Parcial':'BECA PARCIAL','Becado':'BECADO','BECA_PARCIAL':'BECA PARCIAL','NORMAL_MENSUAL':'MENSUAL','PROMO':'PROMO','NORMAL':'NORMAL'};
     const tipoChip = a.tipoInscripcion
       ? `<span style="font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
-      : '';
-    const prorrogaInfo = a.prorroga
-      ? `<div style="width:100%;font-size:11px;color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:8px;padding:6px 10px;margin-top:6px;">⏳ Prórroga activa (${a.prorroga.horas}h) hasta <strong>${a.prorroga.hasta}</strong> — ${a.prorroga.motivo}</div>`
       : '';
     return `
     <div class="alerta-card" style="flex-wrap:wrap;gap:6px;">
@@ -1022,40 +992,10 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${waBtn}
           <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
-          <button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 12px;" onclick="abrirModalProrroga('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">⏳ Prórroga</button>
         </div>
         <div class="alerta-badge">Sin pago vigente</div>
-        ${prorrogaInfo}
       </div>
       <div id="detalle-alerta-${a.id}" class="alumno-detalle" style="width:100%;margin:0;"></div>
-    </div>`;
-  }).join('');
-}
-
-function renderBajas(){
-  const cont=document.getElementById('lista-bajas');
-  const lista=datosPanel?.alumnos_baja||[];
-
-  if(!lista.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">🟢</div><h3>Sin alumnos dados de baja</h3></div>`;return;}
-
-  cont.innerHTML=lista.map(a=>{
-    const diasTexto = a.dias_baja===null || a.dias_baja===undefined
-      ? ''
-      : (a.dias_baja===0 ? 'Hoy' : a.dias_baja===1 ? 'Hace 1 día' : `Hace ${a.dias_baja} días`);
-    const waLink = a.whatsapp ? `<a class="btn-wa-mini" href="https://wa.me/${cleanWA(a.whatsapp)}" target="_blank" style="padding:6px 12px">💬 WhatsApp</a>` : '';
-    return `
-    <div class="alerta-card" style="flex-wrap:wrap;gap:6px;border-left-color:var(--gris-400);">
-      <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
-        <div class="alerta-icon">🔒</div>
-        <div class="alerta-info" style="flex:1;min-width:0;">
-          <div class="alerta-nombre">${a.nombre}</div>
-          <div class="alerta-meta">${a.id} · Grupo ${a.grupo}${a.fecha_baja ? ' · Baja: '+a.fecha_baja : ''}${diasTexto ? ' · '+diasTexto : ''}</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${waLink}
-          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
-        </div>
-      </div>
     </div>`;
   }).join('');
 }
@@ -1332,65 +1272,6 @@ function notificarAlumnoPago(){
   cerrarModalNotifPago();
 }
 
-// ── PRÓRROGA (caso especial: posponer la baja automática de un alumno) ──
-var prorrogaAlumnoActivoId = null;
-
-function abrirModalProrroga(idAlumno, nombre) {
-  prorrogaAlumnoActivoId = idAlumno;
-  document.getElementById('prorroga-alumno-nombre').innerHTML = `<strong>${nombre}</strong> <span style="color:var(--gris-400);">${idAlumno}</span>`;
-  document.getElementById('prorroga-horas').value = '';
-  document.getElementById('prorroga-motivo').value = '';
-  document.getElementById('prorroga-status').style.display = 'none';
-  var btn = document.getElementById('btn-otorgar-prorroga');
-  btn.disabled = false; btn.textContent = 'Otorgar prórroga';
-  document.getElementById('modal-prorroga').classList.add('open');
-}
-
-function cerrarModalProrroga() {
-  document.getElementById('modal-prorroga').classList.remove('open');
-  prorrogaAlumnoActivoId = null;
-}
-
-function otorgarProrrogaUI() {
-  var horas = document.getElementById('prorroga-horas').value.trim();
-  var motivo = document.getElementById('prorroga-motivo').value.trim();
-  var status = document.getElementById('prorroga-status');
-  var btn = document.getElementById('btn-otorgar-prorroga');
-
-  if (!horas || Number(horas) <= 0) {
-    status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
-    status.textContent = 'Ingresa un número de horas válido.';
-    return;
-  }
-  if (!motivo) {
-    status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
-    status.textContent = 'El motivo es obligatorio.';
-    return;
-  }
-
-  btn.disabled = true; btn.textContent = 'Guardando…';
-  status.style.display = 'none';
-
-  fetch(`${APPS_SCRIPT}?action=otorgarProrroga&idAlumno=${encodeURIComponent(prorrogaAlumnoActivoId)}&horas=${encodeURIComponent(horas)}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}&motivo=${encodeURIComponent(motivo)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        mostrarToast('✅ Prórroga otorgada hasta ' + data.fechaLimiteExtendida, 'success');
-        cargarDatos();
-        cerrarModalProrroga();
-      } else {
-        btn.disabled = false; btn.textContent = 'Otorgar prórroga';
-        status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
-        status.textContent = '❌ ' + (data.error || 'Error al otorgar la prórroga.');
-      }
-    })
-    .catch(() => {
-      btn.disabled = false; btn.textContent = 'Otorgar prórroga';
-      status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
-      status.textContent = '❌ Error de conexión.';
-    });
-}
-
 function subirLinkWhats(idGrupo) {
   const link = prompt('Pega el link del grupo de WhatsApp para ' + idGrupo + ':');
   if (!link || !link.trim()) return;
@@ -1499,10 +1380,6 @@ function abrirModalValidarCE(idAlumno) {
     var found = (datosPanel.sin_pago||[]).find(function(a){ return a.id === idAlumno; });
     if (found) nombre = found.nombre;
   }
-  if (nombre === idAlumno && datosPanel && datosPanel.alumnos_baja) {
-    var foundBaja = (datosPanel.alumnos_baja||[]).find(function(a){ return a.id === idAlumno; });
-    if (foundBaja) nombre = foundBaja.nombre;
-  }
   validarCEAlumnoId = idAlumno;
   document.getElementById('validar-ce-alumno-info').innerHTML =
     '<strong style="color:#f1f5f9;">'+nombre+'</strong> <span style="color:#64748b;">'+idAlumno+'</span>';
@@ -1556,78 +1433,15 @@ async function ejecutarValidarCE() {
       status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado correctamente.';
       // Recargar datos en segundo plano de una vez, sin esperar a que cierren el modal
       cargarDatos();
-      // Botón para cerrar
+      // Botón claro para cerrar, en vez de cerrarse solo (para no confundir)
+      btnCancelar.style.display='none';
       btn.disabled=false;
       btn.textContent='✓ Cerrar';
       btn.style.background='#334155';
       btn.onclick=function(){ cerrarModalValidarCE(); };
-      // Botón verde para notificar al alumno por WhatsApp -- mensaje distinto
-      // si fue una reactivacion (Baja -> Validado) o una validacion normal.
-      btnCancelar.style.display='';
-      btnCancelar.textContent='📱 Notificar al alumno';
-      btnCancelar.style.background='var(--verde)';
-      btnCancelar.style.color='#fff';
-      btnCancelar.style.border='none';
-      btnCancelar.onclick=function(){ notificarValidarCE(idAlumno, !!data.reactivado, cal.inicio, cal.fin); };
     }
     else{throw new Error(data.error||'Error');}
   }catch(e){btn.textContent='✓ Validar pago';btn.disabled=false;status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='❌ '+e.message;}
-}
-
-// Sabado siguiente a una fecha (usado para la fecha limite del proximo pago).
-function sabadoSiguienteA(fecha) {
-  var f = new Date(fecha);
-  var diasHastaSabado = (6 - f.getDay() + 7) % 7;
-  if (diasHastaSabado === 0) diasHastaSabado = 7;
-  f.setDate(f.getDate() + diasHastaSabado);
-  return f;
-}
-function formatoFechaConDia(fecha) {
-  var f = new Date(fecha);
-  var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()];
-}
-
-// Notifica por WhatsApp tras validar desde el flujo de "subir y validar
-// directo" (modal-validar-ce) -- usado tanto para pagos normales como para
-// reactivaciones (Baja -> Validado), con un mensaje distinto para cada caso.
-function notificarValidarCE(idAlumno, reactivado, coberturaInicio, coberturaFin) {
-  var nombre = idAlumno, whatsapp = '';
-
-  var candidatos = [].concat(
-    (datosPanel && datosPanel.sin_pago) || [],
-    (datosPanel && datosPanel.alumnos_baja) || [],
-    (datosPanel && datosPanel.pagos_pendientes || []).map(function(p){ return { id: p.id_alumno, whatsapp: p.whatsapp, nombre: p.nombre }; })
-  );
-  var encontrado = candidatos.find(function(a){ return a.id === idAlumno; });
-  if (encontrado) { whatsapp = encontrado.whatsapp || ''; nombre = encontrado.nombre || nombre; }
-
-  if ((!whatsapp || nombre === idAlumno) && datosPanel && datosPanel.grupos) {
-    for (var g = 0; g < datosPanel.grupos.length; g++) {
-      var al = (datosPanel.grupos[g].alumnos || []).find(function(a){ return a.id === idAlumno; });
-      if (al) { whatsapp = whatsapp || al.whatsapp || ''; if (nombre === idAlumno) nombre = al.nombre || nombre; break; }
-    }
-  }
-
-  if (!whatsapp) { mostrarToast('No se encontró el WhatsApp de este alumno.', 'error'); return; }
-
-  var mensaje;
-  if (reactivado) {
-    mensaje = 'Hola ' + nombre + ', tu pago fue recibido y tu acceso a la plataforma fue reactivado.' +
-      '\n\nEn breve recibirás un correo con las instrucciones para volver a ingresar a tu plataforma.' +
-      '\n\nCualquier duda, quedo a tus órdenes.';
-  } else {
-    mensaje = 'Hola ' + nombre + ', te confirmo que tu pago fue validado correctamente.';
-    if (coberturaInicio && coberturaFin) {
-      var fechaLimite = sabadoSiguienteA(new Date(coberturaFin));
-      mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(coberturaInicio) + ' al ' + formatoFechaConDia(coberturaFin) + '.';
-      mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
-    }
-    mensaje += '\n\nCualquier duda respecto a tus pagos, quedo a tus órdenes.';
-  }
-
-  window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + encodeURIComponent(mensaje), '_blank');
 }
 
 
