@@ -1611,7 +1611,13 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
     };
     var tipoTexto = tipoEtiquetasNI[tipo] || tipo || '';
     var tipoDescripcion = tipoDescripcionNI[tipo] || '';
-    var asistenteWaLink = datosExtra.asistenteWhatsapp ? ('https://wa.me/' + cleanWA(datosExtra.asistenteWhatsapp)) : '';
+    function formatoTelefonoMX(numero) {
+      var n = String(numero || '').replace(/\D/g, '');
+      var diez = n.slice(-10);
+      if (diez.length !== 10) return numero || '';
+      return '+52 1 ' + diez.slice(0,3) + ' ' + diez.slice(3,6) + ' ' + diez.slice(6,10);
+    }
+    var asistenteTelFormateado = datosExtra.asistenteWhatsapp ? formatoTelefonoMX(datosExtra.asistenteWhatsapp) : '';
 
     var msg = '¡Hola! *' + destinoNombre + '* 🎉\n' +
       'Tu inscripción ya quedó registrada y tu pago fue validado.\n' +
@@ -1619,18 +1625,16 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
       '\n' +
       'Tu ID de alumno es: *' + (datosExtra.idAlumno || '') + '*\n' +
       'Tu correo de registro es: ' + (datosExtra.email || '') + '\n' +
-      'Estos datos los tendrás que ingresar para poder acceder a tu plataforma personal\n' +
-      'Dándole clic al siguiente enlace:\n' +
+      'Estos datos los tendrás que ingresar para poder acceder a tu plataforma personal dándole clic al siguiente enlace:\n' +
       'https://organicenglish1.com/alumno.html\n\n' +
       'Las clases están programadas de la siguiente manera:\n' +
       'Tu grupo es: *' + idGrupo + '*\n' +
       'Fecha de inicio: *' + fechaTexto + '*\n' +
       'Horario: *' + horario + '* a *' + horaFin + '* (Hora central/CDMX)\n' +
       'Tus clases serán: Lunes a Jueves.\n\n' +
-      'Tu asistente de control escolar será quien te dará seguimiento personalizado durante el curso.\n' +
-      'Te comparto su contacto 👇🏻 \n' +
-      (datosExtra.asistenteNombre ? '*' + datosExtra.asistenteNombre + '*, \n' : '') +
-      (asistenteWaLink || '') + '\n\n' +
+      'Tu asistente de control escolar será quien te dará seguimiento personalizado durante el curso. Te comparto su contacto 👇🏻 \n' +
+      (datosExtra.asistenteNombre ? '*Asistente:* *' + datosExtra.asistenteNombre + '*, \n' : '') +
+      (asistenteTelFormateado || '') + '\n\n' +
       'Recibirás por correo el acceso a tu plataforma personal de alumno, junto con los datos de contacto de tu *asistente de control escolar y de tu maestro*.\n\n' +
       'Wellcome to *Organic English*.';
 
