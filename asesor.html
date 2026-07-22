@@ -552,10 +552,10 @@
 
  function cleanWA(phone) {
   var n = (phone || '').toString().replace(/\D/g, '');
-  if (n.length === 10) n = '52' + n;
-  else if (n.length === 12 && n.startsWith('52')) {}
+  if (n.length === 10) n = '521' + n;
+  else if (n.length === 12 && n.startsWith('52')) n = '521' + n.slice(2);
   else if (n.length === 13 && n.startsWith('521')) {}
-  else n = '52' + n.slice(-10);
+  else n = '521' + n.slice(-10);
   return n;
 }
 
@@ -1589,27 +1589,48 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
   if (!esColocacion && datosExtra) {
     var horaFin = sumarUnaHoraHorario(horario);
     var fechaTexto = formatoFechaLargaNI(datosExtra.fechaInicio);
-    var nombreGrupoTexto = datosExtra.nombreGrupo ? (' ' + datosExtra.nombreGrupo) : '';
-    var nivelTexto = datosExtra.nivel ? (', ' + datosExtra.nivel) : '';
+    var tipoEtiquetasNI = {
+      'Promo': 'Promoción',
+      'Promo_Mensual': 'Promoción Mensual',
+      'Normal': 'Normal',
+      'Normal_Mensual': 'Normal Mensual',
+      'Beca_Parcial': 'Beca Parcial',
+      'Kids': 'Kids',
+      'Kids_Mensual': 'Kids Mensual',
+      'Becado': 'Becado'
+    };
+    var tipoDescripcionNI = {
+      'Promo': '$100.00 MXN por semana',
+      'Promo_Mensual': '$400.00 MXN por 4 semanas',
+      'Normal': '$140.00 MXN por semana',
+      'Normal_Mensual': '$500.00 MXN por 4 semanas',
+      'Beca_Parcial': '$100.00 MXN pago único (con 3 semanas adicionales de beca)',
+      'Kids': '$150.00 MXN por semana',
+      'Kids_Mensual': '$550.00 MXN por 4 semanas',
+      'Becado': 'Sin costo (beca completa)'
+    };
+    var tipoTexto = tipoEtiquetasNI[tipo] || tipo || '';
+    var tipoDescripcion = tipoDescripcionNI[tipo] || '';
+    var asistenteWaLink = datosExtra.asistenteWhatsapp ? ('https://wa.me/' + cleanWA(datosExtra.asistenteWhatsapp)) : '';
 
-    var msg = '¡Hola! ' + destinoNombre + ' 🎉\n' +
+    var msg = '¡Hola! *' + destinoNombre + '* 🎉\n' +
       'Tu inscripción ya quedó registrada y tu pago fue validado.\n' +
-      (opciones[tipo] ? 'Plan: ' + opciones[tipo] + '\n' : '') +
+      (tipoTexto ? 'Plan: *' + tipoTexto + '*' + (tipoDescripcion ? ' — ' + tipoDescripcion : '') + '.\n' : '') +
       '\n' +
-      'Tu ID de alumno es: el ' + (datosExtra.idAlumno || '') + '\n' +
+      'Tu ID de alumno es: *' + (datosExtra.idAlumno || '') + '*\n' +
       'Tu correo de registro es: ' + (datosExtra.email || '') + '\n' +
       'Estos datos los tendrás que ingresar para poder acceder a tu plataforma personal\n' +
       'Dándole clic al siguiente enlace:\n' +
       'https://organicenglish1.com/alumno.html\n\n' +
       'Las clases están programadas de la siguiente manera:\n' +
-      'Tu grupo es: ' + idGrupo + nombreGrupoTexto + nivelTexto + '\n' +
-      'Fecha de inicio: ' + fechaTexto + '\n' +
-      'Horario: ' + horario + ' a ' + horaFin + ' (Hora central/CDMX)\n' +
+      'Tu grupo es: *' + idGrupo + '*\n' +
+      'Fecha de inicio: *' + fechaTexto + '*\n' +
+      'Horario: *' + horario + '* a *' + horaFin + '* (Hora central/CDMX)\n' +
       'Tus clases serán: Lunes a Jueves.\n\n' +
       'Tu asistente de control escolar será quien te dará seguimiento personalizado durante el curso.\n' +
       'Te comparto su contacto 👇🏻 \n' +
       (datosExtra.asistenteNombre ? '*' + datosExtra.asistenteNombre + '*, \n' : '') +
-      (datosExtra.asistenteWhatsapp || '') + '\n\n' +
+      (asistenteWaLink || '') + '\n\n' +
       'Recibirás por correo el acceso a tu plataforma personal de alumno, junto con los datos de contacto de tu *asistente de control escolar y de tu maestro*.\n\n' +
       'Wellcome to *Organic English*.';
 
