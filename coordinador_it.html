@@ -701,10 +701,14 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
 
   function openAgregarModal(tipo) {
     var titulos = { direccion:'Agregar Director', academica:'Agregar Coord. Académico', maestros:'Agregar Maestro', escolar:'Agregar Coord. Escolar', asistentes:'Agregar Asistente CE', ventas:'Agregar Coord. Ventas', asesores:'Agregar Asesor' };
+    var btnNotifCA = (tipo === 'maestros')
+      ? '<button class="btn-wa" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="notificarCoordAcademicoNuevoMaestro()">📩 Notificar Coord. Académico</button>'
+      : '';
     var html = getCampos(tipo, 'new', null) +
       '<div class="modal-footer">' +
         '<button class="btn-cancel" onclick="closeModal()">Cancelar</button>' +
         '<button class="btn-wa" onclick="notificarNuevo()">📲 Notificar WA</button>' +
+        btnNotifCA +
         '<button class="btn-save" onclick="guardar()">💾 Guardar en Sheets</button>' +
       '</div>';
 
@@ -940,6 +944,9 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     
     var linkInsc = (tipo === 'asesores') ? val('newLinkInscripcion') : '';
     var linkAsesorMsg = (tipo === 'asesores' && linkInsc) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + linkInsc : '';
+    var mensajeCapacitacion = (tipo === 'maestros')
+      ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
+      : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
     var msg = 'Hola ' + nombre + '.' +
       '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
       '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
@@ -948,10 +955,43 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '%0A👤 Usuario: ' + id +
       (clave ? '%0A🔐 Contraseña: ' + clave : '') +
       linkAsesorMsg +
-      '%0A%0AEs necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.' +
+      '%0A%0A' + mensajeCapacitacion +
       '%0A%0ACualquier duda, estoy para orientarte.' +
       '%0A%0ASaludos cordiales.';
     window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + msg, '_blank');
+  }
+
+  // Notifica al Coordinador Académico que un maestro nuevo ya fue dado de
+  // alta, compartiéndole sus credenciales de acceso para su conocimiento
+  // (él es quien se encarga de la capacitación del maestro nuevo).
+  function notificarCoordAcademicoNuevoMaestro() {
+    var nombreMaestro = val('newNombre');
+    var idMaestro      = val('newId');
+    var claveMaestro   = val('newClave');
+
+    if (!nombreMaestro) { alert('Escribe el nombre del maestro antes de notificar.'); return; }
+    if (!idMaestro)      { alert('Guarda primero al maestro en Sheets para tener su ID antes de notificar al Coordinador Académico.'); return; }
+
+    fetch(APPS_SCRIPT + '?action=getCoordAcademicoWhats')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success || !data.whatsapp) {
+          alert('No se pudo obtener el WhatsApp del Coordinador Académico.');
+          return;
+        }
+        var msg = 'Hola ' + data.nombre + '.' +
+          '%0A%0ATe informo que se dio de alta un nuevo maestro en la plataforma:' +
+          '%0A%0A*Nuevo maestro:*' +
+          '%0A👤 Nombre: ' + nombreMaestro +
+          '%0A🆔 Usuario: ' + idMaestro +
+          (claveMaestro ? '%0A🔐 Contraseña: ' + claveMaestro : '') +
+          '%0A%0ATe comparto sus credenciales de acceso para tu conocimiento. Quedas encargado de coordinar su capacitación.' +
+          '%0A%0ASaludos cordiales.';
+        window.open('https://wa.me/' + cleanWA(data.whatsapp) + '?text=' + msg, '_blank');
+      })
+      .catch(function() {
+        alert('Error de conexión al buscar al Coordinador Académico.');
+      });
   }
 
   function notificarExistente() {
@@ -981,6 +1021,9 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     };
     
     var linkAsesorMsg = (tipo === 'asesores' && d.LinkInscripcion) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + d.LinkInscripcion : '';
+    var mensajeCapacitacion2 = (tipo === 'maestros')
+      ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
+      : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
     var msg = 'Hola ' + d.Nombre + '.' +
       '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
       '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
@@ -989,7 +1032,7 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
       '%0A👤 Usuario: ' + (d.ID || '') +
       (d.Clave ? '%0A🔐 Contraseña: ' + d.Clave : '') +
       linkAsesorMsg +
-      '%0A%0AEs necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.' +
+      '%0A%0A' + mensajeCapacitacion2 +
       '%0A%0ACualquier duda, estoy para orientarte.' +
       '%0A%0ASaludos cordiales.';
     window.open('https://wa.me/' + cleanWA(d.WhatsApp) + '?text=' + msg, '_blank');
@@ -1030,6 +1073,9 @@ var panelLink = {
         };
         
         var linkAsesor = (tipo === 'asesores' && datos.LinkInscripcion) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + datos.LinkInscripcion : '';
+        var mensajeCapacitacion3 = (tipo === 'maestros')
+          ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
+          : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
         var msg = 'Hola ' + datos.Nombre + '.' +
           '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
           '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
@@ -1038,7 +1084,7 @@ var panelLink = {
           '%0A👤 Usuario: ' + (datos.ID || '') +
           (datos.Clave ? '%0A🔐 Contraseña: ' + datos.Clave : '') +
           linkAsesor +
-          '%0A%0AEs necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.' +
+          '%0A%0A' + mensajeCapacitacion3 +
           '%0A%0ACualquier duda, estoy para orientarte.' +
           '%0A%0ASaludos cordiales.';
         window.open('https://wa.me/' + cleanWA(datos.WhatsApp) + '?text=' + msg, '_blank');
