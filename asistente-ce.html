@@ -911,15 +911,28 @@ function renderNuevos(){
     }
 
     const msg=encodeURIComponent(`Hola ${a.nombre} \uD83D\uDC4B Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. \uD83C\uDF89 Estoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. \uD83D\uDE0A\n\n\uD83D\uDCCB Datos de tu grupo:\n\uD83C\uDD94 ID de grupo: ${idGrupo}\n\uD83D\uDD52 Horario: ${horario}\n\uD83D\uDCC5 ${etiquetaFecha}: ${fechaMostrada}\n\n\uD83D\uDCCC IMPORTANTE: Por favor, en tus próximas colegiaturas deberás subir tus comprobantes de pago desde tu panel personal de nuestra plataforma y notificarme por este medio para que pueda validarlo y confirmar tu pago en el sistema.\u2705\n\n\u26A0\uFE0FAdemás te sugerimos guardar este número en tus contactos con la finalidad de evitar fallas técnicas de comunicación. Esto contribuye a la correcta recepción de avisos y buen funcionamiento de los grupos.\uD83E\uDDE1\n\n¡Bienvenido/a a Organic English!\uD83C\uDF31\uD83C\uDF3F`);
+
+    // Si el alumno tiene tutor registrado (menor de edad), tambien conviene
+    // presentarse con el tutor por separado -- mensaje en tono formal,
+    // dirigido a el/ella, mencionando al alumno por nombre.
+    const tieneTutor = a.tutorWhatsapp && a.tutorNombre;
+    const etiquetaFechaTutor = etiquetaFecha.replace('tu grupo', 'su grupo').replace('tu vigencia', 'su vigencia');
+    const msgTutor = tieneTutor ? encodeURIComponent(`Hola ${a.tutorNombre} \uD83D\uDC4B Soy ${nombreAsistente}, Asistente Escolar de Organic English. \uD83C\uDF89 Le escribo para presentarme como la persona encargada de dar seguimiento a ${a.nombre} durante su curso. Quedo a sus órdenes para cualquier duda sobre las clases, pagos o lo que necesite. \uD83D\uDE0A\n\n\uD83D\uDCCB Datos del grupo de ${a.nombre}:\n\uD83C\uDD94 ID de grupo: ${idGrupo}\n\uD83D\uDD52 Horario: ${horario}\n\uD83D\uDCC5 ${etiquetaFechaTutor}: ${fechaMostrada}\n\n\uD83D\uDCCC IMPORTANTE: Cada semana deberá subirse el comprobante de pago desde la plataforma personal del alumno, y notificarme por este medio para poder validarlo y confirmar el pago en el sistema.\u2705\n\n\u26A0\uFE0FLe sugerimos guardar este número en sus contactos para evitar fallas técnicas de comunicación y asegurar la correcta recepción de avisos.\uD83E\uDDE1\n\n¡Bienvenido/a a Organic English!\uD83C\uDF31\uD83C\uDF3F`) : '';
+    const btnTutor = tieneTutor
+      ? `<a class="btn-whats" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" href="https://wa.me/${cleanWA(a.tutorWhatsapp)}?text=${msgTutor}" target="_blank">👨‍👩‍👧 Presentarse (tutor)</a>`
+      : '';
+
     return `
     <div class="nuevo-card">
       <div class="nuevo-info">
         <div class="nuevo-nombre">${a.nombre}</div>
         <div class="nuevo-sub">${a.whatsapp} · <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--azul);font-weight:700">${a.id}</span></div>
         <div class="nuevo-chip">🎓 ${a.grupo} · ${a.horario}</div>
+        ${tieneTutor ? `<div style="font-size:11px;color:#a78bfa;margin-top:4px;">👨‍👩‍👧 Tutor: ${a.tutorNombre}</div>` : ''}
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn-whats" href="https://wa.me/${cleanWA(a.whatsapp)}?text=${msg}" target="_blank">👋 Presentarse</a>
+        ${btnTutor}
         <button class="btn-confirmado" onclick="marcarPresentado('${a.id}',this)" style="padding:9px 14px;background:var(--verde);color:#fff;border:none;border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✓ Listo</button>
       </div>
     </div>`;
