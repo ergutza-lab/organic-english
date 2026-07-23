@@ -504,6 +504,22 @@
   </div>
 </div>
 
+<!-- MODAL DAR DE BAJA MANUAL -->
+<div class="modal-confirm-overlay" id="modal-dar-baja">
+  <div class="modal-confirm-box" style="text-align:left;">
+    <div class="modal-confirm-titulo">🚫 Dar de baja</div>
+    <div class="modal-confirm-sub" id="dar-baja-alumno-nombre" style="margin-bottom:14px;">—</div>
+    <p style="font-size:12px;color:var(--gris-500);margin-bottom:12px;">Esta acción da de baja al alumno de inmediato y le manda el correo de aviso de baja. Úsalo solo en casos especiales (el alumno pide cancelar, etc.) — la falta de pago normal ya se maneja sola.</p>
+    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Motivo (obligatorio)</label>
+    <textarea id="dar-baja-motivo" rows="3" placeholder="Ej. El alumno pidió cancelar su inscripción por motivos personales" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:6px;box-sizing:border-box;font-family:inherit;resize:vertical;"></textarea>
+    <div id="dar-baja-status" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;"></div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-ok" id="btn-confirmar-dar-baja" style="background:#ef4444" onclick="ejecutarDarBaja()">Dar de baja</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalDarBaja()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -783,6 +799,7 @@ function abrirModalGrupo(idx){
       const validarBtn=!esBec
         ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
         :'';
+      const darBajaBtn=`<button class="btn-wa-mini" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:6px 10px;" onclick="abrirModalDarBaja('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Dar de baja">🚫</button>`;
       const tipoEtiquetas = {
         'Promo':         'Promo $100',
         'Promo_Mensual': 'Promo $400',
@@ -794,7 +811,7 @@ function abrirModalGrupo(idx){
       const tipoChip = a.tipoInscripcion
         ? `<span style="font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
         : '';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}</div>`;
+      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${darBajaBtn}</div>`;
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
@@ -1386,6 +1403,58 @@ function otorgarProrrogaUI() {
     })
     .catch(() => {
       btn.disabled = false; btn.textContent = 'Otorgar prórroga';
+      status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+      status.textContent = '❌ Error de conexión.';
+    });
+}
+
+// ── DAR DE BAJA MANUAL (caso especial, fuera de la baja automática) ──
+var darBajaAlumnoActivoId = null;
+
+function abrirModalDarBaja(idAlumno, nombre) {
+  darBajaAlumnoActivoId = idAlumno;
+  document.getElementById('dar-baja-alumno-nombre').innerHTML = `<strong>${nombre}</strong> <span style="color:var(--gris-400);">${idAlumno}</span>`;
+  document.getElementById('dar-baja-motivo').value = '';
+  document.getElementById('dar-baja-status').style.display = 'none';
+  var btn = document.getElementById('btn-confirmar-dar-baja');
+  btn.disabled = false; btn.textContent = 'Dar de baja';
+  document.getElementById('modal-dar-baja').classList.add('open');
+}
+
+function cerrarModalDarBaja() {
+  document.getElementById('modal-dar-baja').classList.remove('open');
+  darBajaAlumnoActivoId = null;
+}
+
+function ejecutarDarBaja() {
+  var motivo = document.getElementById('dar-baja-motivo').value.trim();
+  var status = document.getElementById('dar-baja-status');
+  var btn = document.getElementById('btn-confirmar-dar-baja');
+
+  if (!motivo) {
+    status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+    status.textContent = 'El motivo es obligatorio.';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Procesando…';
+  status.style.display = 'none';
+
+  fetch(`${APPS_SCRIPT}?action=darBajaManual&idAlumno=${encodeURIComponent(darBajaAlumnoActivoId)}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}&motivo=${encodeURIComponent(motivo)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        mostrarToast('✅ Alumno dado de baja correctamente.', 'success');
+        cargarDatos();
+        cerrarModalDarBaja();
+      } else {
+        btn.disabled = false; btn.textContent = 'Dar de baja';
+        status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+        status.textContent = '❌ ' + (data.error || 'Error al dar de baja.');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false; btn.textContent = 'Dar de baja';
       status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
       status.textContent = '❌ Error de conexión.';
     });
