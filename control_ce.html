@@ -318,6 +318,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <button class="tab" onclick="cambiarTab('asistentes',this)">Asistentes CE</button>
     <button class="tab" onclick="cambiarTab('seguimiento',this)">Seguimiento de alumnos</button>
     <button class="tab" onclick="cambiarTab('alertas',this)" id="tab-alertas">Alertas</button>
+    <button class="tab" onclick="cambiarTab('colocacion-pendiente',this); cargarColocacionPendiente();" id="tab-colocacion-pendiente">🎓 Colocación Pendiente</button>
     <button class="tab" onclick="cambiarTab('pagos-alumnos',this); cargarPagosAlumnos();">Pagos Alumnos</button>
   </div>
 
@@ -559,6 +560,19 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <table>
             <thead><tr><th>ID Alumno</th><th>Nombre</th><th>Grupo</th><th>Nivel</th></tr></thead>
             <tbody id="tbody-becados"><tr><td colspan="4" class="cargando">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: COLOCACIÓN PENDIENTE -->
+    <div id="sec-colocacion-pendiente" class="seccion">
+      <div class="card">
+        <div class="card-header"><div><div class="card-titulo">🎓 Alumnos esperando examen de colocación / asignación de grupo</div><div class="card-sub">Ya se dieron de alta y salieron del módulo del asesor, pero todavía no se les asigna un grupo. Ordenados por más tiempo esperando primero.</div></div></div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>ID Alumno</th><th>Nombre</th><th>Fecha de registro</th><th>Días esperando</th><th>Contacto</th></tr></thead>
+            <tbody id="tbody-colocacion-pendiente"><tr><td colspan="5" class="cargando">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1130,6 +1144,39 @@ function guardarFichaAlumno() {
 }
 
 function filtrarSeguimiento() { renderSeguimiento(document.getElementById('filtro-seguimiento').value, document.getElementById('filtro-situacion').value); }
+
+function cargarColocacionPendiente() {
+  var tbody = document.getElementById('tbody-colocacion-pendiente');
+  tbody.innerHTML = '<tr><td colspan="5" class="cargando">Cargando...</td></tr>';
+  fetch(APPS_SCRIPT_URL + '?action=getAlumnosEsperandoColocacion')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.success) { tbody.innerHTML = '<tr><td colspan="5" class="vacio">Error al cargar.</td></tr>'; return; }
+      renderColocacionPendiente(data.pendientes || []);
+    })
+    .catch(function(){ tbody.innerHTML = '<tr><td colspan="5" class="vacio">Error de conexión.</td></tr>'; });
+}
+
+function renderColocacionPendiente(pendientes) {
+  var tbody = document.getElementById('tbody-colocacion-pendiente');
+  if (!pendientes.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="vacio">No hay alumnos esperando colocación en este momento.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = pendientes.map(function(p){
+    var urgente = p.diasEsperando >= 3;
+    var diasTxt = p.diasEsperando + ' día' + (p.diasEsperando!==1?'s':'');
+    var mensaje = encodeURIComponent('Hola '+p.nombre+' 👋 Soy de Organic English, seguimos tu proceso de colocación para asignarte grupo. En breve te contactamos con los detalles.');
+    return '<tr>'+
+      '<td>'+p.idAlumno+'</td>'+
+      '<td>'+p.nombre+'</td>'+
+      '<td>'+new Date(p.fecha).toLocaleDateString('es-MX')+'</td>'+
+      '<td><span style="color:'+(urgente?'#ef4444':'inherit')+';font-weight:'+(urgente?'700':'400')+';">'+(urgente?'⚠️ ':'')+diasTxt+'</span></td>'+
+      '<td><a href="https://wa.me/521'+String(p.whatsapp||'').replace(/\\D/g,'')+'?text='+mensaje+'" target="_blank" style="color:#16a34a;font-weight:600;text-decoration:none;">📱 WhatsApp</a></td>'+
+    '</tr>';
+  }).join('');
+}
+
 function renderAlertas() {
   // Fusión — excluir becados del conteo
   var tbodyF = document.getElementById('tbody-alertas');
@@ -1430,7 +1477,7 @@ function cambiarTab(seccion, boton) {
   document.getElementById('sec-'+seccion).classList.add('activa');
 }
 function irATab(seccion) {
-  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'pagos-alumnos':7};
+  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'colocacion-pendiente':7,'pagos-alumnos':8};
   var tabs=document.querySelectorAll('.tab'); var idx=mapa[seccion]; if(idx===undefined) return;
   tabs.forEach(function(t){t.classList.remove('activo');}); document.querySelectorAll('.seccion').forEach(function(s){s.classList.remove('activa');});
   tabs[idx].classList.add('activo'); document.getElementById('sec-'+seccion).classList.add('activa');
