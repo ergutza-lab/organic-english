@@ -1226,8 +1226,19 @@ var calendarios = {};
 function calLunesDe(d){var x=new Date(d);x.setHours(0,0,0,0);var dia=x.getDay();x.setDate(x.getDate()-(dia===0?6:dia-1));return x;}
 function calJuevesDe(lunes){var j=new Date(lunes);j.setDate(j.getDate()+3);return j;}
 
-function calInit(containerId){
-  calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0 };
+function calInit(containerId, tipoHorario){
+  calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0, tipoHorario: tipoHorario || 'entre_semana' };
+  calRender(containerId);
+}
+
+// Cambia el tipo de horario de un calendario ya inicializado (por ejemplo,
+// cuando el asesor elige un grupo distinto dentro del mismo modal) y
+// reinicia la seleccion, ya que las reglas de que dia es "clase" cambian.
+function calSetTipoHorario(containerId, tipoHorario){
+  var st = calendarios[containerId];
+  if (!st) return;
+  st.tipoHorario = tipoHorario || 'entre_semana';
+  st.inicio = null; st.fin = null; st.paso = 0;
   calRender(containerId);
 }
 
@@ -1240,19 +1251,24 @@ function calMes(containerId, delta){
 function calClickDia(containerId, timestamp){
   var st = calendarios[containerId];
   var d = new Date(timestamp);
-  var lunes = calLunesDe(d);
-  var jueves = calJuevesDe(lunes);
+  var esSabatino = st.tipoHorario === 'sabado';
+
+  // Para grupos sabatinos, cada clase es un solo dia (el sabado mismo) --
+  // no una semana completa lunes-jueves.
+  var ini = esSabatino ? new Date(d) : calLunesDe(d);
+  var fin = esSabatino ? new Date(d) : calJuevesDe(ini);
+  if (esSabatino) { ini.setHours(0,0,0,0); fin.setHours(0,0,0,0); }
 
   if (st.paso === 0 || st.paso === 2) {
-    st.inicio = lunes;
-    st.fin = jueves;
+    st.inicio = ini;
+    st.fin = fin;
     st.paso = 1;
   } else {
-    if (lunes < st.inicio) {
-      st.fin = calJuevesDe(st.inicio);
-      st.inicio = lunes;
+    if (ini < st.inicio) {
+      st.fin = esSabatino ? st.fin : calJuevesDe(st.inicio);
+      st.inicio = ini;
     } else {
-      st.fin = jueves;
+      st.fin = fin;
     }
     st.paso = 2;
   }
@@ -1269,6 +1285,7 @@ function calRender(containerId){
   var cont = document.getElementById(containerId);
   if (!cont) return;
   var mes = st.mes;
+  var esSabatino = st.tipoHorario === 'sabado';
   var nombresMes=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var primerDia = new Date(mes.getFullYear(), mes.getMonth(), 1);
   var inicioGrid = calLunesDe(primerDia);
@@ -1285,18 +1302,28 @@ function calRender(containerId){
     d.setDate(inicioGrid.getDate()+i);
     var esOtroMes = d.getMonth() !== mes.getMonth();
     var diaSemana = d.getDay();
-    var esClaseDia = diaSemana>=1 && diaSemana<=4;
-    var enRango = esClaseDia && st.inicio && st.fin && d >= st.inicio && d <= st.fin;
+    // Sabatino: solo el sabado (6) cuenta como "clase". Entre semana: lunes
+    // a jueves (1-4), como siempre.
+    var esClaseDia = esSabatino ? (diaSemana === 6) : (diaSemana>=1 && diaSemana<=4);
+    var dCompara = new Date(d); dCompara.setHours(0,0,0,0);
+    var enRango = esClaseDia && st.inicio && st.fin && dCompara >= st.inicio && dCompara <= st.fin;
     var cls = 'cal-day'+(esOtroMes?' cal-otro-mes':'')+(esClaseDia?' cal-clase':' cal-no-clase')+(enRango?' cal-selected':'');
     var clickAttr = esClaseDia ? ' onclick="calClickDia(\''+containerId+'\','+d.getTime()+')"' : '';
     html += '<div class="'+cls+'"'+clickAttr+'>'+d.getDate()+'</div>';
   }
   html += '</div>';
 
-  var resumen = 'Toca cualquier día lunes a jueves para elegir la semana que cubre el pago.';
+  var resumen = esSabatino
+    ? 'Toca el sábado que cubre este pago.'
+    : 'Toca cualquier día lunes a jueves para elegir la semana que cubre el pago.';
   if (st.inicio && st.fin) {
-    var semanas = Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1;
-    resumen = 'Cubre del ' + calFormatoCorto(st.inicio) + ' al ' + calFormatoCorto(st.fin) + ' ('+semanas+' semana'+(semanas!==1?'s':'')+')';
+    if (esSabatino) {
+      var sabados = Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1;
+      resumen = 'Cubre el ' + calFormatoCorto(st.inicio) + (st.fin.getTime() !== st.inicio.getTime() ? ' al ' + calFormatoCorto(st.fin) : '') + ' ('+sabados+' sábado'+(sabados!==1?'s':'')+')';
+    } else {
+      var semanas = Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1;
+      resumen = 'Cubre del ' + calFormatoCorto(st.inicio) + ' al ' + calFormatoCorto(st.fin) + ' ('+semanas+' semana'+(semanas!==1?'s':'')+')';
+    }
   }
   html += '<div class="cal-resumen">'+resumen+'</div>';
 
@@ -1457,6 +1484,12 @@ function niToggleCoberturaPorGrupo() {
   // el calendario de cobertura siempre aplica.
   document.getElementById('ni-bloque-calendario').style.display = '';
   document.getElementById('ni-nota-colocacion').style.display = 'none';
+
+  // El calendario debe usar las reglas de sabado (un solo dia) o de entre
+  // semana (lunes-jueves) segun el grupo elegido.
+  var idGrupoSel = document.getElementById('ni-grupo').value;
+  var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupoSel; });
+  calSetTipoHorario('cal-ni', grupoSel ? grupoSel.tipoHorario : 'entre_semana');
 }
 
 function niArchivoSeleccionado(input) {
