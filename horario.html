@@ -147,6 +147,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .gcard.b2{background:#ea580c}
 .gcard.c1{background:#7c3aed}
 .gcard.starter{background:#64748b}
+.gcard.club{background:linear-gradient(135deg,#5b21b6,#3b1670);cursor:default}
 .grow{display:flex;align-items:center;gap:5px;margin-bottom:2px}
 .gid{font-size:11px;font-weight:700;color:rgba(255,255,255,0.7)}
 .gnombre{font-size:12px;font-weight:700;color:#fff}
@@ -369,7 +370,8 @@ async function cargarGrupos(){
         cupoMax:row.c[5]?.v??10, inscritos:row.c[6]?.v??0,
         estado:parseGS(row.c[8])||'', idMaestro:parseGS(row.c[11])||'',
         demo:parseGS(row.c[15])||'',
-        tipoHorario:String(parseGS(row.c[18])||'').trim().toLowerCase()
+        tipoHorario:String(parseGS(row.c[18])||'').trim().toLowerCase(),
+        esClub:String(parseGS(row.c[19])||'').trim().toUpperCase()==='TRUE'
       };
     }).filter(function(g){
       return g.id && String(g.estado).toUpperCase()!=='CANCELADO' && String(g.demo).toUpperCase()!=='DEMO';
@@ -402,7 +404,7 @@ function renderizar(){
 
   // Filtrar grupos activos hasta el jueves de esta semana (grupos de Lunes a Jueves)
   var activos=grupos.filter(function(g){
-    if(g.tipoHorario==='sabado') return false;
+    if(g.tipoHorario==='sabado' || g.esClub) return false;
     var fi=parseFecha(g.fechaInicio); if(!fi) return false;
     fi.setHours(0,0,0,0); return fi<=jueves;
   });
@@ -410,9 +412,17 @@ function renderizar(){
   // Grupos sabatinos activos hasta el sabado de esta semana -- se muestran
   // en un renglon especial aparte, ya que no siguen el ciclo Lunes-Jueves.
   var activosSabado=grupos.filter(function(g){
-    if(g.tipoHorario!=='sabado') return false;
+    if(g.tipoHorario!=='sabado' || g.esClub) return false;
     var fi=parseFecha(g.fechaInicio); if(!fi) return false;
     fi.setHours(0,0,0,0); return fi<=sabado;
+  });
+
+  // Chat Club (Viernes 8pm) -- solo se muestra si el Coordinador Academico
+  // ya asigno un maestro responsable a ese club en particular. Si un club
+  // no tiene maestro asignado, significa que no hay alumnos invitados
+  // todavia y NO debe aparecer en el horario.
+  var activosClub=grupos.filter(function(g){
+    return g.esClub && g.idMaestro;
   });
 
   // Agrupar por maestro (Lunes a Jueves)
@@ -436,13 +446,23 @@ function renderizar(){
     byTeacherSabado[key].push(g);
   });
 
+  // Agrupar Chat Club por maestro (solo los que ya tienen responsable asignado)
+  var byTeacherClub={};
+  activosClub.forEach(function(g){
+    var esSin=!g.idMaestro||!maestros[g.idMaestro];
+    var key=esSin?'__sin__':g.idMaestro;
+    if(esSin) haySin=true;
+    if(!byTeacherClub[key]) byTeacherClub[key]=[];
+    byTeacherClub[key].push(g);
+  });
+
   if(haySin) maestros['__sin__']='Sin Asignar';
 
   // Los maestros a mostrar como columna incluyen a quien tenga grupos entre
-  // semana O grupos de sabado (un maestro que solo de clase el sabado
+  // semana, de sabado, O Chat Club (un maestro que solo de Chat Club
   // tambien debe aparecer con su columna).
   allTeachers=Object.keys(maestros)
-    .filter(function(k){ return k!=='__sin__' && (byTeacher[k]||byTeacherSabado[k]); })
+    .filter(function(k){ return k!=='__sin__' && (byTeacher[k]||byTeacherSabado[k]||byTeacherClub[k]); })
     .sort(function(a,b){return maestros[a].localeCompare(maestros[b]);});
   if(haySin) allTeachers.push('__sin__');
 
@@ -463,12 +483,13 @@ function renderizar(){
 
   var html='<div class="t-vacio"></div>';
 
-  // Cabeceras maestros (el contador incluye entre semana + sabado)
+  // Cabeceras maestros (el contador incluye entre semana + sabado + club)
   allTeachers.forEach(function(tid){
     var nm=maestros[tid]||tid;
     var tg=byTeacher[tid]||[];
     var tgSab=byTeacherSabado[tid]||[];
-    var totalTg=tg.length+tgSab.length;
+    var tgClub=byTeacherClub[tid]||[];
+    var totalTg=tg.length+tgSab.length+tgClub.length;
     var cls=tid==='__sin__'?'t-head sin':'t-head';
     html+='<div class="'+cls+'">'+
       '<div class="t-nombre">'+nm+'</div>'+
@@ -486,6 +507,14 @@ function renderizar(){
     var out='<div class="gcard '+lvl+'" onclick="verAlumnos(\''+g.id+'\',\''+nom.replace(/'/g,"\\'")+'\')">';
     out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:'+colorNombre+';">'+nom+'</span><span class="gnivel">'+niv+'</span></div>';
     out+='<div class="gcap"><b>'+vac+'</b> vac. · '+Math.min(g.cupoMax,g.inscritos)+'/'+g.cupoMax+'</div>';
+    out+='</div>';
+    return out;
+  }
+
+  function renderClubCard(g){
+    var out='<div class="gcard club">';
+    out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:#c084fc;">'+g.nombre+'</span></div>';
+    out+='<div class="gcap">Viernes 8:00 PM</div>';
     out+='</div>';
     return out;
   }
@@ -513,10 +542,24 @@ function renderizar(){
     html+='</div>';
   });
 
+  // Renglón especial: CHAT CLUB (Viernes 8pm) -- solo aparece si al menos
+  // un club tiene maestro asignado; los clubes sin maestro no se muestran
+  // (significa que no hay alumnos invitados todavia).
+  if (activosClub.length) {
+    html+='<div class="sep-sabado" style="background:linear-gradient(90deg,#c084fc,#a78bfa);"></div>';
+    html+='<div class="sabado-lbl" style="color:#c084fc;">CHAT CLUB<br>VIE 8PM</div>';
+    allTeachers.forEach(function(tid){
+      var tgClub=byTeacherClub[tid]||[];
+      html+='<div class="celda">';
+      tgClub.forEach(function(g){ html+=renderClubCard(g); });
+      html+='</div>';
+    });
+  }
+
   grid.innerHTML=html;
   document.getElementById('area').style.display='block';
 
-  renderMovil(activos, horas, activosSabado);
+  renderMovil(activos, horas, activosSabado, activosClub);
 }
 
 function getWeekRange(off){
@@ -528,7 +571,7 @@ function getWeekRange(off){
 }
 
 /* ── RENDER MÓVIL ── */
-function renderMovil(activos, horas, activosSabado){
+function renderMovil(activos, horas, activosSabado, activosClub){
   var vm=document.getElementById('vistaMovil');
   vm.innerHTML='';
 
@@ -538,6 +581,14 @@ function renderMovil(activos, horas, activosSabado){
     var key=esSin?'__sin__':g.idMaestro;
     if(!byTeacherSabado[key]) byTeacherSabado[key]=[];
     byTeacherSabado[key].push(g);
+  });
+
+  var byTeacherClub={};
+  (activosClub||[]).forEach(function(g){
+    var esSin=!g.idMaestro||!maestros[g.idMaestro];
+    var key=esSin?'__sin__':g.idMaestro;
+    if(!byTeacherClub[key]) byTeacherClub[key]=[];
+    byTeacherClub[key].push(g);
   });
 
   function renderVmCard(g){
@@ -559,21 +610,34 @@ function renderMovil(activos, horas, activosSabado){
     return card;
   }
 
+  function renderVmClubCard(g){
+    var card=document.createElement('div');
+    card.className='vm-card club';
+    card.innerHTML=
+      '<div class="vm-row">'+
+        '<span class="vm-gid">'+g.id+'</span>'+
+        '<span class="vm-gnom" style="color:#c084fc;">'+ g.nombre+'</span>'+
+      '</div>'+
+      '<div class="vm-gcap">Viernes 8:00 PM</div>';
+    return card;
+  }
+
   allTeachers.forEach(function(tid){
     var nm=maestros[tid]||tid;
     var tg=byTeacher[tid]||[];
     var tgSab=byTeacherSabado[tid]||[];
+    var tgClub=byTeacherClub[tid]||[];
     var isSin=tid==='__sin__';
 
     var sec=document.createElement('div'); sec.className='vm-sec';
 
     var hdr=document.createElement('div');
     hdr.className=isSin?'vm-hdr sin':'vm-hdr';
-    var totalTg=tg.length+tgSab.length;
+    var totalTg=tg.length+tgSab.length+tgClub.length;
     hdr.innerHTML='<span class="vm-nom">'+nm+'</span><span class="vm-cnt">'+totalTg+' grupo'+(totalTg!==1?'s':'')+'</span>';
     sec.appendChild(hdr);
 
-    if(!tg.length && !tgSab.length){
+    if(!tg.length && !tgSab.length && !tgClub.length){
       var emp=document.createElement('div'); emp.className='vm-empty';
       emp.textContent='Sin grupos esta semana'; sec.appendChild(emp);
     } else {
@@ -595,6 +659,14 @@ function renderMovil(activos, horas, activosSabado){
         var gcSab=document.createElement('div'); gcSab.className='vm-gs';
         tgSab.forEach(function(g){ gcSab.appendChild(renderVmCard(g)); });
         sec.appendChild(gcSab);
+      }
+
+      if(tgClub.length){
+        var hlClub=document.createElement('div'); hlClub.className='vm-hl'; hlClub.style.color='#c084fc'; hlClub.textContent='CHAT CLUB · VIE 8PM';
+        sec.appendChild(hlClub);
+        var gcClub=document.createElement('div'); gcClub.className='vm-gs';
+        tgClub.forEach(function(g){ gcClub.appendChild(renderVmClubCard(g)); });
+        sec.appendChild(gcClub);
       }
     }
     vm.appendChild(sec);
