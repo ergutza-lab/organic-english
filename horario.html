@@ -250,6 +250,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
     <div class="grid" id="grid"></div>
     <div id="vistaMovil"></div>
   </div>
+  <div id="errorCarga" style="display:none;padding:2rem;text-align:center;color:#dc2626"></div>
 
 </div>
 
@@ -375,9 +376,17 @@ async function cargarGrupos(){
     });
     renderizar();
   }catch(e){
+    // IMPORTANTE: nunca sobrescribir el contenido de #area con innerHTML --
+    // eso destruye #grid y #vistaMovil de forma permanente, haciendo que
+    // cualquier intento posterior de cambiar de semana (cambiarSemana ->
+    // renderizar) truene con "Cannot read properties of null" porque el
+    // grid ya no existe en el DOM. El mensaje de error se muestra en su
+    // propio contenedor separado, sin tocar #area.
     document.getElementById('loading').style.display='none';
-    document.getElementById('area').innerHTML='<div style="padding:2rem;text-align:center;color:#dc2626">Error al cargar datos</div>';
-    document.getElementById('area').style.display='block';
+    document.getElementById('area').style.display='none';
+    var errDiv = document.getElementById('errorCarga');
+    errDiv.textContent = 'Error al cargar datos. Intenta recargar la página.';
+    errDiv.style.display='block';
   }
 }
 
@@ -444,6 +453,12 @@ function renderizar(){
 
   // Construir grid PC
   var grid=document.getElementById('grid');
+  if(!grid){
+    // El grid no existe en el DOM (por ejemplo, si una carga anterior
+    // fallo). En vez de tronar, se reintenta cargar los datos desde cero.
+    cargarGrupos();
+    return;
+  }
   grid.style.gridTemplateColumns='56px repeat('+allTeachers.length+', 190px)';
 
   var html='<div class="t-vacio"></div>';
