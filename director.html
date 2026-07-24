@@ -961,13 +961,20 @@
     { valor: 'KIDS',    label: 'KIDS',    color: '#22c55e' }, // verde
     { valor: 'KIDS JR', label: 'KIDS JR', color: '#c084fc' }  // lila
   ];
+  // Mismas 4 opciones, pero con el sufijo "-SAT" -- para distinguir a
+  // simple vista los grupos sabatinos de los de entre semana (mismo color
+  // de identificación que su contraparte normal).
+  var NOMBRES_GRUPO_SABATINO = NOMBRES_GRUPO.map(function (x) {
+    return { valor: x.valor + '-SAT', label: x.label + '-SAT', color: x.color };
+  });
   function colorPorNombreGrupo(nombre) {
     var n = String(nombre || '').trim().toUpperCase();
-    var match = NOMBRES_GRUPO.find(function (x) { return x.valor === n; });
+    var match = NOMBRES_GRUPO.concat(NOMBRES_GRUPO_SABATINO).find(function (x) { return x.valor === n; });
     return match ? match.color : '#94a3b8'; // gris por defecto si no coincide con ninguna opcion vigente
   }
-  function opcionesNombreGrupoHTML(seleccionado) {
-    return NOMBRES_GRUPO.map(function (x) {
+  function opcionesNombreGrupoHTML(seleccionado, sabatino) {
+    var lista = sabatino ? NOMBRES_GRUPO_SABATINO : NOMBRES_GRUPO;
+    return lista.map(function (x) {
       return '<option value="' + x.valor + '" ' + (x.valor === seleccionado ? 'selected' : '') + ' style="color:' + x.color + ';background:#0f172a;">' + x.label + '</option>';
     }).join('');
   }
@@ -1314,13 +1321,18 @@
   function alCambiarSabatinoEspecial() {
     var chk = document.getElementById('ge-sabatino');
     var sel = document.getElementById('ge-horario');
+    var selNombre = document.getElementById('ge-nombre');
+    var nombreActual = selNombre.value.replace(/-SAT$/, '');
     if (chk.checked) {
       sel.innerHTML = '<option value="9:00 AM">9:00 AM (a 1:00 PM)</option>';
       sel.disabled = true;
+      selNombre.innerHTML = opcionesNombreGrupoHTML(nombreActual + '-SAT', true);
     } else {
       sel.disabled = false;
       sel.innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
+      selNombre.innerHTML = opcionesNombreGrupoHTML(nombreActual, false);
     }
+    selNombre.style.color = colorPorNombreGrupo(selNombre.value);
   }
 
   function alCambiarNivelEspecial() {
