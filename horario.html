@@ -281,9 +281,30 @@ function parseHour(h){
   return hr;
 }
 function fmtHour(h){ if(h===0)return'12 AM'; if(h<12)return h+' AM'; if(h===12)return'12 PM'; return(h-12)+' PM'; }
+// Color del NOMBRE del grupo (Adults, Teens, Kids, Kids Jr) -- distinto del
+// color de NIVEL (que pinta el fondo de la tarjeta segun A1/A2/B1/etc.).
+// Mismo esquema acordado que usa Direccion. El sufijo "-SAT" de los grupos
+// sabatinos se ignora al comparar, para que conserven el mismo color que
+// su version de entre semana.
+var COLOR_NOMBRE_GRUPO = {
+  'ADULTS':  '#f1f5f9', // blanco
+  'TEENS':   '#fbbf24', // amarillo
+  'KIDS':    '#22c55e', // verde
+  'KIDS JR': '#c084fc'  // lila
+};
+function colorPorNombreGrupoHorario(nombre) {
+  var n = String(nombre || '').trim().toUpperCase().replace(/-SAT$/, '');
+  return COLOR_NOMBRE_GRUPO[n] || '#f1f5f9'; // blanco por defecto si no coincide
+}
+
 function getLvl(n){
   if(!n) return 'a1';
-  if(n.toLowerCase().includes('starter')) return 'starter';
+  var nLower = n.toLowerCase();
+  // "Pre-A1" (o "PreA1", "Pre A1") debe detectarse ANTES del regex generico
+  // de abajo, ya que ese regex encontraria "A1" como subcadena dentro de
+  // "Pre-A1" y lo confundiria con el nivel A1 (azul marino) en vez de
+  // tratarlo como el nivel inicial (starter/gris).
+  if(nLower.includes('pre-a1') || nLower.includes('pre a1') || nLower.includes('prea1') || nLower.includes('starter')) return 'starter';
   var m=n.match(/([ABC]\d)/i); return m?m[1].toLowerCase():'a1';
 }
 function parseFecha(v){
@@ -444,11 +465,11 @@ function renderizar(){
   function renderGcard(g){
     var lvl=getLvl(g.nivel);
     var nom=(g.nombre||'').trim();
-    var nc='gnombre'+(nom.toLowerCase()==='jovenes'?' jov':'');
+    var colorNombre=colorPorNombreGrupoHorario(nom);
     var vac=Math.max(0,g.cupoMax-Math.min(g.cupoMax,g.inscritos));
     var niv=g.nivel.replace(/Nivel\s*/gi,'').trim();
     var out='<div class="gcard '+lvl+'" onclick="verAlumnos(\''+g.id+'\',\''+nom.replace(/'/g,"\\'")+'\')">';
-    out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="'+nc+'">'+nom+'</span><span class="gnivel">'+niv+'</span></div>';
+    out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:'+colorNombre+';">'+nom+'</span><span class="gnivel">'+niv+'</span></div>';
     out+='<div class="gcap"><b>'+vac+'</b> vac. · '+Math.min(g.cupoMax,g.inscritos)+'/'+g.cupoMax+'</div>';
     out+='</div>';
     return out;
@@ -507,6 +528,7 @@ function renderMovil(activos, horas, activosSabado){
   function renderVmCard(g){
     var lvl=getLvl(g.nivel);
     var nom=(g.nombre||'').trim();
+    var colorNombre=colorPorNombreGrupoHorario(nom);
     var vac=Math.max(0,g.cupoMax-Math.min(g.cupoMax,g.inscritos));
     var niv=g.nivel.replace(/Nivel\s*/gi,'').trim();
     var card=document.createElement('div');
@@ -514,7 +536,7 @@ function renderMovil(activos, horas, activosSabado){
     card.innerHTML=
       '<div class="vm-row">'+
         '<span class="vm-gid">'+g.id+'</span>'+
-        '<span class="vm-gnom'+(nom.toLowerCase()==='jovenes'?' jov':'')+'">'+ nom+'</span>'+
+        '<span class="vm-gnom" style="color:'+colorNombre+';">'+ nom+'</span>'+
         '<span class="vm-gniv">'+niv+'</span>'+
       '</div>'+
       '<div class="vm-gcap"><b>'+vac+'</b> vac. · '+Math.min(g.cupoMax,g.inscritos)+'/'+g.cupoMax+'</div>';
