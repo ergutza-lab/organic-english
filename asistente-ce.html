@@ -407,10 +407,11 @@
           <strong id="cambio-alumno-nombre"></strong>
           <span id="cambio-alumno-grupo"></span>
         </div>
-        <label>Grupos disponibles del mismo nivel</label>
+        <label>Grupos disponibles del mismo nivel y curso</label>
         <div class="grupos-grid" id="grupos-disponibles-cambio">
           <p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>
         </div>
+        <button type="button" id="btn-compartir-cambio-wa" onclick="compartirGruposCambioWhatsApp()" disabled style="width:100%;margin-bottom:10px;background:#25D366;color:#fff;border:none;border-radius:var(--r-md);padding:11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">📱 Compartir grupos por WhatsApp</button>
         <button class="btn-confirmar" id="btn-confirmar-cambio" onclick="confirmarCambioGrupo()" disabled>Confirmar Cambio</button>
       </div>
     </div>
@@ -531,7 +532,7 @@ function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'bec
 
 let asistente=null,datosPanel=null;
 let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
-let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null;
+let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null,gruposCompartirCambio=[];
 
 setTimeout(()=>{
   const c=document.getElementById('input-clave');
@@ -1095,7 +1096,7 @@ function renderCambios(){
   const alumnos=[];
   (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel}));});
   alumnos.sort((a,b)=>a.id.localeCompare(b.id));
-  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
+  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}" data-nombre="${a.grupo_nombre||''}" data-whatsapp="${a.whatsapp||''}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
 }
 
 function seleccionarAlumnoCambio(){
@@ -1103,9 +1104,9 @@ function seleccionarAlumnoCambio(){
   const opt=select.options[select.selectedIndex];
   const id=select.value;
   const infoBox=document.getElementById('alumno-cambio-info');
-  if(!id){infoBox.style.display='none';document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';document.getElementById('btn-confirmar-cambio').disabled=true;alumnoSeleccionadoCambio=null;return;}
-  const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel;
-  alumnoSeleccionadoCambio={id,nombre:opt.text.split('—')[2]?.trim()||opt.text,grupo_actual:grupoActual,nivel};
+  if(!id){infoBox.style.display='none';document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';document.getElementById('btn-confirmar-cambio').disabled=true;alumnoSeleccionadoCambio=null;gruposCompartirCambio=[];actualizarBtnCompartirCambio();return;}
+  const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel,nombreGrupo=opt.dataset.nombre,whatsapp=opt.dataset.whatsapp;
+  alumnoSeleccionadoCambio={id,nombre:opt.text.split('—')[2]?.trim()||opt.text,grupo_actual:grupoActual,nivel,nombreGrupo,whatsapp};
   grupoSeleccionadoCambio=null;
   document.getElementById('btn-confirmar-cambio').disabled=true;
   document.getElementById('cambio-alumno-nombre').textContent=alumnoSeleccionadoCambio.nombre;
@@ -1113,8 +1114,6 @@ function seleccionarAlumnoCambio(){
   infoBox.style.display='block';
   const grupoActualObj=(datosPanel?.grupos||[]).find(g=>g.id===grupoActual);
   const fechaInicioActual=grupoActualObj?grupoActualObj.fecha_inicio:null;
-  const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>g.id!==grupoActual);
-  if(!todosGruposFiltrados.length){document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay otros grupos disponibles.</p>';return;}
   const contenedor=document.getElementById('grupos-disponibles-cambio');
 
   // Parsear fecha dd/MM/yyyy a objeto Date para comparar
@@ -1126,30 +1125,45 @@ function seleccionarAlumnoCambio(){
   }
   const fechaActualObj = parseFechaInicio(fechaInicioActual);
 
-  // Ordenar: misma fecha primero, luego más nuevos, luego más antiguos al final
+  // Filtro estricto: mismo nivel, mismo nombre de grupo, distinto grupo actual,
+  // y jamás un grupo cuya fecha de inicio sea MÁS ANTIGUA que la del grupo actual.
+  const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>{
+    if (g.id===grupoActual) return false;
+    if (nivel && g.nivel!==nivel) return false;
+    if (nombreGrupo && g.nombre!==nombreGrupo) return false;
+    const fechaGrupoObj=parseFechaInicio(g.fecha_inicio);
+    if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj) return false; // más antiguo -> fuera
+    return true;
+  });
+
+  gruposCompartirCambio=[]; // se llena abajo con los grupos que sí se pueden ofrecer
+
+  if(!todosGruposFiltrados.length){contenedor.innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay grupos del mismo nivel y nombre disponibles (más recientes o iguales).</p>';actualizarBtnCompartirCambio();return;}
+
+  // Ordenar: más próximos en fecha primero
   const gruposOrdenados = [...todosGruposFiltrados].sort((a,b)=>{
     const fa = parseFechaInicio(a.fecha_inicio);
     const fb = parseFechaInicio(b.fecha_inicio);
     if (!fa && !fb) return 0;
     if (!fa) return 1;
     if (!fb) return -1;
-    return fb - fa; // más recientes primero
+    return fa - fb; // más próximos primero
   });
 
   contenedor.innerHTML=gruposOrdenados.map(g=>{
     const libres=g.cupo_max-g.inscritos;
     const sinLugares=libres<=0;
     const fechaGrupoObj = parseFechaInicio(g.fecha_inicio);
-    // Bloquear solo si no tiene lugares, o si es un grupo MÁS ANTIGUO que el actual
-    const esMasAntiguo = fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj;
-    const bloqueado = sinLugares || esMasAntiguo;
+    const bloqueado = sinLugares;
     const cls=sinLugares?'lleno':libres<=2?'pocas':'';
     let etiquetaBloqueo='';
     let etiquetaTipo='';
-    if (esMasAntiguo && !sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;padding:2px 7px;display:inline-block">Requiere examen de colocación</div>';
-    else if (sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
-    if (!esMasAntiguo && fechaActualObj && fechaGrupoObj && fechaGrupoObj > fechaActualObj)
+    if (sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
+    if (fechaActualObj && fechaGrupoObj && fechaGrupoObj.getTime()===fechaActualObj.getTime())
+      etiquetaTipo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--azul);background:var(--azul-50);border-radius:4px;padding:2px 7px;display:inline-block">Misma fecha</div>';
+    else if (fechaActualObj && fechaGrupoObj && fechaGrupoObj > fechaActualObj)
       etiquetaTipo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#16a34a;background:#dcfce7;border-radius:4px;padding:2px 7px;display:inline-block">Grupo más reciente</div>';
+    if(!sinLugares) gruposCompartirCambio.push(g);
     return `<div class="grupo-opcion ${bloqueado?'go-lleno':''}" data-grupo-id="${g.id}" style="${bloqueado?'opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)':'cursor:pointer'}">
       <div class="go-id">${g.id}</div><div class="go-nombre">${g.nombre}</div><div class="go-horario">${g.horario}</div>
       <div style="font-size:10px;color:var(--gris-400);margin-top:2px;">Inicio: ${g.fecha_inicio}</div>
@@ -1158,6 +1172,34 @@ function seleccionarAlumnoCambio(){
   contenedor.querySelectorAll('.grupo-opcion:not(.go-lleno)').forEach(el=>{
     el.addEventListener('click',function(){elegirGrupoCambio(this.dataset.grupoId,this);});
   });
+  actualizarBtnCompartirCambio();
+}
+
+// Habilita/deshabilita el botón de compartir según haya alumno + grupos elegibles
+function actualizarBtnCompartirCambio(){
+  const btn=document.getElementById('btn-compartir-cambio-wa');
+  if(!btn) return;
+  const hayAlumno=!!alumnoSeleccionadoCambio;
+  const hayGrupos=(gruposCompartirCambio||[]).length>0;
+  const hayWhatsapp=!!(alumnoSeleccionadoCambio && alumnoSeleccionadoCambio.whatsapp);
+  btn.disabled = !(hayAlumno && hayGrupos && hayWhatsapp);
+  btn.title = !hayAlumno ? 'Selecciona un alumno' : !hayWhatsapp ? 'Este alumno no tiene WhatsApp registrado' : !hayGrupos ? 'No hay grupos elegibles para compartir' : '';
+}
+
+// Arma el mensaje de WhatsApp con el listado de grupos ya filtrado (mismo nivel, mismo nombre, no más antiguos)
+function compartirGruposCambioWhatsApp(){
+  if(!alumnoSeleccionadoCambio) { mostrarToast('Selecciona un alumno primero.','error'); return; }
+  if(!alumnoSeleccionadoCambio.whatsapp) { mostrarToast('Este alumno no tiene WhatsApp registrado.','error'); return; }
+  if(!gruposCompartirCambio || !gruposCompartirCambio.length) { mostrarToast('No hay grupos disponibles para compartir.','error'); return; }
+
+  const lineas=gruposCompartirCambio.map(g=>{
+    const libres=g.cupo_max-g.inscritos;
+    return `• ${g.id} — ${g.nombre} (${g.horario}) — Inicio: ${g.fecha_inicio} — ${libres} lugar${libres!==1?'es':''} libre${libres!==1?'s':''}`;
+  }).join('\n');
+
+  const mensaje=`Hola ${alumnoSeleccionadoCambio.nombre}! 👋\n\nEstos son los grupos disponibles para tu cambio (mismo nivel y curso que el tuyo, sin grupos anteriores al tuyo):\n\n${lineas}\n\n¿Cuál te queda mejor? Contéstame y hacemos el cambio.`;
+
+  window.open(`https://wa.me/${cleanWA(alumnoSeleccionadoCambio.whatsapp)}?text=${encodeURIComponent(mensaje)}`,'_blank');
 }
 
 function elegirGrupoCambio(id,el){
