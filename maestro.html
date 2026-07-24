@@ -295,6 +295,7 @@
 var _linksVideo = {};
   var modalAbierto = false;
   var fechasRegistradas = [];
+  var clasesPorFechaActual = {}; // fecha -> [numeros de clase ya registrados] (para grupos sabatinos)
   
   
   const COLORES_EVAL = [
@@ -405,6 +406,7 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
       .then(function(d){
         if(d.success) {
           fechasRegistradas=d.fechas||[];
+          clasesPorFechaActual=d.clasesPorFecha||{};
           actualizarEstadoFecha(hoyStr);
         }
       });
@@ -431,12 +433,36 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
 
     cambiarTab('Registro');
   }
+// Para grupos sabatinos: regresa el siguiente numero de clase (1-4) que
+// falta registrar para una fecha, o null si ya se registraron las 4.
+function siguienteClaseDisponible(fechaStr) {
+  var usadas = clasesPorFechaActual[fechaStr] || [];
+  for (var n = 1; n <= 4; n++) {
+    if (usadas.indexOf(n) === -1) return n;
+  }
+  return null;
+}
+
 function actualizarEstadoFecha(fechaStr) {
     var input = document.getElementById('fechaClase');
     var aviso = document.getElementById('avisoFecha');
+    var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
+
+    if (esSabatino) {
+      var siguiente = siguienteClaseDisponible(fechaStr);
+      if (siguiente === null) {
+        input.style.borderColor = '#ef4444';
+        if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Ya se registraron las 4 clases de este sábado. Selecciona otra fecha.'; }
+      } else {
+        input.style.borderColor = 'rgba(168,85,247,0.5)';
+        if (aviso) { aviso.style.display='block'; aviso.textContent='📘 Vas a registrar la clase ' + siguiente + ' de 4 de este sábado.'; aviso.style.color = '#a855f7'; }
+      }
+      return;
+    }
+
     if (fechasRegistradas.indexOf(fechaStr) !== -1) {
       input.style.borderColor = '#ef4444';
-      if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'; }
+      if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'; aviso.style.color=''; }
     } else {
       input.style.borderColor = 'rgba(255,255,255,0.1)';
       if (aviso) aviso.style.display='none';
@@ -583,11 +609,18 @@ function actualizarEstadoFecha(fechaStr) {
   function guardarRegistro() {
     var fecha=document.getElementById('fechaClase').value;
     if (!fecha) { mostrarToast('Selecciona la fecha de la clase','error'); return; }
-    if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro','error'); return; }
+
+    var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
+    var claseNum = 1;
+    if (esSabatino) {
+      claseNum = siguienteClaseDisponible(fecha);
+      if (claseNum === null) { mostrarToast('Ya se registraron las 4 clases de este sábado','error'); return; }
+    } else {
+      if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro','error'); return; }
+    }
+
     var alumnos=grupoActual.alumnos||[];
-    var fecha=document.getElementById('fechaClase').value;
     var btn=document.getElementById('btnGuardar');
-    if (!fecha) { mostrarToast('Selecciona la fecha de la clase','error'); return; }
     var bw=calcularBloqueySemana();
     var registros=alumnos.map(function(a){
       return {
@@ -606,17 +639,52 @@ function actualizarEstadoFecha(fechaStr) {
     btn.textContent='Guardando...'; btn.disabled=true;
     fetch(APPS_SCRIPT+'?action=registrarDia&idGrupo='+encodeURIComponent(grupoActual.id)+
       '&fecha='+encodeURIComponent(fecha)+'&bloque='+bw.bloque+'&semana='+bw.semana+
+      '&claseNum='+claseNum+
       '&registros='+encodeURIComponent(JSON.stringify(registros)))
       .then(r=>r.json())
       .then(data=>{
         btn.textContent='Guardar registro del día'; btn.disabled=false;
         if (data.success) {
-          mostrarToast('Registro guardado correctamente','success');
-          limpiarRegistro(); // Limpiar formulario
+          if (esSabatino) {
+            if (!clasesPorFechaActual[fecha]) clasesPorFechaActual[fecha] = [];
+            clasesPorFechaActual[fecha].push(claseNum);
+            if (claseNum < 4) {
+              mostrarToast('Clase ' + claseNum + ' de 4 guardada — continúa con la siguiente','success');
+              limpiarSoloEvaluaciones();
+              actualizarEstadoFecha(fecha);
+            } else {
+              mostrarToast('¡Las 4 clases de este sábado quedaron registradas!','success');
+              limpiarRegistro();
+            }
+          } else {
+            mostrarToast('Registro guardado correctamente','success');
+            limpiarRegistro(); // Limpiar formulario
+          }
         }
         else mostrarToast('Error: '+data.error,'error');
       })
       .catch(()=>{ btn.textContent='Guardar registro del día'; btn.disabled=false; mostrarToast('Error de conexión','error'); });
+  }
+
+  // Limpia los botones de color y observaciones, SIN tocar la fecha
+  // seleccionada -- usado entre clases del mismo sabado, para que el
+  // maestro siga registrando la siguiente clase sin perder la fecha.
+  function limpiarSoloEvaluaciones() {
+    var alumnos=grupoActual.alumnos||[];
+    [1,2,3,4].forEach(function(v) {
+      alumnos.forEach(function(a) {
+        var btn=document.getElementById('eval-'+v+'-'+a.id);
+        if(btn) btn.className='sem-btn';
+      });
+    });
+    alumnos.forEach(function(a) {
+      var obs=document.getElementById('obs-'+a.id);
+      if(obs) obs.value='';
+      var display=document.getElementById('obs-'+a.id+'-display');
+      if(display) display.textContent='— Selecciona un color para ver opciones —';
+      var notaWrap=document.getElementById('nota-wrap-'+a.id);
+      if(notaWrap) notaWrap.style.display='none';
+    });
   }
 
   function limpiarRegistro() {
