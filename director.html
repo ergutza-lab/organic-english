@@ -1056,14 +1056,32 @@
         html += '<summary style="cursor:pointer;color:#a78bfa;font-size:12px;font-weight:700;">'+m.nombre+' — ver grupos ('+m.grupos.length+')</summary>';
         html += '<div style="margin-top:8px;">'+tablaPantalla(['Grupo','Nivel','Horario','Clases','Alumnos'],
           m.grupos.map(function(g){ return [g.idGrupo, g.nivel||'—', g.horario||'—', g.clases, g.alumnos]; }))+'</div>';
+        html += '<div style="margin-top:6px;padding-top:8px;border-top:1px solid rgba(124,58,237,0.2);display:flex;justify-content:space-between;font-size:12px;">'+
+          '<span style="color:#a78bfa;font-weight:700;">SUBTOTAL '+m.nombre+':</span>'+
+          '<span style="color:#c084fc;font-weight:800;">'+m.clases+' clases = '+fmt(m.total)+'</span></div>';
         html += '</details>';
       });
       html += '</div>';
     }
 
     html += seccionPantalla('EGRESOS — COMISIONES ASESORES','#dc2626');
-    html += tablaPantalla(['Asesor','Alumnos','Com. x Insc.','Total'],
-      (d.comisionesAsesores||[]).filter(function(a){ return a.comxInsc > 0; }).map(function(a){ return [a.nombre, a.alumnos, fmt(a.comxInsc), '<b style="color:#f87171;">'+fmt(a.total)+'</b>']; }));
+    html += tablaPantalla(['Asesor','Alumnos','Com. x Insc.','Insc.','Bono','Total'],
+      (d.comisionesAsesores||[]).filter(function(a){ return a.comxInsc > 0; }).map(function(a){
+        return [a.nombre, a.alumnos, fmt(a.comxInsc), fmt(a.montoBase), (a.montoBono>0?fmt(a.montoBono):'—'), '<b style="color:#f87171;">'+fmt(a.total)+'</b>'];
+      }));
+
+    var asesoresConBonoPantalla = (d.comisionesAsesores||[]).filter(function(a){ return (a.montoBono||0) > 0; });
+    if (asesoresConBonoPantalla.length) {
+      html += '<div style="margin-top:10px;padding:12px 16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:10px;">';
+      html += '<div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🎉 Asesores que alcanzaron bono esta semana</div>';
+      asesoresConBonoPantalla.forEach(function(a){
+        html += '<div style="font-size:12px;color:#bbf7d0;padding:3px 0;">'+
+          '<b>'+a.nombre+'</b>: '+a.alumnos+' inscripciones ('+a.comisionesBono+' bono'+(a.comisionesBono===1?'':'es')+' de bloque de 10) → '+
+          '<b style="color:#4ade80;">'+fmt(a.montoBono)+' de bono</b>'+
+        '</div>';
+      });
+      html += '</div>';
+    }
 
     html += seccionPantalla('EGRESOS — ASISTENTES CE','#0369a1');
     html += tablaPantalla(['Asistente','Sueldo'], (d.nominaAsistentes||[]).map(function(a){ return [a.nombre, fmt(a.sueldo)]; }));
@@ -1073,6 +1091,26 @@
 
     html += seccionPantalla('EGRESOS — DIRECCIÓN','#92400e');
     html += tablaPantalla(['Director','Sueldo'], (d.nominaDireccion||[]).map(function(dir){ return [dir.nombre, fmt(dir.sueldo)]; }));
+
+    // Resumen final -- comisiones separadas en inscripcion y bono, como en
+    // el PDF.
+    html += '<div style="margin-top:22px;background:rgba(249,115,22,0.08);border:1.5px solid rgba(249,115,22,0.35);border-radius:10px;padding:16px 20px;">';
+    html += '<div style="font-size:12px;font-weight:800;color:#fb923c;margin-bottom:10px;letter-spacing:.5px;">RESUMEN FINAL</div>';
+    var egresosItemsPantalla = [
+      ['Comisiones asesores — por inscripción', d.totalComisionesBase||0],
+      ['Comisiones asesores — bono por volumen', d.totalComisionesBono||0],
+      ['Nómina maestros', d.totalNominaMaestros],
+      ['Nómina asistentes CE', d.totalNominaAsistentes],
+      ['Nómina coordinadores', d.totalNominaCoordinadores],
+      ['Nómina dirección', d.totalNominaDireccion]
+    ];
+    egresosItemsPantalla.forEach(function(e){
+      html += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:12px;"><span style="color:#e2e8f0;">'+e[0]+'</span><span style="font-weight:700;color:#fb923c;">'+fmt(e[1])+'</span></div>';
+    });
+    var totalEgresosPantalla = (d.totalComisiones||0)+(d.totalNomina||0);
+    html += '<div style="display:flex;justify-content:space-between;padding:8px 0;margin-top:4px;font-size:13px;font-weight:800;"><span style="color:#f1f5f9;">TOTAL EGRESOS</span><span style="color:#f87171;">'+fmt(totalEgresosPantalla)+'</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;padding:8px 0 0;border-top:2px solid '+balColor+';margin-top:4px;font-size:14px;font-weight:800;"><span style="color:#f1f5f9;">BALANCE NETO</span><span style="color:'+balColor+';">'+fmt(bal)+'</span></div>';
+    html += '</div>';
 
     return html;
   }
@@ -1693,6 +1731,20 @@
       }),
       'SUBTOTAL COMISIONES', fmt2(d.totalComisiones) + ' (Insc: '+fmt2(d.totalComisionesBase||0)+' + Bono: '+fmt2(d.totalComisionesBono||0)+')'
     );
+    // Detalle de bono: para los asesores que SI alcanzaron bono esta
+    // semana, explicar cuantas inscripciones y cuanto les toca de bono.
+    var asesoresConBono = (d.comisionesAsesores||[]).filter(function(a){ return (a.montoBono||0) > 0; });
+    if (asesoresConBono.length) {
+      html += '<div style="margin-top:10px;padding:12px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">';
+      html += '<div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🎉 Asesores que alcanzaron bono esta semana</div>';
+      asesoresConBono.forEach(function(a){
+        html += '<div style="font-size:12px;color:#166534;padding:3px 0;">'+
+          '<b>'+a.nombre+'</b>: '+a.alumnos+' inscripciones ('+a.comisionesBono+' bono'+(a.comisionesBono===1?'':'es')+' de bloque de 10) → '+
+          '<b style="color:#16a34a;">'+fmt2(a.montoBono)+' de bono</b>'+
+        '</div>';
+      });
+      html += '</div>';
+    }
 
     // 3. Nomina maestros
     html += seccion('3','EGRESOS — NOMINA MAESTROS','#7c3aed');
@@ -1703,7 +1755,8 @@
     );
     // Desglose detallado por grupo: a que grupos dio clase cada maestro,
     // cuantas clases a cada uno, en que horario, y cuantos alumnos tiene
-    // ese grupo.
+    // ese grupo. Incluye un subtotal de costo al final de la tabla de
+    // cada maestro.
     var maestrosConGrupos = (d.nominaMaestros||[]).filter(function(m){ return m.grupos && m.grupos.length; });
     if (maestrosConGrupos.length) {
       html += '<div style="margin-top:10px;padding:14px 18px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;">';
@@ -1722,6 +1775,8 @@
             '<td style="padding:5px 9px;border-bottom:1px solid #f3e8ff;">'+g.alumnos+'</td>'+
           '</tr>';
         });
+        html += '<tr><td colspan="3" style="padding:6px 9px;text-align:right;font-weight:700;color:#6b21a8;">SUBTOTAL '+m.nombre.toUpperCase()+':</td>'+
+          '<td colspan="2" style="padding:6px 9px;font-weight:800;color:#7c3aed;">'+m.clases+' clases = '+fmt2(m.total)+'</td></tr>';
         html += '</tbody></table></div>';
       });
       html += '</div>';
@@ -1757,7 +1812,8 @@
     html += '<div style="margin-top:28px;background:#fff8ed;border:2px solid #f97316;border-radius:10px;padding:18px 24px;">';
     html += '<div style="font-size:13px;font-weight:800;color:#f97316;margin-bottom:12px;letter-spacing:.5px;">RESUMEN FINAL</div>';
     var egresosItems = [
-      ['Comisiones asesores de ventas', d.totalComisiones],
+      ['Comisiones asesores — por inscripción', d.totalComisionesBase||0],
+      ['Comisiones asesores — bono por volumen', d.totalComisionesBono||0],
       ['Nomina maestros', d.totalNominaMaestros],
       ['Nomina asistentes CE', d.totalNominaAsistentes],
       ['Nomina coordinadores', d.totalNominaCoordinadores],
