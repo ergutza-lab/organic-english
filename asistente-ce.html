@@ -999,23 +999,16 @@ function renderAlertas(){
   cont.innerHTML=listaFiltrada.map(a=>{
     const fechaLimite = a.fecha_limite || '';
     const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    var periodoTexto = 'esta semana';
-    if (a.ultimo_pago) {
-      var partes = a.ultimo_pago.split('/');
-      if (partes.length === 3) {
-        var hoy = new Date(); var diaHoy = hoy.getDay();
-        var lunesPendiente = new Date(hoy);
-        lunesPendiente.setDate(hoy.getDate() - (diaHoy===0?6:diaHoy-1));
-        var juevesPendiente = new Date(lunesPendiente);
-        juevesPendiente.setDate(lunesPendiente.getDate()+3);
-        periodoTexto = lunesPendiente.getDate()+' al '+juevesPendiente.getDate()+' de '+meses[juevesPendiente.getMonth()];
-      }
-    } else {
-      var hoy2 = new Date(); var d2 = hoy2.getDay();
-      var lun2 = new Date(hoy2); lun2.setDate(hoy2.getDate()-(d2===0?6:d2-1));
-      var jue2 = new Date(lun2); jue2.setDate(lun2.getDate()+3);
-      periodoTexto = lun2.getDate()+' al '+jue2.getDate()+' de '+meses[jue2.getMonth()];
-    }
+    // El recordatorio siempre debe reflejar el periodo de la SEMANA QUE ENTRA (próximo Lunes a Jueves),
+    // sin importar qué día de la semana se esté enviando el mensaje.
+    var hoy = new Date();
+    var dow = hoy.getDay()===0 ? 7 : hoy.getDay(); // Lunes=1 ... Domingo=7
+    var diasHastaProximoLunes = 8 - dow; // si hoy es Lunes(1) -> 7 días; si es Domingo(7) -> 1 día
+    var proximoLunes = new Date(hoy);
+    proximoLunes.setDate(hoy.getDate() + diasHastaProximoLunes);
+    var proximoJueves = new Date(proximoLunes);
+    proximoJueves.setDate(proximoLunes.getDate() + 3);
+    var periodoTexto = proximoLunes.getDate()+' al '+proximoJueves.getDate()+' de '+meses[proximoJueves.getMonth()];
     const fechaLimitePago = a.fecha_limite_pago || '';
     const msg = encodeURIComponent(`Hola, ${a.nombre} 😊
 
