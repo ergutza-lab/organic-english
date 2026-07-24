@@ -984,19 +984,53 @@
     sel.value = actual;
   }
 
-  // Analiza los IDs de grupo existentes (formato LETRA + número, ej. E01,
-  // E02...) e ignora cualquier otro formato (como los IDs de 2 letras de
-  // los grupos demo, ej. AA01) para no confundir la serie real.
-  // IMPORTANTE: la letra de serie está ligada a la FECHA DE INICIO — todos
-  // los grupos que abren el mismo día comparten la misma letra. Solo se usa
-  // una letra nueva cuando la fecha es distinta a cualquier fecha ya usada.
+  // Ancla fija para el calculo de series: el 10 de agosto de 2026 corresponde
+  // a la letra K (semana 11 desde A). A partir de ahi, cada bloque de 7 dias
+  // reserva una letra nueva -- exista o no un grupo real para esa fecha. Asi,
+  // si no se abren grupos para varias semanas seguidas, esas letras quedan
+  // "apartadas" igual, y el siguiente grupo que se de de alta (sin importar
+  // que dia de la semana sea, incluyendo grupos sabatinos) recibe la letra
+  // que le toca en el orden real, no simplemente "la ultima usada + 1".
+  var ANCLA_FECHA = new Date(2026, 7, 10); // 10 de agosto de 2026
+  var ANCLA_SLOT  = 11; // K es la letra numero 11 (A=1, B=2, ... K=11)
+
+  // Convierte un numero de slot (1-indexado) a letra(s), estilo columnas de
+  // Excel: A=1 ... Z=26, AA=27, AB=28, ... para cuando la serie pase de Z.
+  function letraDeSlot(slot) {
+    var letras = '';
+    var n = slot;
+    while (n > 0) {
+      var resto = (n - 1) % 26;
+      letras = String.fromCharCode(65 + resto) + letras;
+      n = Math.floor((n - 1) / 26);
+    }
+    return letras;
+  }
+
+  // Letra que le corresponde a una fecha segun el ancla -- independiente de
+  // que grupos existan o no en el sistema.
+  function letraEsperadaParaFecha(fecha) {
+    var dias = Math.round((fecha - ANCLA_FECHA) / (1000 * 60 * 60 * 24));
+    var slot = ANCLA_SLOT + Math.ceil(dias / 7);
+    if (slot < 1) slot = 1;
+    return letraDeSlot(slot);
+  }
+
+  // Analiza los IDs de grupo existentes (formato LETRA(S) + numero, ej. E01,
+  // E02, o AA01 una vez que la serie pase de Z) e ignora cualquier otro
+  // formato para no confundir la serie real.
+  // IMPORTANTE: la letra de serie esta ligada a la FECHA DE INICIO segun el
+  // ancla de arriba -- todos los grupos que abren el mismo dia comparten la
+  // misma letra. Si la fecha es nueva, se usa la letra que le toque en el
+  // orden real (aunque haya semanas de por medio sin ningun grupo dado de
+  // alta), no la siguiente letra usada en el sistema.
   function analizarSeriesIds(grupos) {
     var maxPorLetra = {};
     var numerosPorLetra = {};
     var letraPorFecha = {};
     (grupos || []).forEach(function (g) {
       var id = String(g.idGrupo || '').trim().toUpperCase();
-      var m = id.match(/^([A-Z])(\d{2,})$/);
+      var m = id.match(/^([A-Z]+)(\d{2,})$/);
       if (!m) return;
       var letra = m[1];
       var num = parseInt(m[2], 10);
@@ -1008,11 +1042,9 @@
     });
     var letras = Object.keys(maxPorLetra).sort();
     var ultimaLetra = letras.length ? letras[letras.length - 1] : null;
-    var siguienteLetra = ultimaLetra ? String.fromCharCode(ultimaLetra.charCodeAt(0) + 1) : 'A';
     var maxNumeroUltimaLetra = ultimaLetra ? maxPorLetra[ultimaLetra] : 0;
     return {
       ultimaLetra: ultimaLetra,
-      siguienteLetra: siguienteLetra,
       maxNumeroUltimaLetra: maxNumeroUltimaLetra,
       siguienteNumeroEnSerie: maxNumeroUltimaLetra + 1,
       maxPorLetra: maxPorLetra,
@@ -1021,16 +1053,18 @@
     };
   }
 
-  // Devuelve la letra que corresponde a una fecha específica: si esa fecha
-  // ya tiene grupos (letra ya asignada), se reutiliza esa misma letra —
-  // así los IDs que no se hayan usado en esa serie quedan disponibles para
-  // grupos adicionales de la MISMA fecha. Si la fecha es nueva, se usa la
-  // siguiente letra disponible.
+  // Devuelve la letra que corresponde a una fecha especifica: si esa fecha
+  // ya tiene grupos (letra ya asignada), se reutiliza esa misma letra --
+  // asi los IDs que no se hayan usado en esa serie quedan disponibles para
+  // grupos adicionales de la MISMA fecha. Si la fecha es nueva, se calcula
+  // la letra que le toca segun el ancla de semanas (ver letraEsperadaParaFecha),
+  // sin importar si hay semanas de por medio sin ningun grupo real.
   function letraParaFecha(analisis, fechaISO) {
     if (fechaISO && analisis.letraPorFecha[fechaISO]) {
       return { letra: analisis.letraPorFecha[fechaISO], esFechaNueva: false };
     }
-    return { letra: analisis.siguienteLetra, esFechaNueva: true };
+    var fechaObj = fechaISO ? new Date(fechaISO + 'T00:00:00') : new Date();
+    return { letra: letraEsperadaParaFecha(fechaObj), esFechaNueva: true };
   }
 
   // Encuentra, para una letra dada, el primer número disponible (llenando
