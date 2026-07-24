@@ -379,6 +379,44 @@
 @media (max-width: 640px) {
   .post-it-eval { left: 14px; top: 80px; width: 210px; }
 }
+
+/* ── ALERTA CHAT CLUB (miercoles a viernes, solo 4+ semanas de antiguedad) ── */
+.alerta-chat-club {
+  position: fixed;
+  top: 90px;
+  left: 24px;
+  width: 250px;
+  background: #7c3aed;
+  color: #fff;
+  padding: 16px 18px;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(124,58,237,0.45);
+  cursor: pointer;
+  z-index: 840;
+  font-family: 'Caveat', 'Segoe UI', cursive;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: top 0.25s ease, transform 0.2s ease;
+  animation: clubAparecer 0.45s ease both;
+}
+.alerta-chat-club:hover { transform: translateY(-2px); }
+@keyframes clubAparecer {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.alerta-chat-club .alerta-club-icono { font-size: 24px; flex-shrink: 0; }
+.alerta-chat-club .alerta-club-texto { font-size: 19px; line-height: 1.3; font-weight: 600; }
+.alerta-chat-club .alerta-club-cerrar {
+  position: absolute; top: 4px; right: 8px;
+  background: none; border: none; color: rgba(255,255,255,0.75); font-size: 16px;
+  line-height: 1; cursor: pointer; padding: 4px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.alerta-chat-club .alerta-club-cerrar:hover { color: #fff; }
+@media (max-width: 640px) {
+  .alerta-chat-club { left: 14px; top: 80px; width: 210px; }
+}
 </style>
 </head>
 <body>
@@ -434,7 +472,7 @@
         <div class="grupo-grid">
           <div class="grupo-item"><div class="grupo-label">Grupo</div><div class="grupo-val" id="grupoId">—</div><div class="grupo-sub" id="grupoNivel">—</div></div>
           <div class="grupo-item"><div class="grupo-label">Horario</div><div class="grupo-val" id="grupoHorario">—</div><div class="grupo-sub">hora CDMX</div></div>
-          <div class="grupo-item"><div class="grupo-label">Dias</div><div class="grupo-val">Lun – Jue</div><div class="grupo-sub">4 dias por semana</div></div>
+          <div class="grupo-item"><div class="grupo-label">Dias</div><div class="grupo-val" id="grupoDias">Lun – Jue</div><div class="grupo-sub" id="grupoDiasSub">4 dias por semana</div></div>
           <div class="grupo-item"><div class="grupo-label">Inicio de clases</div><div class="grupo-val" id="grupoFecha">—</div><div class="grupo-sub" id="grupoDiasRestantes">—</div></div>
         </div>
         <div style="display:flex;align-items:center;flex-wrap:nowrap;gap:8px;margin-top:1.2rem;">
@@ -833,6 +871,7 @@
     document.getElementById('avatarInitials').textContent = iniciales;
     document.getElementById('infoNombre').textContent   = a.nombre;
     document.getElementById('infoId').textContent       = a.id;
+    verificarAlertaChatClub(a);
     document.getElementById('infoEmail').textContent    = a.email;
     document.getElementById('infoWhatsapp').textContent = a.whatsapp;
     document.getElementById('infoEstatus').textContent  = a.estatus;
@@ -841,6 +880,13 @@
       document.getElementById('grupoId').textContent      = g.id;
       document.getElementById('grupoNivel').textContent   = g.nombre + ' · ' + g.nivel;
       document.getElementById('grupoHorario').textContent = g.horario;
+      if (g.tipoHorario === 'sabado') {
+        document.getElementById('grupoDias').textContent    = 'Sábado';
+        document.getElementById('grupoDiasSub').textContent = '1 día por semana';
+      } else {
+        document.getElementById('grupoDias').textContent    = 'Lun – Jue';
+        document.getElementById('grupoDiasSub').textContent = '4 dias por semana';
+      }
       document.getElementById('nivelActual').textContent  = g.nivel + ' · ' + g.nombre;
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
       if (g.grabacion) {
@@ -909,6 +955,7 @@
           btnC.style.display = 'none';
           var postItFuera = document.getElementById('postItEval');
           if (postItFuera) postItFuera.style.display = 'none';
+          posicionarAlertasFlotantes();
           return;
         }
         btnM.style.display = 'flex';
@@ -934,6 +981,7 @@
         } else if (postIt) {
           postIt.style.display = 'none';
         }
+        posicionarAlertasFlotantes();
       })
       .catch(function(){});
   }
@@ -942,6 +990,7 @@
   function cerrarPostItEval() {
     postItCerradoEnSesion = true;
     document.getElementById('postItEval').style.display = 'none';
+    posicionarAlertasFlotantes();
   }
   function irAEvaluar() {
     var btnM = document.getElementById('btnEvaluarMaestro');
@@ -949,6 +998,7 @@
     var objetivo = (btnM && !btnM.disabled) ? btnM : btnC;
     if (objetivo) objetivo.scrollIntoView({ behavior: 'smooth', block: 'center' });
     document.getElementById('postItEval').style.display = 'none';
+    posicionarAlertasFlotantes();
   }
 
   function calificar(concepto, valor) {
@@ -1429,6 +1479,64 @@
   }
 
   // ── CLUB DE CONVERSACIÓN ─────────────────────────────────────────
+  var alertaClubCerradaEnSesion = false;
+
+  // Coloca el aviso del Chat Club debajo del post-it de evaluacion cuando
+  // este ultimo esta visible, para que ambos queden apilados en la misma
+  // esquina en vez de superpuestos. Si el post-it no esta visible, el
+  // Chat Club regresa a su posicion por defecto.
+  function posicionarAlertasFlotantes() {
+    var postIt = document.getElementById('postItEval');
+    var club = document.getElementById('alertaChatClub');
+    if (!club) return;
+    var postItVisible = postIt && postIt.style.display !== 'none' && postIt.style.display !== '';
+    if (postItVisible) {
+      var rect = postIt.getBoundingClientRect();
+      club.style.top = Math.round(rect.bottom + 28) + 'px';
+    } else {
+      club.style.top = '90px';
+    }
+  }
+  // Reintenta la posicion una vez que la fuente manuscrita (Caveat) termine
+  // de cargar -- su llegada tardia puede cambiar la altura del post-it y
+  // dejar al aviso del club ligeramente encimado.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function(){ posicionarAlertasFlotantes(); });
+  }
+
+  // Alerta visible de Miercoles a Viernes, solo para alumnos con 4 semanas
+  // o mas de antiguedad (fecha de inscripcion), recordandoles que tienen
+  // acceso al Chat Club del viernes 8pm. Aplica a TODOS los alumnos
+  // elegibles, sin importar si su grupo es de sabado o de entre semana.
+  function verificarAlertaChatClub(alumno) {
+    var alerta = document.getElementById('alertaChatClub');
+    if (!alerta) return;
+
+    if (alertaClubCerradaEnSesion) { alerta.style.display = 'none'; return; }
+
+    var hoy = new Date();
+    var diaSemana = hoy.getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
+    var esDiaVentana = (diaSemana === 3 || diaSemana === 4 || diaSemana === 5); // Mie, Jue, Vie
+
+    if (!esDiaVentana || !alumno || !alumno.fechaInscripcion) {
+      alerta.style.display = 'none';
+      posicionarAlertasFlotantes();
+      return;
+    }
+
+    var fechaIns = new Date(alumno.fechaInscripcion);
+    var diasAntiguedad = Math.floor((hoy - fechaIns) / (1000 * 60 * 60 * 24));
+    var semanasAntiguedad = diasAntiguedad / 7;
+
+    alerta.style.display = (semanasAntiguedad >= 4) ? 'flex' : 'none';
+    posicionarAlertasFlotantes();
+  }
+
+  function cerrarAlertaChatClub() {
+    alertaClubCerradaEnSesion = true;
+    document.getElementById('alertaChatClub').style.display = 'none';
+  }
+
   function abrirClub() {
     var g=alumnoData.grupo; if(!g) return;
     var fechaInicio=g.fechaInicio.substring(0,10), fechaCorte='2026-04-13';
@@ -1848,6 +1956,15 @@ function subirVideoChallenge() {
   <div class="post-it-pin">📌</div>
   <div class="post-it-titulo">¡No olvides evaluar!</div>
   <div class="post-it-texto" id="postItEvalTexto">Esta semana toca calificar a tu maestro y tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarlos. Tu opinión nos ayuda a mejorar 💛</div>
+</div>
+
+<div id="alertaChatClub" class="alerta-chat-club" style="display:none;" onclick="abrirClub()">
+  <button class="alerta-club-cerrar" onclick="event.stopPropagation(); cerrarAlertaChatClub();">×</button>
+  <div class="alerta-club-icono">💬</div>
+  <div class="alerta-club-texto">
+    <strong>¡Tienes acceso al Chat Club!</strong><br>
+    Este viernes a las 8:00 PM, únete a la práctica de conversación.
+  </div>
 </div>
 
 </body>
