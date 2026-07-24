@@ -1129,7 +1129,8 @@ function gvizJSONP(sheet, callback) {
       fechaObj: parseFechaGVis(r.c[3]),
       nivel:    String(r.c[4]?.v || '').trim(),
       libres:   r.c[7]?.v ?? 0,
-      estado:   r.c[8]?.v || ''
+      estado:   r.c[8]?.v || '',
+      tipoHorario: String(r.c[18]?.v || '').trim().toLowerCase()
     }; });
     callback(grupos);
   };
@@ -1540,15 +1541,23 @@ function niVerificarDatosWhatsApp() {
 
 // Suma 1 hora a un horario tipo "5:00 PM" y regresa "6:00 PM" (las clases
 // duran 1 hora siempre).
-function sumarUnaHoraHorario(horario) {
+function sumarHorasHorario(horario, horas) {
   var m = String(horario || '').trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
   if (!m) return '';
   var hh = parseInt(m[1], 10), mm = m[2], ap = m[3].toUpperCase();
-  hh = hh + 1;
-  if (hh === 12) { ap = (ap === 'AM') ? 'PM' : 'AM'; }
-  else if (hh === 13) { hh = 1; }
-  return hh + ':' + mm + ' ' + ap;
+  // Convertir a 24 horas, sumar, y volver a convertir a 12 horas -- asi
+  // funciona igual de bien para +1 hora (grupos normales) que para +4 horas
+  // (grupos sabatinos), sin casos especiales por cada posible cruce de
+  // mediodia/medianoche.
+  var h24 = (ap === 'PM' && hh !== 12) ? hh + 12 : (ap === 'AM' && hh === 12) ? 0 : hh;
+  h24 = (h24 + (horas || 1)) % 24;
+  var apFinal = h24 >= 12 ? 'PM' : 'AM';
+  var h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  return h12 + ':' + mm + ' ' + apFinal;
 }
+// Alias para compatibilidad con el nombre anterior (+1 hora, grupos normales).
+function sumarUnaHoraHorario(horario) { return sumarHorasHorario(horario, 1); }
 
 function formatoFechaLargaNI(fecha) {
   if (!fecha) return '';
@@ -1602,7 +1611,9 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
   }
 
   if (esParaTutor && datosExtra) {
-    var horaFinT = sumarUnaHoraHorario(horario);
+    var esSabatinoT = datosExtra.tipoHorario === 'sabado';
+    var horaFinT = sumarHorasHorario(horario, esSabatinoT ? 4 : 1);
+    var textoDiasT = esSabatinoT ? 'Sábado' : 'De Lunes a Jueves';
     var fechaTextoT = formatoFechaLargaNI(datosExtra.fechaInicio);
     var tipoTextoT = tipoEtiquetasNI[tipo] || tipo || '';
     var tipoDescripcionT = tipoDescripcionNI[tipo] || '';
@@ -1620,7 +1631,7 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
       '· *Grupo*: ' + idGrupo + '\n' +
       '· *Inicio*: ' + fechaTextoT + '\n' +
       '· *Horario*: ' + horario + ' a ' + horaFinT + ' (Hora Centro/CDMX)\n' +
-      '· *Clases*: De Lunes a Jueves\n' +
+      '· *Clases*: ' + textoDiasT + '\n' +
       '*Seguimiento escolar*\n' +
       'Durante el curso, *' + nombreAlumno + '* recibirá seguimiento personalizado por parte de su Asistente de Control Escolar:\n' +
       (datosExtra.asistenteNombre ? '*' + datosExtra.asistenteNombre + '*' : '') + '\n' +
@@ -1643,7 +1654,9 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
   // completo aprobado, con todos los datos de acceso y del grupo incluidos
   // directamente en el WhatsApp (no solo remitiendo al correo).
   if (!esColocacion && datosExtra) {
-    var horaFin = sumarUnaHoraHorario(horario);
+    var esSabatino = datosExtra.tipoHorario === 'sabado';
+    var horaFin = sumarHorasHorario(horario, esSabatino ? 4 : 1);
+    var textoDias = esSabatino ? 'Sábado' : 'De Lunes a Jueves';
     var fechaTexto = formatoFechaLargaNI(datosExtra.fechaInicio);
     var tipoTexto = tipoEtiquetasNI[tipo] || tipo || '';
     var tipoDescripcion = tipoDescripcionNI[tipo] || '';
@@ -1661,7 +1674,7 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
       '· *Grupo*: ' + idGrupo + '\n' +
       '· *Inicio*: ' + fechaTexto + '\n' +
       '· *Horario*: ' + horario + ' a ' + horaFin + ' (Hora Centro/CDMX)\n' +
-      '· *Clases*: De Lunes a Jueves\n' +
+      '· *Clases*: ' + textoDias + '\n' +
       '*Seguimiento escolar*\n' +
       'Durante tu curso recibirás seguimiento personalizado por parte de tu Asistente de Control Escolar:\n' +
       (datosExtra.asistenteNombre ? '*' + datosExtra.asistenteNombre + '*' : '') + '\n' +
@@ -1759,6 +1772,7 @@ function confirmarNuevaInscripcion() {
           nombreGrupo:       grupoSel ? grupoSel.nombre : '',
           nivel:             grupoSel ? grupoSel.nivel : '',
           fechaInicio:       grupoSel ? grupoSel.fechaObj : null,
+          tipoHorario:       grupoSel ? grupoSel.tipoHorario : '',
           asistenteNombre:   data.asistente ? data.asistente.nombre : '',
           asistenteWhatsapp: data.asistente ? data.asistente.whatsapp : ''
         };
