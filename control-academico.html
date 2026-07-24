@@ -222,6 +222,7 @@
         <span style="font-size:16px;font-weight:600;color:var(--text);">Coordinador Académico</span>
       </div>
       <div class="top-right">
+        <button class="btn-sm" style="border-color:rgba(124,58,237,0.4);color:#c4b5fd;" onclick="abrirModalChatClub()">💬 Chat Club</button>
         <button class="btn-sm" style="border-color:rgba(139,92,246,0.35);color:#c4b5fd;" onclick="abrirEvalColocacionNav()">🎓 Evaluaciones de Colocación</button>
         <div class="avatar" id="avatarInitials">CA</div>
         <button class="btn-logout" onclick="logout()">Salir</button>
@@ -439,6 +440,18 @@
     </div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Horarios disponibles (entre semana y sábado). Verde = libre, naranja = ya tiene grupo asignado.</p>
     <div id="modalDisponibilidadBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Asignación de Chat Club -->
+<div id="modalChatClub" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h3 style="color:var(--text);margin:0;font-size:16px;">💬 Asignación de Chat Club</h3>
+      <button onclick="document.getElementById('modalChatClub').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Asigna al maestro responsable de cada Chat Club. El link de Zoom lo sube el propio maestro desde su panel, y se propaga automáticamente a todos los grupos de ese nivel — aquí solo puedes verlo.</p>
+    <div id="modalChatClubBody"><div style="text-align:center;padding:20px;color:var(--muted);">Cargando...</div></div>
   </div>
 </div>
 
@@ -862,15 +875,24 @@ function cargarAsistencia(){
   var fecha=document.getElementById('asistFecha').value;
   if(!fecha){alert('Selecciona una fecha.');return;}
   var d=new Date(fecha+'T12:00:00'),dia=d.getDay();
-  if(dia===0||dia===5||dia===6){
-    document.getElementById('asistBody').innerHTML='<tr><td colspan="6" class="empty-state">No hay clases los viernes, sábados ni domingos.</td></tr>';
+  if(dia===0||dia===6){
+    document.getElementById('asistBody').innerHTML='<tr><td colspan="6" class="empty-state">No hay clases los sábados ni domingos.</td></tr>';
     document.getElementById('btnGuardarAsist').style.display='none';return;
   }
   fetch(APPS_SCRIPT+'?action=getAsistenciaFecha&fecha='+fecha,{redirect:'follow'})
     .then(r=>r.json())
     .then(data=>{
-      // Filtrar grupos sin alumnos
-      asistenciaRows=(data.rows||[]).filter(r=>r.activo!==false&&r.maestroId&&(r.inscritos>0||r.inscritos===undefined)&&String(r.demo||'').toUpperCase()!=='DEMO');
+      // Filtrar grupos sin alumnos -- excepto los de Chat Club, que nunca
+      // tienen alumnos propios pero si necesitan confirmarse para pago.
+      // Los viernes SOLO se muestran los grupos de Chat Club (unico dia
+      // en que dan clase); de lunes a jueves se excluyen, ya que esos dias
+      // son de los grupos normales.
+      asistenciaRows=(data.rows||[]).filter(function(r){
+        if(r.activo===false || !r.maestroId || String(r.demo||'').toUpperCase()==='DEMO') return false;
+        if(!r.esClub && !(r.inscritos>0 || r.inscritos===undefined)) return false;
+        if(dia===5) return r.esClub===true;   // viernes: solo Chat Club
+        return r.esClub!==true;               // lunes-jueves: solo grupos normales
+      });
       renderAsistencia();
       document.getElementById('btnGuardarAsist').style.display=asistenciaRows.length?'inline-block':'none';
       document.getElementById('asistStatus').textContent='';
@@ -1381,6 +1403,49 @@ function renderDisponibilidad(idMaestro) {
   document.getElementById('modalDisponibilidadBody').innerHTML = html;
 }
 // ── EDITOR DE DISPONIBILIDAD REGISTRADA (dia x horario) ─────────────────────
+function abrirModalChatClub() {
+  document.getElementById('modalChatClub').style.display = 'flex';
+  document.getElementById('modalChatClubBody').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">Cargando...</div>';
+  fetch(APPS_SCRIPT + '?action=getAsignacionesClub')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.success) {
+        document.getElementById('modalChatClubBody').innerHTML = '<p style="color:#f87171;text-align:center;">Error al cargar.</p>';
+        return;
+      }
+      var opcionesMaestros = '<option value="">— Sin asignar —</option>' +
+        maestrosData.map(function(m){ return '<option value="'+m.id+'">'+m.nombre+'</option>'; }).join('');
+
+      var html = data.clubes.map(function(c){
+        var opciones = opcionesMaestros.replace('value="'+c.idMaestro+'"', 'value="'+c.idMaestro+'" selected');
+        return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">'+c.nombre+'</div>' +
+          '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Maestro responsable</label>' +
+          '<select id="clubSelect-'+c.id+'" style="width:100%;background:var(--bg);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;margin-bottom:10px;">'+opciones+'</select>' +
+          '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Link de Zoom actual (lo sube el maestro)</label>' +
+          '<div style="font-size:12px;color:'+(c.link?'#4ade80':'#f87171')+';word-break:break-all;margin-bottom:10px;">'+(c.link||'Sin link configurado aún')+'</div>' +
+          '<button onclick="guardarAsignacionClub(\''+c.id+'\')" style="background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.4);color:#c4b5fd;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;">Guardar asignación</button>' +
+          '<span id="clubGuardado-'+c.id+'" style="font-size:12px;margin-left:10px;"></span>' +
+        '</div>';
+      }).join('');
+      document.getElementById('modalChatClubBody').innerHTML = html;
+    })
+    .catch(function(){ document.getElementById('modalChatClubBody').innerHTML = '<p style="color:#f87171;text-align:center;">Error de conexión.</p>'; });
+}
+
+function guardarAsignacionClub(idClub) {
+  var idMaestro = document.getElementById('clubSelect-'+idClub).value;
+  var status = document.getElementById('clubGuardado-'+idClub);
+  status.style.color = 'var(--muted)'; status.textContent = 'Guardando...';
+  fetch(APPS_SCRIPT + '?action=asignarMaestroClub&idClub=' + encodeURIComponent(idClub) + '&idMaestro=' + encodeURIComponent(idMaestro))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) { status.style.color = '#4ade80'; status.textContent = '✅ Guardado'; }
+      else { status.style.color = '#f87171'; status.textContent = 'Error: ' + (data.error||''); }
+    })
+    .catch(function(){ status.style.color = '#f87171'; status.textContent = 'Error de conexión.'; });
+}
+
 function abrirEditorDisponibilidad() {
   var modal = document.getElementById('modalEditorDisponibilidad');
   if (!modal) return;
