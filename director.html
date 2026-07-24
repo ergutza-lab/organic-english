@@ -407,6 +407,11 @@
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
       <select id="ge-horario" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;"></select>
 
+      <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="ge-sabatino" onchange="alCambiarSabatinoEspecial()" style="width:18px;height:18px;accent-color:#7c3aed;flex-shrink:0;" />
+        <label for="ge-sabatino" style="font-size:13px;color:var(--off-white);cursor:pointer;">Es un grupo <strong style="color:#a78bfa;">sabatino</strong> — una sola clase de 4 horas (9:00 AM a 1:00 PM), en vez de Lunes a Jueves.</label>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
         <div>
           <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cupo máximo</label>
@@ -1296,11 +1301,27 @@
     document.getElementById('ge-nombre').onchange = function () { this.style.color = colorPorNombreGrupo(this.value); };
     document.getElementById('ge-horario').innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
     document.getElementById('ge-cupo').value = 10;
+    document.getElementById('ge-sabatino').checked = false;
     document.getElementById('ge-status').style.display = 'none';
     poblarSelectAsistentes('ge-asistente');
     document.getElementById('modalGrupoEspecial').classList.add('active');
   }
   function cerrarModalGrupoEspecial() { document.getElementById('modalGrupoEspecial').classList.remove('active'); }
+
+  // Al marcar "grupo sabatino", el horario se fija a 9:00 AM (clase de 9 a 1)
+  // y se bloquea el select para que no se pueda elegir otra hora -- si se
+  // desmarca, regresa a la lista normal de horarios de 1 hora.
+  function alCambiarSabatinoEspecial() {
+    var chk = document.getElementById('ge-sabatino');
+    var sel = document.getElementById('ge-horario');
+    if (chk.checked) {
+      sel.innerHTML = '<option value="9:00 AM">9:00 AM (a 1:00 PM)</option>';
+      sel.disabled = true;
+    } else {
+      sel.disabled = false;
+      sel.innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
+    }
+  }
 
   function alCambiarNivelEspecial() {
     var nivel = document.getElementById('ge-nivel').value;
@@ -1334,13 +1355,16 @@
     status.style.display = ''; status.style.background = 'rgba(96,165,250,0.1)'; status.style.color = '#60a5fa';
     status.textContent = 'Creando grupo...';
 
+    var esSabatino = document.getElementById('ge-sabatino').checked;
+
     fetch(APPS_SCRIPT, {
       method: 'POST',
       body: new URLSearchParams({
         action: 'crearGrupo',
         idGrupo: idPreview, nombre: nombre, horario: horario,
         fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
-        idAsistente: idAsis
+        idAsistente: idAsis,
+        tipoHorario: esSabatino ? 'sabado' : 'entre_semana'
       })
     }).then(function (r) { return r.text(); }).then(function (text) {
       var data = JSON.parse(text);
