@@ -571,7 +571,7 @@ function callASWithResponse(params, callback){
   },10000);
 }
 
-function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='52'+n;else if(n.length===12&&n.startsWith('52')){}else if(n.length===13&&n.startsWith('521')){}else n='52'+n.slice(-10);return n;}
+function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
 var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
@@ -666,6 +666,11 @@ function cargarDatos(callback){
 }
 
 var DIAS_DISPONIBILIDAD = ['Lunes','Martes','Miércoles','Jueves'];
+// Lista separada SOLO para mostrar la columna de Sabado en el editor -- el
+// sabado es un dia independiente (para grupos sabatinos de 4 horas), no
+// forma parte del set de 4 dias que se exige para considerar a un maestro
+// "disponible completo" para un grupo de Lunes a Jueves.
+var DIAS_DISPONIBILIDAD_EDITOR = DIAS_DISPONIBILIDAD.concat(['Sábado']);
 
 function estaBloqueado(idMaestro, horario) {
   return bloqueosData.some(function(b){ return b.idMaestro===idMaestro && b.horario===horario; });
@@ -692,6 +697,17 @@ function maestroDisponibleCompletoHorario(idMaestro, horario) {
   if (!maestroTieneDispRegistrada(idMaestro)) return true; // aun no registrado -> comportamiento anterior
   var dias = diasDisponiblesHorario(idMaestro, horario);
   return DIAS_DISPONIBILIDAD.every(function(d){ return dias.indexOf(d)!==-1; });
+}
+
+// Disponibilidad especifica del sabado -- independiente del chequeo de los
+// 4 dias de entre semana. Un maestro cuenta como disponible el sabado para
+// un horario si marco "Sabado" para ese horario (o si aun no tiene ninguna
+// disponibilidad registrada, mismo comportamiento por defecto que los
+// demas dias).
+function maestroDisponibleSabado(idMaestro, horario) {
+  if (!maestroTieneDispRegistrada(idMaestro)) return true;
+  var dias = diasDisponiblesHorario(idMaestro, horario);
+  return dias.indexOf('Sábado') !== -1;
 }
 
 function cargarFechasRegistradas(){
@@ -774,16 +790,9 @@ function abrirModalMaestro(idMaestro){
   if(misGrupos.length){
     gruposHtml='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Grupos asignados</div>';
     gruposHtml+=misGrupos.map(function(g){
-      var zoom = getZoomGrupo(g);
-      var btnZoom = zoom
-        ? '<button onclick="event.stopPropagation();compartirZoomGrupo(\''+g.id+'\',\''+(g.nombre||g.nivel||'').replace(/'/g,"\\'")+'\',\''+(g.horario||'').replace(/'/g,"\\'")+'\',\''+encodeURIComponent(zoom)+'\')" style="background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.4);color:#25d366;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">📲 Link de Zoom</button>'
-        : '<span style="font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap;" title="El maestro no ha registrado la liga de Zoom">Sin liga</span>';
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;gap:8px;">'+
-        '<div style="cursor:pointer;flex:1;min-width:0;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
-          '<div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+'</div><div style="font-size:11px;color:var(--muted);">'+g.horario+'</div>'+
-        '</div>'+
-        btnZoom+
-        '<span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer;flex-shrink:0;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">Ver eval ›</span>'+
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
+        '<div><div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+'</div><div style="font-size:11px;color:var(--muted);">'+g.horario+'</div></div>'+
+        '<span style="font-size:11px;color:var(--orange);font-weight:700;">Ver eval ›</span>'+
       '</div>';
     }).join('');
   }
@@ -791,17 +800,6 @@ function abrirModalMaestro(idMaestro){
   document.getElementById('modalMaestro').classList.add('visible');
 }
 function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.remove('visible');}
-
-// Lee el link de Zoom del grupo (columna J de la pestaña GRUPOS) tolerando distintos nombres de campo
-function getZoomGrupo(g){
-  return g.zoom || g.zoomLink || g.ligaZoom || g.liga || g.linkZoom || g.link || g.Zoom || g.LigaZoom || '';
-}
-
-function compartirZoomGrupo(idGrupo, nombreGrupo, horario, zoomEncoded){
-  var zoom = decodeURIComponent(zoomEncoded);
-  var texto = 'Hola 👋 Te comparto la liga de Zoom de la clase *'+(nombreGrupo||idGrupo)+'* GRUPO '+idGrupo+' CON HORARIO ('+(horario||'')+'):\n'+zoom;
-  window.open('https://wa.me/?text='+encodeURIComponent(texto), '_blank');
-}
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
 
 // ── VER EVALUACIONES DEL GRUPO (desde modal maestro) ──
@@ -1418,12 +1416,12 @@ function abrirEditorDisponibilidad() {
   var html = '<div style="overflow-x:auto;">';
   html += '<table data-idmaestro="'+idMaestro+'" style="width:100%;border-collapse:collapse;font-size:12px;">';
   html += '<thead><tr><th style="text-align:left;padding:6px;color:#94a3b8;">Horario</th>' +
-    DIAS_DISPONIBILIDAD.map(function(d){ return '<th style="padding:6px;color:#94a3b8;">'+d.substring(0,3)+'</th>'; }).join('') + '</tr></thead><tbody>';
+    DIAS_DISPONIBILIDAD_EDITOR.map(function(d){ return '<th style="padding:6px;color:#94a3b8;">'+d.substring(0,3)+'</th>'; }).join('') + '</tr></thead><tbody>';
 
   horarios.forEach(function(h){
     var yaMarcados = diasDisponiblesHorario(idMaestro, h);
     html += '<tr><td style="padding:6px;color:#f1f5f9;font-weight:600;white-space:nowrap;">'+h+'</td>';
-    DIAS_DISPONIBILIDAD.forEach(function(d){
+    DIAS_DISPONIBILIDAD_EDITOR.forEach(function(d){
       var checked = yaMarcados.indexOf(d)!==-1 ? 'checked' : '';
       html += '<td style="text-align:center;padding:6px;"><input type="checkbox" class="chkDisp" data-dia="'+d+'" data-horario="'+h+'" '+checked+' style="width:16px;height:16px;cursor:pointer;"></td>';
     });
@@ -1647,94 +1645,13 @@ function verDetalleEvalColocacion(idx) {
     '<div class="eval-detalle-row"><span class="edr-label">Fortalezas</span><span class="edr-value">' + (fortalezas || '—') + '</span></div>' +
     '<div class="eval-detalle-row"><span class="edr-label">Áreas de oportunidad</span><span class="edr-value">' + (areas || '—') + '</span></div>' +
     '<div class="eval-detalle-row"><span class="edr-label">Comentarios</span><span class="edr-value">' + (ev.comentariosTeacher || '—') + '</span></div>' +
-    '<div class="modal-actions"><button class="btn-modal-cancel" style="width:100%;" onclick="cerrarDetalleEvalColocacion()">Cerrar</button></div>' +
-    '<div class="modal-actions" style="margin-top:8px;"><button class="btn-modal-confirm" style="width:100%;background:#f97316;" onclick="descargarPDFEvalColocacion(' + idx + ')">📄 Descargar reporte en PDF</button></div>';
+    '<div class="modal-actions"><button class="btn-modal-cancel" style="width:100%;" onclick="cerrarDetalleEvalColocacion()">Cerrar</button></div>';
 
   document.getElementById('modalDetalleEvalColocacion').classList.add('visible');
 }
 
 function cerrarDetalleEvalColocacion() {
   document.getElementById('modalDetalleEvalColocacion').classList.remove('visible');
-}
-
-function descargarPDFEvalColocacion(idx) {
-  var ev = evalColocacionCache[idx];
-  if (!ev) return;
-
-  var niveles = ev.resumenNiveles;
-  if (typeof niveles === 'string') {
-    try { niveles = JSON.parse(niveles); } catch(e) { niveles = []; }
-  }
-  var filasNiveles = (niveles || []).map(function(n){
-    return '<tr><td>'+(n.nivel||'—')+'</td><td style="color:#2563eb;">'+(n.blue||0)+'</td><td style="color:#16a34a;">'+(n.green||0)+'</td><td style="color:#ca8a04;">'+(n.yellow||0)+'</td><td style="color:#dc2626;">'+(n.red||0)+'</td></tr>';
-  }).join('');
-
-  var fortalezas = ev.fortalezas;
-  if (Array.isArray(fortalezas)) fortalezas = fortalezas.join(', ');
-  var areas = ev.areasOportunidad;
-  if (Array.isArray(areas)) areas = areas.join(', ');
-
-  var fecha = ev.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }) : '—';
-  var generado = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
-
-  function fila(label, valor) {
-    return '<tr><td style="padding:8px 12px;color:#64748b;font-size:12px;width:38%;border-bottom:1px solid #f1f5f9;">'+label+'</td>'+
-           '<td style="padding:8px 12px;color:#1e293b;font-size:13px;font-weight:600;border-bottom:1px solid #f1f5f9;">'+(valor||'—')+'</td></tr>';
-  }
-
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
-    '<title>Evaluación de Colocación — '+(ev.nombreProspecto||'')+'</title>'+
-    '<style>body{font-family:Arial,sans-serif;background:#fff;color:#1e293b;margin:0;padding:0;}'+
-    'table{width:100%;border-collapse:collapse;font-size:13px;}'+
-    'th{background:#f1f5f9;padding:8px 10px;text-align:center;border-bottom:2px solid #e2e8f0;color:#475569;font-weight:700;}'+
-    'td{text-align:center;}'+
-    '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
-    '</style></head><body style="padding:32px 40px;max-width:820px;margin:0 auto;">';
-
-  // Header con logo
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #f97316;">'+
-    '<div><img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" style="height:52px;object-fit:contain;display:block;" />'+
-    '<div style="font-size:12px;color:#64748b;margin-top:6px;">Evaluación de Colocación</div></div>'+
-    '<div style="text-align:right;"><div style="font-size:11px;color:#94a3b8;">Generado: '+generado+'</div></div>'+
-  '</div>';
-
-  // Datos del prospecto
-  html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:20px;">'+
-    '<div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Datos del prospecto</div>'+
-    '<div style="font-size:16px;font-weight:700;color:#1e293b;">'+(ev.nombreProspecto||'—')+'</div>'+
-    '<div style="font-size:12px;color:#64748b;margin-top:2px;">ID: '+(ev.idAlumno||'—')+' &nbsp;·&nbsp; Evaluado el '+fecha+(ev.nombreColocador?' por '+ev.nombreColocador:'')+'</div>'+
-  '</div>';
-
-  // Tabla de datos generales
-  html += '<div style="background:#1c2b5e;color:#fff;padding:10px 18px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;letter-spacing:.5px;">DATOS DE CONTACTO Y EVALUACIÓN</div>';
-  html += '<table style="margin-bottom:24px;">'+
-    fila('Edad', ev.edad) +
-    fila('WhatsApp', ev.whatsapp) +
-    fila('Correo', ev.correo) +
-    fila('Horario de interés', ev.horarioInteres) +
-    fila('Experiencia previa', ev.experienciaPrevia === 'ninguna' ? 'Ninguna' : ev.experienciaPrevia) +
-    fila('Objetivo del alumno', ev.objetivoAlumno) +
-    fila('Nivel recomendado', ev.nivelRecomendado) +
-    fila('Bloque recomendado', ev.bloqueRecomendado) +
-    fila('Lección de ingreso', ev.leccionIngreso) +
-    fila('Motivo principal', ev.motivoPrincipal) +
-    fila('Fortalezas', fortalezas) +
-    fila('Áreas de oportunidad', areas) +
-    fila('Comentarios del teacher', ev.comentariosTeacher) +
-  '</table>';
-
-  // Resumen de niveles evaluados (si existe)
-  if (filasNiveles) {
-    html += '<div style="background:#7c3aed;color:#fff;padding:10px 18px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;letter-spacing:.5px;">RESUMEN POR NIVEL EVALUADO</div>';
-    html += '<table><thead><tr><th style="text-align:left;">Nivel</th><th>🔵 Azul</th><th>🟢 Verde</th><th>🟡 Amarillo</th><th>🔴 Rojo</th></tr></thead><tbody>'+filasNiveles+'</tbody></table>';
-  }
-
-  html += '<div class="no-print" style="text-align:center;margin-top:32px;"><button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:10px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button></div>';
-  html += '</body></html>';
-
-  var w = window.open('', '_blank', 'width=1000,height=800');
-  w.document.write(html);
-  w.document.close();
 }
 
 function abrirModalGruposSinMaestro() {
