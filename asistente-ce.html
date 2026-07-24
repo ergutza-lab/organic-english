@@ -1190,11 +1190,11 @@ function actualizarBtnCompartirCambio(){
 // Color de la "pelotita" según el nombre del grupo (Adults=azul, Teens=naranja, Kids=verde, Kids-JR=lila)
 function colorPuntoGrupo(nombre){
   const n=(nombre||'').toLowerCase();
-  if(n.includes('kids-jr')||n.includes('kids jr')||n.includes('kidsjr')) return '🟣';
-  if(n.includes('kids')) return '🟢';
-  if(n.includes('teens')) return '🟠';
-  if(n.includes('adult')) return '🔵';
-  return '⚪';
+  if(n.includes('kids-jr')||n.includes('kids jr')||n.includes('kidsjr')) return '\u{1F7E3}'; // lila
+  if(n.includes('kids')) return '\u{1F7E2}'; // verde
+  if(n.includes('teens')) return '\u{1F7E0}'; // naranja
+  if(n.includes('adult')) return '\u{1F535}'; // azul (marino)
+  return '\u26AA'; // blanco, por si no coincide con ningún tipo
 }
 
 function compartirGruposCambioWhatsApp(){
@@ -1213,13 +1213,14 @@ function compartirGruposCambioWhatsApp(){
 
   const bloqueGrupos=ordenFechas.map(f=>{
     const filas=porFecha[f].map(g=>`${colorPuntoGrupo(g.nombre)}*${g.id}* ${g.nombre} ${g.horario}`).join('\n');
-    return `*${f}*\n${filas}`;
+    return `Grupos que iniciaron el: *${f}*\n${filas}`;
   }).join('\n');
 
-  const separador='━━━━━━━━━━━━━━━━━━━━━━';
+  const separador='\u2501'.repeat(22);
+  const banderaMx='\u{1F1F2}\u{1F1FD}';
   const nivel=alumnoSeleccionadoCambio.nivel||'';
 
-  const mensaje=`*DISPONIBILIDAD DE GRUPOS PARA CAMBIO*\n*${nivel}* *Organic English  |*\n${separador}\n${bloqueGrupos}\n${separador}\nLas clases son en horario fijo de Lunes a Jueves, una hora al día.\n🇲🇽 Todos los horarios son hora central/CDMX\n\nCuéntame cuál te acomoda mejor y con gusto hacemos el cambio`;
+  const mensaje=`*DISPONIBILIDAD DE GRUPOS PARA CAMBIO*\n*${nivel}* *Organic English*\n${separador}\n${bloqueGrupos}\n${separador}\nLas clases son en horario fijo de Lunes a Jueves, una hora al día.\n${banderaMx} Todos los horarios son hora central/CDMX\n\nCuéntame cuál te acomoda mejor y con gusto hacemos el cambio.`;
 
   window.open(`https://wa.me/${cleanWA(alumnoSeleccionadoCambio.whatsapp)}?text=${encodeURIComponent(mensaje)}`,'_blank');
 }
