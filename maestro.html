@@ -201,6 +201,21 @@
       <div id="listaGrupos"><div class="loading">Cargando...</div></div>
     </div>
 
+    <!-- VISTA CHAT CLUB (grupo sin evaluacion, solo sube su link de Zoom) -->
+    <div id="vistaClub" style="display:none;">
+      <button class="back-btn" onclick="volverGruposDesdeClub()">← Mis grupos</button>
+      <div class="grupo-info-card">
+        <h3 id="clubTitulo">—</h3>
+        <p style="margin-top:4px;">Viernes 8:00 PM · Este grupo no tiene alumnos ni evaluación — solo debes mantener actualizado el link de Zoom para esta sesión.</p>
+      </div>
+      <div style="background:var(--card);border-radius:14px;padding:20px;margin-top:16px;">
+        <label style="display:block;font-size:11px;font-weight:700;color:var(--gris2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Link de Zoom de este Chat Club</label>
+        <input type="text" id="inputLinkClub" placeholder="https://zoom.us/j/..." style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:12px;">
+        <button onclick="guardarLinkClub()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar link</button>
+        <div id="clubStatus" style="margin-top:12px;font-size:12px;display:none;"></div>
+      </div>
+    </div>
+
     <!-- VISTA DETALLE -->
     <div id="vistaDetalle" style="display:none;">
       <button class="back-btn" onclick="volverGrupos()">← Mis grupos</button>
@@ -360,6 +375,17 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
   var lista=document.getElementById('listaGrupos');
   if (!grupos||!grupos.length) { lista.innerHTML='<div class="empty-state"><p>No tienes grupos asignados.</p></div>'; return; }
   lista.innerHTML=grupos.map(function(g){
+    if (g.esClub) {
+      return '<div style="margin-bottom:16px;background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04));border:1px solid rgba(124,58,237,0.3);border-radius:14px;overflow:hidden;">'
+        +'<div style="padding:16px 20px;cursor:pointer;" onclick="abrirClub(\''+g.id+'\')">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+            +'<span class="grupo-chip" style="background:#7c3aed;">💬 CHAT CLUB</span>'
+          +'</div>'
+          +'<div style="color:#c084fc;font-size:17px;font-weight:700;margin-bottom:3px;">'+g.nombre+'</div>'
+          +'<div style="color:var(--gris2);font-size:13px;">Viernes 8:00 PM · '+(g.linkClub?'✅ Link configurado':'⚠️ Falta configurar el link')+'</div>'
+        +'</div>'
+      +'</div>';
+    }
     var inicio=g.fechaInicio?new Date(g.fechaInicio):null;
     var inicioStr=inicio?inicio.getDate()+'/'+(inicio.getMonth()+1)+'/'+inicio.getFullYear():'—';
     var esBloque2 = g.nivel && g.nivel.toLowerCase().includes('bloque 2');
@@ -379,6 +405,39 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
         +'</div>'
     +'</div>';
   }).join('');
+}
+
+function abrirClub(idClub) {
+  grupoActual = panelData.grupos.find(function(g){ return g.id === idClub; });
+  if (!grupoActual) return;
+  document.getElementById('vistaGrupos').style.display='none';
+  document.getElementById('vistaClub').style.display='block';
+  document.getElementById('clubTitulo').textContent = grupoActual.nombre;
+  document.getElementById('inputLinkClub').value = grupoActual.linkClub || '';
+  document.getElementById('clubStatus').style.display = 'none';
+}
+function volverGruposDesdeClub() {
+  document.getElementById('vistaClub').style.display='none';
+  document.getElementById('vistaGrupos').style.display='block';
+  grupoActual=null;
+}
+function guardarLinkClub() {
+  var link = document.getElementById('inputLinkClub').value.trim();
+  var status = document.getElementById('clubStatus');
+  if (!link) { status.style.display='block'; status.style.color='#f87171'; status.textContent='Escribe un link antes de guardar.'; return; }
+  status.style.display='block'; status.style.color='#94a3b8'; status.textContent='Guardando...';
+  fetch(APPS_SCRIPT+'?action=actualizarLinkClubMaestro&idClub='+encodeURIComponent(grupoActual.id)+'&idMaestro='+encodeURIComponent(maestroData.id)+'&link='+encodeURIComponent(link))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if (data.success) {
+        status.style.color='#4ade80';
+        status.textContent='✅ Link guardado y actualizado en '+data.gruposActualizados+' grupo(s) de este nivel.';
+      } else {
+        status.style.color='#f87171';
+        status.textContent='Error: '+(data.error||'');
+      }
+    })
+    .catch(function(){ status.style.color='#f87171'; status.textContent='Error de conexión.'; });
 }
   
   function abrirGrupo(idGrupo) {
