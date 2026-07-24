@@ -1187,17 +1187,39 @@ function actualizarBtnCompartirCambio(){
 }
 
 // Arma el mensaje de WhatsApp con el listado de grupos ya filtrado (mismo nivel, mismo nombre, no más antiguos)
+// Color de la "pelotita" según el nombre del grupo (Adults=azul, Teens=naranja, Kids=verde, Kids-JR=lila)
+function colorPuntoGrupo(nombre){
+  const n=(nombre||'').toLowerCase();
+  if(n.includes('kids-jr')||n.includes('kids jr')||n.includes('kidsjr')) return '🟣';
+  if(n.includes('kids')) return '🟢';
+  if(n.includes('teens')) return '🟠';
+  if(n.includes('adult')) return '🔵';
+  return '⚪';
+}
+
 function compartirGruposCambioWhatsApp(){
   if(!alumnoSeleccionadoCambio) { mostrarToast('Selecciona un alumno primero.','error'); return; }
   if(!alumnoSeleccionadoCambio.whatsapp) { mostrarToast('Este alumno no tiene WhatsApp registrado.','error'); return; }
   if(!gruposCompartirCambio || !gruposCompartirCambio.length) { mostrarToast('No hay grupos disponibles para compartir.','error'); return; }
 
-  const lineas=gruposCompartirCambio.map(g=>{
-    const libres=g.cupo_max-g.inscritos;
-    return `• ${g.id} — ${g.nombre} (${g.horario}) — Inicio: ${g.fecha_inicio} — ${libres} lugar${libres!==1?'es':''} libre${libres!==1?'s':''}`;
+  // Agrupar por fecha de inicio (ya vienen ordenados de más próximo a más lejano)
+  const porFecha={};
+  const ordenFechas=[];
+  gruposCompartirCambio.forEach(g=>{
+    const f=g.fecha_inicio||'—';
+    if(!porFecha[f]){porFecha[f]=[];ordenFechas.push(f);}
+    porFecha[f].push(g);
+  });
+
+  const bloqueGrupos=ordenFechas.map(f=>{
+    const filas=porFecha[f].map(g=>`${colorPuntoGrupo(g.nombre)}*${g.id}* ${g.nombre} ${g.horario}`).join('\n');
+    return `*${f}*\n${filas}`;
   }).join('\n');
 
-  const mensaje=`Hola ${alumnoSeleccionadoCambio.nombre}! 👋\n\nEstos son los grupos disponibles para tu cambio:\n\n${lineas}\n\nCuéntame cuál te acomoda mejor y con gusto hacemos el cambio 😊`;
+  const separador='━━━━━━━━━━━━━━━━━━━━━━';
+  const nivel=alumnoSeleccionadoCambio.nivel||'';
+
+  const mensaje=`*DISPONIBILIDAD DE GRUPOS PARA CAMBIO*\n*${nivel}* *Organic English  |*\n${separador}\n${bloqueGrupos}\n${separador}\nLas clases son en horario fijo de Lunes a Jueves, una hora al día.\n🇲🇽 Todos los horarios son hora central/CDMX\n\nCuéntame cuál te acomoda mejor y con gusto hacemos el cambio`;
 
   window.open(`https://wa.me/${cleanWA(alumnoSeleccionadoCambio.whatsapp)}?text=${encodeURIComponent(mensaje)}`,'_blank');
 }
