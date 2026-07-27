@@ -25,14 +25,17 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .resumen .card.proceso .val{color:#2563eb;}
 .resumen .card.completados .val{color:#059669;}
 
-.tabs{flex-shrink:0;display:flex;gap:6px;padding:12px 16px;overflow-x:auto;background:#e2e8f0;border-bottom:1px solid #cbd5e1;}
-.tab{white-space:nowrap;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
-.tab:hover{border-color:#f97316;}
-.tab.on{background:#1c2b5e;border-color:#1c2b5e;color:#fff;}
-.tab .cnt{background:rgba(239,68,68,0.15);color:#dc2626;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:999px;}
-.tab.on .cnt{background:rgba(255,255,255,0.2);color:#fff;}
-.tab.historial{margin-left:auto;background:#fef3c7;border-color:#fcd34d;color:#92400e;}
-.tab.historial.on{background:#92400e;border-color:#92400e;color:#fff;}
+.tabs{flex-shrink:0;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:12px 16px;background:#e2e8f0;border-bottom:1px solid #cbd5e1;}
+.tab{background:#0f1c3f;border:1.5px solid transparent;color:#fff;font-size:11.5px;font-weight:700;padding:10px 8px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .15s;text-align:center;line-height:1.15;}
+.tab:hover{background:#16234f;transform:translateY(-1px);}
+.tab.on{background:#16234f;border-color:#fbbf24;box-shadow:0 0 0 2px rgba(251,191,36,.22);}
+.tab svg{width:18px;height:18px;fill:#fbbf24;flex-shrink:0;}
+.tab .cnt{background:rgba(255,255,255,.18);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;}
+.tab.historial{grid-column:1/-1;background:#fef3c7;border-color:#fcd34d;color:#92400e;flex-direction:row;padding:8px 14px;}
+.tab.historial svg{fill:#92400e;}
+.tab.historial.on{background:#92400e;color:#fff;border-color:#92400e;}
+.tab.historial.on svg{fill:#fbbf24;}
+@media (max-width:640px){.tabs{grid-template-columns:repeat(3,1fr);}}
 
 .addbox{flex-shrink:0;background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
 .addbox .fila1{display:flex;gap:8px;}
@@ -129,8 +132,33 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-var CATEGORIAS = ['Direccion','Academico','IT','Ventas','Control Escolar','Maestros','Colocacion','RH'];
-var ICONOS_CAT = {'Direccion':'🏛️','Academico':'🎓','IT':'💻','Ventas':'💰','Control Escolar':'📚','Maestros':'🧑\u200d🏫','Colocacion':'🎯','RH':'👤'};
+var SVG_ICONOS = {
+  direccion:   '<svg viewBox="0 0 24 24"><path d="M12 2 2 8v2h20V8L12 2zM4 11v8H2v2h20v-2h-2v-8h-2v8h-3v-8h-2v8h-2v-8H9v8H6v-8H4z"/></svg>',
+  academico:   '<svg viewBox="0 0 24 24"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zm0 8.5L5 7.68 12 4l7 3.68-7 3.82zM5 13.18v3.99L12 21l7-3.83v-3.99l-7 3.82-7-3.82z"/></svg>',
+  escolar:     '<svg viewBox="0 0 24 24"><path d="M12 4.5C10 3 7.6 2.2 5 2.2c-1.4 0-2.8.2-4 .6v14.9c1.2-.4 2.6-.6 4-.6 2.6 0 5 .8 7 2.3 2-1.5 4.4-2.3 7-2.3 1.4 0 2.8.2 4 .6V2.8c-1.2-.4-2.6-.6-4-.6-2.6 0-5 .8-7 2.3z"/></svg>',
+  ventas:      '<svg viewBox="0 0 24 24"><path d="M16 6l2.3 2.3-4.9 4.9-4-4L2 16.6 3.4 18l6-6 4 4 6.3-6.3L22 12V6z"/></svg>',
+  it:          '<svg viewBox="0 0 24 24"><path d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-2 13h20v2H2z"/></svg>',
+  maestros:    '<svg viewBox="0 0 24 24"><path d="M4 4h16v10H8l-4 4V4zm2 3v1h12V7zm0 3v1h9v-1z"/></svg>',
+  colocacion:  '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6zm0-9a3 3 0 1 0 3 3 3 3 0 0 0-3-3z"/></svg>',
+  asistentes:  '<svg viewBox="0 0 24 24"><path d="M12 3a8 8 0 0 0-8 8v6a3 3 0 0 0 3 3h2v-8H6v-1a6 6 0 0 1 12 0v1h-3v8h2a3 3 0 0 0 3-3v-6a8 8 0 0 0-8-8z"/></svg>',
+  asesores:    '<svg viewBox="0 0 24 24"><path d="M10 2a2 2 0 0 0-2 2v1H4a2 2 0 0 0-2 2v3h20V7a2 2 0 0 0-2-2h-4V4a2 2 0 0 0-2-2zm0 3V4h4v1zM2 11v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8H2z"/></svg>',
+  rh:          '<svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h9v-2.5c0-.9.3-1.7.9-2.4A11.7 11.7 0 0 0 8 13zm8 0c-.6 0-1.3.1-2 .2.8.9 1.2 2 1.2 3.3V19h8v-2.5c0-2.3-4.7-3.5-7-3.5z"/></svg>',
+  historial:   '<svg viewBox="0 0 24 24"><path d="M10 4H2v16h20V6H12z"/></svg>'
+};
+var CATEGORIAS = [
+  {key:'Direccion',       label:'Dirección',        icono:SVG_ICONOS.direccion},
+  {key:'Academico',       label:'Coord. Académica', icono:SVG_ICONOS.academico},
+  {key:'Control Escolar', label:'Coord. Escolar',   icono:SVG_ICONOS.escolar},
+  {key:'Ventas',          label:'Coord. de Ventas', icono:SVG_ICONOS.ventas},
+  {key:'IT',              label:'Coord. IT',        icono:SVG_ICONOS.it},
+  {key:'Maestros',        label:'Maestros',         icono:SVG_ICONOS.maestros},
+  {key:'Colocacion',      label:'Colocación',       icono:SVG_ICONOS.colocacion},
+  {key:'Asistentes CE',   label:'Asistentes CE',    icono:SVG_ICONOS.asistentes},
+  {key:'Asesores',        label:'Asesores',         icono:SVG_ICONOS.asesores},
+  {key:'RH',              label:'RH',               icono:SVG_ICONOS.rh}
+];
+var CAT_BY_KEY = {};
+CATEGORIAS.forEach(function(c){ CAT_BY_KEY[c.key] = c; });
 var tabActiva = 'Direccion';
 var viendoHistorial = false;
 var todosLosItems = [];
@@ -168,14 +196,14 @@ function buildResumen(){
 
 function buildTabs(){
   var conteoPend = {};
-  CATEGORIAS.forEach(function(c){ conteoPend[c] = 0; });
+  CATEGORIAS.forEach(function(c){ conteoPend[c.key] = 0; });
   todosLosItems.forEach(function(it){ if(it.estado !== 'Completado' && conteoPend[it.categoria] !== undefined) conteoPend[it.categoria]++; });
 
   var html = CATEGORIAS.map(function(c){
-    var n = conteoPend[c];
-    return '<div class="tab'+(!viendoHistorial && tabActiva===c?' on':'')+'" onclick="cambiarTab(\''+c+'\')">'+ICONOS_CAT[c]+' '+c+(n>0?' <span class="cnt">'+n+'</span>':'')+'</div>';
+    var n = conteoPend[c.key];
+    return '<div class="tab'+(!viendoHistorial && tabActiva===c.key?' on':'')+'" onclick="cambiarTab(\''+c.key+'\')">'+c.icono+'<span>'+c.label+(n>0?' <b class="cnt">'+n+'</b>':'')+'</span></div>';
   }).join('');
-  html += '<div class="tab historial'+(viendoHistorial?' on':'')+'" onclick="verHistorial()">🗂 Historial</div>';
+  html += '<div class="tab historial'+(viendoHistorial?' on':'')+'" onclick="verHistorial()">'+SVG_ICONOS.historial+'<span>Historial</span></div>';
   document.getElementById('tabs').innerHTML = html;
 }
 
@@ -208,7 +236,7 @@ function render(){
   lista.innerHTML = items.map(function(it){
     if(it.estado === 'Completado'){
       return '<div class="item resuelto">'
-        + '<div class="cabeza"><div class="texto">'+(viendoHistorial?'<span class="cat-chip">'+ICONOS_CAT[it.categoria]+' '+it.categoria+'</span>':'')+esc(it.texto)+'</div>'
+        + '<div class="cabeza"><div class="texto">'+(viendoHistorial?'<span class="cat-chip">'+(CAT_BY_KEY[it.categoria]?CAT_BY_KEY[it.categoria].label:it.categoria)+'</span>':'')+esc(it.texto)+'</div>'
         + '<span class="resuelto-tag">✅ Completado</span></div>'
         + '<div class="meta"><b>'+esc(it.nombreAutor)+'</b> · '+fmtFecha(it.fechaCreacion)+' &nbsp;→&nbsp; completado por <b>'+esc(it.nombreResolvio)+'</b> · '+fmtFecha(it.fechaResolucion)+'</div>'
       + '</div>';
