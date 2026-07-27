@@ -1705,5 +1705,78 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
   if (e.target === this) cerrarHorario();
 });
 </script>
+<!-- Botón flotante Agenda del Equipo -->
+<style>
+@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(124,58,237,0.5);}}
+#btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
+</style>
+<button id="btnAgenda" onclick="abrirAgenda()" style="
+  position:fixed;bottom:24px;right:190px;z-index:998;
+  background:#7c3aed;color:#fff;
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:100px;padding:12px 20px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,0.35);
+  display:flex;align-items:center;gap:8px;
+  font-family:'Segoe UI',Arial,sans-serif;">
+  📌 Agenda
+</button>
+
+<!-- Overlay con iframe -->
+<div id="agendaOverlay" style="
+  display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px;">
+  <div style="position:relative;width:100%;max-width:900px;height:90vh;">
+    <button onclick="cerrarAgenda()" style="
+      position:absolute;top:-40px;right:0;
+      background:rgba(255,255,255,0.15);color:#fff;border:none;
+      border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">✕</button>
+    <iframe id="agendaFrame" src="" style="
+      width:100%;height:100%;border:none;border-radius:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);"></iframe>
+  </div>
+</div>
+
+<script>
+var AGENDA_PLATAFORMA = 'maestro';
+var AGENDA_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+function abrirAgenda(){
+  if(window.innerWidth<768){window.open('agenda.html','_blank');return;}
+  var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
+  f.src='agenda.html';o.style.display='flex';document.body.style.overflow='hidden';
+  // Al abrir, se marca como vista la actividad hasta ahora -- el boton deja de parpadear.
+  localStorage.setItem('agendaVisto_'+AGENDA_PLATAFORMA, new Date().toISOString());
+  document.getElementById('btnAgenda').classList.remove('parpadea');
+}
+function cerrarAgenda(){
+  var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
+  o.style.display='none';f.src='';document.body.style.overflow='';
+}
+document.getElementById('agendaOverlay').addEventListener('click', function(e) {
+  if (e.target === this) cerrarAgenda();
+});
+
+// Revisa si hay actividad nueva relevante para esta plataforma (incluyendo
+// siempre los mensajes de Direccion) desde la ultima vez que se abrio la
+// agenda aqui, y hace parpadear el boton si es asi.
+function revisarActividadAgenda(){
+  fetch(AGENDA_APPS_SCRIPT + '?action=getUltimaActividadAgenda&plataforma=' + encodeURIComponent(AGENDA_PLATAFORMA))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.success || !data.ultimaActividad) return;
+      var vista = localStorage.getItem('agendaVisto_'+AGENDA_PLATAFORMA);
+      if(!vista || new Date(data.ultimaActividad) > new Date(vista)){
+        document.getElementById('btnAgenda').classList.add('parpadea');
+      }
+    })
+    .catch(function(){});
+}
+revisarActividadAgenda();
+setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
+</script>
+
+
+
 </body>
 </html>
