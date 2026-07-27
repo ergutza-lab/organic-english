@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agenda del Equipo · Organic English</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;overflow:hidden;-webkit-tap-highlight-color:transparent;display:flex;align-items:flex-start;justify-content:center}
+
+.wrap{height:100vh;width:100%;max-width:900px;display:flex;flex-direction:column;background:#f1f5f9;border-radius:20px;overflow:hidden;}
+
+.topbar{flex-shrink:0;background:#1c2b5e;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;color:#fff;}
+.topbar h1{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.topbar .quien{font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:6px;}
+.topbar .quien b{color:#fb923c;}
+.topbar .cambiar-id{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;}
+
+.tabs{flex-shrink:0;display:flex;gap:6px;padding:12px 16px;overflow-x:auto;background:#e2e8f0;border-bottom:1px solid #cbd5e1;}
+.tab{white-space:nowrap;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.tab:hover{border-color:#f97316;}
+.tab.on{background:#1c2b5e;border-color:#1c2b5e;color:#fff;}
+.tab .cnt{background:rgba(239,68,68,0.15);color:#dc2626;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:999px;}
+.tab.on .cnt{background:rgba(255,255,255,0.2);color:#fff;}
+.tab.historial{margin-left:auto;background:#fef3c7;border-color:#fcd34d;color:#92400e;}
+.tab.historial.on{background:#92400e;border-color:#92400e;color:#fff;}
+
+.addbar{flex-shrink:0;display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;}
+.addbar input[type=text]{flex:1;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 14px;font-size:13.5px;outline:none;font-family:inherit;}
+.addbar input[type=text]:focus{border-color:#f97316;}
+.addbar button{background:#f97316;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.addbar button:hover{background:#ea580c;}
+
+.lista{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.item{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.item .texto{font-size:14px;color:#1e293b;font-weight:600;margin-bottom:5px;line-height:1.4;}
+.item .meta{font-size:11.5px;color:#94a3b8;}
+.item .meta b{color:#475569;}
+.item .cat-chip{display:inline-block;background:#eef2ff;color:#4338ca;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:6px;}
+.item.resuelto{opacity:.85;background:#f0fdf4;border-color:#bbf7d0;}
+.item.resuelto .texto{text-decoration:line-through;color:#4b7c5f;}
+.btn-resolver{flex-shrink:0;background:#10b981;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-resolver:hover{background:#059669;}
+.resuelto-tag{flex-shrink:0;font-size:11px;color:#059669;font-weight:700;white-space:nowrap;}
+.empty{text-align:center;color:#94a3b8;font-size:13px;padding:40px 20px;}
+
+.status-msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1c2b5e;color:#fff;padding:10px 20px;border-radius:999px;font-size:12.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
+.status-msg.show{opacity:1;}
+.status-msg.error{background:#dc2626;}
+
+.overlay-id{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:100;}
+.overlay-id.show{display:flex;}
+.overlay-id .box{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:340px;text-align:center;}
+.overlay-id .box h3{font-size:15px;color:#1e293b;margin-bottom:6px;}
+.overlay-id .box p{font-size:12px;color:#64748b;margin-bottom:14px;}
+.overlay-id .box input{width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 14px;font-size:14px;text-align:center;margin-bottom:10px;font-family:inherit;}
+.overlay-id .box button{width:100%;background:#f97316;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;}
+
+@media (max-width:600px){.wrap{border-radius:0;}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <h1>📌 Agenda del Equipo</h1>
+    <div class="quien">Firmando como <b id="quienSoy">—</b> <button class="cambiar-id" onclick="abrirOverlayId()">Cambiar</button></div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="addbar" id="addbar">
+    <input type="text" id="nuevoTexto" placeholder="Escribe un pendiente nuevo..." onkeypress="if(event.key==='Enter')agregarPendiente()">
+    <button onclick="agregarPendiente()">➕ Agregar</button>
+  </div>
+
+  <div class="lista" id="lista"><div class="empty">Cargando...</div></div>
+</div>
+
+<div class="overlay-id" id="overlayId">
+  <div class="box">
+    <h3>¿Quién eres?</h3>
+    <p>Escribe tu ID de acceso (el mismo que usas para entrar a tu plataforma).</p>
+    <input type="text" id="inputMiId" placeholder="Ej: MAE-01, CA-01, ASI-01..." onkeypress="if(event.key==='Enter')guardarMiId()">
+    <button onclick="guardarMiId()">Continuar</button>
+  </div>
+</div>
+
+<div class="status-msg" id="statusMsg"></div>
+
+<script>
+const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+var CATEGORIAS = ['General','Academico','IT','Ventas','Control Escolar','Maestros','Colocacion'];
+var ICONOS_CAT = {'General':'📋','Academico':'🎓','IT':'💻','Ventas':'💰','Control Escolar':'📚','Maestros':'🧑\u200d🏫','Colocacion':'🎯'};
+var tabActiva = 'General';
+var viendoHistorial = false;
+var todosLosItems = [];
+var miId = '';
+
+function abrirOverlayId(){ document.getElementById('overlayId').classList.add('show'); document.getElementById('inputMiId').value = miId; }
+function guardarMiId(){
+  var v = document.getElementById('inputMiId').value.trim();
+  if(!v){ return; }
+  miId = v.toUpperCase();
+  sessionStorage.setItem('agendaMiId', miId);
+  document.getElementById('quienSoy').textContent = miId;
+  document.getElementById('overlayId').classList.remove('show');
+}
+
+function mostrarStatus(msg, esError){
+  var s = document.getElementById('statusMsg');
+  s.textContent = msg;
+  s.classList.toggle('error', !!esError);
+  s.classList.add('show');
+  setTimeout(function(){ s.classList.remove('show'); }, 3000);
+}
+
+function buildTabs(){
+  var conteoPend = {};
+  CATEGORIAS.forEach(function(c){ conteoPend[c] = 0; });
+  todosLosItems.forEach(function(it){ if(it.estatus === 'Pendiente' && conteoPend[it.categoria] !== undefined) conteoPend[it.categoria]++; });
+
+  var html = CATEGORIAS.map(function(c){
+    var n = conteoPend[c];
+    return '<div class="tab'+(!viendoHistorial && tabActiva===c?' on':'')+'" onclick="cambiarTab(\''+c+'\')">'+ICONOS_CAT[c]+' '+c+(n>0?' <span class="cnt">'+n+'</span>':'')+'</div>';
+  }).join('');
+  html += '<div class="tab historial'+(viendoHistorial?' on':'')+'" onclick="verHistorial()">🗂 Historial</div>';
+  document.getElementById('tabs').innerHTML = html;
+}
+
+function cambiarTab(c){ tabActiva = c; viendoHistorial = false; document.getElementById('addbar').style.display='flex'; render(); }
+function verHistorial(){ viendoHistorial = true; document.getElementById('addbar').style.display='none'; render(); }
+
+function render(){
+  buildTabs();
+  var lista = document.getElementById('lista');
+  var items;
+  if(viendoHistorial){
+    items = todosLosItems.filter(function(it){ return it.estatus === 'Resuelto'; });
+  } else {
+    items = todosLosItems.filter(function(it){ return it.categoria === tabActiva && it.estatus === 'Pendiente'; });
+  }
+
+  if(!items.length){
+    lista.innerHTML = '<div class="empty">'+(viendoHistorial ? 'Todavía no hay pendientes resueltos.' : 'No hay pendientes en esta categoría. 🎉')+'</div>';
+    return;
+  }
+
+  lista.innerHTML = items.map(function(it){
+    var fecha = it.fechaCreacion ? new Date(it.fechaCreacion).toLocaleDateString('es-MX', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+    if(it.estatus === 'Resuelto'){
+      var fechaRes = it.fechaResolucion ? new Date(it.fechaResolucion).toLocaleDateString('es-MX', {day:'numeric', month:'short'}) : '';
+      return '<div class="item resuelto">'
+        + '<div><div class="texto">'+(viendoHistorial?'<span class="cat-chip">'+ICONOS_CAT[it.categoria]+' '+it.categoria+'</span>':'')+esc(it.texto)+'</div>'
+        + '<div class="meta"><b>'+esc(it.nombreAutor)+'</b> · '+fecha+' &nbsp;→&nbsp; resuelto por <b>'+esc(it.nombreResolvio)+'</b> · '+fechaRes+'</div></div>'
+        + '<span class="resuelto-tag">✅ Resuelto</span>'
+      + '</div>';
+    }
+    return '<div class="item">'
+      + '<div><div class="texto">'+esc(it.texto)+'</div>'
+      + '<div class="meta"><b>'+esc(it.nombreAutor)+'</b> · '+fecha+'</div></div>'
+      + '<button class="btn-resolver" onclick="resolverItem(\''+it.id+'\')">✔ Resolver</button>'
+    + '</div>';
+  }).join('');
+}
+
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function cargarAgenda(){
+  fetch(APPS_SCRIPT + '?action=getAgendaEquipo')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.success){ document.getElementById('lista').innerHTML = '<div class="empty">Error al cargar.</div>'; return; }
+      todosLosItems = data.items || [];
+      render();
+    })
+    .catch(function(){ document.getElementById('lista').innerHTML = '<div class="empty">Error de conexión.</div>'; });
+}
+
+function requerirId(cb){
+  if(!miId){ abrirOverlayId(); return; }
+  cb();
+}
+
+function agregarPendiente(){
+  requerirId(function(){
+    var texto = document.getElementById('nuevoTexto').value.trim();
+    if(!texto){ return; }
+    fetch(APPS_SCRIPT + '?action=agregarPendienteAgenda&idAutor='+encodeURIComponent(miId)+'&categoria='+encodeURIComponent(tabActiva)+'&texto='+encodeURIComponent(texto))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.success){
+          document.getElementById('nuevoTexto').value = '';
+          mostrarStatus('✅ Agregado por '+data.nombreAutor);
+          cargarAgenda();
+        } else {
+          mostrarStatus(data.error || 'Error al agregar.', true);
+        }
+      })
+      .catch(function(){ mostrarStatus('Error de conexión.', true); });
+  });
+}
+
+function resolverItem(idItem){
+  requerirId(function(){
+    fetch(APPS_SCRIPT + '?action=resolverPendienteAgenda&idItem='+encodeURIComponent(idItem)+'&idResolvio='+encodeURIComponent(miId))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.success){
+          mostrarStatus('✅ Resuelto por '+data.nombreResolvio);
+          cargarAgenda();
+        } else {
+          mostrarStatus(data.error || 'Error al resolver.', true);
+        }
+      })
+      .catch(function(){ mostrarStatus('Error de conexión.', true); });
+  });
+}
+
+// Inicio
+var idGuardado = sessionStorage.getItem('agendaMiId');
+if(idGuardado){ miId = idGuardado; document.getElementById('quienSoy').textContent = miId; }
+else { abrirOverlayId(); }
+buildTabs();
+cargarAgenda();
+</script>
+</body>
+</html>
