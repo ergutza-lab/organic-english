@@ -413,6 +413,13 @@
     </div>
     <div class="modal-body" style="padding:20px 24px;overflow-y:auto;">
 
+      <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Tipo de grupo</label>
+      <select id="ge-tipo" onchange="alCambiarTipoGrupoEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;font-weight:700;">
+        <option value="normal">Normal (letra + consecutivo, según nivel)</option>
+        <option value="especial">Especial — clase de 40 min, $150/clase, $100/clase al maestro</option>
+        <option value="personalizado">Personalizado — 1 a 1, costo por hora a acordar</option>
+      </select>
+
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
       <select id="ge-nivel" onchange="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;">
         <option value="">Selecciona un nivel...</option>
@@ -422,7 +429,7 @@
       <input type="date" id="ge-fecha" oninput="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
 
       <div id="ge-id-preview" style="display:none;background:var(--orange-dim);border:1px solid var(--orange-brd);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
-        <div style="font-size:12px;color:var(--gray);margin-bottom:4px;">ID de grupo (consecutivo a la última serie en uso)</div>
+        <div style="font-size:12px;color:var(--gray);margin-bottom:4px;" id="ge-id-preview-label">ID de grupo (consecutivo a la última serie en uso)</div>
         <div style="color:#fb923c;font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="ge-id-valor"></div>
       </div>
 
@@ -431,8 +438,9 @@
 
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
       <select id="ge-horario" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;"></select>
+      <input type="text" id="ge-horario-libre" placeholder="Ej: Por definir -- se coordina con el maestro" style="display:none;width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
 
-      <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      <div id="ge-sabatino-wrap" style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
         <input type="checkbox" id="ge-sabatino" onchange="alCambiarSabatinoEspecial()" style="width:18px;height:18px;accent-color:#7c3aed;flex-shrink:0;" />
         <label for="ge-sabatino" style="font-size:13px;color:var(--off-white);cursor:pointer;">Es un grupo <strong style="color:#a78bfa;">sabatino</strong> — una sola clase de 4 horas (9:00 AM a 1:00 PM), en vez de Lunes a Jueves.</label>
       </div>
@@ -1465,6 +1473,7 @@
 
   function abrirModalGrupoEspecial() {
     poblarSelectNiveles('ge-nivel');
+    document.getElementById('ge-tipo').value = 'normal';
     document.getElementById('ge-nivel').value = '';
     document.getElementById('ge-fecha').value = '';
     document.getElementById('ge-id-preview').style.display = 'none';
@@ -1472,13 +1481,79 @@
     document.getElementById('ge-nombre').style.color = colorPorNombreGrupo('ADULTS');
     document.getElementById('ge-nombre').onchange = function () { this.style.color = colorPorNombreGrupo(this.value); };
     document.getElementById('ge-horario').innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
+    document.getElementById('ge-horario-libre').value = '';
     document.getElementById('ge-cupo').value = 10;
+    document.getElementById('ge-cupo').disabled = false;
     document.getElementById('ge-sabatino').checked = false;
     document.getElementById('ge-status').style.display = 'none';
     poblarSelectAsistentes('ge-asistente');
+    alCambiarTipoGrupoEspecial();
     document.getElementById('modalGrupoEspecial').classList.add('active');
   }
   function cerrarModalGrupoEspecial() { document.getElementById('modalGrupoEspecial').classList.remove('active'); }
+
+  // Encuentra el siguiente numero disponible para un prefijo con guion
+  // (ESP-01, PER-01, etc.) -- serie independiente de la de letra+numero
+  // (K06, I01...) que usan los grupos normales.
+  function siguienteIdPorPrefijo(prefijo, grupos) {
+    var maxNum = 0;
+    (grupos || []).forEach(function (g) {
+      var id = String(g.idGrupo || '').trim().toUpperCase();
+      var m = id.match(new RegExp('^' + prefijo + '-(\\d{2,})$'));
+      if (m) { var n = parseInt(m[1], 10); if (n > maxNum) maxNum = n; }
+    });
+    return prefijo + '-' + String(maxNum + 1).padStart(2, '0');
+  }
+
+  // Al cambiar el "Tipo de grupo" se ajusta toda la forma: los grupos
+  // Especial/Personalizado son siempre 1 a 1 (cupo fijo en 1, sin opcion
+  // sabatino), su ID usa el prefijo ESP-/PER- en vez de letra+nivel, y su
+  // horario es de texto libre ("a coordinar") en vez de una hora fija.
+  function alCambiarTipoGrupoEspecial() {
+    var tipo = document.getElementById('ge-tipo').value;
+    var esEspecialOPersonalizado = (tipo === 'especial' || tipo === 'personalizado');
+
+    document.getElementById('ge-sabatino-wrap').style.display = esEspecialOPersonalizado ? 'none' : 'flex';
+    document.getElementById('ge-horario').style.display = esEspecialOPersonalizado ? 'none' : '';
+    document.getElementById('ge-horario-libre').style.display = esEspecialOPersonalizado ? '' : 'none';
+
+    var cupoInput = document.getElementById('ge-cupo');
+    if (esEspecialOPersonalizado) {
+      cupoInput.value = 1;
+      cupoInput.disabled = true;
+      if (!document.getElementById('ge-horario-libre').value) {
+        document.getElementById('ge-horario-libre').value = 'Por definir -- se coordina con el maestro';
+      }
+    } else {
+      cupoInput.disabled = false;
+    }
+    alCambiarNivelEspecial();
+  }
+
+  function alCambiarNivelEspecial() {
+    var tipo  = document.getElementById('ge-tipo').value;
+    var nivel = document.getElementById('ge-nivel').value;
+    var fecha = document.getElementById('ge-fecha').value;
+
+    if (tipo === 'especial' || tipo === 'personalizado') {
+      if (!fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
+      var prefijo = tipo === 'especial' ? 'ESP' : 'PER';
+      var idPreview = siguienteIdPorPrefijo(prefijo, todosGrupos || []);
+      document.getElementById('ge-id-preview-label').textContent = 'ID de grupo (consecutivo dentro de ' + prefijo + '-)';
+      document.getElementById('ge-id-valor').textContent = idPreview;
+      document.getElementById('ge-id-preview').style.display = '';
+      return;
+    }
+
+    document.getElementById('ge-id-preview-label').textContent = 'ID de grupo (consecutivo a la última serie en uso)';
+    if (!nivel || !fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
+    var analisis = analizarSeriesIds(todosGrupos || []);
+    var resultado = letraParaFecha(analisis, fecha);
+    var numero = siguienteNumeroDisponible(analisis, resultado.letra, null);
+    var idPreview = resultado.letra + String(numero).padStart(2, '0');
+    document.getElementById('ge-id-valor').textContent = idPreview;
+    document.getElementById('ge-id-preview').style.display = '';
+  }
 
   // Al marcar "grupo sabatino", el horario se fija a 9:00 AM (clase de 9 a 1)
   // y se bloquea el select para que no se pueda elegir otra hora -- si se
@@ -1500,23 +1575,15 @@
     selNombre.style.color = colorPorNombreGrupo(selNombre.value);
   }
 
-  function alCambiarNivelEspecial() {
-    var nivel = document.getElementById('ge-nivel').value;
-    var fecha = document.getElementById('ge-fecha').value;
-    if (!nivel || !fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
-    var analisis = analizarSeriesIds(todosGrupos || []);
-    var resultado = letraParaFecha(analisis, fecha);
-    var numero = siguienteNumeroDisponible(analisis, resultado.letra, null);
-    var idPreview = resultado.letra + String(numero).padStart(2, '0');
-    document.getElementById('ge-id-valor').textContent = idPreview;
-    document.getElementById('ge-id-preview').style.display = '';
-  }
-
   function crearGrupoEspecial() {
+    var tipo     = document.getElementById('ge-tipo').value;
+    var esEspecialOPersonalizado = (tipo === 'especial' || tipo === 'personalizado');
     var nivel    = document.getElementById('ge-nivel').value;
     var fecha    = document.getElementById('ge-fecha').value;
     var nombre   = document.getElementById('ge-nombre').value.trim();
-    var horario  = document.getElementById('ge-horario').value.trim();
+    var horario  = esEspecialOPersonalizado
+      ? document.getElementById('ge-horario-libre').value.trim()
+      : document.getElementById('ge-horario').value.trim();
     var cupo     = document.getElementById('ge-cupo').value;
     var idAsis   = document.getElementById('ge-asistente').value;
     var idPreview = document.getElementById('ge-id-valor').textContent;
@@ -1533,6 +1600,7 @@
     status.textContent = 'Creando grupo...';
 
     var esSabatino = document.getElementById('ge-sabatino').checked;
+    var tipoHorarioEnviar = esEspecialOPersonalizado ? tipo : (esSabatino ? 'sabado' : 'entre_semana');
 
     fetch(APPS_SCRIPT, {
       method: 'POST',
@@ -1541,7 +1609,7 @@
         idGrupo: idPreview, nombre: nombre, horario: horario,
         fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
         idAsistente: idAsis,
-        tipoHorario: esSabatino ? 'sabado' : 'entre_semana'
+        tipoHorario: tipoHorarioEnviar
       })
     }).then(function (r) { return r.text(); }).then(function (text) {
       var data = JSON.parse(text);
