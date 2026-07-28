@@ -228,6 +228,9 @@
     <div class="seccion-titulo">Alumnos en espera de colocación</div>
     <div id="listaPendientes"><div class="loading">Cargando...</div></div>
 
+    <div class="seccion-titulo">Alumnos ya inscritos — solicitud de cambio de grupo</div>
+    <div id="listaRecolocaciones"><div class="loading">Cargando...</div></div>
+
     <div class="seccion-titulo">Grupos disponibles por nivel</div>
     <div id="listaGrupos"><div class="loading">Cargando...</div></div>
   </div>
@@ -292,8 +295,10 @@
   var colocadorData    = null;
   var todosGrupos      = [];
   var todosAlumnos     = [];
+  var todasRecolocaciones = [];
   var alumnoActual     = null;
   var grupoSeleccionado = null;
+  var esRecolocacionActual = false; // true cuando el modal de asignacion se abrio desde "Cambiar de grupo"
   var notifData        = null;
 
   // ── LOGIN ──
@@ -335,6 +340,7 @@
   // ── CARGA DE DATOS — se pasa el id del colocador ──
   function cargarDatos() {
     document.getElementById('listaPendientes').innerHTML = '<div class="loading">Cargando...</div>';
+    document.getElementById('listaRecolocaciones').innerHTML = '<div class="loading">Cargando...</div>';
     document.getElementById('listaGrupos').innerHTML     = '<div class="loading">Cargando...</div>';
 
     fetch(APPS_SCRIPT + '?action=getDatosColocador&id=' + encodeURIComponent(colocadorData.id))
@@ -343,7 +349,9 @@
         if (data.success) {
           todosGrupos  = data.grupos   || [];
           todosAlumnos = data.pendientes || [];
+          todasRecolocaciones = data.recolocaciones || [];
           renderPendientes(todosAlumnos);
+          renderRecolocaciones(todasRecolocaciones);
           renderGrupos(todosGrupos);
         } else {
           document.getElementById('listaPendientes').innerHTML =
@@ -379,6 +387,35 @@
           '<a class="btn-whatsapp-verde" href="https://wa.me/' + cleanWA(a.whatsapp) + '?text=' + msgWA + '" target="_blank">WhatsApp</a>' +
           '<button class="btn-examen" onclick="abrirExamen(\'' + a.idAlumno + '\', \'' + a.nombre.replace(/'/g,"\\'") + '\', \'' + (a.whatsapp||'') + '\', \'' + (a.email||'') + '\')">🎓 Examen de colocación</button>' +
           '<button class="btn-asignar" onclick="abrirModalAsignacion(\'' + a.idAlumno + '\')">Asignar grupo</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── RENDER RECOLOCACIONES (alumnos YA inscritos que piden cambio de grupo) ──
+  function renderRecolocaciones(recolocaciones) {
+    var lista = document.getElementById('listaRecolocaciones');
+    if (!recolocaciones || recolocaciones.length === 0) {
+      lista.innerHTML = '<div class="empty-state"><div class="icon">✓</div><p>No hay solicitudes de cambio de grupo.</p></div>';
+      return;
+    }
+    lista.innerHTML = recolocaciones.map(function(r) {
+      var msgWA = encodeURIComponent(
+        'Hola ' + r.nombre + ', soy el encargado de colocación de Organic English. ' +
+        'Me comunico contigo para coordinar tu examen de colocación para el cambio de grupo que solicitaste. ' +
+        'Cuando tengas un momento disponible con gusto te explico los siguientes pasos.'
+      );
+      return '<div class="alumno-card" style="border-left:3px solid #a78bfa;">' +
+        '<div class="info">' +
+          '<div class="nombre">' + r.nombre + ' <span style="font-size:11px;font-weight:700;color:#a78bfa;background:rgba(167,139,250,0.12);border-radius:6px;padding:2px 6px;margin-left:6px;">YA INSCRITA</span></div>' +
+          '<div class="detalle">' + r.idAlumno + ' · Grupo actual: ' + (r.grupoActualNombre||r.grupoActualId||'—') + '</div>' +
+          '<div class="detalle" style="margin-top:4px;color:#94a3b8;">Motivo: ' + r.motivo + '</div>' +
+          '<div class="detalle">Solicitud: ' + new Date(r.fecha).toLocaleDateString('es-MX') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<a class="btn-whatsapp-verde" href="https://wa.me/' + cleanWA(r.whatsapp) + '?text=' + msgWA + '" target="_blank">WhatsApp</a>' +
+          '<button class="btn-examen" onclick="abrirExamen(\'' + r.idAlumno + '\', \'' + r.nombre.replace(/'/g,"\\'") + '\', \'' + (r.whatsapp||'') + '\', \'' + (r.email||'') + '\')">🎓 Examen de colocación</button>' +
+          '<button class="btn-asignar" onclick="abrirModalCambioGrupo(\'' + r.idAlumno + '\')">🔄 Cambiar de grupo</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -458,6 +495,42 @@ function toggleNivel(id, btn) {
     document.getElementById('modalAsignacion').classList.add('active');
   }
 
+  // Igual que abrirModalAsignacion, pero para un alumno que YA esta
+  // inscrito (viene de todasRecolocaciones, no de todosAlumnos) y que va a
+  // CAMBIAR de grupo, no a que se le asigne uno por primera vez.
+  function abrirModalCambioGrupo(idAlumno, nivelSugerido) {
+    var recol = todasRecolocaciones.find(function(r) { return r.idAlumno === idAlumno; });
+    if (!recol) { alert('No se encontró la solicitud de recolocación.'); return; }
+    alumnoActual = { idAlumno: recol.idAlumno, nombre: recol.nombre, whatsapp: recol.whatsapp };
+    esRecolocacionActual = true;
+    grupoSeleccionado = null;
+    document.getElementById('modalAlumnoNombre').textContent = alumnoActual.nombre + ' (ya inscrita — cambio de grupo)';
+    document.getElementById('modalAlumnoId').textContent     = alumnoActual.idAlumno + ' · Grupo actual: ' + (recol.grupoActualId || '—');
+    document.getElementById('btnConfirmar').disabled = true;
+    document.getElementById('btnConfirmar').textContent = 'Confirmar cambio de grupo';
+
+    var nivelesDisponibles = Array.from(new Set(todosGrupos.map(function(g){ return g.nivel; }))).sort();
+    var filtroInicial = (nivelSugerido && nivelesDisponibles.indexOf(nivelSugerido) !== -1) ? nivelSugerido : '';
+    var opcionesFiltro = '<option value="">Todos los niveles</option>' + nivelesDisponibles.map(function(n) {
+      return '<option value="' + n + '"' + (n === filtroInicial ? ' selected' : '') + '>' + n + '</option>';
+    }).join('');
+
+    var filtroHtml = '<div class="campo-examen" style="margin-bottom:14px">' +
+      (nivelSugerido ? '<label style="color:#a78bfa">🎓 Nivel recomendado por el examen: ' + nivelSugerido + '</label>' : '<label>Filtrar por nivel</label>') +
+      '<select id="filtroNivelGrupos" onchange="renderGruposModal(this.value)">' + opcionesFiltro + '</select>' +
+    '</div>';
+
+    var contenedorFiltro = document.getElementById('filtroNivelWrap');
+    if (!contenedorFiltro) {
+      document.getElementById('modalGruposLista').insertAdjacentHTML('beforebegin', '<div id="filtroNivelWrap"></div>');
+      contenedorFiltro = document.getElementById('filtroNivelWrap');
+    }
+    contenedorFiltro.innerHTML = filtroHtml;
+
+    renderGruposModal(filtroInicial);
+    document.getElementById('modalAsignacion').classList.add('active');
+  }
+
   function renderGruposModal(nivelFiltro) {
     var lista = nivelFiltro ? todosGrupos.filter(function(g){ return g.nivel === nivelFiltro; }) : todosGrupos;
     if (!lista.length) {
@@ -486,12 +559,44 @@ function toggleNivel(id, btn) {
 
   function cerrarModalAsignacion() {
     document.getElementById('modalAsignacion').classList.remove('active');
-    alumnoActual = null; grupoSeleccionado = null;
+    document.getElementById('btnConfirmar').textContent = 'Confirmar asignación';
+    alumnoActual = null; grupoSeleccionado = null; esRecolocacionActual = false;
   }
 
   function confirmarAsignacion() {
     if (!alumnoActual || !grupoSeleccionado) return;
     var btn = document.getElementById('btnConfirmar');
+
+    // Alumna YA inscrita que pidio cambio de grupo -- se usa cambiarGrupoAlumno
+    // (que ya tiene su propio correo de "cambio de grupo confirmado", no el
+    // de "bienvenida" que usa asignarGrupoColocacion para alumnos nuevos), y
+    // al terminar se marca la solicitud de recolocacion como resuelta.
+    if (esRecolocacionActual) {
+      var idAlumnoRecol = alumnoActual.idAlumno;
+      btn.textContent = 'Cambiando de grupo...'; btn.disabled = true;
+
+      fetch(APPS_SCRIPT + '?action=cambiarGrupoAlumno' +
+        '&idAlumno='      + encodeURIComponent(idAlumnoRecol) +
+        '&grupoDestino='  + encodeURIComponent(grupoSeleccionado))
+        .then(r => r.json())
+        .then(data => {
+          if (!data.ok) throw new Error(data.error || 'Error al cambiar de grupo.');
+          return fetch(APPS_SCRIPT + '?action=marcarRecolocacionResuelta&idAlumno=' + encodeURIComponent(idAlumnoRecol));
+        })
+        .then(r => r.json())
+        .then(function(dataResuelta) {
+          btn.textContent = 'Confirmar cambio de grupo'; btn.disabled = false;
+          cerrarModalAsignacion();
+          alert('✅ Grupo actualizado correctamente. Se notificó al alumno y a su Asistente de Control Escolar.');
+          cargarDatos();
+        })
+        .catch(function(err) {
+          btn.textContent = 'Confirmar cambio de grupo'; btn.disabled = false;
+          alert('Error: ' + err.message);
+        });
+      return;
+    }
+
     btn.textContent = 'Asignando...'; btn.disabled = true;
 
     var alumnoWAActual = alumnoActual.whatsapp;
@@ -937,8 +1042,14 @@ function toggleNivel(id, btn) {
       .then(function(data) {
         if (data.success) {
           var nivelFinal = payload.nivelRecomendado;
+          var idAlumnoEvaluado = examenState ? examenState.prospecto.idAlumno : payload.idAlumno;
           cerrarExamen();
-          abrirModalAsignacion(examenState ? examenState.prospecto.idAlumno : payload.idAlumno, nivelFinal);
+          var esRecol = todasRecolocaciones.some(function(r){ return r.idAlumno === idAlumnoEvaluado; });
+          if (esRecol) {
+            abrirModalCambioGrupo(idAlumnoEvaluado, nivelFinal);
+          } else {
+            abrirModalAsignacion(idAlumnoEvaluado, nivelFinal);
+          }
         } else {
           btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
           alert('Error al guardar: ' + (data.error || 'Intenta de nuevo.'));
