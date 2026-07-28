@@ -486,6 +486,25 @@
   </div>
 </div>
 
+<!-- MODAL VISTA PREVIA DEL GRUPO RECIEN CREADO (para compartir por captura) -->
+<div class="modal-overlay" id="modalPreviewGrupo">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="oe-icon"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div><h3>Grupo creado</h3><p>Puedes tomarle una captura de pantalla para compartirla</p></div>
+      </div>
+      <button class="btn-cerrar" onclick="cerrarPreviewGrupo()">Cerrar</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px;">
+      <div id="previewGrupoCard" style="background:linear-gradient(135deg,#1c2b5e 0%,#0f1a3d 100%);border-radius:16px;padding:22px 20px;border:1px solid rgba(255,255,255,0.1);"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <button class="btn-login" style="width:auto;padding:12px 28px;margin:0;" onclick="cerrarPreviewGrupo()">Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CANCELAR GRUPO -->
 <div class="modal-overlay" id="modalCancelarGrupo">
   <div class="modal-box" style="max-width:560px;">
@@ -971,12 +990,19 @@
         ? '<br><span class="chip chip-yellow" style="margin-top:4px;display:inline-block">⚠ Fusionar</span>'
         : '';
       var inscritosCell = '<span style="font-size:15px;font-weight:600;color:#fff">'+inscritos+'</span>'+chipFusion;
+      // Los grupos Personalizados se resaltan en rojo en la columna de
+      // Horario, para distinguirlos de un vistazo del resto de los grupos
+      // con horario fijo.
+      var esPersonalizadoFila = g.tipoHorario === 'personalizado';
+      var horarioCellHtml = esPersonalizadoFila
+        ? '<span style="color:#ef4444;font-weight:700;">'+g.horario+' <span style="font-size:10px;font-weight:700;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);border-radius:6px;padding:2px 6px;margin-left:4px;">PERSONALIZADO</span></span>'
+        : g.horario;
 
       html += '<tr>' +
         '<td style="cursor:pointer;" onclick="abrirAlumnosGrupo(directorCache.grupos.find(function(x){return x.idGrupo===\''+g.idGrupo+'\';}))">' +
         '<span class="td-mono" style="color:#60a5fa;font-size:14px;text-decoration:underline;">'+g.idGrupo+'</span></td>' +
         '<td><span class="chip chip-blue">'+(g.nivel||'').replace('NIVEL ','')+'</span></td>' +
-        '<td class="td-gray">'+g.horario+'</td>' +
+        '<td class="td-gray">'+horarioCellHtml+'</td>' +
         '<td class="td-gray" style="font-size:11px;">'+( g.fechaInicio ? (function(s){ var d=new Date(s); return isNaN(d.getTime()) ? s : d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); })(g.fechaInicio) : '—' )+'</td>' +
         '<td>'+inscritosCell+'</td>' +
         '<td>'+chipE+'</td>' +
@@ -1656,7 +1682,22 @@
         status.style.background = 'rgba(34,197,94,0.1)'; status.style.color = '#22c55e';
         status.textContent = 'Grupo ' + data.idGrupo + ' creado correctamente.';
         cargarDatos();
-        setTimeout(cerrarModalGrupoEspecial, 1400);
+        var asisSelect = document.getElementById('ge-asistente');
+        var asisNombre = asisSelect.selectedIndex >= 0 ? asisSelect.options[asisSelect.selectedIndex].text : idAsis;
+        cerrarModalGrupoEspecial();
+        mostrarPreviewGrupo({
+          idGrupo:      data.idGrupo,
+          nombre:       nombre,
+          nivel:        nivel,
+          horario:      horario,
+          fechaInicio:  fecha,
+          cupo:         cupo,
+          asistente:    asisNombre,
+          tipoHorario:  tipoHorarioEnviar,
+          costoAlumno:  costoAlumno,
+          costoMaestro: costoMaestro,
+          observaciones:observaciones
+        });
       } else {
         status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
         status.textContent = 'Error: ' + data.error;
@@ -1666,6 +1707,48 @@
       status.textContent = 'Error de conexión.';
     });
   }
+
+  // ── VISTA PREVIA DEL GRUPO RECIEN CREADO (para compartir por captura) ──
+  function mostrarPreviewGrupo(g) {
+    var esPersonalizado = g.tipoHorario === 'personalizado';
+    var filaEstilo = 'padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);';
+    var etiquetaEstilo = 'color:#94a3b8;font-size:12px;';
+    function fila(etiqueta, valor, valorEstilo) {
+      return '<tr><td style="'+filaEstilo+etiquetaEstilo+'">'+etiqueta+'</td>' +
+        '<td style="'+filaEstilo+'text-align:right;'+(valorEstilo||'color:#f1f5f9;font-weight:600;')+'">'+valor+'</td></tr>';
+    }
+    var filas = '';
+    filas += fila('ID de grupo', g.idGrupo, 'color:#fb923c;font-weight:700;font-family:\'JetBrains Mono\',monospace;');
+    filas += fila('Nombre', g.nombre);
+    filas += fila('Nivel', g.nivel);
+    filas += fila('Horario', g.horario, esPersonalizado ? 'color:#ef4444;font-weight:700;' : 'color:#f1f5f9;font-weight:600;');
+    filas += fila('Fecha de inicio', g.fechaInicio);
+    filas += fila('Cupo', g.cupo);
+    filas += fila('Asistente CE', g.asistente);
+    if (esPersonalizado) {
+      filas += fila('Costo por clase (alumno)', '$' + g.costoAlumno, 'color:#4ade80;font-weight:700;');
+      filas += fila('Pago por clase (maestro)', '$' + g.costoMaestro, 'color:#fbbf24;font-weight:700;');
+    }
+    var obsHtml = (esPersonalizado && g.observaciones)
+      ? '<div style="margin-top:14px;padding:12px 14px;background:rgba(255,255,255,0.04);border-radius:10px;">' +
+          '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Observaciones</div>' +
+          '<div style="font-size:13px;color:#e2e8f0;line-height:1.5;">' + g.observaciones + '</div>' +
+        '</div>'
+      : '';
+
+    document.getElementById('previewGrupoCard').innerHTML =
+      '<div style="text-align:center;margin-bottom:14px;">' +
+        '<div style="font-size:11px;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">Organic English</div>' +
+        (esPersonalizado
+          ? '<div style="display:inline-block;margin-top:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;">GRUPO PERSONALIZADO</div>'
+          : '<div style="display:inline-block;margin-top:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#4ade80;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;">✔ CREADO</div>') +
+      '</div>' +
+      '<table style="width:100%;border-collapse:collapse;">' + filas + '</table>' +
+      obsHtml;
+
+    document.getElementById('modalPreviewGrupo').classList.add('active');
+  }
+  function cerrarPreviewGrupo() { document.getElementById('modalPreviewGrupo').classList.remove('active'); }
 
   // ── CANCELAR GRUPO ───────────────────────────────────────────────────
   function abrirModalCancelarGrupo() {
