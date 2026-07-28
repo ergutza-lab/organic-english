@@ -420,6 +420,7 @@
       <div id="modalMaestroNombre" style="font-size:20px;font-weight:700;color:var(--text);"></div>
       <div id="modalMaestroId" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
       <div id="modalMaestroClave" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
+      <button id="btnEntrarComoMaestro" onclick="entrarComoMaestro()" style="display:none;margin-top:10px;font-size:12px;font-weight:700;color:#fff;background:#7c3aed;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;">🔑 Entrar como maestro</button>
     </div>
     <div id="modalMaestroDatos" style="font-size:13px;color:#94a3b8;line-height:2;"></div>
     <div id="modalMaestroGrupos" style="margin-top:14px;"></div>
@@ -588,7 +589,7 @@ function callASWithResponse(params, callback){
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
-var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
+var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', maestroModalActual=null, gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
 
 // ── TABULADOR ──
 var NIVELES=[
@@ -790,10 +791,20 @@ function abrirModalMaestro(idMaestro){
   // Bajo el ID se muestra la clave de acceso al panel del maestro, excepto
   // para Avillao (AVILLAO), que es el director y no debe mostrar clave aqui.
   var claveEl=document.getElementById('modalMaestroClave');
+  var btnEntrar=document.getElementById('btnEntrarComoMaestro');
   if(String(m.id).toUpperCase()==='AVILLAO'){
     claveEl.textContent='';
+    btnEntrar.style.display='none';
+    maestroModalActual=null;
   } else {
     claveEl.textContent='Clave de acceso: '+(m.clave||'—');
+    if(m.clave){
+      btnEntrar.style.display='inline-block';
+      maestroModalActual={id:m.id, clave:m.clave};
+    } else {
+      btnEntrar.style.display='none';
+      maestroModalActual=null;
+    }
   }
 
   var nv=getNivel(mapaEval[idMaestro]||75);
@@ -826,6 +837,12 @@ function abrirModalMaestro(idMaestro){
 }
 function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.remove('visible');}
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
+
+// ── ENTRAR COMO MAESTRO (acceso directo a su panel) ──
+function entrarComoMaestro(){
+  if(!maestroModalActual||!maestroModalActual.clave){ alert('Este maestro no tiene una clave de acceso registrada.'); return; }
+  window.open('maestro.html?id='+encodeURIComponent(maestroModalActual.id)+'&clave='+encodeURIComponent(maestroModalActual.clave), '_blank');
+}
 
 // ── COMPARTIR LINK DE ZOOM DE UN GRUPO POR WHATSAPP ──
 function compartirZoomWA(idGrupo){
