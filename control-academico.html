@@ -823,6 +823,20 @@ function abrirModalMaestro(idMaestro){
   if(misGrupos.length){
     gruposHtml='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Grupos asignados</div>';
     gruposHtml+=misGrupos.map(function(g){
+      if(g.tipoHorario === 'personalizado'){
+        var horarioEscapado = String(g.horario||'').replace(/"/g,'&quot;');
+        return '<div style="background:var(--surface2);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 12px;margin-bottom:6px;">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+
+            '<span style="font-size:10px;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.12);border-radius:6px;padding:2px 6px;">PERSONALIZADO</span>'+
+            '<span style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+'</span>'+
+          '</div>'+
+          '<div style="display:flex;gap:8px;">'+
+            '<input type="text" id="horarioGrupoCA-'+g.id+'" value="'+horarioEscapado+'" placeholder="Horario a coordinar" style="flex:1;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);" />'+
+            '<button onclick="guardarHorarioGrupoCA(\''+g.id+'\')" style="font-size:11px;color:#fff;background:#7c3aed;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;white-space:nowrap;">💾 Guardar</button>'+
+          '</div>'+
+          '<div id="horarioGrupoCAStatus-'+g.id+'" style="font-size:11px;margin-top:6px;display:none;"></div>'+
+        '</div>';
+      }
       var btnZoomWA = g.zoom
         ? '<button onclick="event.stopPropagation();compartirZoomWA(\''+g.id+'\')" title="Compartir link de Zoom por WhatsApp" style="font-size:11px;color:#4ade80;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer;white-space:nowrap;">📲 Zoom</button>'
         : '';
@@ -837,6 +851,27 @@ function abrirModalMaestro(idMaestro){
 }
 function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.remove('visible');}
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
+
+// ── GUARDAR HORARIO DE UN GRUPO PERSONALIZADO (desde Control Academico) ──
+function guardarHorarioGrupoCA(idGrupo){
+  var input = document.getElementById('horarioGrupoCA-'+idGrupo);
+  var status = document.getElementById('horarioGrupoCAStatus-'+idGrupo);
+  var horario = input.value.trim();
+  if(!horario){ status.style.display='block'; status.style.color='#f87171'; status.textContent='Escribe el horario antes de guardar.'; return; }
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Guardando...';
+  fetch(APPS_SCRIPT+'?action=actualizarHorarioGrupo&idGrupo='+encodeURIComponent(idGrupo)+'&horario='+encodeURIComponent(horario)+'&quien=CONTROL_ACADEMICO')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        status.style.color='#4ade80'; status.textContent='✅ Horario actualizado.';
+        var g = gruposData.find(function(x){return x.id===idGrupo;});
+        if(g) g.horario = horario;
+      } else {
+        status.style.color='#f87171'; status.textContent='Error: '+(data.error||'');
+      }
+    })
+    .catch(function(){ status.style.color='#f87171'; status.textContent='Error de conexión.'; });
+}
 
 // ── ENTRAR COMO MAESTRO (acceso directo a su panel) ──
 function entrarComoMaestro(){
