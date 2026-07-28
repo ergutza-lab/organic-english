@@ -431,9 +431,9 @@
         <span class="cal-cobertura-label" style="color:#fb923c;">Sobre la vigencia de este pago</span>
         <p style="font-size:12px;color:#94a3b8;margin:0;">Como este alumno aún no tiene grupo asignado, la vigencia de su pago se calculará automáticamente en cuanto el maestro de colocación le asigne un grupo — puede ser uno que ya inició o uno que arranque varias semanas después.</p>
       </div>
-      <div class="cal-cobertura" id="ni-nota-personalizado" style="display:none;background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.3);">
-        <span class="cal-cobertura-label" style="color:#a78bfa;">Grupo Personalizado — sin vigencia semanal</span>
-        <p style="font-size:12px;color:#94a3b8;margin:0;">Este grupo se cobra por clase, no por semana. El monto que captures se convierte en un paquete de clases (monto ÷ costo por clase) y no caduca por fecha — se consume conforme el maestro registre cada clase impartida.</p>
+      <div class="cal-cobertura" id="ni-nota-personalizado" style="display:none;background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.3);margin-top:10px;">
+        <span class="cal-cobertura-label" style="color:#a78bfa;">Grupo Personalizado</span>
+        <p style="font-size:12px;color:#94a3b8;margin:0;">Este grupo cobra <strong id="ni-costo-clase-texto" style="color:#e2e8f0;">—</strong> por clase. El pago debe cubrir, como mínimo, las clases de una semana completa de este alumno (costo por clase × clases que toma esa semana) — puede pagar por más de una semana. Marca en el calendario de abajo qué semana(s) cubre, igual que con cualquier otro grupo.</p>
       </div>
     </div>
 
@@ -1135,7 +1135,9 @@ function gvizJSONP(sheet, callback) {
       nivel:    String(r.c[4]?.v || '').trim(),
       libres:   r.c[7]?.v ?? 0,
       estado:   r.c[8]?.v || '',
-      tipoHorario: String(r.c[18]?.v || '').trim().toLowerCase()
+      tipoHorario: String(r.c[18]?.v || '').trim().toLowerCase(),
+      costoClaseAlumno:  Number(r.c[19]?.v) || 0,
+      costoClaseMaestro: Number(r.c[20]?.v) || 0
     }; });
     callback(grupos);
   };
@@ -1481,36 +1483,47 @@ function niToggleMenor() {
 function niToggleBecado() {
   var esBecado = document.getElementById('ni-tipo').value === 'Becado';
   document.getElementById('ni-bloque-pago').style.display = esBecado ? 'none' : '';
+  niActualizarBloqueCobertura();
+}
+
+// Decide que mostrar en el bloque de cobertura. El calendario de semanas
+// SIEMPRE aplica (incluido Personalizado, que tambien usa vigencia semanal
+// por fecha, igual que Normal/Kids/Promo) -- lo unico que cambia para
+// Personalizado es que se agrega, ademas, una nota informativa con el
+// costo por clase de ese grupo para que el asesor calcule a ojo el minimo
+// de una semana completa.
+function niActualizarBloqueCobertura() {
+  var idGrupoSel = document.getElementById('ni-grupo').value;
+  var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupoSel; });
+  var tipoSel = document.getElementById('ni-tipo').value;
+  var esPersonalizado = tipoSel === 'Personalizado' || (grupoSel && grupoSel.tipoHorario === 'personalizado');
+
+  document.getElementById('ni-bloque-calendario').style.display = '';
+  document.getElementById('ni-nota-colocacion').style.display = 'none';
+
+  if (esPersonalizado) {
+    if (tipoSel !== 'Personalizado') document.getElementById('ni-tipo').value = 'Personalizado';
+    document.getElementById('ni-nota-personalizado').style.display = '';
+    var costoClase = grupoSel ? Number(grupoSel.costoClaseAlumno) || 0 : 0;
+    document.getElementById('ni-costo-clase-texto').textContent = costoClase ? ('$' + costoClase + ' MXN') : 'un costo no definido para este grupo';
+  } else {
+    document.getElementById('ni-nota-personalizado').style.display = 'none';
+  }
+
+  // El calendario debe usar las reglas de sabado (un solo dia) o de entre
+  // semana (lunes-jueves) segun el grupo elegido -- Personalizado usa el
+  // mismo estilo que entre semana salvo que se indique lo contrario.
+  calSetTipoHorario('cal-ni', grupoSel ? grupoSel.tipoHorario : 'entre_semana');
 }
 
 function niToggleCoberturaPorGrupo() {
   var idGrupoSel = document.getElementById('ni-grupo').value;
   var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupoSel; });
-  var esPersonalizado = grupoSel && grupoSel.tipoHorario === 'personalizado';
-
-  document.getElementById('ni-nota-colocacion').style.display = 'none';
-
-  if (esPersonalizado) {
-    // Grupo Personalizado: no aplica vigencia semanal -- se oculta el
-    // calendario, se muestra la nota, y se sincroniza automaticamente el
-    // tipo de inscripcion para que quede consistente con el grupo elegido.
-    document.getElementById('ni-bloque-calendario').style.display = 'none';
-    document.getElementById('ni-nota-personalizado').style.display = '';
-    document.getElementById('ni-tipo').value = 'Personalizado';
-    niToggleBecado();
-  } else {
-    document.getElementById('ni-bloque-calendario').style.display = '';
-    document.getElementById('ni-nota-personalizado').style.display = 'none';
-    // Si el tipo habia quedado en "Personalizado" de una seleccion anterior
-    // y ahora se eligio un grupo normal, regresa el tipo a Promo por default.
-    if (document.getElementById('ni-tipo').value === 'Personalizado') {
-      document.getElementById('ni-tipo').value = 'Promo';
-      niToggleBecado();
-    }
-    // El calendario debe usar las reglas de sabado (un solo dia) o de entre
-    // semana (lunes-jueves) segun el grupo elegido.
-    calSetTipoHorario('cal-ni', grupoSel ? grupoSel.tipoHorario : 'entre_semana');
+  var grupoEsPersonalizado = grupoSel && grupoSel.tipoHorario === 'personalizado';
+  if (!grupoEsPersonalizado && document.getElementById('ni-tipo').value === 'Personalizado') {
+    document.getElementById('ni-tipo').value = 'Promo';
   }
+  niActualizarBloqueCobertura();
 }
 
 function niArchivoSeleccionado(input) {
@@ -1785,8 +1798,7 @@ function confirmarNuevaInscripcion() {
 
   var esColocacionSinGrupo = niTipoSeleccionado === 'COLOCACION';
   var calNI = calendarios['cal-ni'];
-  var esPersonalizadoSel = tipo === 'Personalizado';
-  if (!esBecado && !esColocacionSinGrupo && !esPersonalizadoSel && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
+  if (!esBecado && !esColocacionSinGrupo && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
 
   var idGrupoEnviar = esColocacionSinGrupo ? '' : idGrupo;
   var grupoSel = esColocacionSinGrupo ? null : gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
