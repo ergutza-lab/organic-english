@@ -1228,7 +1228,7 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 
 <!-- Botón flotante Agenda del Equipo -->
 <style>
-@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(124,58,237,0.5);}}
+@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
 #btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
 </style>
 <button id="btnAgenda" onclick="abrirAgenda()" style="
@@ -1241,6 +1241,12 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
   display:flex;align-items:center;gap:8px;
   font-family:'Segoe UI',Arial,sans-serif;">
   📌 Agenda
+  <span id="agendaBadge" style="
+    display:none;position:absolute;top:-6px;right:-6px;
+    background:#dc2626;color:#fff;font-size:11px;font-weight:800;
+    min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+    align-items:center;justify-content:center;
+    box-shadow:0 0 0 2px #0f1c3f;"></span>
 </button>
 
 <!-- Overlay con iframe -->
@@ -1266,29 +1272,39 @@ function abrirAgenda(){
   if(window.innerWidth<768){window.open('agenda.html','_blank');return;}
   var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
   f.src='agenda.html';o.style.display='flex';document.body.style.overflow='hidden';
-  // Al abrir, se marca como vista la actividad hasta ahora -- el boton deja de parpadear.
   localStorage.setItem('agendaVisto_'+AGENDA_PLATAFORMA, new Date().toISOString());
-  document.getElementById('btnAgenda').classList.remove('parpadea');
 }
 function cerrarAgenda(){
   var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
   o.style.display='none';f.src='';document.body.style.overflow='';
+  // Al cerrar, se vuelve a revisar de inmediato -- si ya se resolvieron los
+  // pendientes que se vieron, el circulo rojo desaparece solo.
+  revisarActividadAgenda();
 }
 document.getElementById('agendaOverlay').addEventListener('click', function(e) {
   if (e.target === this) cerrarAgenda();
 });
 
-// Revisa si hay actividad nueva relevante para esta plataforma (incluyendo
-// siempre los mensajes de Direccion) desde la ultima vez que se abrio la
-// agenda aqui, y hace parpadear el boton si es asi.
+// Muestra en el boton flotante el mismo numero de pendientes sin resolver
+// que ya se ve sumando los circulos rojos de las pestañas dentro de
+// agenda.html (Pendiente + En proceso) para las categorias que esta
+// plataforma vigila. Es un reflejo en vivo: no depende de si ya se abrio
+// la agenda antes -- solo desaparece cuando esos pendientes se resuelven.
 function revisarActividadAgenda(){
   fetch(AGENDA_APPS_SCRIPT + '?action=getUltimaActividadAgenda&plataforma=' + encodeURIComponent(AGENDA_PLATAFORMA))
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if(!data.success || !data.ultimaActividad) return;
-      var vista = localStorage.getItem('agendaVisto_'+AGENDA_PLATAFORMA);
-      if(!vista || new Date(data.ultimaActividad) > new Date(vista)){
-        document.getElementById('btnAgenda').classList.add('parpadea');
+      if(!data.success) return;
+      var btn = document.getElementById('btnAgenda');
+      var badge = document.getElementById('agendaBadge');
+      if(data.pendientes > 0){
+        btn.classList.add('parpadea');
+        badge.textContent = data.pendientes > 9 ? '9+' : data.pendientes;
+        badge.style.display = 'flex';
+      } else {
+        btn.classList.remove('parpadea');
+        badge.style.display = 'none';
+        badge.textContent = '';
       }
     })
     .catch(function(){});
