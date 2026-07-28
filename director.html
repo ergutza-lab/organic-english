@@ -416,8 +416,7 @@
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Tipo de grupo</label>
       <select id="ge-tipo" onchange="alCambiarTipoGrupoEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;font-weight:700;">
         <option value="normal">Normal (letra + consecutivo, según nivel)</option>
-        <option value="especial">Especial — clase de 40 min, $150/clase, $100/clase al maestro</option>
-        <option value="personalizado">Personalizado — 1 a 1, costo por hora a acordar</option>
+        <option value="personalizado">Personalizado — 1 a 1, costo por clase a acordar</option>
       </select>
 
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
@@ -439,6 +438,24 @@
       <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
       <select id="ge-horario" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;"></select>
       <input type="text" id="ge-horario-libre" placeholder="Ej: Por definir -- se coordina con el maestro" style="display:none;width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+
+      <div id="ge-costos-wrap" style="display:none;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Costo por clase (al alumno)</label>
+          <input type="number" id="ge-costo-alumno" placeholder="Ej: 150" min="0" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Pago por clase (al maestro)</label>
+          <input type="number" id="ge-costo-maestro" placeholder="Ej: 100" min="0" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+        </div>
+      </div>
+      <div id="ge-costos-nota" style="display:none;font-size:11px;color:var(--gray);margin:-6px 0 14px;">Este costo es por clase impartida, sin importar cuánto dure (puede haber más de una clase el mismo día).</div>
+
+      <div id="ge-observaciones-wrap" style="display:none;margin-bottom:14px;">
+        <label style="display:block;color:var(--gray);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Observaciones</label>
+        <textarea id="ge-observaciones" rows="3" placeholder="Ej: la clase dura 40 minutos. Alumno con autismo, requiere seguimiento especial." style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
+        <div style="font-size:11px;color:var(--gray);margin-top:6px;">Anota aquí cualquier detalle particular de este grupo -- por ejemplo, cuántos minutos dura cada clase (puede variar: 30, 40, 55 min, etc.), condiciones especiales del alumno, o cualquier otra nota útil.</div>
+      </div>
 
       <div id="ge-sabatino-wrap" style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
         <input type="checkbox" id="ge-sabatino" onchange="alCambiarSabatinoEspecial()" style="width:18px;height:18px;accent-color:#7c3aed;flex-shrink:0;" />
@@ -1482,6 +1499,9 @@
     document.getElementById('ge-nombre').onchange = function () { this.style.color = colorPorNombreGrupo(this.value); };
     document.getElementById('ge-horario').innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
     document.getElementById('ge-horario-libre').value = '';
+    document.getElementById('ge-costo-alumno').value = '';
+    document.getElementById('ge-costo-maestro').value = '';
+    document.getElementById('ge-observaciones').value = '';
     document.getElementById('ge-cupo').value = 10;
     document.getElementById('ge-cupo').disabled = false;
     document.getElementById('ge-sabatino').checked = false;
@@ -1493,7 +1513,7 @@
   function cerrarModalGrupoEspecial() { document.getElementById('modalGrupoEspecial').classList.remove('active'); }
 
   // Encuentra el siguiente numero disponible para un prefijo con guion
-  // (ESP-01, PER-01, etc.) -- serie independiente de la de letra+numero
+  // (PER-01, PER-02, etc.) -- serie independiente de la de letra+numero
   // (K06, I01...) que usan los grupos normales.
   function siguienteIdPorPrefijo(prefijo, grupos) {
     var maxNum = 0;
@@ -1506,19 +1526,23 @@
   }
 
   // Al cambiar el "Tipo de grupo" se ajusta toda la forma: los grupos
-  // Especial/Personalizado son siempre 1 a 1 (cupo fijo en 1, sin opcion
-  // sabatino), su ID usa el prefijo ESP-/PER- en vez de letra+nivel, y su
-  // horario es de texto libre ("a coordinar") en vez de una hora fija.
+  // Personalizados son siempre 1 a 1 (cupo fijo en 1, sin opcion sabatino),
+  // su ID usa el prefijo PER- en vez de letra+nivel, su horario es de texto
+  // libre ("a coordinar") en vez de una hora fija, y llevan su propio costo
+  // por clase (al alumno) y pago por clase (al maestro) configurable.
   function alCambiarTipoGrupoEspecial() {
     var tipo = document.getElementById('ge-tipo').value;
-    var esEspecialOPersonalizado = (tipo === 'especial' || tipo === 'personalizado');
+    var esPersonalizado = (tipo === 'personalizado');
 
-    document.getElementById('ge-sabatino-wrap').style.display = esEspecialOPersonalizado ? 'none' : 'flex';
-    document.getElementById('ge-horario').style.display = esEspecialOPersonalizado ? 'none' : '';
-    document.getElementById('ge-horario-libre').style.display = esEspecialOPersonalizado ? '' : 'none';
+    document.getElementById('ge-sabatino-wrap').style.display = esPersonalizado ? 'none' : 'flex';
+    document.getElementById('ge-horario').style.display = esPersonalizado ? 'none' : '';
+    document.getElementById('ge-horario-libre').style.display = esPersonalizado ? '' : 'none';
+    document.getElementById('ge-costos-wrap').style.display = esPersonalizado ? 'grid' : 'none';
+    document.getElementById('ge-costos-nota').style.display = esPersonalizado ? '' : 'none';
+    document.getElementById('ge-observaciones-wrap').style.display = esPersonalizado ? '' : 'none';
 
     var cupoInput = document.getElementById('ge-cupo');
-    if (esEspecialOPersonalizado) {
+    if (esPersonalizado) {
       cupoInput.value = 1;
       cupoInput.disabled = true;
       if (!document.getElementById('ge-horario-libre').value) {
@@ -1535,11 +1559,10 @@
     var nivel = document.getElementById('ge-nivel').value;
     var fecha = document.getElementById('ge-fecha').value;
 
-    if (tipo === 'especial' || tipo === 'personalizado') {
+    if (tipo === 'personalizado') {
       if (!fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
-      var prefijo = tipo === 'especial' ? 'ESP' : 'PER';
-      var idPreview = siguienteIdPorPrefijo(prefijo, todosGrupos || []);
-      document.getElementById('ge-id-preview-label').textContent = 'ID de grupo (consecutivo dentro de ' + prefijo + '-)';
+      var idPreview = siguienteIdPorPrefijo('PER', todosGrupos || []);
+      document.getElementById('ge-id-preview-label').textContent = 'ID de grupo (consecutivo dentro de PER-)';
       document.getElementById('ge-id-valor').textContent = idPreview;
       document.getElementById('ge-id-preview').style.display = '';
       return;
@@ -1577,17 +1600,20 @@
 
   function crearGrupoEspecial() {
     var tipo     = document.getElementById('ge-tipo').value;
-    var esEspecialOPersonalizado = (tipo === 'especial' || tipo === 'personalizado');
+    var esPersonalizado = (tipo === 'personalizado');
     var nivel    = document.getElementById('ge-nivel').value;
     var fecha    = document.getElementById('ge-fecha').value;
     var nombre   = document.getElementById('ge-nombre').value.trim();
-    var horario  = esEspecialOPersonalizado
+    var horario  = esPersonalizado
       ? document.getElementById('ge-horario-libre').value.trim()
       : document.getElementById('ge-horario').value.trim();
     var cupo     = document.getElementById('ge-cupo').value;
     var idAsis   = document.getElementById('ge-asistente').value;
     var idPreview = document.getElementById('ge-id-valor').textContent;
     var status   = document.getElementById('ge-status');
+    var costoAlumno  = document.getElementById('ge-costo-alumno').value;
+    var costoMaestro = document.getElementById('ge-costo-maestro').value;
+    var observaciones = document.getElementById('ge-observaciones').value.trim();
 
     if (!nivel || !fecha || !nombre || !horario || !idAsis || !idPreview) {
       status.style.display = '';
@@ -1595,22 +1621,35 @@
       status.textContent = 'Faltan datos obligatorios.';
       return;
     }
+    if (esPersonalizado && (!costoAlumno || !costoMaestro)) {
+      status.style.display = '';
+      status.style.background = 'rgba(248,113,113,0.1)'; status.style.color = '#f87171';
+      status.textContent = 'Para un grupo Personalizado, indica el costo por clase al alumno y el pago por clase al maestro.';
+      return;
+    }
 
     status.style.display = ''; status.style.background = 'rgba(96,165,250,0.1)'; status.style.color = '#60a5fa';
     status.textContent = 'Creando grupo...';
 
     var esSabatino = document.getElementById('ge-sabatino').checked;
-    var tipoHorarioEnviar = esEspecialOPersonalizado ? tipo : (esSabatino ? 'sabado' : 'entre_semana');
+    var tipoHorarioEnviar = esPersonalizado ? 'personalizado' : (esSabatino ? 'sabado' : 'entre_semana');
+
+    var bodyParams = {
+      action: 'crearGrupo',
+      idGrupo: idPreview, nombre: nombre, horario: horario,
+      fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
+      idAsistente: idAsis,
+      tipoHorario: tipoHorarioEnviar
+    };
+    if (esPersonalizado) {
+      bodyParams.costoClaseAlumno = costoAlumno;
+      bodyParams.costoClaseMaestro = costoMaestro;
+      bodyParams.observaciones = observaciones;
+    }
 
     fetch(APPS_SCRIPT, {
       method: 'POST',
-      body: new URLSearchParams({
-        action: 'crearGrupo',
-        idGrupo: idPreview, nombre: nombre, horario: horario,
-        fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
-        idAsistente: idAsis,
-        tipoHorario: tipoHorarioEnviar
-      })
+      body: new URLSearchParams(bodyParams)
     }).then(function (r) { return r.text(); }).then(function (text) {
       var data = JSON.parse(text);
       if (data.ok) {
