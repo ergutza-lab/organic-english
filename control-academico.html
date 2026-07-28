@@ -803,9 +803,12 @@ function abrirModalMaestro(idMaestro){
   if(misGrupos.length){
     gruposHtml='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Grupos asignados</div>';
     gruposHtml+=misGrupos.map(function(g){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
+      var btnZoomWA = g.zoom
+        ? '<button onclick="event.stopPropagation();compartirZoomWA(\''+g.id+'\')" title="Compartir link de Zoom por WhatsApp" style="font-size:11px;color:#4ade80;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer;white-space:nowrap;">📲 Zoom</button>'
+        : '';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
         '<div><div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+'</div><div style="font-size:11px;color:var(--muted);">'+g.horario+'</div></div>'+
-        '<span style="font-size:11px;color:var(--orange);font-weight:700;">Ver eval ›</span>'+
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'+btnZoomWA+'<span style="font-size:11px;color:var(--orange);font-weight:700;">Ver eval ›</span></div>'+
       '</div>';
     }).join('');
   }
@@ -814,6 +817,14 @@ function abrirModalMaestro(idMaestro){
 }
 function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.remove('visible');}
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
+
+// ── COMPARTIR LINK DE ZOOM DE UN GRUPO POR WHATSAPP ──
+function compartirZoomWA(idGrupo){
+  var g=gruposData.find(function(x){return x.id===idGrupo;});
+  if(!g||!g.zoom){ alert('Este grupo aún no tiene link de Zoom registrado.'); return; }
+  var msg=encodeURIComponent('🎥 Link de Zoom · Grupo '+g.id+(g.nombre?' · '+g.nombre:'')+(g.horario?' ('+g.horario+')':'')+':\n'+g.zoom);
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
 
 // ── VER EVALUACIONES DEL GRUPO (desde modal maestro) ──
 function verEvalGrupo(idGrupo, nombreGrupo){
