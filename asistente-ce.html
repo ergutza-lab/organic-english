@@ -521,6 +521,18 @@
   </div>
 </div>
 
+<!-- MODAL: Avisos tras solicitar examen de colocacion (recolocacion) -->
+<div class="modal-confirm-overlay" id="modal-aviso-colocacion">
+  <div class="modal-confirm-box" style="text-align:left;">
+    <div class="modal-confirm-titulo">🎓 Solicitud enviada</div>
+    <div class="modal-confirm-sub" style="margin-bottom:14px;">Envía estos avisos por WhatsApp (puedes hacerlo en cualquier orden):</div>
+    <div id="aviso-colocacion-botones" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-cancel" onclick="document.getElementById('modal-aviso-colocacion').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -808,7 +820,7 @@ function abrirModalGrupo(idx){
         ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
         :'';
       const darBajaBtn=`<button class="btn-wa-mini" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:6px 10px;" onclick="abrirModalDarBaja('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Dar de baja">🚫</button>`;
-      const colocacionBtn=`<button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 10px;" onclick="solicitarColocacion('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Solicitar examen de colocación (cambio de grupo)">🎓</button>`;
+      const colocacionBtn=`<button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 10px;" onclick="solicitarColocacion('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}','${a.whatsapp||''}')" title="Solicitar examen de colocación (cambio de grupo)">🎓</button>`;
       const tipoEtiquetas = {
         'Promo':         'Promo $100',
         'Promo_Mensual': 'Promo $400',
@@ -1539,19 +1551,61 @@ function ejecutarDarBaja() {
     });
 }
 
-function solicitarColocacion(idAlumno, nombre) {
+function solicitarColocacion(idAlumno, nombre, whatsapp) {
   var motivo = prompt('¿Por qué motivo ' + nombre + ' solicita el examen de colocación (cambio de grupo)?\n\nEsto no cambia su grupo actual -- solo lo pone en la cola del maestro de colocación para que la evalúe.');
   if (!motivo || !motivo.trim()) return;
-  fetch(`${APPS_SCRIPT}?action=solicitarRecolocacion&idAlumno=${encodeURIComponent(idAlumno)}&motivo=${encodeURIComponent(motivo.trim())}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}`)
+  motivo = motivo.trim();
+  fetch(`${APPS_SCRIPT}?action=solicitarRecolocacion&idAlumno=${encodeURIComponent(idAlumno)}&motivo=${encodeURIComponent(motivo)}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}`)
     .then(r => r.json())
     .then(data => {
       if (data.success) {
         mostrarToast('✅ Solicitud de examen de colocación enviada.', 'success');
+        mostrarAvisosColocacion(idAlumno, nombre, whatsapp, motivo);
       } else {
         mostrarToast('Error: ' + (data.error || 'Intenta de nuevo'), 'error');
       }
     })
     .catch(() => mostrarToast('Error de conexión', 'error'));
+}
+
+// Muestra los avisos de WhatsApp para la alumna (que su solicitud ya esta
+// en tramite) y para el/los maestro(s) de colocacion activos (para que
+// sepan que hay un alumno YA inscrito pidiendo examen de colocacion).
+function mostrarAvisosColocacion(idAlumno, nombre, whatsapp, motivo) {
+  var cont = document.getElementById('aviso-colocacion-botones');
+  cont.innerHTML = '<div style="font-size:12px;color:var(--gris-500);">Cargando…</div>';
+  document.getElementById('modal-aviso-colocacion').classList.add('open');
+
+  var msgAlumna = encodeURIComponent(
+    'Hola ' + nombre + ', te escribo de Organic English para confirmarte que tu solicitud de examen de colocación ya está en trámite. ' +
+    'En breve el maestro de colocación se pondrá en contacto contigo para coordinar los siguientes pasos. ¡Gracias por tu paciencia!'
+  );
+  var botonesHtml = whatsapp
+    ? `<a class="btn-confirm-ok" style="display:block;text-align:center;text-decoration:none;background:#22c55e;" href="https://wa.me/${cleanWA(whatsapp)}?text=${msgAlumna}" target="_blank">📱 Avisar a ${nombre}</a>`
+    : `<div style="font-size:12px;color:#f87171;">${nombre} no tiene WhatsApp registrado.</div>`;
+
+  fetch(`${APPS_SCRIPT}?action=getColocadoresActivos`)
+    .then(r => r.json())
+    .then(data => {
+      var colocadores = (data.success && data.colocadores) ? data.colocadores : [];
+      if (!colocadores.length) {
+        botonesHtml += `<div style="font-size:12px;color:#f87171;margin-top:8px;">No hay ningún maestro de colocación activo registrado en el sistema.</div>`;
+      } else {
+        colocadores.forEach(function(c) {
+          if (!c.whatsapp) return;
+          var msgColocador = encodeURIComponent(
+            'Hola ' + c.nombre + ', soy Asistente de Control Escolar de Organic English. ' +
+            'Te escribo porque el alumno ' + nombre + ' (' + idAlumno + '), que ya está inscrito, está solicitando su examen de colocación para posiblemente cambiar a un grupo más avanzado. ' +
+            'Motivo: ' + motivo + '. ¿Podrías contactarlo para coordinar el examen?'
+          );
+          botonesHtml += `<a class="btn-confirm-ok" style="display:block;text-align:center;text-decoration:none;background:#a78bfa;" href="https://wa.me/${cleanWA(c.whatsapp)}?text=${msgColocador}" target="_blank">🎓 Avisar a ${c.nombre} (colocador)</a>`;
+        });
+      }
+      cont.innerHTML = botonesHtml;
+    })
+    .catch(() => {
+      cont.innerHTML = botonesHtml + `<div style="font-size:12px;color:#f87171;margin-top:8px;">No se pudo cargar la lista de maestros de colocación.</div>`;
+    });
 }
 
 function subirLinkWhats(idGrupo) {
