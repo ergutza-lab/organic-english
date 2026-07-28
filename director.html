@@ -1955,9 +1955,6 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 <style>
 @keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(124,58,237,0.5);}}
 #btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
-@keyframes agendaBadgePulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,.7);}70%{box-shadow:0 0 0 7px rgba(220,38,38,0);}100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}}
-#agendaBadge{display:none;position:absolute;top:-7px;right:-7px;background:#dc2626;color:#fbbf24;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:999px;align-items:center;justify-content:center;padding:0 5px;animation:agendaBadgePulse 1.4s ease-in-out infinite;}
-#agendaBadge.visible{display:flex;}
 </style>
 <button id="btnAgenda" onclick="abrirAgenda()" style="
   position:fixed;bottom:24px;right:190px;z-index:998;
@@ -1969,7 +1966,12 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
   display:flex;align-items:center;gap:8px;
   font-family:'Segoe UI',Arial,sans-serif;">
   📌 Agenda
-  <span id="agendaBadge">0</span>
+  <span id="agendaBadge" style="
+    display:none;position:absolute;top:-6px;right:-6px;
+    background:#dc2626;color:#fff;font-size:11px;font-weight:800;
+    min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+    align-items:center;justify-content:center;
+    box-shadow:0 0 0 2px #0f1c3f;"></span>
 </button>
 
 <!-- Overlay con iframe -->
@@ -1995,13 +1997,11 @@ function abrirAgenda(){
   if(window.innerWidth<768){window.open('agenda.html','_blank');return;}
   var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
   f.src='agenda.html';o.style.display='flex';document.body.style.overflow='hidden';
-  // Al abrir, se marca como vista la actividad hasta ahora -- el boton deja de parpadear
-  // y se oculta el numerito de pendientes nuevos.
+  // Al abrir, se marca como vista la actividad hasta ahora -- el boton deja de parpadear.
   localStorage.setItem('agendaVisto_'+AGENDA_PLATAFORMA, new Date().toISOString());
   document.getElementById('btnAgenda').classList.remove('parpadea');
-  var badgeEl = document.getElementById('agendaBadge');
-  badgeEl.classList.remove('visible');
-  badgeEl.textContent = '0';
+  var badge = document.getElementById('agendaBadge');
+  if(badge){ badge.style.display='none'; badge.textContent=''; }
 }
 function cerrarAgenda(){
   var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
@@ -2013,26 +2013,23 @@ document.getElementById('agendaOverlay').addEventListener('click', function(e) {
 
 // Revisa si hay actividad nueva relevante para esta plataforma (incluyendo
 // siempre los mensajes de Direccion) desde la ultima vez que se abrio la
-// agenda aqui: hace parpadear el boton y muestra un numerito rojo con la
-// cantidad de pendientes nuevos/actualizados desde esa ultima visita.
+// agenda aqui, hace parpadear el boton si es asi, y muestra un circulo rojo
+// con el numero de pendientes nuevos (dato que ya calcula el backend).
 function revisarActividadAgenda(){
   var vista = localStorage.getItem('agendaVisto_'+AGENDA_PLATAFORMA);
   var url = AGENDA_APPS_SCRIPT + '?action=getUltimaActividadAgenda&plataforma=' + encodeURIComponent(AGENDA_PLATAFORMA);
-  if (vista) url += '&desde=' + encodeURIComponent(vista);
+  if(vista) url += '&desde=' + encodeURIComponent(vista);
   fetch(url)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(!data.success || !data.ultimaActividad) return;
-      var badgeEl = document.getElementById('agendaBadge');
       if(!vista || new Date(data.ultimaActividad) > new Date(vista)){
         document.getElementById('btnAgenda').classList.add('parpadea');
-        var n = Number(data.nuevos) || 0;
-        if (n > 0) {
-          badgeEl.textContent = n > 99 ? '99+' : String(n);
-          badgeEl.classList.add('visible');
+        var badge = document.getElementById('agendaBadge');
+        if(badge && data.nuevos > 0){
+          badge.textContent = data.nuevos > 9 ? '9+' : data.nuevos;
+          badge.style.display = 'flex';
         }
-      } else {
-        badgeEl.classList.remove('visible');
       }
     })
     .catch(function(){});
