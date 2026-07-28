@@ -1257,6 +1257,24 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
 
  document.getElementById('inputClave').addEventListener('keypress',function(e){if(e.key==='Enter')login();});
 
+// Acceso directo desde Control Academico: si la URL trae ?id=...&clave=...,
+// se rellenan los campos de login y se entra automaticamente, sin que el
+// maestro tenga que escribir nada. Luego se limpia la URL para que la
+// clave no quede visible en el historial del navegador.
+(function autoLoginDesdeURL(){
+  var params = new URLSearchParams(window.location.search);
+  var idURL = params.get('id');
+  var claveURL = params.get('clave');
+  if (idURL && claveURL) {
+    document.getElementById('inputId').value = idURL;
+    document.getElementById('inputClave').value = claveURL;
+    login();
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+})();
+
   var grupoZoomActual = null;
   var grupoGrabActual = null;
 
