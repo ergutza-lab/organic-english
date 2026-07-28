@@ -445,6 +445,53 @@
   </div>
 </div>
 
+<!-- MODAL: Calendario de clases de un grupo Personalizado -->
+<div id="modalCalendarioPersonalizado" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;width:92%;max-width:420px;max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <h3 id="calCATitulo" style="color:var(--text);margin:0;font-size:16px;">Calendario de clases</h3>
+      <button onclick="document.getElementById('modalCalendarioPersonalizado').style.display='none'" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">X</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Da clic a un día para registrar, editar o quitar una clase.</p>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <button onclick="calCAMes(-1)" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">‹</button>
+      <span id="calCAMesLabel" style="font-size:14px;font-weight:700;color:var(--text);text-transform:capitalize;">—</span>
+      <button onclick="calCAMes(1)" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+    <div id="calCADiasSemana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;"></div>
+    <div id="calCAGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:11px;color:var(--muted);">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f97316;"></span> Día con clase impartida
+    </div>
+
+    <div id="calCAEditor" style="display:none;margin-top:16px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+      <div id="calCAEditorFecha" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">—</div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <div style="flex:1;">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;">Hora de la clase</span>
+          <input type="text" id="calCAHora" placeholder="Ej: 5:00 PM" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box;">
+        </div>
+        <div style="width:100px;">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;">Cantidad</span>
+          <input type="number" id="calCACantidad" value="1" min="1" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="guardarClasePersonalizadoCA()" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;">✅ Guardar</button>
+        <button id="calCABtnQuitar" onclick="quitarClasePersonalizadoCA()" style="display:none;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:100px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;">🗑️ Quitar</button>
+        <button onclick="document.getElementById('calCAEditor').style.display='none'" style="background:none;color:var(--muted);border:1px solid var(--border);border-radius:100px;padding:10px 16px;font-size:12px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="calCAEditorStatus" style="margin-top:10px;font-size:12px;display:none;"></div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total de clases</span>
+      <span id="calCATotal" style="font-size:15px;font-weight:700;color:#f97316;">—</span>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Asignación de Chat Club -->
 <div id="modalChatClub" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
   <div style="background:var(--surface);border-radius:16px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;padding:24px;">
@@ -835,6 +882,7 @@ function abrirModalMaestro(idMaestro){
             '<button onclick="guardarHorarioGrupoCA(\''+g.id+'\')" style="font-size:11px;color:#fff;background:#7c3aed;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;white-space:nowrap;">💾 Guardar</button>'+
           '</div>'+
           '<div id="horarioGrupoCAStatus-'+g.id+'" style="font-size:11px;margin-top:6px;display:none;"></div>'+
+          '<button onclick="abrirCalendarioPersonalizadoCA(\''+g.id+'\',\''+(g.idMaestro||'')+'\')" style="margin-top:8px;font-size:11px;color:#fff;background:#ef4444;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;">📅 Ver calendario de clases</button>'+
         '</div>';
       }
       var btnZoomWA = g.zoom
@@ -866,6 +914,129 @@ function guardarHorarioGrupoCA(idGrupo){
         status.style.color='#4ade80'; status.textContent='✅ Horario actualizado.';
         var g = gruposData.find(function(x){return x.id===idGrupo;});
         if(g) g.horario = horario;
+      } else {
+        status.style.color='#f87171'; status.textContent='Error: '+(data.error||'');
+      }
+    })
+    .catch(function(){ status.style.color='#f87171'; status.textContent='Error de conexión.'; });
+}
+
+// ── CALENDARIO DE CLASES DE UN GRUPO PERSONALIZADO (Control Academico) ──
+var calCAState = { idGrupo:null, idMaestro:null, mes:new Date(), clases:{} };
+var calCAFechaEditando = null;
+
+function abrirCalendarioPersonalizadoCA(idGrupo, idMaestro){
+  calCAState.idGrupo = idGrupo;
+  calCAState.idMaestro = idMaestro;
+  calCAState.mes = new Date();
+  var g = gruposData.find(function(x){return x.id===idGrupo;});
+  document.getElementById('calCATitulo').textContent = 'Calendario — ' + idGrupo + (g&&g.nombre?' · '+g.nombre:'');
+  document.getElementById('calCAEditor').style.display = 'none';
+  document.getElementById('modalCalendarioPersonalizado').style.display = 'flex';
+  cargarClasesPersonalizadoCA();
+}
+
+function cargarClasesPersonalizadoCA(){
+  fetch(APPS_SCRIPT+'?action=getClasesPersonalizado&idGrupo='+encodeURIComponent(calCAState.idGrupo)+'&idMaestro='+encodeURIComponent(calCAState.idMaestro))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      calCAState.clases = {};
+      if(data.success){
+        data.clases.forEach(function(c){ calCAState.clases[c.fechaISO] = {cantidad:c.cantidad, hora:c.hora||''}; });
+        document.getElementById('calCATotal').textContent = data.totalClases + ' clase(s) en total';
+      } else {
+        document.getElementById('calCATotal').textContent = '—';
+      }
+      renderCalendarioPersonalizadoCA();
+    })
+    .catch(function(){ document.getElementById('calCATotal').textContent = '—'; renderCalendarioPersonalizadoCA(); });
+}
+
+function calCAMes(delta){
+  calCAState.mes = new Date(calCAState.mes.getFullYear(), calCAState.mes.getMonth()+delta, 1);
+  document.getElementById('calCAEditor').style.display = 'none';
+  renderCalendarioPersonalizadoCA();
+}
+
+function renderCalendarioPersonalizadoCA(){
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var diasSemana = ['L','M','X','J','V','S','D'];
+  var mes = calCAState.mes;
+  document.getElementById('calCAMesLabel').textContent = meses[mes.getMonth()] + ' ' + mes.getFullYear();
+  document.getElementById('calCADiasSemana').innerHTML = diasSemana.map(function(d){
+    return '<div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">'+d+'</div>';
+  }).join('');
+
+  var primerDia = new Date(mes.getFullYear(), mes.getMonth(), 1);
+  var ultimoDia = new Date(mes.getFullYear(), mes.getMonth()+1, 0);
+  var offset = (primerDia.getDay()+6)%7;
+  var celdas = [];
+  for(var i=0;i<offset;i++) celdas.push('<div></div>');
+
+  var hoyISO = (new Date()).toISOString().slice(0,10);
+  for(var dia=1; dia<=ultimoDia.getDate(); dia++){
+    var fechaISO = mes.getFullYear()+'-'+String(mes.getMonth()+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+    var tieneClase = calCAState.clases[fechaISO];
+    var esHoy = fechaISO === hoyISO;
+    var bg = tieneClase ? '#f97316' : (esHoy ? 'var(--surface2)' : 'transparent');
+    var borde = esHoy && !tieneClase ? '1px solid var(--border)' : '1px solid transparent';
+    celdas.push(
+      '<div onclick="calCAClickDia(\''+fechaISO+'\')" style="cursor:pointer;text-align:center;padding:8px 0;border-radius:8px;background:'+bg+';border:'+borde+';font-size:13px;font-weight:'+(tieneClase?'700':'400')+';color:'+(tieneClase?'#fff':'var(--text)')+';">'
+        + dia
+        + (tieneClase && tieneClase.hora ? '<div style="font-size:9px;opacity:0.9;">'+tieneClase.hora+'</div>' : '')
+      + '</div>'
+    );
+  }
+  document.getElementById('calCAGrid').innerHTML = celdas.join('');
+}
+
+function calCAClickDia(fechaISO){
+  calCAFechaEditando = fechaISO;
+  var existente = calCAState.clases[fechaISO];
+  var partes = fechaISO.split('-');
+  var fechaLegible = partes[2]+'/'+partes[1]+'/'+partes[0];
+  document.getElementById('calCAEditorFecha').textContent = fechaLegible + (existente ? ' — ya tiene clase registrada' : ' — sin clase registrada');
+  var g = gruposData.find(function(x){return x.id===calCAState.idGrupo;});
+  document.getElementById('calCAHora').value = existente ? (existente.hora||'') : (g&&g.horario ? g.horario : '');
+  document.getElementById('calCACantidad').value = existente ? existente.cantidad : 1;
+  document.getElementById('calCABtnQuitar').style.display = existente ? '' : 'none';
+  document.getElementById('calCAEditorStatus').style.display = 'none';
+  document.getElementById('calCAEditor').style.display = 'block';
+}
+
+function guardarClasePersonalizadoCA(){
+  if(!calCAFechaEditando) return;
+  var hora = document.getElementById('calCAHora').value.trim();
+  var cantidad = parseInt(document.getElementById('calCACantidad').value, 10) || 0;
+  var status = document.getElementById('calCAEditorStatus');
+  if(cantidad < 1){ status.style.display='block'; status.style.color='#f87171'; status.textContent='La cantidad debe ser al menos 1.'; return; }
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Guardando...';
+  fetch(APPS_SCRIPT+'?action=registrarClasesPersonalizado&idMaestro='+encodeURIComponent(calCAState.idMaestro)+
+    '&idGrupo='+encodeURIComponent(calCAState.idGrupo)+'&fecha='+encodeURIComponent(calCAFechaEditando)+
+    '&cantidad='+cantidad+'&hora='+encodeURIComponent(hora)+'&quien=CONTROL_ACADEMICO')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        document.getElementById('calCAEditor').style.display='none';
+        cargarClasesPersonalizadoCA();
+      } else {
+        status.style.color='#f87171'; status.textContent='Error: '+(data.error||'');
+      }
+    })
+    .catch(function(){ status.style.color='#f87171'; status.textContent='Error de conexión.'; });
+}
+
+function quitarClasePersonalizadoCA(){
+  if(!calCAFechaEditando) return;
+  var status = document.getElementById('calCAEditorStatus');
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Quitando...';
+  fetch(APPS_SCRIPT+'?action=eliminarClasePersonalizado&idMaestro='+encodeURIComponent(calCAState.idMaestro)+
+    '&idGrupo='+encodeURIComponent(calCAState.idGrupo)+'&fecha='+encodeURIComponent(calCAFechaEditando)+'&quien=CONTROL_ACADEMICO')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        document.getElementById('calCAEditor').style.display='none';
+        cargarClasesPersonalizadoCA();
       } else {
         status.style.color='#f87171'; status.textContent='Error: '+(data.error||'');
       }
