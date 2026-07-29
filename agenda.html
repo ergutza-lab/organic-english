@@ -239,11 +239,17 @@ function render(){
   }
 
   lista.innerHTML = items.map(function(it){
+    var botonesEdicion = '<div class="acciones" style="margin-top:6px;">'
+      + '<button class="btn-accion" style="background:#334155;" onclick="editarItem(\''+it.id+'\')">✏️ Editar</button>'
+      + '<button class="btn-accion" style="background:#7f1d1d;" onclick="eliminarItem(\''+it.id+'\')">🗑️ Eliminar</button>'
+      + '</div>';
+
     if(it.estado === 'Completado'){
       return '<div class="item resuelto">'
         + '<div class="cabeza"><div class="texto">'+(viendoHistorial?'<span class="cat-chip">'+(CAT_BY_KEY[it.categoria]?CAT_BY_KEY[it.categoria].label:it.categoria)+'</span>':'')+esc(it.texto)+'</div>'
         + '<span class="resuelto-tag">✅ Completado</span></div>'
         + '<div class="meta"><b>'+esc(it.nombreAutor)+'</b> · '+fmtFecha(it.fechaCreacion)+' &nbsp;→&nbsp; completado por <b>'+esc(it.nombreResolvio)+'</b> · '+fmtFecha(it.fechaResolucion)+'</div>'
+        + botonesEdicion
       + '</div>';
     }
 
@@ -252,12 +258,14 @@ function render(){
 
     var acciones;
     if(it.estado === 'Pendiente'){
-      acciones = '<div class="acciones">'+chipVencido+chipFecha+'<button class="btn-accion" style="margin-left:auto;" onclick="pasarAProceso(\''+it.id+'\')">▶ Poner en proceso</button></div>';
+      acciones = '<div class="acciones">'+chipVencido+chipFecha+'<button class="btn-accion" style="margin-left:auto;" onclick="pasarAProceso(\''+it.id+'\')">▶ Poner en proceso</button></div>'
+        + botonesEdicion;
     } else { // En proceso
       var pasoActual = it.proximoPaso ? '<div class="proceso-box"><b>Próximo paso:</b> '+esc(it.proximoPaso)+'</div>' : '';
       acciones = pasoActual + '<div class="acciones">'+chipVencido+chipFecha
         + '<input type="text" class="input-paso" id="paso-'+it.id+'" placeholder="Actualizar próximo paso (opcional)">'
-        + '<button class="btn-accion completar" onclick="completarItem(\''+it.id+'\')">✅ Completar</button></div>';
+        + '<button class="btn-accion completar" onclick="completarItem(\''+it.id+'\')">✅ Completar</button></div>'
+        + botonesEdicion;
     }
 
     return '<div class="item'+(it.vencido?' vencido':'')+'">'
@@ -334,6 +342,43 @@ function completarItem(idItem){
       .then(function(data){
         if(data.success){ mostrarStatus('✅ Completado por '+data.nombreActor); cargarAgenda(); }
         else { mostrarStatus(data.error || 'Error.', true); }
+      })
+      .catch(function(){ mostrarStatus('Error de conexión.', true); });
+  });
+}
+
+// Edita el texto de un pendiente YA EXISTENTE, sin importar en que estado
+// este (Pendiente, En proceso o ya Completado en el historial) -- no
+// mueve el estado ni pasa por el flujo de seguimiento, es solo una
+// correccion directa de lo escrito.
+function editarItem(idItem){
+  var item = todosLosItems.find(function(it){ return String(it.id) === String(idItem); });
+  var textoActual = item ? item.texto : '';
+  requerirId(function(){
+    var nuevoTexto = prompt('Editar pendiente:', textoActual);
+    if (nuevoTexto === null) return; // cancelado
+    nuevoTexto = nuevoTexto.trim();
+    if (!nuevoTexto) { mostrarStatus('El texto no puede quedar vacío.', true); return; }
+    fetch(APPS_SCRIPT + '?action=editarPendienteAgenda&idItem='+encodeURIComponent(idItem)+'&texto='+encodeURIComponent(nuevoTexto))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.success){ mostrarStatus('✏️ Pendiente actualizado.'); cargarAgenda(); }
+        else { mostrarStatus(data.error || 'Error al actualizar.', true); }
+      })
+      .catch(function(){ mostrarStatus('Error de conexión.', true); });
+  });
+}
+
+// Elimina un pendiente por completo, sin importar su estado -- no hace
+// falta completarlo primero ni pasa por el historial.
+function eliminarItem(idItem){
+  requerirId(function(){
+    if (!confirm('¿Seguro que quieres eliminar este pendiente? Esta acción no se puede deshacer.')) return;
+    fetch(APPS_SCRIPT + '?action=eliminarPendienteAgenda&idItem='+encodeURIComponent(idItem))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.success){ mostrarStatus('🗑️ Pendiente eliminado.'); cargarAgenda(); }
+        else { mostrarStatus(data.error || 'Error al eliminar.', true); }
       })
       .catch(function(){ mostrarStatus('Error de conexión.', true); });
   });
