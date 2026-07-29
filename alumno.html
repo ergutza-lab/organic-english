@@ -520,6 +520,7 @@
              siempre salía de inmediato y nunca se llegaba a calcular la semana
              actual ni a activar el recordatorio de evaluación de maestro/CE. -->
         <div id="progresoCurso"></div>
+        <div id="faltasJustificables"></div>
 
         <div class="field-row"><span class="field-label">Bloque actual</span><span class="field-val" id="nivelActual">—</span></div>
         <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
@@ -877,35 +878,50 @@
     document.getElementById('infoWhatsapp').textContent = a.whatsapp;
     document.getElementById('infoEstatus').textContent  = a.estatus;
 
+    var esGrupoPersonalizado = g && g.tipoHorario === 'personalizado';
+
     if (g) {
       document.getElementById('grupoId').textContent      = g.id;
       document.getElementById('grupoNivel').textContent   = g.nombre + ' · ' + g.nivel;
-      document.getElementById('grupoHorario').textContent = g.horario;
-      if (g.tipoHorario === 'sabado') {
+      document.getElementById('grupoHorario').textContent = esGrupoPersonalizado ? 'A coordinar' : g.horario;
+      if (esGrupoPersonalizado) {
+        document.getElementById('grupoDias').textContent    = 'Personalizado';
+        document.getElementById('grupoDiasSub').textContent = g.horario || 'Horario a coordinar con tu maestro';
+      } else if (g.tipoHorario === 'sabado') {
         document.getElementById('grupoDias').textContent    = 'Sábado';
         document.getElementById('grupoDiasSub').textContent = '1 día por semana';
       } else {
         document.getElementById('grupoDias').textContent    = 'Lun – Jue';
         document.getElementById('grupoDiasSub').textContent = '4 dias por semana';
       }
+
       // "Bloque actual", el badge de arriba a la derecha, y el link de
       // Workbook usan el nivel base + bloque calculado EN VIVO (no el texto
       // crudo de Sheets, que puede estar desactualizado hasta que corra el
       // disparador diario que lo corrige), para que siempre sean exactos.
-      var nivelBaseMatch = (g.nivel || '').match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
-      var nivelBase = nivelBaseMatch ? nivelBaseMatch[1] : (g.nivel || '');
-      var bloqueParaMostrar = g.bloqueActual || 1;
-      document.getElementById('nivelActual').textContent  = 'NIVEL ' + nivelBase + '-Bloque ' + bloqueParaMostrar + ' · ' + g.nombre;
-
-      var badgeNivel = document.getElementById('nivelBloqueBadge');
-      badgeNivel.textContent = nivelBase + ' · Bloque ' + bloqueParaMostrar;
-      badgeNivel.style.display = 'block';
-
+      // Los grupos Personalizado NO siguen el programa de 16 semanas por
+      // bloques -- ese concepto no aplica, asi que se ocultan.
+      var badgeNivel  = document.getElementById('nivelBloqueBadge');
       var btnWorkbook = document.getElementById('btnWorkbook');
-      if (btnWorkbook) {
-        btnWorkbook.href = bloqueParaMostrar === 2
-          ? 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link'
-          : 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link';
+      if (esGrupoPersonalizado) {
+        document.getElementById('nivelActual').textContent = g.nivel + ' · ' + g.nombre;
+        badgeNivel.style.display = 'none';
+        if (btnWorkbook) btnWorkbook.style.display = 'none';
+      } else {
+        var nivelBaseMatch = (g.nivel || '').match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
+        var nivelBase = nivelBaseMatch ? nivelBaseMatch[1] : (g.nivel || '');
+        var bloqueParaMostrar = g.bloqueActual || 1;
+        document.getElementById('nivelActual').textContent  = 'NIVEL ' + nivelBase + '-Bloque ' + bloqueParaMostrar + ' · ' + g.nombre;
+
+        badgeNivel.textContent = nivelBase + ' · Bloque ' + bloqueParaMostrar;
+        badgeNivel.style.display = 'block';
+
+        if (btnWorkbook) {
+          btnWorkbook.style.display = 'flex';
+          btnWorkbook.href = bloqueParaMostrar === 2
+            ? 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link'
+            : 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link';
+        }
       }
 
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
@@ -919,6 +935,9 @@
       var dr = Math.ceil((fi - new Date()) / (1000*60*60*24));
       document.getElementById('grupoDiasRestantes').textContent = dr > 0 ? dr+' dias restantes' : 'En curso';
       cargarEvaluacionAlumno(a.id, g.id);
+      // El justificante de falta por fuerza mayor solo aplica a grupos con
+      // el sistema de colores normal (Personalizado no usa REGISTRO_DIARIO).
+      if (!esGrupoPersonalizado) cargarFaltasJustificables(a.id, g.id);
     }
 
     if (m) {
@@ -1488,6 +1507,42 @@
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">'+inds+'</div>';
   }
 
+  // ── JUSTIFICANTE DE FALTA POR FUERZA MAYOR ────────────────────────
+  // Si el alumno falto un dia, tiene hasta el final del dia SIGUIENTE para
+  // subir un video de 1 minuto sobre el tema de esa clase. El maestro lo
+  // revisa y puede convertir esa falta en "Presente" (tope color Verde).
+  function cargarFaltasJustificables(idAlumno, idGrupo) {
+    fetch(APPS_SCRIPT + '?action=getFaltasJustificables&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(r => r.json())
+      .then(data => { if (data.success) renderFaltasJustificables(data.faltas); })
+      .catch(function(){});
+  }
+
+  function renderFaltasJustificables(faltas) {
+    var div = document.getElementById('faltasJustificables');
+    if (!div) return;
+    if (!faltas || !faltas.length) { div.innerHTML = ''; return; }
+
+    div.innerHTML = faltas.map(function(f) {
+      var vencida = new Date() > new Date(f.fechaLimite);
+      if (f.estatus === 'Aprobado') {
+        return '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#4ade80;">✅ Tu falta del '+formatFechaCorta(f.fecha)+' fue justificada y aprobada por tu maestro.</div>';
+      }
+      if (f.estatus === 'Rechazado') {
+        return '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#f87171;">❌ Tu justificante del '+formatFechaCorta(f.fecha)+' no fue aprobado por tu maestro.</div>';
+      }
+      if (f.estatus === 'Pendiente') {
+        return '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#facc15;">⏳ Tu video del '+formatFechaCorta(f.fecha)+' ya se subió — está pendiente de revisión por tu maestro.</div>';
+      }
+      // Sin justificar todavia -- mostrar boton mientras no haya vencido
+      if (vencida) return '';
+      return '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px 14px;margin-top:10px;">'+
+        '<div style="font-size:12px;color:#fdba74;margin-bottom:8px;">⚠️ Faltaste el <strong>'+formatFechaCorta(f.fecha)+'</strong>. Tienes hasta el <strong>'+formatFechaCorta(f.fechaLimite)+'</strong> para subir un video de 1 minuto sobre el tema de esa clase y evitar que te afecte.</div>'+
+        '<button class="btn-video-orange" onclick="abrirModalVideo(\'Justificante\',\''+f.fecha+'\')">📹 Subir mi video</button>'+
+      '</div>';
+    }).join('');
+  }
+
   // ── MAPA DEL ALUMNO ──────────────────────────────────────────────
   function cargarMapaAlumno(idAlumno, idGrupo) {
     if (!idGrupo) return;
@@ -1840,12 +1895,14 @@ function renderEvaluacionAlumno(d) {
 </div>
 
 <script>
-var _videoTipoChallenge = ''; // 'Mini' o 'Grand'
+var _videoTipoChallenge = ''; // 'Mini', 'Grand' o 'Justificante'
 var _videoArchivo = null;
+var _faltaFechaJustificar = null; // yyyy-MM-dd de la falta que se esta justificando
 
-function abrirModalVideo(tipo) {
+function abrirModalVideo(tipo, fechaFalta) {
   _videoTipoChallenge = tipo;
   _videoArchivo = null;
+  _faltaFechaJustificar = fechaFalta || null;
   document.getElementById('videoFileInput').value = '';
   document.getElementById('videoNombreArchivo').style.display = 'none';
   document.getElementById('videoNombreArchivo').textContent = '';
@@ -1858,10 +1915,14 @@ function abrirModalVideo(tipo) {
     document.getElementById('modalVideoIcono').textContent = '🎖️';
     document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Mini Challenge';
     document.getElementById('modalVideoSub').textContent = 'Semana 4 · Tu video de presentación';
-  } else {
+  } else if (tipo === 'Grand') {
     document.getElementById('modalVideoIcono').textContent = '🏆';
     document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Grand Challenge';
     document.getElementById('modalVideoSub').textContent = 'Semana 8 · Tu proyecto final';
+  } else {
+    document.getElementById('modalVideoIcono').textContent = '🩹';
+    document.getElementById('modalVideoTitulo').textContent = 'Justificar falta · Fuerza mayor';
+    document.getElementById('modalVideoSub').textContent = 'Video de 1 minuto sobre el tema que viste ese día — ' + formatFechaCorta(fechaFalta);
   }
   document.getElementById('modalVideoChallenge').classList.add('visible');
 }
@@ -1914,7 +1975,9 @@ function subirVideoChallenge() {
 
   var idCarpeta = _videoTipoChallenge === 'Mini'
     ? '1GGUDvzHQfuul0oaCbftiUl2nY93pN2h6'
-    : '1tqUtChzZQlyZWfAlEeremlNMbbd7T7Pi';
+    : _videoTipoChallenge === 'Grand'
+    ? '1tqUtChzZQlyZWfAlEeremlNMbbd7T7Pi'
+    : '1eHRP89mKKhM1Rygwd0eWEgefkofXOvhj'; // Justificante de falta (fuerza mayor)
 
   var idAlumno     = alumnoData.alumno.id;
   var nombreAlumno = alumnoData.alumno.nombre || '';
@@ -1965,16 +2028,22 @@ function subirVideoChallenge() {
     prog.style.width = '90%';
     document.getElementById('videoStatus').textContent = 'Registrando en sistema…';
 
-    // Paso 3: registrar link en Sheets via Apps Script GET
-    return fetch(APPS_SCRIPT +
-      '?action=registrarLinkVideo' +
-      '&idAlumno=' + encodeURIComponent(idAlumno) +
-      '&idGrupo='  + encodeURIComponent(idGrupo) +
-      '&bloque='   + encodeURIComponent(Math.max(1, bloqueActual || 1)) +
-      '&tipo='     + encodeURIComponent(_videoTipoChallenge) +
-      '&url='      + encodeURIComponent(urlVideo),
-      { redirect: 'follow' }
-    )
+    // Paso 3: registrar link en Sheets via Apps Script GET -- los
+    // justificantes de falta usan su propia accion (van a otra hoja).
+    var urlRegistro = (_videoTipoChallenge === 'Justificante')
+      ? APPS_SCRIPT + '?action=registrarLinkVideoJustificante' +
+        '&idAlumno=' + encodeURIComponent(idAlumno) +
+        '&idGrupo='  + encodeURIComponent(idGrupo) +
+        '&fecha='    + encodeURIComponent(_faltaFechaJustificar) +
+        '&url='      + encodeURIComponent(urlVideo)
+      : APPS_SCRIPT + '?action=registrarLinkVideo' +
+        '&idAlumno=' + encodeURIComponent(idAlumno) +
+        '&idGrupo='  + encodeURIComponent(idGrupo) +
+        '&bloque='   + encodeURIComponent(Math.max(1, bloqueActual || 1)) +
+        '&tipo='     + encodeURIComponent(_videoTipoChallenge) +
+        '&url='      + encodeURIComponent(urlVideo);
+
+    return fetch(urlRegistro, { redirect: 'follow' })
     .then(function(r) { return r.text(); })
     .then(function(txt) {
       var ok = false;
@@ -1982,12 +2051,16 @@ function subirVideoChallenge() {
       clearInterval(ticker);
       prog.style.width = '100%';
       document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
-      var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
-      var linkEl = document.getElementById(linkId);
-      if (linkEl) {
-        linkEl.href = urlVideo;
-        linkEl.textContent = '▶ Ver mi video subido';
-        linkEl.style.display = 'block';
+      if (_videoTipoChallenge === 'Justificante') {
+        cargarFaltasJustificables();
+      } else {
+        var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
+        var linkEl = document.getElementById(linkId);
+        if (linkEl) {
+          linkEl.href = urlVideo;
+          linkEl.textContent = '▶ Ver mi video subido';
+          linkEl.style.display = 'block';
+        }
       }
       setTimeout(cerrarModalVideo, 2500);
     });
