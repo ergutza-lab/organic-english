@@ -544,6 +544,7 @@ function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'bec
 
 let asistente=null,datosPanel=null;
 let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
+let pagoActivoCoberturaInicio=null,pagoActivoCoberturaFin=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null,gruposCompartirCambio=[];
 
 setTimeout(()=>{
@@ -1419,6 +1420,8 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
       mostrarToast('✓ Pago validado correctamente','success');
       const pago = (datosPanel?.pagos_pendientes || []).find(p => p.id_alumno === idAlumno);
       if (pago) { pagoActivoNombre = pago.nombre; pagoActivoWA = pago.whatsapp; }
+      pagoActivoCoberturaInicio = coberturaInicio || null;
+      pagoActivoCoberturaFin    = coberturaFin || null;
       document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
       document.getElementById('modal-notif-pago').classList.add('open');
       await cargarDatos();
@@ -1430,12 +1433,20 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
 function cerrarModalNotifPago(){
   document.getElementById('modal-notif-pago').classList.remove('open');
   pagoActivoNombre=null; pagoActivoWA=null;
+  pagoActivoCoberturaInicio=null; pagoActivoCoberturaFin=null;
 }
 
 function notificarAlumnoPago(){
   if(pagoActivoWA){
-    const msg = encodeURIComponent('Hola! Te informo que tu pago ha sido validado correctamente. Ya puedes asistir a tus clases. ¡Bienvenido/a!');
-    window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${msg}`,'_blank');
+    var nombre = pagoActivoNombre || 'alumno/a';
+    var mensaje = 'Hola ' + nombre + ', te confirmo que tu pago fue validado correctamente.';
+    if (pagoActivoCoberturaInicio && pagoActivoCoberturaFin) {
+      var fechaLimite = sabadoSiguienteA(new Date(pagoActivoCoberturaFin));
+      mensaje += '\n\nTu pago cubre del ' + formatoFechaConDia(pagoActivoCoberturaInicio) + ' al ' + formatoFechaConDia(pagoActivoCoberturaFin) + '.';
+      mensaje += '\nTu fecha límite para cubrir tu siguiente pago es el ' + formatoFechaConDia(fechaLimite) + '.';
+    }
+    mensaje += '\n\nCualquier duda respecto a tus pagos, quedo a tus órdenes.';
+    window.open(`https://wa.me/${cleanWA(pagoActivoWA)}?text=${encodeURIComponent(mensaje)}`,'_blank');
   }
   cerrarModalNotifPago();
 }
