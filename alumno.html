@@ -442,7 +442,10 @@
 
     <div class="top-bar">
       <div class="logo-area"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" style="height:48px;object-fit:contain" alt="OE"></div>
-      <button class="btn-logout" onclick="logout()">Salir</button>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div id="nivelBloqueBadge" style="display:none;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:10px;padding:8px 16px;letter-spacing:0.3px;white-space:nowrap;">—</div>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
     </div>
 
     <!-- FILA 1: INFO ALUMNO -->
@@ -504,7 +507,7 @@
             <span class="card-title">Mis calificaciones</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <a href="https://drive.google.com/file/d/1Or6MvTf5h7PTni1pqL0Swn6Ybx_3RC73/view?usp=sharing" target="_blank" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;text-align:center;">📥 Descarga tu material de apoyo</a>
+            <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;text-align:center;">📥 Descarga tu material de apoyo</a>
             <button onclick="abrirInfoEvaluacion()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💎 ¿Cómo me evalúan?</button>
           </div>
         </div>
@@ -888,6 +891,25 @@
         document.getElementById('grupoDiasSub').textContent = '4 dias por semana';
       }
       document.getElementById('nivelActual').textContent  = g.nivel + ' · ' + g.nombre;
+
+      // Badge de nivel + bloque (arriba a la derecha) y link de Workbook --
+      // se usa bloqueActual calculado EN VIVO por el backend (no depende de
+      // que ya haya corrido el disparador diario que corrige el texto de
+      // nivel en Sheets), para que siempre sea exacto al momento.
+      var nivelBaseMatch = (g.nivel || '').match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
+      var nivelBase = nivelBaseMatch ? nivelBaseMatch[1] : (g.nivel || '');
+      var bloqueParaMostrar = g.bloqueActual || 1;
+      var badgeNivel = document.getElementById('nivelBloqueBadge');
+      badgeNivel.textContent = nivelBase + ' · Bloque ' + bloqueParaMostrar;
+      badgeNivel.style.display = 'block';
+
+      var btnWorkbook = document.getElementById('btnWorkbook');
+      if (btnWorkbook) {
+        btnWorkbook.href = bloqueParaMostrar === 2
+          ? 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link'
+          : 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link';
+      }
+
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
       if (g.grabacion) {
         var btnGrab = document.getElementById('btnGrabacion');
@@ -1094,7 +1116,7 @@
 
     var nombresDias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    var fechaTexto = sabadoLimite.getDate() + ' de ' + meses[sabadoLimite.getMonth()];
+    var fechaTexto = nombresDias[sabadoLimite.getDay()] + ' ' + sabadoLimite.getDate() + ' de ' + meses[sabadoLimite.getMonth()];
 
     // Crear modal si no existe
     var modalId = 'modalAlertaBaja';
@@ -1113,13 +1135,11 @@
           '</div>' +
           '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:16px;">' +
             '<p style="color:#fca5a5;font-size:13px;line-height:1.7;margin:0;">' +
-              'Te recordamos que el pago correspondiente a la <strong style="color:#f87171;">siguiente semana</strong> ya puede realizarse a partir de hoy, jueves.' +
+              'Tu colegiatura de esta semana <strong style="color:#f87171;">aún no se ha reflejado</strong> en el sistema.' +
               '<br><br>' +
-              '📅 Fecha límite de pago: <strong style="color:#fbbf24;">' + fechaTexto + '</strong>.' +
+              'Tu fecha límite de pago es el <strong style="color:#fbbf24;">' + fechaTexto + '</strong>.' +
               '<br><br>' +
-              'Si ya realizaste tu pago y aún no se refleja en el sistema, por favor comunícate con tu asistente de control escolar para recibir apoyo.' +
-              '<br><br>' +
-              '¡Gracias por mantener tus pagos al corriente! 🙏' +
+              'Si ya realizaste tu pago pero no ha sido reflejado, comunícate de inmediato con tu asistente de control escolar.' +
             '</p>' +
           '</div>' +
           '<a href="' + waLink + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#4ade80;border-radius:10px;padding:12px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:12px;">' +
@@ -1583,8 +1603,14 @@
 function renderEvaluacionAlumno(d) {
   var html = '';
 
-  /* ── GEM ── */
-  var pc = d.porcentajeGlobal || 0;
+  /* ── GEM ──
+     Si el alumno ya esta en Bloque 2, la gema muestra el PROMEDIO del
+     nivel (Bloque 1 ya cerrado + Bloque 2 en curso), para que vea como se
+     va construyendo su calificacion final -- no solo su avance del bloque
+     actual aislado. En Bloque 1, es simplemente su % actual. */
+  var pcBloqueActual = d.porcentajeGlobal || 0;
+  var enBloque2 = d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null;
+  var pc = enBloque2 ? d.promedioNivel : pcBloqueActual;
   var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
   var gemaLabel = pc >= 90 ? 'Excelente' : pc >= 80 ? 'Bueno' : pc >= 70 ? 'Regular' : pc >= 60 ? 'Atención' : 'Crítico';
   var brillar   = pc >= 95;
@@ -1624,6 +1650,16 @@ function renderEvaluacionAlumno(d) {
   html += '</div>';
   html += '<div><div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+d.estado+'</div>';
   html += '<div style="font-size:11px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div></div></div>';
+
+  if (enBloque2) {
+    html += '<div style="display:flex;gap:10px;margin-bottom:16px;font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.02);border-radius:8px;padding:8px 12px;">';
+    html += '<span>📘 Bloque 1: <strong style="color:#e2e8f0;">'+d.bloque1Pct+'%</strong></span>';
+    html += '<span>·</span>';
+    html += '<span>📗 Bloque 2 (en curso): <strong style="color:#e2e8f0;">'+pcBloqueActual+'%</strong></span>';
+    html += '<span>·</span>';
+    html += '<span>Promedio del nivel: <strong style="color:'+gemaColor+';">'+pc+'%</strong></span>';
+    html += '</div>';
+  }
 
   /* ── Stats ── */
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">';
