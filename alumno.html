@@ -520,7 +520,6 @@
              siempre salía de inmediato y nunca se llegaba a calcular la semana
              actual ni a activar el recordatorio de evaluación de maestro/CE. -->
         <div id="progresoCurso"></div>
-        <div id="faltasJustificables"></div>
 
         <div class="field-row"><span class="field-label">Bloque actual</span><span class="field-val" id="nivelActual">—</span></div>
         <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
@@ -935,9 +934,6 @@
       var dr = Math.ceil((fi - new Date()) / (1000*60*60*24));
       document.getElementById('grupoDiasRestantes').textContent = dr > 0 ? dr+' dias restantes' : 'En curso';
       cargarEvaluacionAlumno(a.id, g.id);
-      // El justificante de falta por fuerza mayor solo aplica a grupos con
-      // el sistema de colores normal (Personalizado no usa REGISTRO_DIARIO).
-      if (!esGrupoPersonalizado) cargarFaltasJustificables(a.id, g.id);
     }
 
     if (m) {
@@ -1649,7 +1645,17 @@
       .then(r=>r.json())
       .then(d=>{
         console.log('EVALUACION DATA:', JSON.stringify(d));
-        if(d.success) renderEvaluacionAlumno(d);
+        if(d.success) {
+          renderEvaluacionAlumno(d);
+          // El justificante de falta por fuerza mayor solo aplica a grupos
+          // con el sistema de colores normal (Personalizado no usa
+          // REGISTRO_DIARIO) -- y solo se puede cargar DESPUES de
+          // renderEvaluacionAlumno, porque el placeholder #faltasJustificables
+          // se crea ahi adentro (para que se vea justo debajo de Asistencia
+          // y Verde+Azul, no al final de toda la tarjeta).
+          var esPersonalizado = alumnoData && alumnoData.grupo && alumnoData.grupo.tipoHorario === 'personalizado';
+          if (!esPersonalizado) cargarFaltasJustificables(idAlumno, idGrupo);
+        }
         else document.getElementById('evaluacionAlumno').innerHTML='<div style="text-align:center;padding:20px;color:#64748b;">Sin registros aún</div>';
       })
       .catch(()=>{
@@ -1737,6 +1743,8 @@ function renderEvaluacionAlumno(d) {
   html += '<div style="font-size:20px;font-weight:700;'+(d.positivos>=70?'color:#22c55e':d.positivos>=60?'color:#facc15':'color:#ef4444')+'">'+d.positivos+'%</div>';
   html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div></div>';
   html += '</div>';
+
+  html += '<div id="faltasJustificables"></div>';
 
   /* ── Colores ── */
   var total = d.totalClases || 1;
