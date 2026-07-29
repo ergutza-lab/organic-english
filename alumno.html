@@ -442,10 +442,7 @@
 
     <div class="top-bar">
       <div class="logo-area"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" style="height:48px;object-fit:contain" alt="OE"></div>
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div id="nivelBloqueBadge" style="display:none;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:10px;padding:8px 16px;letter-spacing:0.3px;white-space:nowrap;">—</div>
-        <button class="btn-logout" onclick="logout()">Salir</button>
-      </div>
+      <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
 
     <!-- FILA 1: INFO ALUMNO -->
@@ -462,6 +459,7 @@
           </div>
         </div>
       </div>
+      <div id="nivelBloqueBadge" style="display:none;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:10px;padding:10px 18px;letter-spacing:0.3px;white-space:nowrap;">—</div>
     </div>
 
     <!-- FILA 2: MI GRUPO -->
@@ -481,7 +479,7 @@
         <div style="display:flex;align-items:center;flex-wrap:nowrap;gap:8px;margin-top:1.2rem;">
           <a id="btnZoom" href="#" target="_blank" class="zoom-btn"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
           <a id="btnGrabacion" href="#" target="_blank" style="display:none;align-items:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">🎥 Ver grabación de última clase</a>
-          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Club de Conversación de los Viernes 8:00 PM</button>
+          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Ingresar al Chat Club de los Viernes 8:00 PM</button>
         </div>
       </div>
     </div>
@@ -890,15 +888,15 @@
         document.getElementById('grupoDias').textContent    = 'Lun – Jue';
         document.getElementById('grupoDiasSub').textContent = '4 dias por semana';
       }
-      document.getElementById('nivelActual').textContent  = g.nivel + ' · ' + g.nombre;
-
-      // Badge de nivel + bloque (arriba a la derecha) y link de Workbook --
-      // se usa bloqueActual calculado EN VIVO por el backend (no depende de
-      // que ya haya corrido el disparador diario que corrige el texto de
-      // nivel en Sheets), para que siempre sea exacto al momento.
+      // "Bloque actual", el badge de arriba a la derecha, y el link de
+      // Workbook usan el nivel base + bloque calculado EN VIVO (no el texto
+      // crudo de Sheets, que puede estar desactualizado hasta que corra el
+      // disparador diario que lo corrige), para que siempre sean exactos.
       var nivelBaseMatch = (g.nivel || '').match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
       var nivelBase = nivelBaseMatch ? nivelBaseMatch[1] : (g.nivel || '');
       var bloqueParaMostrar = g.bloqueActual || 1;
+      document.getElementById('nivelActual').textContent  = 'NIVEL ' + nivelBase + '-Bloque ' + bloqueParaMostrar + ' · ' + g.nombre;
+
       var badgeNivel = document.getElementById('nivelBloqueBadge');
       badgeNivel.textContent = nivelBase + ' · Bloque ' + bloqueParaMostrar;
       badgeNivel.style.display = 'block';
@@ -948,7 +946,7 @@
   // ── EVALUACIONES ─────────────────────────────────────────────────
  // function verificarEvaluaciones(semana, idAlumno) {
  //   var bd = 0;
-   function verificarEvaluaciones(semana, idAlumno) {
+   function verificarEvaluaciones(semana, idAlumno, bloqueAcademico) {
     var bd = 0;
     if (semana >= 6  && semana <= 10) bd = 1;
     if (semana >= 11 && semana <= 15) bd = 2;
@@ -961,6 +959,14 @@
     // si fuera un duplicado (antes ambas caian en el mismo numero de bloque).
     if (semana === 4) bd = 4;
     if (semana === 8) bd = 8;
+    // El parametro "semana" que llega aqui ya es la semana DENTRO del
+    // bloque academico actual (1-8, se reinicia en Bloque 2). Sin este
+    // ajuste, el marcador bd=4/8 del Bloque 2 seria identico al del Bloque
+    // 1 y el sistema pensaria "ya evaluado" cuando en realidad es un ciclo
+    // distinto -- por eso se le suma 20 cuando el bloque academico es el 2,
+    // para que nunca choque con las evaluaciones/challenges ya guardados
+    // del Bloque 1.
+    if (bloqueAcademico === 2 && bd > 0) bd += 20;
     bloqueActual = bd;
    if (!bd) return;
 
@@ -1452,7 +1458,7 @@
       var validado=pago.validadoPor?'<span class="badge badge-validado">Validado</span>':'<span class="badge badge-pendiente">Pendiente</span>';
       return '<tr><td><span class="'+montoClass+'">$'+pago.monto+' MXN</span></td><td>'+formatFechaCorta(pago.fecha)+'</td><td><span style="font-size:12px;color:#64748b;">'+etiqueta+' · '+pago.tipo+'</span></td><td style="text-align:right;">'+validado+'</td></tr>';
     }).join('');
-    div.innerHTML='<table class="hist-tabla"><thead><tr><th>Monto</th><th>Fecha</th><th>Concepto</th><th style="text-align:right;">Estado</th></tr></thead><tbody>'+filas+'</tbody></table>';
+    div.innerHTML='<div style="max-height:198px;overflow-y:auto;"><table class="hist-tabla"><thead><tr><th>Monto</th><th>Fecha</th><th>Concepto</th><th style="text-align:right;">Estado</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
   }
 
   // ── RENDER CALIFICACIONES ────────────────────────────────────────
@@ -1464,15 +1470,21 @@
     var diff=Math.floor((hoy-inicio)/(1000*60*60*24));
     var sem=Math.max(1,Math.min(16,Math.ceil((diff+1)/7)));
     alumnoData._semana=sem;
-    verificarEvaluaciones(sem, alumnoData.alumno.id);
+    // Bloque academico (1 o 2) y semana DENTRO de ese bloque (1-8, se
+    // reinicia en Bloque 2) -- todo lo que se muestra aqui debajo (semana
+    // actual, unidades, progreso) es relativo al bloque en curso, no al
+    // conteo continuo de 16 semanas del nivel completo.
+    var bloqueAcademico = sem <= 8 ? 1 : 2;
+    var semEnBloque = sem > 8 ? sem - 8 : sem;
+    verificarEvaluaciones(semEnBloque, alumnoData.alumno.id, bloqueAcademico);
     var u,ul,uc;
-    if(sem<=5){u=1;ul='Unidad 1';uc='#3b82f6';}else if(sem<=10){u=2;ul='Unidad 2';uc='#8b5cf6';}else if(sem<=15){u=3;ul='Unidad 3';uc='#f97316';}else{u=4;ul='Evaluacion Final';uc='#f59e0b';}
-    var sue=u<4?sem-(u-1)*5:1,tue=u<4?5:1,pct=Math.round(sem/16*100);
-    var uns=[{l:'U1',s:'1-5',c:'#3b82f6',n:1},{l:'U2',s:'6-10',c:'#8b5cf6',n:2},{l:'U3',s:'11-15',c:'#f97316',n:3},{l:'Ev',s:'Sem 16',c:'#f59e0b',n:4}];
-    var inds=uns.map(x=>{var a=u>=x.n,ea=u===x.n,rgb=hexToRgb(x.c);var bg=a?'background:rgba('+rgb+',0.15);border:1px solid rgba('+rgb+',0.4);':'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);';return '<div style="'+bg+'border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:12px;font-weight:700;color:'+(a?x.c:'#334155')+';">'+x.l+(ea?' ◀':'')+'</div><div style="font-size:10px;color:'+(a?'#64748b':'#1e293b')+';margin-top:2px;">'+x.s+'</div></div>';}).join('');
+    if(semEnBloque<=2){u=1;ul='Unidad 1';uc='#3b82f6';}else if(semEnBloque<=4){u=2;ul='Unidad 2';uc='#8b5cf6';}else if(semEnBloque<=6){u=3;ul='Unidad 3';uc='#f97316';}else{u=4;ul='Unidad 4';uc='#f59e0b';}
+    var sue=(semEnBloque-1)%2+1,tue=2,pct=Math.round(semEnBloque/8*100);
+    var uns=[{l:'U1',s:'1-2',c:'#3b82f6',n:1},{l:'U2',s:'3-4',c:'#8b5cf6',n:2},{l:'U3',s:'5-6',c:'#f97316',n:3},{l:'U4',s:'7-8',c:'#f59e0b',n:4}];
+    var inds=uns.map(x=>{var a=u>=x.n,ea=u===x.n,rgb=hexToRgb(x.c);var bg=a?'background:rgba('+rgb+',0.15);border:1px solid rgba('+rgb+',0.4);':'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);';return '<div style="'+bg+'border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:12px;font-weight:700;color:'+(a?x.c:'#334155')+';">'+x.l+(ea?' ◀':'')+'</div><div style="font-size:10px;color:'+(a?'#64748b':'#1e293b')+';margin-top:2px;">Semana '+x.s+'</div></div>';}).join('');
     div.innerHTML=
-      '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:13px;color:#94a3b8;">Semana actual</span><span style="font-size:20px;font-weight:700;color:#f1f5f9;">'+sem+'<span style="font-size:13px;color:#475569;font-weight:400;"> / 16</span></span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;color:'+uc+';">'+ul+'</span><span style="font-size:12px;color:#475569;">Semana '+sue+' de '+tue+'</span></div></div>'+
-      '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;margin-bottom:5px;"><span>Progreso del nivel</span><span>'+pct+'%</span></div><div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;"><div style="background:linear-gradient(90deg,#1c2b5e,'+uc+');height:6px;border-radius:4px;width:'+pct+'%;"></div></div></div>'+
+      '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:13px;color:#94a3b8;">Semana actual · Bloque '+bloqueAcademico+'</span><span style="font-size:20px;font-weight:700;color:#f1f5f9;">'+semEnBloque+'<span style="font-size:13px;color:#475569;font-weight:400;"> / 8</span></span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;color:'+uc+';">'+ul+'</span><span style="font-size:12px;color:#475569;">Semana '+sue+' de '+tue+'</span></div></div>'+
+      '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;margin-bottom:5px;"><span>Progreso del Bloque '+bloqueAcademico+'</span><span>'+pct+'%</span></div><div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;"><div style="background:linear-gradient(90deg,#1c2b5e,'+uc+');height:6px;border-radius:4px;width:'+pct+'%;"></div></div></div>'+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">'+inds+'</div>';
   }
 
@@ -1526,7 +1538,7 @@
     document.fonts.ready.then(function(){ posicionarAlertasFlotantes(); });
   }
 
-  // Alerta visible de Miercoles a Viernes, solo para alumnos con 4 semanas
+  // Alerta visible SOLO Jueves y Viernes, para alumnos con 4 semanas
   // o mas de antiguedad (fecha de inscripcion), recordandoles que tienen
   // acceso al Chat Club del viernes 8pm. Aplica a TODOS los alumnos
   // elegibles, sin importar si su grupo es de sabado o de entre semana.
@@ -1538,7 +1550,7 @@
 
     var hoy = new Date();
     var diaSemana = hoy.getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
-    var esDiaVentana = (diaSemana === 3 || diaSemana === 4 || diaSemana === 5); // Mie, Jue, Vie
+    var esDiaVentana = (diaSemana === 4 || diaSemana === 5); // Jue, Vie
 
     if (!esDiaVentana || !alumno || !alumno.fechaInscripcion) {
       alerta.style.display = 'none';
