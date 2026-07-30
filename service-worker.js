@@ -3,9 +3,9 @@
 // del servidor. Solo usa la copia guardada localmente si no hay conexion
 // -- asi nunca se queda viendo una version vieja por error de cache.
 
-const CACHE_NAME = 'oe-director-v1';
+const CACHE_NAME = 'oe-app-v2';
 const APP_SHELL = [
-  'director.html'
+  'staff.html'
 ];
 
 self.addEventListener('install', function (event) {
