@@ -29,7 +29,8 @@
   .top-bar .who{font-size:12px;color:var(--muted);}
   .btn-logout{font-size:13px;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:7px 14px;background:transparent;cursor:pointer;}
 
-  .tabs{display:flex;gap:8px;margin-bottom:20px;}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .tab{min-width:120px;}
   .tab{flex:1;text-align:center;padding:12px;border-radius:12px;background:var(--card);border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);}
   .tab.on{background:linear-gradient(135deg,var(--orange),#ea580c);color:#fff;border-color:transparent;}
 
@@ -113,6 +114,9 @@
 
     <div class="tabs">
       <div class="tab" id="tabLista" onclick="cambiarTab('lista')">👥 Candidatos</div>
+      <div class="tab" id="tabCapacitacion" onclick="cambiarTab('capacitacion')">🎓 En capacitación</div>
+      <div class="tab" id="tabRechazados" onclick="cambiarTab('rechazados')">❌ Rechazados</div>
+      <div class="tab" id="tabActivos" onclick="cambiarTab('activos')">✅ Activos</div>
       <div class="tab" id="tabNuevo" onclick="cambiarTab('nuevo')">📝 Nuevo candidato</div>
     </div>
 
@@ -206,6 +210,11 @@
       <div id="listaCandidatos"><div class="empty">Cargando...</div></div>
     </div>
 
+    <!-- TAB: ACTIVOS (maestros reales de Sheets) -->
+    <div id="vistaActivos" style="display:none;">
+      <div id="listaActivos"><div class="empty">Cargando...</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -264,11 +273,39 @@ function logout(){
 
 function cambiarTab(tab){
   tabActual = tab;
-  document.getElementById('tabNuevo').classList.toggle('on', tab==='nuevo');
-  document.getElementById('tabLista').classList.toggle('on', tab==='lista');
-  document.getElementById('vistaNuevo').style.display = tab==='nuevo' ? 'block' : 'none';
-  document.getElementById('vistaLista').style.display = tab==='lista' ? 'block' : 'none';
-  if(tab==='lista') cargarCandidatos();
+  ['tabLista','tabCapacitacion','tabRechazados','tabActivos','tabNuevo'].forEach(function(tid){
+    document.getElementById(tid).classList.remove('on');
+  });
+  ['vistaNuevo','vistaLista','vistaActivos'].forEach(function(vid){
+    document.getElementById(vid).style.display = 'none';
+  });
+
+  if(tab === 'nuevo'){
+    document.getElementById('tabNuevo').classList.add('on');
+    document.getElementById('vistaNuevo').style.display = 'block';
+    return;
+  }
+  if(tab === 'activos'){
+    document.getElementById('tabActivos').classList.add('on');
+    document.getElementById('vistaActivos').style.display = 'block';
+    cargarMaestrosActivos();
+    return;
+  }
+
+  // 'lista', 'capacitacion' y 'rechazados' comparten la misma vista de
+  // candidatos -- solo cambia cual filtro de resolucion queda preseleccionado.
+  document.getElementById('vistaLista').style.display = 'block';
+  if(tab === 'capacitacion'){
+    document.getElementById('tabCapacitacion').classList.add('on');
+    document.getElementById('filtroResolucion').value = 'En capacitación';
+  } else if(tab === 'rechazados'){
+    document.getElementById('tabRechazados').classList.add('on');
+    document.getElementById('filtroResolucion').value = 'Rechazado';
+  } else {
+    document.getElementById('tabLista').classList.add('on');
+    document.getElementById('filtroResolucion').value = '';
+  }
+  cargarCandidatos();
 }
 
 function alCambiarPuesto(){
@@ -511,6 +548,40 @@ function guardarCambiosCandidato(idCandidato){
     })
     .catch(function(){ status.style.color = '#f87171'; status.textContent = 'Error de conexión.'; });
 }
+
+// ── ACTIVOS (maestros reales de Sheets, no candidatos) ──────────────
+var maestrosActivosData = [];
+function cargarMaestrosActivos(){
+  document.getElementById('listaActivos').innerHTML = '<div class="empty">Cargando...</div>';
+  fetch(APPS_SCRIPT + '?action=getMaestrosActivosRH')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.success){ document.getElementById('listaActivos').innerHTML = '<div class="empty">Error al cargar.</div>'; return; }
+      maestrosActivosData = data.maestros || [];
+      renderMaestrosActivos();
+    })
+    .catch(function(){ document.getElementById('listaActivos').innerHTML = '<div class="empty">Error de conexión.</div>'; });
+}
+
+function renderMaestrosActivos(){
+  var cont = document.getElementById('listaActivos');
+  if(!maestrosActivosData.length){ cont.innerHTML = '<div class="empty">No hay maestros activos registrados.</div>'; return; }
+
+  cont.innerHTML = maestrosActivosData.map(function(m){
+    var fotoHtml = m.foto
+      ? '<img src="'+m.foto+'" style="width:44px;height:44px;border-radius:100px;object-fit:cover;flex-shrink:0;">'
+      : '<div style="width:44px;height:44px;border-radius:100px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;">'+esc((m.nombre||'?').charAt(0))+'</div>';
+    return '<div class="cand-card" style="display:flex;align-items:center;gap:14px;">'
+      + fotoHtml
+      + '<div style="flex:1;min-width:0;">'
+        + '<div class="cand-nombre">'+esc(m.nombre)+' <span class="chip chip-aceptado">Activo</span></div>'
+        + '<div class="cand-sub" style="font-family:\'JetBrains Mono\',monospace;">'+m.id+' · '+esc(m.rol||'—')+'</div>'
+        + '<div class="cand-sub">📱 '+esc(m.whatsapp||'—')+(m.email?' · ✉️ '+esc(m.email):'')+' · 💵 $'+(m.costoClase||'—')+'/clase</div>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
 
 function eliminarCandidato(idCandidato){
   if(!confirm('¿Seguro que quieres eliminar a este candidato? Esta acción no se puede deshacer.')) return;
