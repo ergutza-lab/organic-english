@@ -597,6 +597,7 @@
     document.getElementById('screenPanel').classList.add('active');
     document.getElementById('directorNombre').textContent = directorData.nombre;
     cargarDatos();
+    if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
   }
 
     var directorCache = null;
@@ -2083,18 +2084,39 @@
      justo antes de </body>
      ═══════════════════════════════════════════════════ -->
 
-<!-- Botón flotante -->
-<button onclick="abrirHorario()" style="
-  position:fixed;bottom:24px;right:24px;z-index:998;
+<!-- ═══ Botones flotantes (Notificaciones, Agenda, Horario) -- apilados en columna ═══ -->
+<style>
+@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
+#btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
+.botones-flotantes-oe{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.botones-flotantes-oe button{
   background:#1c2b5e;color:#fff;
   border:1px solid rgba(255,255,255,0.15);
   border-radius:100px;padding:12px 20px;
   font-size:13px;font-weight:700;cursor:pointer;
   box-shadow:0 4px 20px rgba(0,0,0,0.35);
   display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  📅 Horario
-</button>
+  font-family:'Segoe UI',Arial,sans-serif;
+  white-space:nowrap;
+}
+</style>
+<div class="botones-flotantes-oe">
+  <button id="btnNotificaciones" onclick="activarNotificacionesOE()" style="background:#0f172a;">
+    🔔 Activar notificaciones
+  </button>
+  <button id="btnAgenda" onclick="abrirAgenda()" style="background:#7c3aed;position:relative;">
+    📌 Agenda
+    <span id="agendaBadge" style="
+      display:none;position:absolute;top:-6px;right:-6px;
+      background:#dc2626;color:#fff;font-size:11px;font-weight:800;
+      min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+      align-items:center;justify-content:center;
+      box-shadow:0 0 0 2px #0f1c3f;"></span>
+  </button>
+  <button onclick="abrirHorario()">
+    📅 Horario
+  </button>
+</div>
 
 <!-- Overlay con iframe -->
 <div id="horarioOverlay" style="
@@ -2140,41 +2162,6 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 });
 </script>
 <!-- ═══════════════════════════════════════════════════ -->
-  
-<!-- Botón flotante Agenda del Equipo -->
-<style>
-@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
-#btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
-</style>
-<button id="btnAgenda" onclick="abrirAgenda()" style="
-  position:fixed;bottom:24px;right:190px;z-index:998;
-  background:#7c3aed;color:#fff;
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:100px;padding:12px 20px;
-  font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  📌 Agenda
-  <span id="agendaBadge" style="
-    display:none;position:absolute;top:-6px;right:-6px;
-    background:#dc2626;color:#fff;font-size:11px;font-weight:800;
-    min-width:20px;height:20px;padding:0 5px;border-radius:999px;
-    align-items:center;justify-content:center;
-    box-shadow:0 0 0 2px #0f1c3f;"></span>
-</button>
-
-<button id="btnNotificaciones" onclick="activarNotificacionesOE()" style="
-  position:fixed;bottom:24px;right:356px;z-index:998;
-  background:#0f172a;color:#fff;
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:100px;padding:12px 20px;
-  font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  🔔 Activar notificaciones
-</button>
 
 <!-- Overlay con iframe -->
 <div id="agendaOverlay" style="
@@ -2254,9 +2241,48 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
   });
   var _vapidKeyOE = "BI3q0_1E24pxZGzkcJHUo8a9c4T7a4cp-4pFojhtg1nZJv9TcPDnC8E0Z0ucVkQqIQ25opOswA3VVEUYMfQjwe8";
 
+  // Si la app esta ABIERTA Y AL FRENTE cuando llega el aviso, FCM no lo
+  // muestra solo (eso solo pasa en segundo plano, via el service worker)
+  // -- aqui se muestra manualmente en ese caso.
+  firebase.messaging().onMessage(function (payload) {
+    var titulo = (payload.notification && payload.notification.title) || 'Organic English';
+    var cuerpo = (payload.notification && payload.notification.body) || '';
+    if (Notification.permission === 'granted') {
+      new Notification(titulo, {
+        body: cuerpo,
+        icon: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png'
+      });
+    }
+  });
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(function (err) {
       console.log('No se pudo registrar el service worker:', err);
+    });
+  }
+
+  // Si el navegador YA tiene el permiso concedido (de una visita anterior),
+  // el token sigue siendo valido -- no hace falta pedirle permiso de nuevo
+  // ni que le vuelva a dar clic al boton. Aqui se refleja eso en el boton,
+  // y de paso se reenvia el token por si acaso cambio (ej. actualizacion
+  // del navegador), sin molestar al usuario con ninguna ventana.
+  function sincronizarNotificacionesSiYaActivadas() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!directorData || !directorData.id) return;
+
+    var btn = document.getElementById('btnNotificaciones');
+    if (btn) { btn.textContent = '🔔 Notificaciones activadas'; btn.style.background = '#16a34a'; }
+
+    navigator.serviceWorker.ready.then(function (registro) {
+      var messaging = firebase.messaging();
+      messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+        .then(function (token) {
+          if (!token) return;
+          fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(directorData.id) +
+            '&rol=director&token=' + encodeURIComponent(token));
+        })
+        .catch(function () {});
     });
   }
 
