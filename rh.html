@@ -66,6 +66,7 @@
   .chip-aceptado{background:rgba(34,197,94,0.15);color:#4ade80;}
   .chip-rechazado{background:rgba(239,68,68,0.15);color:#f87171;}
   .chip-espera{background:rgba(148,163,184,0.15);color:#cbd5e1;}
+  .chip-capacitacion{background:rgba(6,182,212,0.15);color:#67e8f9;}
 
   .cand-archivos{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
   .link-archivo{font-size:11px;font-weight:700;text-decoration:none;padding:6px 12px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);}
@@ -101,9 +102,9 @@
   <div id="screenPanel">
     <div class="top-bar">
       <div class="logo-area" style="display:flex;align-items:center;gap:12px;">
-        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:48px;">
+        <a href="staff.html" title="Ir al panel de Staff"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:72px;cursor:pointer;"></a>
         <div>
-          <h1>👥 Recursos Humanos</h1>
+          <h1>Recursos Humanos</h1>
           <div class="who" id="quienEntro">—</div>
         </div>
       </div>
@@ -111,12 +112,12 @@
     </div>
 
     <div class="tabs">
-      <div class="tab on" id="tabNuevo" onclick="cambiarTab('nuevo')">📝 Nuevo candidato</div>
       <div class="tab" id="tabLista" onclick="cambiarTab('lista')">👥 Candidatos</div>
+      <div class="tab" id="tabNuevo" onclick="cambiarTab('nuevo')">📝 Nuevo candidato</div>
     </div>
 
     <!-- TAB: NUEVO CANDIDATO -->
-    <div id="vistaNuevo">
+    <div id="vistaNuevo" style="display:none;">
       <div class="card">
         <h3>Datos del candidato</h3>
         <div class="grid2">
@@ -193,6 +194,14 @@
         <select id="filtroEstatus" onchange="renderCandidatos()">
           <option value="">Todos los estatus</option>
         </select>
+        <select id="filtroResolucion" onchange="renderCandidatos()">
+          <option value="">Todas las resoluciones</option>
+          <option value="Aceptado">Aceptado</option>
+          <option value="En capacitación">En capacitación</option>
+          <option value="Rechazado">Rechazado</option>
+          <option value="En espera">En espera</option>
+          <option value="__ninguna__">Sin resolución aún</option>
+        </select>
       </div>
       <div id="listaCandidatos"><div class="empty">Cargando...</div></div>
     </div>
@@ -209,7 +218,7 @@ var candidatosData = [];
 var puestosDisponibles = [];
 var estatusDisponibles = [];
 var archivoCV = null, archivoVideo = null;
-var tabActual = 'nuevo';
+var tabActual = null;
 
 function login(){
   var id = document.getElementById('loginId').value.trim();
@@ -414,6 +423,7 @@ function construirFiltros(){
 
 function chipClaseEstatus(estatus, resolucion){
   if(resolucion === 'Aceptado') return 'chip-aceptado';
+  if(resolucion === 'En capacitación') return 'chip-capacitacion';
   if(resolucion === 'Rechazado') return 'chip-rechazado';
   if(resolucion === 'En espera') return 'chip-espera';
   if(estatus === 'Contactado') return 'chip-contactado';
@@ -425,9 +435,12 @@ function chipClaseEstatus(estatus, resolucion){
 function renderCandidatos(){
   var filtroPuesto = document.getElementById('filtroPuesto').value;
   var filtroEstatus = document.getElementById('filtroEstatus').value;
+  var filtroResolucion = document.getElementById('filtroResolucion').value;
   var lista = candidatosData.filter(function(c){
     if(filtroPuesto && c.puesto !== filtroPuesto) return false;
     if(filtroEstatus && c.estatus !== filtroEstatus) return false;
+    if(filtroResolucion === '__ninguna__' && c.resolucion) return false;
+    if(filtroResolucion && filtroResolucion !== '__ninguna__' && c.resolucion !== filtroResolucion) return false;
     return true;
   });
 
@@ -447,7 +460,7 @@ function renderCandidatos(){
     var opcionesEstatus = estatusDisponibles.map(function(e){
       return '<option value="'+e+'"'+(c.estatus===e?' selected':'')+'>'+e+'</option>';
     }).join('');
-    var opcionesResolucion = ['','Aceptado','Rechazado','En espera'].map(function(r){
+    var opcionesResolucion = ['','Aceptado','En capacitación','Rechazado','En espera'].map(function(r){
       return '<option value="'+r+'"'+(c.resolucion===r?' selected':'')+'>'+(r||'Sin resolución')+'</option>';
     }).join('');
 
