@@ -4,6 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Coordinador Académico — Organic English</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1c3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OE">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-180.png">
+<link rel="icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -204,6 +211,8 @@
       <a href="https://organicenglish1.com/staff.html"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" /></a>
       <h1>Coordinación Académica</h1>
       <p>Accede con tu ID y clave</p>
+      <button id="btnInstalarApp" onclick="instalarAppOE()" style="display:none;width:100%;margin:0 0 14px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;">📲 Instalar app OE</button>
+      <div id="avisoIOS" style="display:none;margin:0 0 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;font-size:11px;color:#94a3b8;text-align:center;line-height:1.5;">📱 Para instalar: toca <strong>Compartir</strong> → <strong>"Agregar a inicio"</strong>.</div>
       <div class="field"><label>ID de Coordinador</label><input type="text" id="inputId" placeholder="Ej: CA-01" autocomplete="off" /></div>
       <div class="field"><label>Clave</label><input type="password" id="inputClave" placeholder="••••••" /></div>
       <button class="btn-primary" onclick="login()">Entrar</button>
@@ -2494,6 +2503,42 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
       });
     });
   }
+</script>
+
+<!-- ═══ Instalar la app (boton en pantalla de login) ═══ -->
+<script>
+  var _deferredPromptOE = null;
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    _deferredPromptOE = e;
+    var btn = document.getElementById('btnInstalarApp');
+    if (btn) btn.style.display = 'flex';
+  });
+
+  function instalarAppOE() {
+    if (!_deferredPromptOE) return;
+    _deferredPromptOE.prompt();
+    _deferredPromptOE.userChoice.then(function () {
+      _deferredPromptOE = null;
+      var btn = document.getElementById('btnInstalarApp');
+      if (btn) btn.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('appinstalled', function () {
+    var btn = document.getElementById('btnInstalarApp');
+    if (btn) btn.style.display = 'none';
+  });
+
+  (function () {
+    var esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    var yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (esIOS && !yaInstalada) {
+      var aviso = document.getElementById('avisoIOS');
+      if (aviso) aviso.style.display = 'block';
+    }
+  })();
 </script>
 
 </body>
