@@ -2164,6 +2164,18 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
     box-shadow:0 0 0 2px #0f1c3f;"></span>
 </button>
 
+<button id="btnNotificaciones" onclick="activarNotificacionesOE()" style="
+  position:fixed;bottom:24px;right:356px;z-index:998;
+  background:#0f172a;color:#fff;
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:100px;padding:12px 20px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,0.35);
+  display:flex;align-items:center;gap:8px;
+  font-family:'Segoe UI',Arial,sans-serif;">
+  🔔 Activar notificaciones
+</button>
+
 <!-- Overlay con iframe -->
 <div id="agendaOverlay" style="
   display:none;position:fixed;inset:0;z-index:999;
@@ -2228,7 +2240,67 @@ revisarActividadAgenda();
 setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
 </script>
 
+<!-- ═══ Notificaciones push (Firebase Cloud Messaging) ═══ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+<script>
+  var _firebaseAppOE = firebase.initializeApp({
+    apiKey: "AIzaSyB8tBr0rYLbhDXUDHLCqJm2fM8lHA0aBlM",
+    authDomain: "organic-english.firebaseapp.com",
+    projectId: "organic-english",
+    storageBucket: "organic-english.firebasestorage.app",
+    messagingSenderId: "535971507724",
+    appId: "1:535971507724:web:82f9f057936b4c2f8e0829"
+  });
+  var _vapidKeyOE = "BI3q0_1E24pxZGzkcJHUo8a9c4T7a4cp-4pFojhtg1nZJv9TcPDnC8E0Z0ucVkQqIQ25opOswA3VVEUYMfQjwe8";
 
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').catch(function (err) {
+      console.log('No se pudo registrar el service worker:', err);
+    });
+  }
+
+  function activarNotificacionesOE() {
+    var btn = document.getElementById('btnNotificaciones');
+    if (!directorData || !directorData.id) {
+      alert('Primero inicia sesión para poder activar tus notificaciones.');
+      return;
+    }
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('Tu navegador no soporta notificaciones push.');
+      return;
+    }
+
+    Notification.requestPermission().then(function (permiso) {
+      if (permiso !== 'granted') {
+        alert('No se activaron las notificaciones — necesitas darle permiso al navegador.');
+        return;
+      }
+      navigator.serviceWorker.ready.then(function (registro) {
+        var messaging = firebase.messaging();
+        messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+          .then(function (token) {
+            if (!token) { alert('No se pudo generar el token de notificaciones.'); return; }
+            fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(directorData.id) +
+              '&rol=director&token=' + encodeURIComponent(token))
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.success) {
+                  btn.textContent = '🔔 Notificaciones activadas';
+                  btn.style.background = '#16a34a';
+                } else {
+                  alert('Error al guardar: ' + (data.error || ''));
+                }
+              });
+          })
+          .catch(function (err) {
+            console.log('Error al obtener token FCM:', err);
+            alert('Error al activar notificaciones: ' + err.message);
+          });
+      });
+    });
+  }
+</script>
 
 </body>
 </html>
