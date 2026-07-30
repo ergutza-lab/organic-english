@@ -10,7 +10,7 @@
     --text:#f1f5f9; --muted:#94a3b8; --orange:#f97316;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:linear-gradient(180deg,#0f172a,#0a0f1f);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text);min-height:100vh;padding:20px;}
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background-color:#0f172a; background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero3.webp'); background-size:cover; background-position:center; background-attachment:fixed; color:var(--text); min-height:100vh; padding:20px; }
   .wrap{max-width:900px;margin:0 auto;}
 
   /* LOGIN */
@@ -87,6 +87,7 @@
   <!-- LOGIN -->
   <div id="screenLogin">
     <div class="login-box">
+      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:56px;margin-bottom:14px;">
       <h1>👥 RH · Organic English</h1>
       <p>Acceso para Dirección y Coordinación Académica</p>
       <input type="text" id="loginId" placeholder="Tu ID">
@@ -99,9 +100,12 @@
   <!-- PANEL -->
   <div id="screenPanel">
     <div class="top-bar">
-      <div>
-        <h1>👥 Recursos Humanos</h1>
-        <div class="who" id="quienEntro">—</div>
+      <div class="logo-area" style="display:flex;align-items:center;gap:12px;">
+        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:48px;">
+        <div>
+          <h1>👥 Recursos Humanos</h1>
+          <div class="who" id="quienEntro">—</div>
+        </div>
       </div>
       <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
@@ -507,6 +511,97 @@ function eliminarCandidato(idCandidato){
 }
 
 function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+</script>
+
+<!-- HORARIO FLOTANTE -->
+<button onclick="abrirHorario()" style="position:fixed;bottom:24px;right:24px;z-index:998;background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Arial,sans-serif;">📅 Horario</button>
+<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
+  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
+</div>
+
+<!-- Botón flotante Agenda del Equipo -->
+<style>
+@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
+#btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
+</style>
+<button id="btnAgenda" onclick="abrirAgenda()" style="
+  position:fixed;bottom:24px;right:190px;z-index:998;
+  background:#7c3aed;color:#fff;
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:100px;padding:12px 20px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,0.35);
+  display:flex;align-items:center;gap:8px;
+  font-family:'Segoe UI',Arial,sans-serif;">
+  📌 Agenda
+  <span id="agendaBadge" style="
+    display:none;position:absolute;top:-6px;right:-6px;
+    background:#dc2626;color:#fff;font-size:11px;font-weight:800;
+    min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+    align-items:center;justify-content:center;
+    box-shadow:0 0 0 2px #0f1c3f;"></span>
+</button>
+
+<!-- Overlay con iframe -->
+<div id="agendaOverlay" style="
+  display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px;">
+  <div style="position:relative;width:100%;max-width:900px;height:90vh;">
+    <button onclick="cerrarAgenda()" style="
+      position:absolute;top:-40px;right:0;
+      background:rgba(255,255,255,0.15);color:#fff;border:none;
+      border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">✕</button>
+    <iframe id="agendaFrame" src="" style="
+      width:100%;height:100%;border:none;border-radius:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);"></iframe>
+  </div>
+</div>
+
+<script>
+function abrirHorario(){if(window.innerWidth<768){window.open('horario.html','_blank');return;}var o=document.getElementById('horarioOverlay'),f=document.getElementById('horarioFrame');f.src='horario.html';o.style.display='flex';document.body.style.overflow='hidden';}
+function cerrarHorario(){var o=document.getElementById('horarioOverlay'),f=document.getElementById('horarioFrame');o.style.display='none';f.src='';document.body.style.overflow='';}
+window.addEventListener('message',function(e){if(e.data==='cerrarHorario')cerrarHorario();});
+var _ho=document.getElementById('horarioOverlay'); if(_ho) _ho.addEventListener('click',function(e){if(e.target===this)cerrarHorario();});
+
+var AGENDA_PLATAFORMA = 'rh';
+var AGENDA_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+function abrirAgenda(){
+  if(window.innerWidth<768){window.open('agenda.html','_blank');return;}
+  var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
+  f.src='agenda.html';o.style.display='flex';document.body.style.overflow='hidden';
+  localStorage.setItem('agendaVisto_'+AGENDA_PLATAFORMA, new Date().toISOString());
+}
+function cerrarAgenda(){
+  var o=document.getElementById('agendaOverlay'),f=document.getElementById('agendaFrame');
+  o.style.display='none';f.src='';document.body.style.overflow='';
+  revisarActividadAgenda();
+}
+document.getElementById('agendaOverlay').addEventListener('click', function(e) {
+  if (e.target === this) cerrarAgenda();
+});
+
+function revisarActividadAgenda(){
+  fetch(AGENDA_APPS_SCRIPT + '?action=getUltimaActividadAgenda&plataforma=' + encodeURIComponent(AGENDA_PLATAFORMA))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.success) return;
+      var btn = document.getElementById('btnAgenda');
+      var badge = document.getElementById('agendaBadge');
+      if(data.pendientes > 0){
+        btn.classList.add('parpadea');
+        badge.textContent = data.pendientes > 9 ? '9+' : data.pendientes;
+        badge.style.display = 'flex';
+      } else {
+        btn.classList.remove('parpadea');
+        badge.style.display = 'none';
+        badge.textContent = '';
+      }
+    })
+    .catch(function(){});
+}
+revisarActividadAgenda();
+setInterval(revisarActividadAgenda, 60000);
 </script>
 </body>
 </html>
