@@ -4,6 +4,16 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Acceso Personal · Organic English</title>
+
+<!-- ═══ PWA: instalable en pantalla de inicio ═══ -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1c3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OE">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-180.png">
+<link rel="icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png">
+<!-- ═══════════════════════════════════════════ -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -243,6 +253,23 @@
 </head>
 <body>
 
+<!-- ═══ Pantalla de bienvenida (splash propio, con texto) ═══ -->
+<div id="splashOE" style="position:fixed;inset:0;z-index:9999;background:#0f1c3f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity 0.5s ease;">
+  <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco2.webp" alt="Organic English" style="height:160px;object-fit:contain;">
+  <div style="font-family:'Playfair Display',serif;font-size:18px;color:#f8fafc;text-align:center;">Bienvenido a la app de Organic English</div>
+  <div style="font-size:12px;color:rgba(148,163,184,0.7);letter-spacing:0.5px;">Versión 1.0</div>
+  <div style="font-size:11px;color:rgba(148,163,184,0.45);">© 2026 Organic English</div>
+</div>
+<script>
+  setTimeout(function () {
+    var splash = document.getElementById('splashOE');
+    if (!splash) return;
+    splash.style.opacity = '0';
+    setTimeout(function () { splash.style.display = 'none'; }, 500);
+  }, 1600);
+</script>
+
+
 <div class="page">
   <div class="form-side">
     <div class="form-wrap">
@@ -253,6 +280,13 @@
 
       <h2 class="form-title">¿A dónde vas hoy?</h2>
       <p class="form-sub">Haz clic en el panel al que necesitas acceder</p>
+
+      <button id="btnInstalarApp" onclick="instalarAppOE()" style="display:none;width:100%;max-width:320px;margin:0 auto 20px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 24px rgba(249,115,22,0.35);">
+        📲 Instalar app OE
+      </button>
+      <div id="avisoIOS" style="display:none;max-width:340px;margin:0 auto 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">
+        📱 Para instalar la app: toca el ícono de <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) y luego <strong>"Agregar a inicio"</strong>.
+      </div>
 
       <div class="modules-grid">
         <a href="director.html" class="module-btn">
@@ -370,6 +404,57 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 });
 </script>
 <!-- ═══════════════════════════════════════════════════ -->
-  
+
+<!-- ═══ PWA: instalar app + registrar service worker ═══ -->
+<script>
+var _deferredPromptOE = null;
+
+// Android/Chrome: el navegador avisa CUANDO se puede instalar -- en vez
+// de que la persona tenga que buscarlo en el menu de 3 puntos, mostramos
+// aqui mismo un boton grande y visible.
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  _deferredPromptOE = e;
+  var btn = document.getElementById('btnInstalarApp');
+  if (btn) btn.style.display = 'flex';
+});
+
+function instalarAppOE() {
+  if (!_deferredPromptOE) return;
+  _deferredPromptOE.prompt();
+  _deferredPromptOE.userChoice.then(function () {
+    _deferredPromptOE = null;
+    var btn = document.getElementById('btnInstalarApp');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', function () {
+  var btn = document.getElementById('btnInstalarApp');
+  if (btn) btn.style.display = 'none';
+});
+
+// iPhone/iPad: Apple NUNCA permite un boton automatico de instalar (es
+// una restriccion de Safari, no de nuestro codigo) -- en su lugar, se
+// muestra un aviso fijo con las instrucciones manuales, solo si no esta
+// ya instalada.
+(function () {
+  var esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (esIOS && !yaInstalada) {
+    var aviso = document.getElementById('avisoIOS');
+    if (aviso) aviso.style.display = 'block';
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(function (reg) { console.log('Service worker registrado:', reg.scope); })
+      .catch(function (err) { console.log('No se pudo registrar el service worker:', err); });
+  });
+}
+</script>
+
 </body>
 </html>
