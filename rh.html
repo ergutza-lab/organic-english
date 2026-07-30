@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RH · Organic English</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1c3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OE">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-180.png">
+<link rel="icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png">
 <style>
   :root{
     --bg:#0f172a; --card:#1c2b5e; --card2:#0f1a3d; --border:rgba(255,255,255,0.08);
@@ -89,9 +96,11 @@
   <!-- LOGIN -->
   <div id="screenLogin">
     <div class="login-box">
-      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:56px;margin-bottom:14px;">
+      <a href="https://organicenglish1.com/staff.html"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="height:56px;margin-bottom:14px;"></a>
       <h1>👥 RH · Organic English</h1>
       <p>Acceso para Dirección y Coordinación Académica</p>
+      <button id="btnInstalarApp" onclick="instalarAppOE()" style="display:none;width:100%;margin:0 0 14px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;">📲 Instalar app OE</button>
+      <div id="avisoIOS" style="display:none;margin:0 0 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;font-size:11px;color:#94a3b8;text-align:center;line-height:1.5;">📱 Para instalar: toca <strong>Compartir</strong> → <strong>"Agregar a inicio"</strong>.</div>
       <input type="text" id="loginId" placeholder="Tu ID">
       <input type="password" id="loginClave" placeholder="Tu clave">
       <button onclick="login()">Entrar</button>
@@ -261,6 +270,7 @@ function entrarPanel(id, nombre){
   document.getElementById('screenPanel').style.display = 'block';
   document.getElementById('quienEntro').textContent = nombre + ' · ' + id;
   cargarCandidatos();
+  if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
 }
 
 function logout(){
@@ -597,34 +607,38 @@ function eliminarCandidato(idCandidato){
 function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 </script>
 
-<!-- HORARIO FLOTANTE -->
-<button onclick="abrirHorario()" style="position:fixed;bottom:24px;right:24px;z-index:998;background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Arial,sans-serif;">📅 Horario</button>
-<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
-  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
-</div>
-
-<!-- Botón flotante Agenda del Equipo -->
+<!-- ═══ Botones flotantes (Notificaciones, Agenda, Horario) -- apilados en columna ═══ -->
 <style>
 @keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
 #btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
-</style>
-<button id="btnAgenda" onclick="abrirAgenda()" style="
-  position:fixed;bottom:24px;right:190px;z-index:998;
-  background:#7c3aed;color:#fff;
+.botones-flotantes-oe{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.botones-flotantes-oe button{
+  background:#1c2b5e;color:#fff;
   border:1px solid rgba(255,255,255,0.15);
   border-radius:100px;padding:12px 20px;
   font-size:13px;font-weight:700;cursor:pointer;
   box-shadow:0 4px 20px rgba(0,0,0,0.35);
   display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  📌 Agenda
-  <span id="agendaBadge" style="
-    display:none;position:absolute;top:-6px;right:-6px;
-    background:#dc2626;color:#fff;font-size:11px;font-weight:800;
-    min-width:20px;height:20px;padding:0 5px;border-radius:999px;
-    align-items:center;justify-content:center;
-    box-shadow:0 0 0 2px #0f1c3f;"></span>
-</button>
+  font-family:'Segoe UI',Arial,sans-serif;
+  white-space:nowrap;
+}
+</style>
+<div class="botones-flotantes-oe">
+  <button id="btnNotificaciones" onclick="activarNotificacionesOE()" style="background:#0f172a;">🔔 Activar notificaciones</button>
+  <button id="btnAgenda" onclick="abrirAgenda()" style="background:#7c3aed;position:relative;">
+    📌 Agenda
+    <span id="agendaBadge" style="
+      display:none;position:absolute;top:-6px;right:-6px;
+      background:#dc2626;color:#fff;font-size:11px;font-weight:800;
+      min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+      align-items:center;justify-content:center;
+      box-shadow:0 0 0 2px #0f1c3f;"></span>
+  </button>
+  <button onclick="abrirHorario()">📅 Horario</button>
+</div>
+<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
+  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
+</div>
 
 <!-- Overlay con iframe -->
 <div id="agendaOverlay" style="
@@ -687,5 +701,135 @@ function revisarActividadAgenda(){
 revisarActividadAgenda();
 setInterval(revisarActividadAgenda, 60000);
 </script>
+
+<!-- ═══ Notificaciones push (Firebase Cloud Messaging) ═══ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+<script>
+  var _firebaseAppOE = firebase.initializeApp({
+    apiKey: "AIzaSyB8tBr0rYLbhDXUDHLCqJm2fM8lHA0aBlM",
+    authDomain: "organic-english.firebaseapp.com",
+    projectId: "organic-english",
+    storageBucket: "organic-english.firebasestorage.app",
+    messagingSenderId: "535971507724",
+    appId: "1:535971507724:web:82f9f057936b4c2f8e0829"
+  });
+  var _vapidKeyOE = "BI3q0_1E24pxZGzkcJHUo8a9c4T7a4cp-4pFojhtg1nZJv9TcPDnC8E0Z0ucVkQqIQ25opOswA3VVEUYMfQjwe8";
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').catch(function (err) {
+      console.log('No se pudo registrar el service worker:', err);
+    });
+  }
+
+  firebase.messaging().onMessage(function (payload) {
+    var titulo = (payload.notification && payload.notification.title) || 'Organic English';
+    var cuerpo = (payload.notification && payload.notification.body) || '';
+    if (Notification.permission === 'granted') {
+      new Notification(titulo, {
+        body: cuerpo,
+        icon: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png'
+      });
+    }
+  });
+
+  function sincronizarNotificacionesSiYaActivadas() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!miId) return;
+
+    var btn = document.getElementById('btnNotificaciones');
+    if (btn) { btn.textContent = '🔔 Notificaciones activadas'; btn.style.background = '#16a34a'; }
+
+    navigator.serviceWorker.ready.then(function (registro) {
+      var messaging = firebase.messaging();
+      messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+        .then(function (token) {
+          if (!token) return;
+          fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(miId) +
+            '&rol=rh&token=' + encodeURIComponent(token));
+        })
+        .catch(function () {});
+    });
+  }
+
+  function activarNotificacionesOE() {
+    var btn = document.getElementById('btnNotificaciones');
+    if (!miId) {
+      alert('Primero inicia sesión para poder activar tus notificaciones.');
+      return;
+    }
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('Tu navegador no soporta notificaciones push.');
+      return;
+    }
+
+    Notification.requestPermission().then(function (permiso) {
+      if (permiso !== 'granted') {
+        alert('No se activaron las notificaciones — necesitas darle permiso al navegador.');
+        return;
+      }
+      navigator.serviceWorker.ready.then(function (registro) {
+        var messaging = firebase.messaging();
+        messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+          .then(function (token) {
+            if (!token) { alert('No se pudo generar el token de notificaciones.'); return; }
+            fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(miId) +
+              '&rol=rh&token=' + encodeURIComponent(token))
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.success) {
+                  btn.textContent = '🔔 Notificaciones activadas';
+                  btn.style.background = '#16a34a';
+                } else {
+                  alert('Error al guardar: ' + (data.error || ''));
+                }
+              });
+          })
+          .catch(function (err) {
+            console.log('Error al obtener token FCM:', err);
+            alert('Error al activar notificaciones: ' + err.message);
+          });
+      });
+    });
+  }
+</script>
+
+<!-- ═══ Instalar la app (boton en pantalla de login) ═══ -->
+<script>
+  var _deferredPromptOE = null;
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    _deferredPromptOE = e;
+    var btn = document.getElementById('btnInstalarApp');
+    if (btn) btn.style.display = 'flex';
+  });
+
+  function instalarAppOE() {
+    if (!_deferredPromptOE) return;
+    _deferredPromptOE.prompt();
+    _deferredPromptOE.userChoice.then(function () {
+      _deferredPromptOE = null;
+      var btn = document.getElementById('btnInstalarApp');
+      if (btn) btn.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('appinstalled', function () {
+    var btn = document.getElementById('btnInstalarApp');
+    if (btn) btn.style.display = 'none';
+  });
+
+  (function () {
+    var esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    var yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (esIOS && !yaInstalada) {
+      var aviso = document.getElementById('avisoIOS');
+      if (aviso) aviso.style.display = 'block';
+    }
+  })();
+</script>
+
 </body>
 </html>
