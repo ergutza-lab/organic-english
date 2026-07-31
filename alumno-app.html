@@ -412,6 +412,17 @@
 }
 
 /* ═══ Sistema de pestañas (app-like) ═══ */
+/* ═══ Tarjetas de colores (estilo app, inspirado en referencia) ═══ */
+.tarjeta-color { border-radius: 14px; padding: 14px; margin-bottom: 12px; box-sizing: border-box; }
+.tarjeta-teal   { background: rgba(20,184,166,0.14);  border: 1px solid rgba(20,184,166,0.3); }
+.tarjeta-purple { background: rgba(139,92,246,0.14);  border: 1px solid rgba(139,92,246,0.3); }
+.tarjeta-coral  { background: rgba(251,113,133,0.14); border: 1px solid rgba(251,113,133,0.3); }
+.tarjeta-amber  { background: rgba(251,191,36,0.14);  border: 1px solid rgba(251,191,36,0.3); }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.stat-num { font-size: 22px; font-weight: 700; margin: 6px 0 0; color: #f1f5f9; }
+.stat-label { font-size: 11px; color: #cbd5e1; margin: 0; }
+.inicio-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.inicio-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(249,115,22,0.18); color: #fdba74; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
 .tab-content { display: none; padding-bottom: 90px; }
 .tab-content.active { display: block; }
 
@@ -1696,6 +1707,53 @@
 
   // ── LOGOUT ───────────────────────────────────────────────────────
   // ── EVALUACIÓN DEL ALUMNO ───────────────────────────────────────────
+  function renderResumenInicio(d) {
+    var cont = document.getElementById('resumenInicio');
+    if (!cont) return;
+    var a = alumnoData.alumno || {};
+    var g = alumnoData.grupo || {};
+    var iniciales = (a.nombre || '?').split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    var pct = (d.bloque === 2 && d.promedioNivel != null) ? d.promedioNivel : (d.porcentajeGlobal || 0);
+    var challengesAprobados = (d.challenges || []).filter(function(c){ return c.aprobado; }).length;
+    var clasesTomadas = d.totalClases || 0;
+
+    var circunferencia = 2 * Math.PI * 26;
+    var offset = circunferencia * (1 - Math.min(100, pct) / 100);
+
+    cont.innerHTML =
+      '<div class="inicio-header">' +
+        '<div class="inicio-avatar">' + iniciales + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:700;font-size:15px;color:#f1f5f9;">Hola, ' + (a.nombre ? a.nombre.split(' ')[0] : 'alumno/a') + '</div>' +
+          '<div style="font-size:12px;color:#94a3b8;">Grupo ' + (g.id || '—') + ' · ' + (g.nombre || '') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tarjeta-color tarjeta-teal" style="display:flex;align-items:center;gap:14px;">' +
+        '<svg width="64" height="64" viewBox="0 0 64 64" style="flex-shrink:0;">' +
+          '<circle cx="32" cy="32" r="26" fill="none" stroke="rgba(45,212,191,0.25)" stroke-width="6"/>' +
+          '<circle cx="32" cy="32" r="26" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" ' +
+            'stroke-dasharray="' + circunferencia.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" transform="rotate(-90 32 32)"/>' +
+          '<text x="32" y="37" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">' + Math.round(pct) + '%</text>' +
+        '</svg>' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:14px;color:#5eead4;">Tu evaluación va bien</div>' +
+          '<div style="font-size:12px;color:#94a3b8;">Semana ' + (d.semana || '—') + ' · Bloque ' + (d.bloque || 1) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="stat-grid">' +
+        '<div class="tarjeta-color tarjeta-coral" style="margin-bottom:0;">' +
+          '<div style="font-size:20px;">🏆</div>' +
+          '<div class="stat-num">' + challengesAprobados + '</div>' +
+          '<div class="stat-label">Challenges aprobados</div>' +
+        '</div>' +
+        '<div class="tarjeta-color tarjeta-amber" style="margin-bottom:0;">' +
+          '<div style="font-size:20px;">📅</div>' +
+          '<div class="stat-num">' + clasesTomadas + '</div>' +
+          '<div class="stat-label">Clases tomadas</div>' +
+        '</div>' +
+      '</div>';
+  }
+
   function cargarEvaluacionAlumno(idAlumno, idGrupo) {
     fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo))
       .then(r=>r.json())
@@ -1703,6 +1761,7 @@
         console.log('EVALUACION DATA:', JSON.stringify(d));
         if(d.success) {
           renderEvaluacionAlumno(d);
+          renderResumenInicio(d);
           // El justificante de falta por fuerza mayor solo aplica a grupos
           // con el sistema de colores normal (Personalizado no usa
           // REGISTRO_DIARIO) -- y solo se puede cargar DESPUES de
