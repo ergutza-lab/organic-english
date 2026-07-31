@@ -413,17 +413,9 @@
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 .alerta-chat-club .alerta-club-cerrar:hover { color: #fff; }
-/* ═══ Sistema de 3 pantallas + sub-pestañas (color dinámico por nivel) ═══ */
-.tab-content { display: none; }
+/* ═══ Sistema de 3 pantallas (color dinámico por nivel) ═══ */
+.tab-content { display: none; padding-bottom: 90px; }
 .tab-content.active { display: block; }
-.tab-content:not(#tab-pagos) { height: calc(100vh - 130px); overflow: hidden; }
-#tab-pagos.tab-content { min-height: calc(100vh - 130px); padding-bottom: 90px; overflow-y: auto; }
-
-.sub-tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.05); border-radius: 100px; padding: 4px; margin-bottom: 12px; }
-.sub-tabs button { flex: 1; background: transparent; color: #94a3b8; border: none; border-radius: 100px; padding: 9px 4px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
-.sub-tabs button.active { background: var(--color-nivel); color: #fff; }
-.sub-content { display: none; }
-.sub-content.active { display: block; }
 
 .bottom-nav-app {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
@@ -443,6 +435,27 @@
 .bottom-nav-app button.active { color: var(--color-nivel-suave-texto, #a8c3e8); background: var(--color-nivel-suave); }
 
 .tarjeta-nivel { background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 14px; padding: 12px; }
+
+/* ═══ Student Board (tablón de avisos) ═══ */
+.student-board { background: #5b4530; border-radius: 16px; padding: 14px; margin-bottom: 16px; }
+.student-board-titulo { color: #93c5fd; font-weight: 800; font-size: 13px; text-align: center; margin-bottom: 10px; letter-spacing: 0.5px; }
+.student-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 480px) { .student-board-grid { grid-template-columns: 1fr; } }
+.post-it { font-size: 12px; line-height: 1.4; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: transform 0.15s; }
+.post-it:hover { transform: translateY(-2px); }
+.post-it-amarillo { background: #fef08a; color: #713f12; }
+.post-it-morado   { background: #e9d5ff; color: #581c87; }
+.post-it-azul     { background: #bfdbfe; color: #1e3a8a; }
+.post-it-lila     { background: #c4b5fd; color: #4c1d95; }
+.post-it-celeste  { background: #a5d8ff; color: #1864ab; }
+.post-it-rojo     { background: #f8b4b4; color: #7f1d1d; }
+.post-it-rojo.post-it-brillo {
+  animation: postItBrillo 1.6s ease-in-out infinite;
+}
+@keyframes postItBrillo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); transform: scale(1.03); }
+}
 .stat-mini { flex: 1; background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 12px; padding: 10px; text-align: center; }
 .stat-mini .num { font-size: 18px; font-weight: 700; color: #f1f5f9; margin: 0; }
 .stat-mini .lbl { font-size: 10px; color: #94a3b8; margin: 0; }
@@ -496,79 +509,79 @@
 
     <!-- ═══ PANTALLA 1: DATOS + CALIFICACIONES + MAESTRO (con sub-pestañas) ═══ -->
     <div id="tab-datos" class="tab-content active">
-      <div class="sub-tabs">
-        <button id="subBtn-datos" class="active" onclick="cambiarSubTab('datos')">👤 Datos</button>
-        <button id="subBtn-califs" onclick="cambiarSubTab('califs')">📊 Calificaciones</button>
-        <button id="subBtn-maestro" onclick="cambiarSubTab('maestro')">🎓 Maestro</button>
-      </div>
 
-      <!-- SUB: DATOS (grupo, Zoom, Horario, Chat Club) -->
-      <div id="sub-datos" class="sub-content active">
-        <div id="alertaChatClub" class="alerta-chat-club" style="display:none;" onclick="abrirClub()">
-          <button class="alerta-club-cerrar" onclick="event.stopPropagation(); cerrarAlertaChatClub();">×</button>
-          <div class="alerta-club-icono">💬</div>
-          <div class="alerta-club-texto">
-            <strong>¡Tienes acceso al Chat Club!</strong><br>
-            Este viernes a las 7:00 PM, únete a la práctica de conversación.
+      <!-- STUDENT BOARD: avisos que solo aparecen cuando aplican -->
+      <div class="student-board">
+        <div class="student-board-titulo">MI TABLÓN</div>
+        <div class="student-board-grid">
+          <div class="post-it post-it-amarillo" id="postitSiguienteClase">
+            <span id="postitSiguienteClaseTexto">Tu siguiente clase de inglés es el —.</span>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-icon icon-grupo" style="background:var(--color-nivel-suave);">📅</div>
-            <span class="card-title">Mi grupo</span>
-            <button id="btnCambiarGrupo" class="btn-cambiar-grupo" style="background:rgba(202,138,4,0.15);border-color:rgba(202,138,4,0.4);color:#ca8a04;padding:6px 14px;font-size:12px;">⇄ Cambiar grupo</button>
+          <div class="post-it post-it-morado" id="postitGrabacion" style="display:none;" onclick="abrirGrabacionDesdeBoard()">
+            Ya está disponible la grabación de tu última clase. Dale clic aquí!!
           </div>
-          <div class="grupo-grid">
-            <div class="grupo-item"><div class="grupo-label">Grupo</div><div class="grupo-val" id="grupoId">—</div><div class="grupo-sub" id="grupoNivel">—</div></div>
-            <div class="grupo-item"><div class="grupo-label">Horario</div><div class="grupo-val" id="grupoHorario">—</div><div class="grupo-sub">hora CDMX</div></div>
-            <div class="grupo-item"><div class="grupo-label">Dias</div><div class="grupo-val" id="grupoDias">Lun – Jue</div><div class="grupo-sub" id="grupoDiasSub">4 dias por semana</div></div>
-            <div class="grupo-item"><div class="grupo-label">Inicio de clases</div><div class="grupo-val" id="grupoFecha">—</div><div class="grupo-sub" id="grupoDiasRestantes">—</div></div>
+          <div class="post-it post-it-azul" id="postitChallenge" style="display:none;" onclick="abrirBoardChallenge()">
+            <span id="postitChallengeTexto">Esta semana toca tu Challenge. Mucho éxito!!</span>
           </div>
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:1.2rem;">
-            <a id="btnZoom" href="#" target="_blank" class="zoom-btn" style="background:var(--color-nivel);"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
-            <a id="btnGrabacion" href="#" target="_blank" style="display:none;align-items:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">🎥 Ver grabación de última clase</a>
-            <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Chat Club · Viernes 7:00 PM</button>
+          <div class="post-it post-it-lila" id="postitChatClub" style="display:none;" onclick="abrirClub()">
+            Participa en el Chat Club, viernes a las 7 PM. Dale clic aquí!!
+          </div>
+          <div class="post-it post-it-celeste" id="postitEvaluar" style="display:none;" onclick="irAEvaluar()">
+            <span id="postitEvaluarTexto">No olvides calificar a tu maestro y a tu asistente. Dale clic aquí!!</span>
+          </div>
+          <div class="post-it post-it-rojo" id="postitPago" onclick="abrirInfoBancaria()">
+            <span id="postitPagoTexto">Consultando tu pago...</span>
           </div>
         </div>
       </div>
 
-      <!-- SUB: CALIFICACIONES -->
-      <div id="sub-califs" class="sub-content">
-        <div class="card">
-          <div class="card-header" style="justify-content: space-between;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div class="card-icon icon-califs" style="background:var(--color-nivel-suave);">📊</div>
-              <span class="card-title">Mis calificaciones</span>
-            </div>
-            <button onclick="abrirInfoEvaluacion()" style="background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💎 ¿Cómo me evalúan?</button>
-          </div>
-          <div id="evaluacionAlumno">
-            <div style="text-align:center;padding:20px;color:#64748b;">Cargando...</div>
-          </div>
-          <div id="progresoCurso"></div>
-          <div class="field-row"><span class="field-label">Bloque actual</span><span class="field-val" id="nivelActual">—</span></div>
-          <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon icon-grupo" style="background:var(--color-nivel-suave);">📅</div>
+          <span class="card-title">Mi grupo</span>
+          <button id="btnCambiarGrupo" class="btn-cambiar-grupo" style="background:rgba(202,138,4,0.15);border-color:rgba(202,138,4,0.4);color:#ca8a04;padding:6px 14px;font-size:12px;">⇄ Cambiar grupo</button>
+        </div>
+        <div class="grupo-grid">
+          <div class="grupo-item"><div class="grupo-label">Grupo</div><div class="grupo-val" id="grupoId">—</div><div class="grupo-sub" id="grupoNivel">—</div></div>
+          <div class="grupo-item"><div class="grupo-label">Horario</div><div class="grupo-val" id="grupoHorario">—</div><div class="grupo-sub">hora CDMX</div></div>
+          <div class="grupo-item"><div class="grupo-label">Dias</div><div class="grupo-val" id="grupoDias">Lun – Jue</div><div class="grupo-sub" id="grupoDiasSub">4 dias por semana</div></div>
+          <div class="grupo-item"><div class="grupo-label">Inicio de clases</div><div class="grupo-val" id="grupoFecha">—</div><div class="grupo-sub" id="grupoDiasRestantes">—</div></div>
+        </div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:1.2rem;">
+          <a id="btnZoom" href="#" target="_blank" class="zoom-btn" style="background:var(--color-nivel);"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
+          <a id="btnGrabacion" href="#" target="_blank" style="display:none;align-items:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">🎥 Ver grabación de última clase</a>
+          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Chat Club · Viernes 7:00 PM</button>
         </div>
       </div>
 
-      <!-- SUB: MAESTRO -->
-      <div id="sub-maestro" class="sub-content">
-        <div class="card" style="text-align:center;">
-          <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi maestro</span></div>
-          <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;" />
-          <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;">M</div>
-          <div class="persona-nombre" id="maestroNombre">—</div>
-          <div class="persona-rol">Maestro · <span id="maestroId">—</span></div>
-          <br>
-          <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-            Enviar mensaje
-          </a>
-          <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;">⭐ Evaluar a mi maestro</button>
+      <div class="card">
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="card-icon icon-califs" style="background:var(--color-nivel-suave);">📊</div>
+            <span class="card-title">Mis calificaciones</span>
+          </div>
+          <button onclick="abrirInfoEvaluacion()" style="background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💎 ¿Cómo me evalúan?</button>
         </div>
-        <div style="background:#1a2540;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:12px 16px;font-size:12px;color:#94a3b8;line-height:1.5;margin-top:10px;">
-          📝 <strong style="color:#fbbf24;">Recuerda evaluar</strong> a tu maestro y asistente CE en la <strong style="color:#fbbf24;">Semana 4</strong> y <strong style="color:#fbbf24;">Semana 8</strong> del bloque.
+        <div id="evaluacionAlumno">
+          <div style="text-align:center;padding:20px;color:#64748b;">Cargando...</div>
         </div>
+        <div id="progresoCurso"></div>
+        <div class="field-row"><span class="field-label">Bloque actual</span><span class="field-val" id="nivelActual">—</span></div>
+        <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi maestro</span></div>
+        <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;" />
+        <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;">M</div>
+        <div class="persona-nombre" id="maestroNombre">—</div>
+        <div class="persona-rol">Maestro · <span id="maestroId">—</span></div>
+        <br>
+        <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+          Enviar mensaje
+        </a>
+        <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;">⭐ Evaluar a mi maestro</button>
       </div>
     </div>
 
@@ -580,9 +593,7 @@
             <div class="card-icon icon-pagos" style="background:var(--color-nivel-suave);">💳</div>
             <span class="card-title">Mis pagos</span>
           </div>
-          <button onclick="abrirInfoBancaria()" style="background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-            🏦 Información Bancaria
-          </button>
+          <button onclick="abrirInfoBancaria()" style="background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💳 Información Bancaria</button>
         </div>
         <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
       </div>
@@ -619,9 +630,9 @@
 
     <!-- ═══ BARRA DE NAVEGACIÓN INFERIOR ═══ -->
     <div class="bottom-nav-app">
-      <button id="navBtn-datos" class="active" onclick="cambiarTabApp('datos')"><span class="nav-icon">👤</span>Datos</button>
-      <button id="navBtn-pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Pagos</button>
-      <button id="navBtn-practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Práctica</button>
+      <button id="navBtn-datos" class="active" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
+      <button id="navBtn-practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
+      <button id="navBtn-pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
     </div>
   </div>
 </div>
@@ -1011,6 +1022,7 @@
     renderPagos(p);
     renderHistorial(alumnoData.historialPagos);
     renderCalificaciones(g);
+    renderStudentBoard(g, p);
     cargarMapaAlumno(a.id, g ? g.id : '');
     verificarRecordatorio(alumnoData.pago);
   }
@@ -1053,9 +1065,8 @@
         if (!esSemanaDEval) {
           btnM.style.display = 'none';
           btnC.style.display = 'none';
-          var postItFuera = document.getElementById('postItEval');
+          var postItFuera = document.getElementById('postitEvaluar');
           if (postItFuera) postItFuera.style.display = 'none';
-          posicionarAlertasFlotantes();
           return;
         }
         btnM.style.display = 'flex';
@@ -1067,38 +1078,28 @@
         if (yaC) { btnC.textContent='✅ CE evaluada — Bloque '+bd; btnC.classList.add('ya-evaluado'); btnC.disabled=true; }
         else     { btnC.textContent='⭐ Evaluar a mi asistente CE — Bloque '+bd; btnC.disabled=false; btnC.classList.remove('ya-evaluado'); }
 
-        // Post-it: solo si es semana 4 u 8 Y todavia falta evaluar algo, y
-        // el alumno no lo cerro ya en esta sesion.
+        // Post-it del Student Board: solo si es semana 4 u 8 Y todavia falta evaluar algo.
         var faltaAlgo = !yaM || !yaC;
-        var postIt = document.getElementById('postItEval');
-        if (esSemanaDEval && faltaAlgo && !postItCerradoEnSesion) {
+        var postIt = document.getElementById('postitEvaluar');
+        if (esSemanaDEval && faltaAlgo) {
           var textoPostIt = (!yaM && !yaC)
-            ? 'Esta semana toca calificar a tu maestro y tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarlos. Tu opinión nos ayuda a mejorar 💛'
-            : (!yaM ? 'Esta semana toca calificar a tu maestro. Debajo de su nombre encontrarás la opción para evaluarlo. Tu opinión nos ayuda a mejorar 💛'
-                    : 'Esta semana toca calificar a tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarla. Tu opinión nos ayuda a mejorar 💛');
-          document.getElementById('postItEvalTexto').textContent = textoPostIt;
+            ? 'No olvides calificar a tu maestro y a tu asistente CE. Dale clic aquí!!'
+            : (!yaM ? 'No olvides calificar a tu maestro. Dale clic aquí!!'
+                    : 'No olvides calificar a tu asistente CE. Dale clic aquí!!');
+          document.getElementById('postitEvaluarTexto').textContent = textoPostIt;
           postIt.style.display = 'block';
         } else if (postIt) {
           postIt.style.display = 'none';
         }
-        posicionarAlertasFlotantes();
       })
       .catch(function(){});
   }
 
-  var postItCerradoEnSesion = false;
-  function cerrarPostItEval() {
-    postItCerradoEnSesion = true;
-    document.getElementById('postItEval').style.display = 'none';
-    posicionarAlertasFlotantes();
-  }
   function irAEvaluar() {
     var btnM = document.getElementById('btnEvaluarMaestro');
     var btnC = document.getElementById('btnEvaluarCE');
     var objetivo = (btnM && !btnM.disabled) ? btnM : btnC;
     if (objetivo) objetivo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    document.getElementById('postItEval').style.display = 'none';
-    posicionarAlertasFlotantes();
   }
 
   function calificar(concepto, valor) {
@@ -1497,6 +1498,67 @@
   }
 
   // ── RENDER PAGOS ─────────────────────────────────────────────────
+  function abrirGrabacionDesdeBoard() {
+    var btn = document.getElementById('btnGrabacion');
+    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
+  }
+  function abrirBoardChallenge() {
+    var card = document.getElementById('evaluacionAlumno');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── STUDENT BOARD: arma el contenido de cada post-it segun su regla ──
+  function renderStudentBoard(g, p) {
+    if (!g) return;
+
+    // 1) Siguiente clase -- SIEMPRE visible.
+    var txtDias = (g.tipoHorario === 'sabado') ? 'el sábado' : (g.tipoHorario === 'Personalizado' ? g.horario : 'de lunes a jueves');
+    document.getElementById('postitSiguienteClaseTexto').textContent =
+      'Tu siguiente clase de inglés es ' + txtDias + ' a las ' + (g.horario || '—') + '.';
+
+    // 2) Grabación de la ultima clase -- SIEMPRE visible si ya hay una subida.
+    var postitGrab = document.getElementById('postitGrabacion');
+    postitGrab.style.display = g.linkGrabacion ? 'block' : 'none';
+
+    // 3) Mini/Grand Challenge -- solo en su semana de presentacion (4 u 8).
+    var sem = alumnoData._semana || 1;
+    var semEnBloque = sem > 8 ? sem - 8 : sem;
+    var postitChal = document.getElementById('postitChallenge');
+    if (semEnBloque === 4) {
+      document.getElementById('postitChallengeTexto').textContent = 'Esta semana toca tu Mini Challenge. Mucho éxito!!';
+      postitChal.style.display = 'block';
+    } else if (semEnBloque === 8) {
+      document.getElementById('postitChallengeTexto').textContent = 'Esta semana toca tu Grand Challenge. Mucho éxito!!';
+      postitChal.style.display = 'block';
+    } else {
+      postitChal.style.display = 'none';
+    }
+
+    // 4) Chat Club -- la regla de dia+antiguedad ya la calcula verificarAlertaChatClub().
+
+    // 5) Evaluar maestro/CE -- la controla verificarEvaluaciones() (misma semana que el challenge).
+
+    // 6) Pago -- SIEMPRE visible, con brillo si esta vencido o proximo a vencer.
+    var postitPago  = document.getElementById('postitPago');
+    var txtPago     = document.getElementById('postitPagoTexto');
+    if (p && p.periodoFin) {
+      var diasParaVencer = Math.ceil((new Date(p.periodoFin).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (diasParaVencer < 0) {
+        txtPago.textContent = 'Tu pago venció. No olvides subir tu comprobante para seguir con tus clases.';
+        postitPago.classList.add('post-it-brillo');
+      } else if (diasParaVencer <= 3) {
+        txtPago.textContent = 'Se acerca tu fecha de pago el ' + formatFechaCorta(p.periodoFin) + '. No olvides subir tu comprobante!!';
+        postitPago.classList.add('post-it-brillo');
+      } else {
+        txtPago.textContent = 'Tu pago fue validado. Cubre del ' + formatFechaCorta(p.fecha) + ' al ' + formatFechaCorta(p.periodoFin) + '.';
+        postitPago.classList.remove('post-it-brillo');
+      }
+    } else {
+      txtPago.textContent = 'Aún no tienes un pago registrado. Sube tu comprobante aquí.';
+      postitPago.classList.remove('post-it-brillo');
+    }
+  }
+
   function renderPagos(p) {
     var div=document.getElementById('pagosContenido');
     if(!p){div.innerHTML='<div class="califs-empty"><div class="califs-text">Sin pagos registrados</div></div>';return;}
@@ -1621,40 +1683,18 @@
   }
 
   // ── CLUB DE CONVERSACIÓN ─────────────────────────────────────────
-  var alertaClubCerradaEnSesion = false;
 
   // Coloca el aviso del Chat Club debajo del post-it de evaluacion cuando
   // este ultimo esta visible, para que ambos queden apilados en la misma
   // esquina en vez de superpuestos. Si el post-it no esta visible, el
   // Chat Club regresa a su posicion por defecto.
-  function posicionarAlertasFlotantes() {
-    var postIt = document.getElementById('postItEval');
-    var club = document.getElementById('alertaChatClub');
-    if (!club) return;
-    var postItVisible = postIt && postIt.style.display !== 'none' && postIt.style.display !== '';
-    if (postItVisible) {
-      var rect = postIt.getBoundingClientRect();
-      club.style.top = Math.round(rect.bottom + 28) + 'px';
-    } else {
-      club.style.top = '90px';
-    }
-  }
-  // Reintenta la posicion una vez que la fuente manuscrita (Caveat) termine
-  // de cargar -- su llegada tardia puede cambiar la altura del post-it y
-  // dejar al aviso del club ligeramente encimado.
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(function(){ posicionarAlertasFlotantes(); });
-  }
-
   // Alerta visible SOLO Jueves y Viernes, para alumnos con 4 semanas
   // o mas de antiguedad (fecha de inscripcion), recordandoles que tienen
   // acceso al Chat Club del viernes 7pm. Aplica a TODOS los alumnos
   // elegibles, sin importar si su grupo es de sabado o de entre semana.
   function verificarAlertaChatClub(alumno) {
-    var alerta = document.getElementById('alertaChatClub');
+    var alerta = document.getElementById('postitChatClub');
     if (!alerta) return;
-
-    if (alertaClubCerradaEnSesion) { alerta.style.display = 'none'; return; }
 
     var hoy = new Date();
     var diaSemana = hoy.getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
@@ -1662,7 +1702,6 @@
 
     if (!esDiaVentana || !alumno || !alumno.fechaInscripcion) {
       alerta.style.display = 'none';
-      posicionarAlertasFlotantes();
       return;
     }
 
@@ -1670,13 +1709,7 @@
     var diasAntiguedad = Math.floor((hoy - fechaIns) / (1000 * 60 * 60 * 24));
     var semanasAntiguedad = diasAntiguedad / 7;
 
-    alerta.style.display = (semanasAntiguedad >= 4) ? 'flex' : 'none';
-    posicionarAlertasFlotantes();
-  }
-
-  function cerrarAlertaChatClub() {
-    alertaClubCerradaEnSesion = true;
-    document.getElementById('alertaChatClub').style.display = 'none';
+    alerta.style.display = (semanasAntiguedad >= 4) ? 'block' : 'none';
   }
 
   function abrirClub() {
@@ -1958,15 +1991,6 @@ function renderEvaluacionAlumno(d) {
     window.scrollTo(0, 0);
   }
 
-  function cambiarSubTab(sub) {
-    ['datos', 'califs', 'maestro'].forEach(function (s) {
-      var contenido = document.getElementById('sub-' + s);
-      var boton = document.getElementById('subBtn-' + s);
-      if (contenido) contenido.classList.toggle('active', s === sub);
-      if (boton) boton.classList.toggle('active', s === sub);
-    });
-  }
-
   function aplicarColorNivel(nivelTexto) {
     var clave = (nivelTexto || '').toUpperCase().replace(/\s+/g, '');
     var color = COLORES_NIVEL[clave] || COLORES_NIVEL['A1'];
@@ -2186,13 +2210,6 @@ function subirVideoChallenge() {
   });
 }
 </script>
-<!-- POST-IT: recordatorio de evaluación (semana 4 y 8 desde inicio de grupo) -->
-<div id="postItEval" class="post-it-eval" style="display:none;" onclick="irAEvaluar()">
-  <button class="post-it-cerrar" onclick="event.stopPropagation(); cerrarPostItEval();">×</button>
-  <div class="post-it-pin">📌</div>
-  <div class="post-it-titulo">¡No olvides evaluar!</div>
-  <div class="post-it-texto" id="postItEvalTexto">Esta semana toca calificar a tu maestro y tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarlos. Tu opinión nos ayuda a mejorar 💛</div>
-</div>
 
 </body>
 </html>
