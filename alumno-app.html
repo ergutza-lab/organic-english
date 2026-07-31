@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Panel — Organic English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { 
+    background: #0f172a; 
+    font-family: 'Segoe UI', Arial, sans-serif; 
+    min-height: 100vh;
+    background-image: url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero4.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── LOGIN ── */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-box { background: #1e2a4a; border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; }
+  .login-box img { width: 340px; height: auto; }
+  .login-box h1 { color: #fff; font-size: 22px; font-weight: 600; margin: 10px 0 0 0; }
+  .login-box p { color: #64748b; font-size: 13px; margin: 4px 0 16px 0; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 8px; }
+  .field input { width: 100%; background: #0b1120; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; color: #f1f5f9; font-size: 16px; outline: none; transition: border-color 0.2s; }
+  .field input:focus { border-color: #f97316; }
+  .btn-primary { width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-primary:hover { opacity: 0.9; }
+  .error-msg { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 13px 16px; color: #f87171; font-size: 14px; margin-top: 14px; display: none; text-align: center; }
+
+  /* ── PANEL ── */
+  .panel-root { max-width: 980px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 11px; height: 11px; border-radius: 50%; background: #f97316; }
+  .logo-text { font-size: 17px; font-weight: 600; color: #f1f5f9; }
+  .btn-logout { font-size: 14px; color: #64748b; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 7px 14px; background: transparent; cursor: pointer; }
+
+  /* FILA 1: INFO ALUMNO */
+  .info-alumno-bar { background: linear-gradient(135deg, #1c2b5e 0%, #0f1a3d 100%); border-radius: 16px; padding: 20px 28px; border-bottom: 3px solid #f97316; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .info-alumno-left { display: flex; align-items: center; gap: 16px; }
+  .avatar-grande { width: 52px; height: 52px; border-radius: 50%; background: #1c2b5e; border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .info-alumno-nombre { color: #f1f5f9; font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .info-alumno-datos { display: flex; gap: 20px; flex-wrap: wrap; }
+  .info-dato { display: flex; flex-direction: column; }
+  .info-dato-label { color: #475569; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .info-dato-val { color: #94a3b8; font-size: 13px; font-weight: 500; }
+  .badge-id { background: #f97316; color: #fff; font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 100px; display: inline-block; }
+  .badge-estatus { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; display: inline-block; }
+
+  /* CARDS */
+  .card { background: #1a2540; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 1.6rem; }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.2rem; }
+  .card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .icon-grupo  { background: rgba(28,43,94,0.8); }
+  .icon-pagos  { background: rgba(22,163,74,0.15); }
+  .icon-califs { background: rgba(234,179,8,0.15); }
+  .icon-asist  { background: rgba(147,51,234,0.15); }
+  .icon-maestro{ background: rgba(249,115,22,0.15); }
+  .icon-hist   { background: rgba(249,115,22,0.15); }
+  .card-title { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* FILA 2: MI GRUPO */
+  .fila2 { margin-bottom: 16px; }
+  .grupo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+  .grupo-item { padding: 12px 20px 12px 0; border-right: 1px solid rgba(255,255,255,0.06); }
+  .grupo-item:last-child { border-right: none; padding-left: 20px; padding-right: 0; }
+  .grupo-item:not(:first-child):not(:last-child) { padding-left: 20px; }
+  .grupo-label { font-size: 12px; color: #475569; margin-bottom: 6px; }
+  .grupo-val { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+  .grupo-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
+  .zoom-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #2D8CFF, #1a6fd4); color: #fff; border: none; border-radius: 100px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 4px 18px rgba(249,115,22,0.3); white-space: nowrap; }
+  .zoom-btn:hover { opacity: 0.9; }
+  .btn-club { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; border: none; border-radius: 100px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 18px rgba(124,58,237,0.3); }
+  #modalClubOverlay { display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; padding: 20px; }
+  #modalClubOverlay.visible { display: flex; }
+  #modalClubAvisoOverlay { display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; padding: 20px; }
+  #modalClubAvisoOverlay.visible { display: flex; }
+  .zoom-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; opacity: 0.85; }
+  .btn-cambiar-grupo { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.12); border-radius: 100px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-cambiar-grupo:hover { border-color: #f97316; color: #f97316; background: rgba(249,115,22,0.06); }
+
+  /* FILA 3 */
+  .fila3 { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; margin-bottom: 16px; }
+  .pago-highlight { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .pago-monto { font-size: 28px; font-weight: 700; color: #f1f5f9; }
+  .pago-tipo { font-size: 13px; color: #64748b; margin-top: 3px; }
+  .field-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { font-size: 13px; color: #64748b; }
+  .field-val { font-size: 14px; font-weight: 600; color: #f1f5f9; text-align: right; }
+  .progreso-bar { background: rgba(255,255,255,0.08); border-radius: 4px; height: 7px; margin: 12px 0 5px; }
+  .progreso-fill { background: linear-gradient(90deg, #1c2b5e, #f97316); height: 7px; border-radius: 4px; }
+  .progreso-labels { display: flex; justify-content: space-between; font-size: 12px; color: #475569; }
+  .alerta-pago { font-size: 13px; color: #fbbf24; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; padding: 9px 12px; margin-top: 12px; }
+  .alerta-pago-roja { font-size: 13px; color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); border-radius: 8px; padding: 9px 12px; margin-top: 12px; font-weight: 700; }
+  .califs-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70px; gap: 6px; }
+  .califs-text { font-size: 14px; color: #334155; }
+
+  /* FILA 4 */
+  .fila4 { display: grid; grid-template-columns: 1.8fr 1fr 1fr; gap: 16px; }
+  .hist-tabla { width: 100%; border-collapse: collapse; }
+  .hist-tabla th { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .hist-tabla td { font-size: 14px; color: #94a3b8; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+  .hist-tabla tr:last-child td { border-bottom: none; }
+  .hist-monto { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .hist-monto.anterior { color: #334155; }
+
+  /* TARJETAS PERSONA */
+  .persona-foto { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; display: block; margin-bottom: 14px; }
+  .foto-maestro { border: 2px solid #f97316; }
+  .foto-asistente { border: 2px solid #4ade80; }
+  .persona-avatar-fallback { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .avatar-maestro { background: rgba(249,115,22,0.15); color: #fb923c; border: 2px solid rgba(249,115,22,0.3); }
+  .avatar-asistente { background: rgba(147,51,234,0.15); color: #c084fc; border: 2px solid rgba(147,51,234,0.3); }
+  .persona-nombre { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 3px; }
+  .persona-rol { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+  .btn-wa-naranja { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#25D366,#128C7E); color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .btn-wa-verde { display: inline-flex; align-items: center; gap: 7px; background: #16a34a; color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+
+  /* ── EVALUACIONES ── */
+  .btn-evaluar { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 10px; width: 100%; box-shadow: 0 4px 14px rgba(245,158,11,0.3); transition: opacity 0.2s; }
+  .btn-evaluar:hover { opacity: 0.9; }
+  .btn-evaluar:disabled { opacity: 0.4; cursor: not-allowed; background: linear-gradient(135deg, #64748b, #475569); box-shadow: none; }
+  .btn-evaluar.ya-evaluado { background: linear-gradient(135deg, #334155, #1e293b); box-shadow: none; cursor: default; opacity: 1; }
+  .estrella { font-size: 30px; cursor: pointer; transition: transform 0.15s; color: #f59e0b; opacity: 0.25; display: inline-block; }
+  .estrella.activa { color: #f59e0b; opacity: 1; transform: scale(1.1); }
+  .estrella:hover { transform: scale(1.2); opacity: 0.7; color: #f59e0b; }
+  .eval-concepto { margin-bottom: 20px; }
+  .eval-concepto-titulo { font-size: 14px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .eval-concepto-desc { font-size: 12px; color: #64748b; margin-bottom: 10px; line-height: 1.5; }
+  .estrellas-row { display: flex; gap: 4px; justify-content: center; }
+  .modal-eval-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none; align-items: center; justify-content: center; z-index: 400; padding: 20px; }
+  .modal-eval-overlay.visible { display: flex; }
+  .modal-eval-box { background: #1a2540; border-radius: 22px; border: 1px solid rgba(245,158,11,0.35); padding: 28px 24px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; box-shadow: 0 0 50px rgba(245,158,11,0.15); }
+  .modal-eval-icono { font-size: 36px; text-align: center; margin-bottom: 10px; }
+  .modal-eval-titulo { font-size: 18px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 4px; }
+  .modal-eval-bloque { font-size: 12px; color: #f59e0b; text-align: center; margin-bottom: 20px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .btn-enviar-eval { width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
+  .btn-enviar-eval.activo { opacity: 1; pointer-events: auto; }
+  .btn-cancelar-eval { width: 100%; background: transparent; color: #475569; border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 12px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+  .eval-status { font-size: 13px; text-align: center; margin-top: 8px; min-height: 18px; color: #64748b; }
+  .eval-status.ok  { color: #4ade80; }
+  .eval-status.err { color: #f87171; }
+
+  /* BADGES */
+  .badge { font-size: 11px; padding: 4px 11px; border-radius: 20px; font-weight: 600; display: inline-block; }
+  .badge-validado { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+  .badge-pendiente { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+
+  /* MODALES */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal-box { background: #1a2540; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); padding: 1.75rem; width: 380px; }
+  .hidden { display: none; }
+  .modal-pago-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+  .modal-pago-overlay.visible { display: flex; }
+  .modal-pago-box { background: #1a2540; border-radius: 22px; border: 1px solid rgba(249,115,22,0.35); padding: 32px 28px; width: 100%; max-width: 440px; box-shadow: 0 0 50px rgba(249,115,22,0.15); }
+  .modal-pago-icono { font-size: 40px; text-align: center; margin-bottom: 14px; }
+  .modal-pago-titulo { font-size: 20px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 10px; }
+  .modal-pago-subtitulo { font-size: 14px; color: #94a3b8; text-align: center; line-height: 1.65; margin-bottom: 22px; }
+  .modal-pago-subtitulo strong { color: #fb923c; }
+  .modal-pago-vigencia { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); border-radius: 10px; padding: 11px 16px; font-size: 14px; color: #fed7aa; text-align: center; margin-bottom: 22px; }
+  .upload-zone { border: 2px dashed rgba(255,255,255,0.12); border-radius: 14px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 14px; position: relative; }
+  .upload-zone:hover { border-color: #f97316; background: rgba(249,115,22,0.04); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-text { font-size: 14px; color: #64748b; }
+  .upload-text span { color: #f97316; font-weight: 600; }
+  .upload-hint { font-size: 12px; color: #334155; margin-top: 5px; }
+  .upload-preview { display: none; align-items: center; gap: 10px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; }
+  .upload-preview-icon { font-size: 20px; }
+  .upload-preview-name { font-size: 14px; color: #4ade80; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload-preview-remove { font-size: 18px; color: #64748b; cursor: pointer; background: none; border: none; }
+  .btn-subir { width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 15px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 10px; opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
+  .btn-subir.activo { opacity: 1; pointer-events: auto; }
+  .btn-subir.cargando { opacity: 0.7; pointer-events: none; }
+  .btn-cerrar-pago { width: 100%; background: transparent; color: #475569; border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 13px; font-size: 14px; cursor: pointer; }
+  .upload-status { font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; color: #64748b; }
+  .upload-status.ok { color: #4ade80; }
+  .upload-status.err { color: #f87171; }
+  .modal-cambio-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px; }
+  .modal-cambio-overlay.visible { display: flex; }
+  .modal-cambio-box { background: #1a2540; border-radius: 22px; border: 1px solid rgba(255,255,255,0.1); padding: 28px 24px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+
+  /* ── Modal subir video challenge ── */
+  .modal-video-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
+  .modal-video-overlay.visible { display: flex; }
+  .modal-video-box { background: #1a2540; border-radius: 22px; border: 1px solid rgba(249,115,22,0.35); padding: 28px 24px; width: 100%; max-width: 440px; box-shadow: 0 0 60px rgba(249,115,22,0.18); }
+  .modal-video-titulo { font-size: 18px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 4px; }
+  .modal-video-sub { font-size: 12px; color: #f97316; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px; }
+  .modal-video-drop { border: 2px dashed rgba(249,115,22,0.45); border-radius: 14px; padding: 28px 20px; text-align: center; cursor: pointer; transition: background 0.2s; margin-bottom: 16px; }
+  .modal-video-drop:hover, .modal-video-drop.dragover { background: rgba(249,115,22,0.08); }
+  .modal-video-drop-icon { font-size: 36px; margin-bottom: 8px; }
+  .modal-video-drop-text { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+  .modal-video-drop-text strong { color: #fb923c; }
+  .modal-video-nombre { font-size: 12px; color: #34d399; margin-top: 8px; font-weight: 600; display: none; }
+  .modal-video-progress { height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; margin: 14px 0; overflow: hidden; display: none; }
+  .modal-video-progress-bar { height: 100%; background: linear-gradient(90deg,#f97316,#fbbf24); border-radius: 99px; width: 0%; transition: width 0.3s; }
+  .modal-video-status { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 14px; min-height: 18px; }
+  .btn-subir-video { width: 100%; padding: 13px; background: linear-gradient(135deg,#f97316,#ea580c); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  .btn-subir-video:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-cerrar-video { width: 100%; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #64748b; font-size: 13px; cursor: pointer; margin-top: 10px; }
+  .btn-video-orange { display: block; width: 100%; margin-top: 10px; padding: 7px 0; background: linear-gradient(135deg,#f97316,#ea580c); border: none; border-radius: 9px; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; }
+  .link-video-subido { display: block; margin-top: 8px; font-size: 10px; color: #34d399; word-break: break-all; text-decoration: none; }
+  .reglas-icono { font-size: 36px; text-align: center; margin-bottom: 12px; }
+  .reglas-titulo { font-size: 19px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 8px; }
+  .reglas-sub { font-size: 14px; color: #94a3b8; text-align: center; line-height: 1.6; margin-bottom: 20px; }
+  .reglas-lista { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+  .regla-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #94a3b8; line-height: 1.5; }
+  .regla-item:last-child { border-bottom: none; }
+  .regla-num { background: rgba(249,115,22,0.15); color: #fb923c; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .dias-badge { display: inline-block; background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.3); border-radius: 8px; padding: 10px 16px; font-size: 14px; color: #fb923c; font-weight: 600; text-align: center; width: 100%; margin-bottom: 16px; }
+  .cambio-titulo { font-size: 17px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .cambio-sub { font-size: 13px; color: #64748b; margin-bottom: 18px; }
+  .grupos-cambio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .grupo-card-cambio { border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02); }
+  .grupo-card-cambio:hover { border-color: #f97316; background: rgba(249,115,22,0.06); }
+  .grupo-card-cambio.seleccionado { border-color: #f97316; background: rgba(249,115,22,0.1); }
+  .grupo-card-cambio.bloqueado { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .gcc-id { font-size: 11px; font-weight: 700; color: #1c2b5e; background: #e8ecf8; border-radius: 4px; padding: 2px 7px; display: inline-block; margin-bottom: 6px; font-family: monospace; }
+  .gcc-nombre { font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 3px; }
+  .gcc-horario { font-size: 11px; color: #64748b; margin-bottom: 5px; }
+  .gcc-plazas { font-size: 11px; font-weight: 700; color: #4ade80; }
+  .gcc-plazas.pocas { color: #fbbf24; }
+  .gcc-tag { margin-top: 6px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; }
+  .gcc-tag.colocacion { background: #fef3c7; color: #d97706; }
+  .gcc-tag.sin-lugares { background: rgba(239,68,68,0.15); color: #f87171; }
+  .btn-confirmar-cambio { width: 100%; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
+  .btn-confirmar-cambio.activo { opacity: 1; pointer-events: auto; }
+  .btn-confirmar-cambio.cargando { opacity: 0.7; pointer-events: none; }
+  .btn-cancelar-cambio { width: 100%; background: transparent; color: #475569; border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 12px; font-size: 14px; cursor: pointer; }
+  .cambio-status { font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; color: #64748b; }
+  .cambio-status.ok { color: #4ade80; }
+  .cambio-status.err { color: #f87171; }
+
+  /* RESPONSIVE */
+  /* ── TABLET ── */
+  @media (max-width: 900px) {
+    .fila3 { grid-template-columns: 1fr; }
+    .fila4 { grid-template-columns: 1fr 1fr; }
+    .fila4 .card:first-child { grid-column: 1 / -1; }
+  }
+
+  /* ── MÓVIL ── */
+  @media (max-width: 640px) {
+    /* Layout general */
+    .panel-root { padding: 10px 10px 80px; }
+    .top-bar { padding: 10px 8px; }
+    .logo-area img { height: 36px !important; }
+    .btn-logout { padding: 6px 12px; font-size: 12px; }
+
+    /* Info alumno */
+    .info-alumno-bar { flex-direction: column; align-items: center; gap: 12px; padding: 16px; text-align: center; }
+    .info-alumno-left { width: 100%; flex-direction: column; align-items: center; gap: 10px; }
+    .info-alumno-nombre { font-size: 16px; }
+    .info-alumno-datos { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px 16px; width: 100%; }
+    .info-dato { flex-direction: column; align-items: center; gap: 2px; }
+    .info-dato-label { font-size: 10px; }
+    .info-dato-val { font-size: 12px; }
+    .avatar-grande { width: 48px; height: 48px; font-size: 16px; }
+
+    /* Cards */
+    .card { padding: 14px; }
+    .card-title { font-size: 11px; }
+    .card-header { margin-bottom: 0.9rem; }
+
+    /* Mi grupo */
+    .grupo-grid { grid-template-columns: 1fr 1fr; gap: 0; }
+    .grupo-item { padding: 10px 12px 10px 0; }
+    .grupo-item:nth-child(2) { border-right: none; }
+    .grupo-item:nth-child(3) { border-right: 1px solid rgba(255,255,255,0.06); padding-left: 0; }
+    .grupo-label { font-size: 11px; }
+    .grupo-val { font-size: 15px; }
+    .grupo-sub { font-size: 11px; }
+
+    /* Botones zoom/club — columna */
+    .fila2 .card > div:last-child { flex-direction: column; gap: 8px !important; }
+    .zoom-btn { width: 100%; justify-content: center; font-size: 13px; padding: 12px; }
+    .btn-club { width: 100%; justify-content: center; font-size: 12px; padding: 11px 14px; }
+    #btnGrabacion { width: 100% !important; justify-content: center !important; font-size: 12px !important; }
+
+    /* Pagos */
+    .pago-monto { font-size: 22px; }
+    .pago-tipo { font-size: 12px; }
+    .field-row { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+    .field-label { font-size: 12px; }
+    .field-val { font-size: 13px; }
+    .alerta-pago { font-size: 12px; }
+
+    /* Fila 3 y 4 */
+    .fila3 { gap: 10px; margin-bottom: 10px; }
+    .fila4 { grid-template-columns: 1fr; gap: 10px; }
+
+    /* Historial */
+    .hist-tabla th { font-size: 10px; }
+    .hist-tabla td { font-size: 12px; padding: 8px 0; }
+    .hist-monto { font-size: 13px; }
+
+    /* Personas */
+    .persona-foto { width: 48px; height: 48px; }
+    .persona-nombre { font-size: 14px; }
+    .persona-rol { font-size: 11px; }
+    .btn-wa-naranja, .btn-wa-verde { width: 100%; justify-content: center; padding: 10px; font-size: 13px; }
+    .btn-evaluar { font-size: 12px; padding: 9px 14px; }
+
+    /* Modal pago */
+    .modal-pago-overlay { padding: 10px; }
+    .modal-pago-box { padding: 20px 16px; border-radius: 16px; }
+    .modal-pago-titulo { font-size: 17px; }
+    .modal-pago-subtitulo { font-size: 13px; }
+    .btn-subir { padding: 14px; font-size: 14px; }
+
+    /* Modal cambio grupo */
+    .modal-cambio-box { padding: 20px 16px; border-radius: 16px; }
+    .grupos-cambio-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .gcc-nombre { font-size: 12px; }
+
+    /* Card header con botones */
+    .card-header { flex-wrap: wrap; gap: 8px; }
+    .card-header > div:last-child { flex-wrap: wrap; gap: 6px; }
+    .card-header button, .card-header a {
+      font-size: 11px !important;
+      padding: 6px 10px !important;
+    }
+  }
+
+  /* ── MÓVIL PEQUEÑO ── */
+  @media (max-width: 380px) {
+    .panel-root { padding: 8px 8px 80px; }
+    .grupo-grid { grid-template-columns: 1fr; }
+    .grupo-item { border-right: none !important; padding-right: 0 !important; }
+    .info-alumno-datos { flex-direction: column; align-items: center; }
+    .grupos-cambio-grid { grid-template-columns: 1fr; }
+    .card { padding: 12px; }
+    .grupo-val { font-size: 14px; }
+  }/* ── POST-IT: recordatorio de evaluación (semana 4 y semana 8) ── */
+.post-it-eval {
+  position: fixed;
+  top: 90px;
+  left: 24px;
+  width: 250px;
+  background: #fde047;
+  color: #422006;
+  padding: 24px 20px 18px;
+  border-radius: 3px;
+  box-shadow: 5px 8px 20px rgba(0,0,0,0.4);
+  transform: rotate(-4deg);
+  cursor: pointer;
+  z-index: 850;
+  font-family: 'Caveat', 'Segoe UI', cursive;
+  transition: transform 0.2s ease;
+  animation: postItAparecer 0.45s ease both;
+}
+.post-it-eval:hover { transform: rotate(-1deg) scale(1.04); }
+@keyframes postItAparecer {
+  from { opacity: 0; transform: rotate(-4deg) translateY(-24px); }
+  to   { opacity: 1; transform: rotate(-4deg) translateY(0); }
+}
+.post-it-eval .post-it-pin {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  font-size: 22px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+.post-it-eval .post-it-cerrar {
+  position: absolute; top: 2px; right: 8px;
+  background: none; border: none; color: #78350f; font-size: 18px;
+  line-height: 1; cursor: pointer; opacity: 0.55; padding: 4px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.post-it-eval .post-it-cerrar:hover { opacity: 1; }
+.post-it-eval .post-it-titulo { font-weight: 700; font-size: 22px; margin-bottom: 4px; }
+.post-it-eval .post-it-texto { font-size: 19px; line-height: 1.35; font-weight: 600; }
+@media (max-width: 640px) {
+  .post-it-eval { left: 14px; top: 80px; width: 210px; }
+}
+
+/* ── ALERTA CHAT CLUB (miercoles a viernes, solo 4+ semanas de antiguedad) ── */
+.alerta-chat-club:hover { transform: translateY(-2px); }
+@keyframes clubAparecer {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.alerta-chat-club .alerta-club-icono { font-size: 24px; flex-shrink: 0; }
+.alerta-chat-club .alerta-club-texto { font-size: 19px; line-height: 1.3; font-weight: 600; }
+.alerta-chat-club .alerta-club-cerrar {
+  position: absolute; top: 4px; right: 8px;
+  background: none; border: none; color: rgba(255,255,255,0.75); font-size: 16px;
+  line-height: 1; cursor: pointer; padding: 4px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.alerta-chat-club {
+  position: relative;
+  width: 100%;
+  background: #7c3aed;
+  color: #fff;
+  padding: 16px 18px;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(124,58,237,0.45);
+  cursor: pointer;
+  font-family: 'Caveat', 'Segoe UI', cursive;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+/* ═══ Sistema de pestañas (app-like) ═══ */
+.tab-content { display: none; padding-bottom: 90px; }
+.tab-content.active { display: block; }
+
+.bottom-nav-app {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+  background: #111a33;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+}
+.bottom-nav-app button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: color 0.15s, background 0.15s;
+}
+.bottom-nav-app button .nav-icon { font-size: 20px; line-height: 1; }
+.bottom-nav-app button.active { color: #f97316; background: rgba(249,115,22,0.1); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screenLogin" class="screen active">
+  <div class="login-wrap">
+    <div class="login-box">
+      <img src="images/logoblanco.png" />
+      <h1>Mi Panel</h1>
+      <p>Ingresa con tu ID de alumno y correo</p>
+      <div class="field"><label>ID de Alumno</label><input type="text" id="inputId" placeholder="Ej: OE-001" autocomplete="off" /></div>
+      <div class="field"><label>Correo electronico</label><input type="text" id="inputEmail" placeholder="tu@correo.com" autocomplete="off" /></div>
+      <button class="btn-primary" onclick="login()">Entrar</button>
+      <div class="error-msg" id="errorMsg">ID o correo incorrectos. Intenta de nuevo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="screenPanel" class="screen">
+  <div class="panel-root">
+
+    <div class="top-bar">
+      <div class="logo-area"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" style="height:48px;object-fit:contain" alt="OE"></div>
+      <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+
+    <!-- FILA 1: INFO ALUMNO -->
+    <div class="info-alumno-bar">
+      <div class="info-alumno-left">
+        <div class="avatar-grande" id="avatarInitials">—</div>
+        <div>
+          <div class="info-alumno-nombre" id="infoNombre">—</div>
+          <div class="info-alumno-datos">
+            <div class="info-dato"><span class="info-dato-label">ID</span><span class="badge-id" id="infoId">—</span></div>
+            <div class="info-dato"><span class="info-dato-label">Correo</span><span class="info-dato-val" id="infoEmail">—</span></div>
+            <div class="info-dato"><span class="info-dato-label">WhatsApp</span><span class="info-dato-val" id="infoWhatsapp">—</span></div>
+            <div class="info-dato"><span class="info-dato-label">Estatus</span><span class="badge-estatus" id="infoEstatus">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="nivelBloqueBadge" style="display:none;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:10px;padding:10px 18px;letter-spacing:0.3px;white-space:nowrap;">—</div>
+    </div>
+
+    <!-- ═══ PESTAÑA: INICIO ═══ -->
+    <div id="tab-inicio" class="tab-content active">
+      <div id="alertaChatClub" class="alerta-chat-club" style="display:none;" onclick="abrirClub()">
+        <button class="alerta-club-cerrar" onclick="event.stopPropagation(); cerrarAlertaChatClub();">×</button>
+        <div class="alerta-club-icono">💬</div>
+        <div class="alerta-club-texto">
+          <strong>¡Tienes acceso al Chat Club!</strong><br>
+          Este viernes a las 7:00 PM, únete a la práctica de conversación.
+        </div>
+      </div>
+      <div id="resumenInicio"></div>
+    </div>
+
+    <!-- ═══ PESTAÑA: MI CLASE ═══ -->
+    <div id="tab-clase" class="tab-content">
+    <!-- FILA 2: MI GRUPO -->
+    <div class="fila2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon icon-grupo">📅</div>
+          <span class="card-title">Mi grupo</span>
+          <button id="btnCambiarGrupo" class="btn-cambiar-grupo" style="background:rgba(202,138,4,0.15);border-color:rgba(202,138,4,0.4);color:#ca8a04;padding:6px 14px;font-size:12px;">⇄ Cambiar grupo</button>
+        </div>
+        <div class="grupo-grid">
+          <div class="grupo-item"><div class="grupo-label">Grupo</div><div class="grupo-val" id="grupoId">—</div><div class="grupo-sub" id="grupoNivel">—</div></div>
+          <div class="grupo-item"><div class="grupo-label">Horario</div><div class="grupo-val" id="grupoHorario">—</div><div class="grupo-sub">hora CDMX</div></div>
+          <div class="grupo-item"><div class="grupo-label">Dias</div><div class="grupo-val" id="grupoDias">Lun – Jue</div><div class="grupo-sub" id="grupoDiasSub">4 dias por semana</div></div>
+          <div class="grupo-item"><div class="grupo-label">Inicio de clases</div><div class="grupo-val" id="grupoFecha">—</div><div class="grupo-sub" id="grupoDiasRestantes">—</div></div>
+        </div>
+        <div style="display:flex;align-items:center;flex-wrap:nowrap;gap:8px;margin-top:1.2rem;">
+          <a id="btnZoom" href="#" target="_blank" class="zoom-btn"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
+          <a id="btnGrabacion" href="#" target="_blank" style="display:none;align-items:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">🎥 Ver grabación de última clase</a>
+          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Ingresar al Chat Club de los Viernes 7:00 PM</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MI MAESTRO + MI ASISTENTE -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro">🎓</div><span class="card-title">Mi maestro</span></div>
+        <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;" />
+        <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;">M</div>
+        <div class="persona-nombre" id="maestroNombre">—</div>
+        <div class="persona-rol">Maestro · <span id="maestroId">—</span></div>
+        <br>
+        <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+          Enviar mensaje
+        </a>
+        <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;">⭐ Evaluar a mi maestro</button>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-asist">🎓</div><span class="card-title">Mi asistente CE</span></div>
+        <img id="asisFoto" class="persona-foto foto-asistente" src="" alt="" style="display:none;margin:0 auto;" />
+        <div id="asisAvatarFallback" class="persona-avatar-fallback avatar-asistente" style="margin:0 auto;">CE</div>
+        <div class="persona-nombre" id="asisNombre">—</div>
+        <div class="persona-rol">Asistente de Control Escolar · <span id="asisId">—</span></div>
+        <br>
+        <a id="asisWa" href="#" target="_blank" class="btn-wa-verde">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+          Enviar mensaje
+        </a>
+        <button class="btn-evaluar" id="btnEvaluarCE" onclick="abrirEvaluacion('ce')" style="display:none;margin-top:8px;">⭐ Evaluar a mi asistente CE</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- ═══ PESTAÑA: PROGRESO ═══ -->
+    <div id="tab-progreso" class="tab-content">
+      <div class="card">
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="card-icon icon-califs">📊</div>
+            <span class="card-title">Mis calificaciones</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;text-align:center;">📥 Descarga tu material de apoyo</a>
+            <button onclick="abrirInfoEvaluacion()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💎 ¿Cómo me evalúan?</button>
+          </div>
+        </div>
+
+        <!-- Evaluación del alumno -->
+        <div id="evaluacionAlumno">
+          <div style="text-align:center;padding:20px;color:#64748b;">Cargando...</div>
+        </div>
+
+        <!-- Progreso del curso (semana actual, unidades, jardín de crecimiento) --
+             este contenedor faltaba por completo; sin él, renderCalificaciones()
+             siempre salía de inmediato y nunca se llegaba a calcular la semana
+             actual ni a activar el recordatorio de evaluación de maestro/CE. -->
+        <div id="progresoCurso"></div>
+
+        <div class="field-row"><span class="field-label">Bloque actual</span><span class="field-val" id="nivelActual">—</span></div>
+        <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
+      </div>
+      <div style="background:#1a2540;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px 18px;font-size:14px;color:#94a3b8;line-height:1.6;margin-top:12px;">
+        📝 <strong style="color:#fbbf24;">Recuerda evaluar</strong> a tu maestro y asistente CE en la <strong style="color:#fbbf24;">Semana 4</strong> y <strong style="color:#fbbf24;">Semana 8</strong> del bloque. Tu opinión nos ayuda a mejorar la experiencia de todos.
+      </div>
+    </div>
+
+    <!-- ═══ PESTAÑA: YO ═══ -->
+    <div id="tab-yo" class="tab-content">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="card-icon icon-pagos">💳</div>
+            <span class="card-title">Mis pagos</span>
+          </div>
+          <button onclick="abrirInfoBancaria()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            🏦 Información Bancaria
+          </button>
+        </div>
+        <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-icon icon-hist">📋</div><span class="card-title">Historial de pagos</span></div>
+        <div id="historialContenido"><div class="califs-empty"><div class="califs-text">Sin registros</div></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ BARRA DE NAVEGACIÓN INFERIOR ═══ -->
+    <div class="bottom-nav-app">
+      <button id="navBtn-inicio" class="active" onclick="cambiarTabApp('inicio')"><span class="nav-icon">🏠</span>Inicio</button>
+      <button id="navBtn-clase" onclick="cambiarTabApp('clase')"><span class="nav-icon">📚</span>Mi Clase</button>
+      <button id="navBtn-progreso" onclick="cambiarTabApp('progreso')"><span class="nav-icon">🏆</span>Progreso</button>
+      <button id="navBtn-yo" onclick="cambiarTabApp('yo')"><span class="nav-icon">👤</span>Yo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECORDATORIO PAGO -->
+<div id="modalPago" class="modal-pago-overlay">
+  <div class="modal-pago-box">
+    <div class="modal-pago-icono">💳</div>
+    <div class="modal-pago-titulo">Tu pago esta por vencer</div>
+    <div class="modal-pago-subtitulo" id="modalPagoSubtitulo">Para seguir disfrutando tus clases, <strong>sube tu comprobante de pago</strong> directamente aqui.</div>
+    <div class="modal-pago-vigencia" id="modalPagoVigencia">—</div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="uploadInput" accept="image/*,application/pdf" onchange="archivoSeleccionado(this)" />
+      <div class="upload-icon">📎</div>
+      <div class="upload-text"><span>Selecciona un archivo</span> o arrastralo aqui</div>
+      <div class="upload-hint">PDF o imagen · max. 10 MB</div>
+    </div>
+    <div class="upload-preview" id="uploadPreview">
+      <span class="upload-preview-icon">📄</span>
+      <span class="upload-preview-name" id="uploadPreviewName">archivo.pdf</span>
+      <button class="upload-preview-remove" onclick="quitarArchivo()" title="Quitar">✕</button>
+    </div>
+    <button class="btn-subir" id="btnSubir" onclick="subirComprobante()">Subir comprobante</button>
+    <div class="upload-status" id="uploadStatus"></div>
+    <button class="btn-cerrar-pago" onclick="cerrarModalPago()">Cerrar y subir despues</button>
+  </div>
+</div>
+
+<!-- MODAL CAMBIO DE GRUPO -->
+<div id="modalCambioGrupo" class="modal-cambio-overlay">
+  <div class="modal-cambio-box">
+    <div id="vistaReglas">
+      <div class="reglas-icono">🗓️</div>
+      <div class="reglas-titulo">Cambio de grupo</div>
+      <div class="reglas-sub">El cambio de grupo solo esta disponible en ciertos dias y bajo las siguientes condiciones:</div>
+      <div class="dias-badge">Solo disponible viernes, sabado y domingo</div>
+      <div class="reglas-lista">
+        <div class="regla-item"><div class="regla-num">1</div><span>Solo puedes solicitar el cambio de <strong style="color:#f1f5f9">viernes a domingo</strong>.</span></div>
+        <div class="regla-item"><div class="regla-num">2</div><span>Debes tener cubierta tu <strong style="color:#f1f5f9">colegiatura de la proxima semana</strong>.</span></div>
+        <div class="regla-item"><div class="regla-num">3</div><span>El grupo destino debe tener <strong style="color:#f1f5f9">lugares disponibles</strong>.</span></div>
+        <div class="regla-item"><div class="regla-num">4</div><span>El grupo destino debe tener la <strong style="color:#f1f5f9">misma fecha de inicio</strong> que tu grupo actual.</span></div>
+        <div class="regla-item"><div class="regla-num">5</div><span>Al confirmar recibiras un correo con tu <strong style="color:#f1f5f9">nuevo enlace de Zoom</strong>.</span></div>
+      </div>
+      <button class="btn-cancelar-cambio" onclick="cerrarModalCambioGrupo()">Entendido, cerrar</button>
+    </div>
+    <div id="vistaSeleccion" style="display:none">
+      <div class="cambio-titulo">Cambiar de grupo</div>
+      <div class="cambio-sub" id="cambioSubtitulo">Selecciona el grupo al que deseas cambiarte</div>
+      <div class="grupos-cambio-grid" id="gruposCambioGrid"></div>
+      <button class="btn-confirmar-cambio" id="btnConfirmarCambio" onclick="confirmarCambioGrupoAlumno()">Confirmar cambio</button>
+      <div class="cambio-status" id="cambioStatus"></div>
+      <button class="btn-cancelar-cambio" onclick="cerrarModalCambioGrupo()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EVALUACIÓN MAESTRO -->
+<div id="modalEvalMaestro" class="modal-eval-overlay" onclick="if(event.target===this)cerrarEval('maestro')">
+  <div class="modal-eval-box">
+    <div class="modal-eval-icono">👨‍🏫</div>
+    <div class="modal-eval-titulo">Evalúa a tu maestro</div>
+    <div class="modal-eval-bloque" id="evalMaestroBloque">BLOQUE —</div>
+    <div class="eval-concepto">
+      <div class="eval-concepto-titulo">Dinámica de clase</div>
+      <div class="eval-concepto-desc">¿Las clases son activas, variadas y entretenidas? ¿El maestro usa diferentes actividades para que aprendas mejor?</div>
+      <div class="estrellas-row" id="estrellasM1">
+        <span class="estrella" onclick="calificar('M1',1)">★</span><span class="estrella" onclick="calificar('M1',2)">★</span><span class="estrella" onclick="calificar('M1',3)">★</span><span class="estrella" onclick="calificar('M1',4)">★</span><span class="estrella" onclick="calificar('M1',5)">★</span>
+      </div>
+    </div>
+    <div class="eval-concepto">
+      <div class="eval-concepto-titulo">Actitud</div>
+      <div class="eval-concepto-desc">¿El maestro es amable, paciente y te hace sentir cómodo para participar y preguntar?</div>
+      <div class="estrellas-row" id="estrellasM2">
+        <span class="estrella" onclick="calificar('M2',1)">★</span><span class="estrella" onclick="calificar('M2',2)">★</span><span class="estrella" onclick="calificar('M2',3)">★</span><span class="estrella" onclick="calificar('M2',4)">★</span><span class="estrella" onclick="calificar('M2',5)">★</span>
+      </div>
+    </div>
+    <div class="eval-concepto">
+      <div class="eval-concepto-titulo">Conocimiento del tema</div>
+      <div class="eval-concepto-desc">¿El maestro domina el inglés y explica los temas con claridad? ¿Resuelve tus dudas correctamente?</div>
+      <div class="estrellas-row" id="estrellasM3">
+        <span class="estrella" onclick="calificar('M3',1)">★</span><span class="estrella" onclick="calificar('M3',2)">★</span><span class="estrella" onclick="calificar('M3',3)">★</span><span class="estrella" onclick="calificar('M3',4)">★</span><span class="estrella" onclick="calificar('M3',5)">★</span>
+      </div>
+    </div>
+    <button class="btn-enviar-eval" id="btnEnviarMaestro" onclick="enviarEvaluacion('maestro')">Enviar evaluación</button>
+    <div class="eval-status" id="evalMaestroStatus"></div>
+    <button class="btn-cancelar-eval" onclick="cerrarEval('maestro')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL EVALUACIÓN ASISTENTE CE -->
+<div id="modalEvalCE" class="modal-eval-overlay" onclick="if(event.target===this)cerrarEval('ce')">
+  <div class="modal-eval-box">
+    <div class="modal-eval-icono">🎓</div>
+    <div class="modal-eval-titulo">Evalúa a tu asistente CE</div>
+    <div class="modal-eval-bloque" id="evalCEBloque">BLOQUE —</div>
+    <div class="eval-concepto">
+      <div class="eval-concepto-titulo">Actitud</div>
+      <div class="eval-concepto-desc">¿Tu asistente es amable, accesible y te atiende con respeto y buena disposición en todo momento?</div>
+      <div class="estrellas-row" id="estrellasC1">
+        <span class="estrella" onclick="calificar('C1',1)">★</span><span class="estrella" onclick="calificar('C1',2)">★</span><span class="estrella" onclick="calificar('C1',3)">★</span><span class="estrella" onclick="calificar('C1',4)">★</span><span class="estrella" onclick="calificar('C1',5)">★</span>
+      </div>
+    </div>
+    <div class="eval-concepto">
+      <div class="eval-concepto-titulo">Servicio</div>
+      <div class="eval-concepto-desc">¿Tu asistente resuelve tus dudas rápidamente, te informa sobre tus pagos y te apoya cuando lo necesitas?</div>
+      <div class="estrellas-row" id="estrellasC2">
+        <span class="estrella" onclick="calificar('C2',1)">★</span><span class="estrella" onclick="calificar('C2',2)">★</span><span class="estrella" onclick="calificar('C2',3)">★</span><span class="estrella" onclick="calificar('C2',4)">★</span><span class="estrella" onclick="calificar('C2',5)">★</span>
+      </div>
+    </div>
+    <button class="btn-enviar-eval" id="btnEnviarCE" onclick="enviarEvaluacion('ce')">Enviar evaluación</button>
+    <div class="eval-status" id="evalCEStatus"></div>
+    <button class="btn-cancelar-eval" onclick="cerrarEval('ce')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL CLUB DE CONVERSACIÓN -->
+<div id="modalClubOverlay" onclick="if(event.target===this)cerrarModalClub()">
+  <div style="background:#1a2540;border-radius:22px;border:1px solid rgba(124,58,237,0.4);padding:32px 28px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(124,58,237,0.15);text-align:center;">
+    <div style="font-size:40px;margin-bottom:14px;">💬</div>
+    <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Club de Conversación de los Viernes 7:00 PM</div>
+    <div style="font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:20px;">Para acceder necesitas cumplir los siguientes requisitos:</div>
+    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:16px 20px;margin-bottom:16px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><span style="font-size:18px;">📅</span><span style="font-size:14px;color:#c4b5fd;"><strong>Mínimo 1 mes</strong> en la academia</span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">✅</span><span style="font-size:14px;color:#c4b5fd;"><strong>Membresía vigente</strong> al corriente de pago</span></div>
+    </div>
+    <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#c4b5fd;">📅 El Club se realiza todos los <strong>viernes a las 7:00 PM</strong> hora CDMX.</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Sigue estudiando y pronto podrás unirte.</div>
+    <button onclick="cerrarModalClub()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:100px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
+<!-- MODAL AVISO CLUB (elegibles) -->
+<div id="modalClubAvisoOverlay" onclick="if(event.target===this)cerrarModalClubAviso()">
+  <div style="background:#1a2540;border-radius:22px;border:1px solid rgba(124,58,237,0.4);padding:32px 28px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(124,58,237,0.15);text-align:center;">
+    <div style="font-size:40px;margin-bottom:14px;">💬</div>
+    <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Club de Conversación de los Viernes 7:00 PM</div>
+    <div style="font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:20px;">Estás a punto de unirte. Recuerda que las sesiones son en vivo.</div>
+    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><span style="font-size:18px;">📅</span><span style="font-size:14px;color:#c4b5fd;">Solo activo los <strong>viernes</strong></span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">🕗</span><span style="font-size:14px;color:#c4b5fd;">Horario: <strong>7:00 PM hora CDMX</strong></span></div>
+    </div>
+    <button onclick="entrarAlClub()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:100px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;">Entrar al Club ahora</button>
+    <button onclick="cerrarModalClubAviso()" style="width:100%;background:transparent;color:#475569;border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:12px;font-size:14px;cursor:pointer;">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL INFORMACIÓN BANCARIA -->
+<div id="modalInfoBancaria" class="modal-overlay" onclick="if(event.target===this)cerrarInfoBancaria()" style="display:none;">
+  <div class="modal-box" style="max-width:500px;width:100%;padding:20px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">🏦</div>
+      <div style="font-size:18px;font-weight:700;color:#f1f5f9;">Información para Pago</div>
+    </div>
+    <img src="https://github.com/ergutza-lab/organic-english/raw/main/images/cuenta.webp" alt="Información Bancaria" style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.1);" />
+    <button onclick="cerrarInfoBancaria()" style="width:100%;background:transparent;color:#475569;border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:12px;font-size:14px;cursor:pointer;margin-top:16px;">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL SISTEMA DE EVALUACIÓN -->
+<div id="modalInfoEvaluacion" class="modal-overlay" onclick="if(event.target===this)cerrarInfoEvaluacion()" style="display:none;">
+  <div class="modal-box" style="max-width:520px;width:100%;padding:24px;max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:36px;margin-bottom:8px;">💎</div>
+      <div style="font-size:20px;font-weight:700;color:#f1f5f9;">Sistema de Evaluación</div>
+    </div>
+    
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Cada clase recibes un color:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:rgba(239,68,68,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🔴</div><div style="font-size:11px;color:#ef4444;font-weight:600;">Rojo</div><div style="font-size:10px;color:#94a3b8;">No logra el objetivo</div></div>
+        <div style="background:rgba(250,204,21,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🟡</div><div style="font-size:11px;color:#facc15;font-weight:600;">Amarillo</div><div style="font-size:10px;color:#94a3b8;">Logra parcialmente</div></div>
+        <div style="background:rgba(34,197,94,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🟢</div><div style="font-size:11px;color:#22c55e;font-weight:600;">Verde</div><div style="font-size:10px;color:#94a3b8;">Cumple el objetivo</div></div>
+        <div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:18px;">🔵</div><div style="font-size:11px;color:#3b82f6;font-weight:600;">Azul</div><div style="font-size:10px;color:#94a3b8;">Supera el objetivo</div></div>
+      </div>
+    </div>
+    
+    <div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:14px;margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#67e8f9;margin-bottom:8px;">¿Cómo se calcula mi progreso?</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.5;">
+        <strong>80% Evaluación continua</strong> (asistencia + colores) + <strong>20% Proyectos finales</strong><br><br>
+        Empiezas con <strong>100%</strong> y va bajando según tu desempeño. Si asistes y participas bien, mantienes tu porcentaje. Cada falta o color rojo baja tu porcentaje.
+      </div>
+    </div>
+    
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">¿Qué necesito para pasar?</div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#94a3b8;"><span>✅ Pase asegurado</span><span style="color:#22c55e;">80%+ asistencia + 70%+ Verde/Azul</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#94a3b8;"><span>⚠️ Pase con refuerzo</span><span style="color:#facc15;">80%+ asistencia + 60%+ Verde/Azul</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#94a3b8;"><span>🔶 Pendiente</span><span style="color:#f97316;">75%+ asistencia u otra combinación</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;"><span>❌ No acredita</span><span style="color:#ef4444;">Menos del mínimo requerido</span></div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Proyectos finales (20% de tu calificación)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:18px;">⭐</div>
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;">Mini Challenge</div>
+          <div style="font-size:10px;color:#94a3b8;">Semana 4 del bloque</div>
+          <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-top:4px;">5%</div>
+        </div>
+        <div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:18px;">🏆</div>
+          <div style="font-size:12px;font-weight:700;color:#f97316;">Grand Challenge</div>
+          <div style="font-size:10px;color:#94a3b8;">Semana 8 del bloque</div>
+          <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-top:4px;">15%</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:11px;color:#f87171;font-weight:600;margin-bottom:4px;">⚠️ Importante</div>
+      <div style="font-size:11px;color:#94a3b8;line-height:1.5;">Los challenges pueden ayudarte en casos dudosos, pero <strong>no borran 7 semanas de desempeño</strong>. Si tienes buena asistencia y colores positivos, los proyectos confirman tu nivel. Si tienes bajo desempeño constante, los proyectos no te pueden salvar por sí solos.</div>
+    </div>
+    
+    <button onclick="cerrarInfoEvaluacion()" style="width:100%;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
+<!-- MODAL DÍAS PERMITIDOS PARA CAMBIO DE GRUPO -->
+<div id="modalDiaCambioGrupo" class="modal-overlay" onclick="if(event.target===this)cerrarModalDiaCambioGrupo()" style="display:none;">
+  <div class="modal-box" style="max-width:420px;width:100%;padding:24px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:10px;">🗓️</div>
+    <div style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Cambio de grupo</div>
+    <div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:20px;">El trámite de cambio de grupo solo se puede solicitar de <strong style="color:#f1f5f9">jueves a sábado</strong>. Por favor vuelve a intentarlo en esos días.</div>
+    <button onclick="cerrarModalDiaCambioGrupo()" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+  // ── INTERRUPTOR: cambio de grupo por el propio alumno ──────────────────
+  // Se desactivó a petición de dirección: ahora solo el asistente CE puede
+  // cambiar de grupo a un alumno (ya disponible en asistente-ce.html).
+  // Para reactivar que el alumno lo haga el mismo, poner en true.
+  const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
+  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
+  var alumnoData = null;
+  var archivoSubida = null;
+  var grupoDestinoCambio = null;
+  var evalActual = { M1:0, M2:0, M3:0, C1:0, C2:0 };
+  var bloqueActual = 0;
+  var evalRealizadas = {};
+
+  // ── INFORMACIÓN BANCARIA ─────────────────────────────────────────
+  function abrirInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='flex'; }
+  function cerrarInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='none'; }
+  function abrirInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='flex'; }
+  function cerrarInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='none'; }
+
+  // ── LOGIN ────────────────────────────────────────────────────────
+  function login() {
+    var id = document.getElementById('inputId').value.trim().toUpperCase();
+    var email = document.getElementById('inputEmail').value.trim();
+    var err = document.getElementById('errorMsg');
+    if (!id || !email) { err.style.display='block'; err.textContent='Completa todos los campos.'; return; }
+    err.style.display = 'none';
+    var btn = document.querySelector('.btn-primary');
+    btn.textContent = 'Verificando...'; btn.disabled = true;
+    fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email), { redirect: 'follow' })
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Entrar'; btn.disabled = false;
+        if (data.success) {
+          if (data.alumno.estatus === 'Becado') {
+            window.location.href = 'becado.html';
+            return;
+          }
+          alumnoData = data;
+          mostrarPanel();
+        }
+        else {
+          err.style.display = 'block';
+          if (data.error === 'BAJA') {
+            err.innerHTML = 'Tu acceso ha sido dado de baja por falta de pago.' +
+              (data.asisNombre ? ' Contacta a tu asistente CE: <a href="https://wa.me/'+cleanWA(data.asisWhatsapp)+'" target="_blank" style="color:#fb923c;font-weight:700">'+data.asisNombre+'</a>.' : '');
+          } else { err.textContent = data.error || 'ID o correo incorrectos.'; }
+        }
+      })
+      .catch(() => { btn.textContent='Entrar'; btn.disabled=false; err.style.display='block'; err.textContent='Error de conexion.'; });
+  }
+
+  // ── MOSTRAR PANEL ────────────────────────────────────────────────
+  function mostrarPanel() {
+    document.getElementById('screenLogin').classList.remove('active');
+    document.getElementById('screenPanel').classList.add('active');
+    var a = alumnoData.alumno, g = alumnoData.grupo, s = alumnoData.asistente, p = alumnoData.pago;
+    var m = alumnoData.maestro || null;
+
+    var btnCambiar = document.getElementById('btnCambiarGrupo');
+    if (CAMBIO_GRUPO_ALUMNO_ACTIVO) {
+      btnCambiar.textContent = '⇄ Cambiar grupo';
+      btnCambiar.onclick = abrirModalCambioGrupo;
+    } else {
+      btnCambiar.textContent = '💬 Solicitar cambio de grupo';
+      btnCambiar.onclick = solicitarCambioGrupoWhatsApp;
+    }
+
+    var iniciales = a.nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    document.getElementById('avatarInitials').textContent = iniciales;
+    document.getElementById('infoNombre').textContent   = a.nombre;
+    document.getElementById('infoId').textContent       = a.id;
+    verificarAlertaChatClub(a);
+    document.getElementById('infoEmail').textContent    = a.email;
+    document.getElementById('infoWhatsapp').textContent = a.whatsapp;
+    document.getElementById('infoEstatus').textContent  = a.estatus;
+
+    var esGrupoPersonalizado = g && g.tipoHorario === 'personalizado';
+
+    if (g) {
+      document.getElementById('grupoId').textContent      = g.id;
+      document.getElementById('grupoNivel').textContent   = g.nombre + ' · ' + g.nivel;
+      document.getElementById('grupoHorario').textContent = esGrupoPersonalizado ? 'A coordinar' : g.horario;
+      if (esGrupoPersonalizado) {
+        document.getElementById('grupoDias').textContent    = 'Personalizado';
+        document.getElementById('grupoDiasSub').textContent = g.horario || 'Horario a coordinar con tu maestro';
+      } else if (g.tipoHorario === 'sabado') {
+        document.getElementById('grupoDias').textContent    = 'Sábado';
+        document.getElementById('grupoDiasSub').textContent = '1 día por semana';
+      } else {
+        document.getElementById('grupoDias').textContent    = 'Lun – Jue';
+        document.getElementById('grupoDiasSub').textContent = '4 dias por semana';
+      }
+
+      // "Bloque actual", el badge de arriba a la derecha, y el link de
+      // Workbook usan el nivel base + bloque calculado EN VIVO (no el texto
+      // crudo de Sheets, que puede estar desactualizado hasta que corra el
+      // disparador diario que lo corrige), para que siempre sean exactos.
+      // Los grupos Personalizado NO siguen el programa de 16 semanas por
+      // bloques -- ese concepto no aplica, asi que se ocultan.
+      var badgeNivel  = document.getElementById('nivelBloqueBadge');
+      var btnWorkbook = document.getElementById('btnWorkbook');
+      if (esGrupoPersonalizado) {
+        document.getElementById('nivelActual').textContent = g.nivel + ' · ' + g.nombre;
+        badgeNivel.style.display = 'none';
+        if (btnWorkbook) btnWorkbook.style.display = 'none';
+      } else {
+        var nivelBaseMatch = (g.nivel || '').match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
+        var nivelBase = nivelBaseMatch ? nivelBaseMatch[1] : (g.nivel || '');
+        var bloqueParaMostrar = g.bloqueActual || 1;
+        document.getElementById('nivelActual').textContent  = 'NIVEL ' + nivelBase + '-Bloque ' + bloqueParaMostrar + ' · ' + g.nombre;
+
+        badgeNivel.textContent = nivelBase + ' · Bloque ' + bloqueParaMostrar;
+        badgeNivel.style.display = 'block';
+
+        if (btnWorkbook) {
+          btnWorkbook.style.display = 'flex';
+          btnWorkbook.href = bloqueParaMostrar === 2
+            ? 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link'
+            : 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link';
+        }
+      }
+
+      document.getElementById('btnZoom').href             = g.linkZoom || '#';
+      if (g.grabacion) {
+        var btnGrab = document.getElementById('btnGrabacion');
+        btnGrab.href = g.grabacion;
+        btnGrab.style.display = 'inline-flex';
+      }
+      var fi = new Date(g.fechaInicio);
+      document.getElementById('grupoFecha').textContent = fi.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][fi.getMonth()]+' '+fi.getFullYear();
+      var dr = Math.ceil((fi - new Date()) / (1000*60*60*24));
+      document.getElementById('grupoDiasRestantes').textContent = dr > 0 ? dr+' dias restantes' : 'En curso';
+      cargarEvaluacionAlumno(a.id, g.id);
+    }
+
+    if (m) {
+      document.getElementById('maestroNombre').textContent = m.nombre || 'Por asignar';
+      document.getElementById('maestroId').textContent     = m.id || '—';
+      var mWaEl = document.getElementById('maestroWa');
+      if (m.whatsapp) { mWaEl.href='https://wa.me/'+cleanWA(m.whatsapp); mWaEl.style.display='inline-flex'; } else { mWaEl.style.display='none'; }
+      if (m.foto) { document.getElementById('maestroFoto').src=m.foto; document.getElementById('maestroFoto').style.display='block'; document.getElementById('maestroAvatarFallback').style.display='none'; }
+    }
+
+    if (s) {
+      document.getElementById('asisNombre').textContent = s.nombre;
+      document.getElementById('asisId').textContent     = s.id;
+      document.getElementById('asisWa').href            = 'https://wa.me/'+cleanWA(s.whatsapp);
+      if (s.foto) { document.getElementById('asisFoto').src=s.foto; document.getElementById('asisFoto').style.display='block'; document.getElementById('asisAvatarFallback').style.display='none'; }
+    }
+
+    renderPagos(p);
+    renderHistorial(alumnoData.historialPagos);
+    renderCalificaciones(g);
+    cargarMapaAlumno(a.id, g ? g.id : '');
+    verificarRecordatorio(alumnoData.pago);
+  }
+
+  // ── EVALUACIONES ─────────────────────────────────────────────────
+ // function verificarEvaluaciones(semana, idAlumno) {
+ //   var bd = 0;
+   function verificarEvaluaciones(semana, idAlumno, bloqueAcademico) {
+    var bd = 0;
+    if (semana >= 6  && semana <= 10) bd = 1;
+    if (semana >= 11 && semana <= 15) bd = 2;
+    if (semana >= 16 && semana <= 20) bd = 3;
+    if (semana > 20)                  bd = 4;
+    // Mini Challenge (semana 4) y Grand Challenge (semana 8) son periodos de
+    // evaluacion INDEPENDIENTES entre si -- se identifican con su propio
+    // numero de semana (no con el bloque academico de arriba), para que
+    // evaluar en la semana 4 nunca bloquee la evaluacion de la semana 8 como
+    // si fuera un duplicado (antes ambas caian en el mismo numero de bloque).
+    if (semana === 4) bd = 4;
+    if (semana === 8) bd = 8;
+    // El parametro "semana" que llega aqui ya es la semana DENTRO del
+    // bloque academico actual (1-8, se reinicia en Bloque 2). Sin este
+    // ajuste, el marcador bd=4/8 del Bloque 2 seria identico al del Bloque
+    // 1 y el sistema pensaria "ya evaluado" cuando en realidad es un ciclo
+    // distinto -- por eso se le suma 20 cuando el bloque academico es el 2,
+    // para que nunca choque con las evaluaciones/challenges ya guardados
+    // del Bloque 1.
+    if (bloqueAcademico === 2 && bd > 0) bd += 20;
+    bloqueActual = bd;
+   if (!bd) return;
+
+    var esSemanaDEval = (semana === 4 || semana === 8);
+
+    fetch(APPS_SCRIPT + '?action=getEvaluacionesAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
+      .then(r => r.json())
+      .then(data => {
+        evalRealizadas = data.evaluaciones || {};
+        var btnM = document.getElementById('btnEvaluarMaestro');
+        var btnC = document.getElementById('btnEvaluarCE');
+        if (!esSemanaDEval) {
+          btnM.style.display = 'none';
+          btnC.style.display = 'none';
+          var postItFuera = document.getElementById('postItEval');
+          if (postItFuera) postItFuera.style.display = 'none';
+          posicionarAlertasFlotantes();
+          return;
+        }
+        btnM.style.display = 'flex';
+        btnC.style.display = 'flex';
+        var yaM = evalRealizadas[bd] && evalRealizadas[bd].maestro;
+        var yaC = evalRealizadas[bd] && evalRealizadas[bd].ce;
+        if (yaM) { btnM.textContent='✅ Maestro evaluado — Bloque '+bd; btnM.classList.add('ya-evaluado'); btnM.disabled=true; }
+        else     { btnM.textContent='⭐ Evaluar a mi maestro — Bloque '+bd; btnM.disabled=false; btnM.classList.remove('ya-evaluado'); }
+        if (yaC) { btnC.textContent='✅ CE evaluada — Bloque '+bd; btnC.classList.add('ya-evaluado'); btnC.disabled=true; }
+        else     { btnC.textContent='⭐ Evaluar a mi asistente CE — Bloque '+bd; btnC.disabled=false; btnC.classList.remove('ya-evaluado'); }
+
+        // Post-it: solo si es semana 4 u 8 Y todavia falta evaluar algo, y
+        // el alumno no lo cerro ya en esta sesion.
+        var faltaAlgo = !yaM || !yaC;
+        var postIt = document.getElementById('postItEval');
+        if (esSemanaDEval && faltaAlgo && !postItCerradoEnSesion) {
+          var textoPostIt = (!yaM && !yaC)
+            ? 'Esta semana toca calificar a tu maestro y tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarlos. Tu opinión nos ayuda a mejorar 💛'
+            : (!yaM ? 'Esta semana toca calificar a tu maestro. Debajo de su nombre encontrarás la opción para evaluarlo. Tu opinión nos ayuda a mejorar 💛'
+                    : 'Esta semana toca calificar a tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarla. Tu opinión nos ayuda a mejorar 💛');
+          document.getElementById('postItEvalTexto').textContent = textoPostIt;
+          postIt.style.display = 'block';
+        } else if (postIt) {
+          postIt.style.display = 'none';
+        }
+        posicionarAlertasFlotantes();
+      })
+      .catch(function(){});
+  }
+
+  var postItCerradoEnSesion = false;
+  function cerrarPostItEval() {
+    postItCerradoEnSesion = true;
+    document.getElementById('postItEval').style.display = 'none';
+    posicionarAlertasFlotantes();
+  }
+  function irAEvaluar() {
+    var btnM = document.getElementById('btnEvaluarMaestro');
+    var btnC = document.getElementById('btnEvaluarCE');
+    var objetivo = (btnM && !btnM.disabled) ? btnM : btnC;
+    if (objetivo) objetivo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('postItEval').style.display = 'none';
+    posicionarAlertasFlotantes();
+  }
+
+  function calificar(concepto, valor) {
+    evalActual[concepto] = valor;
+    document.querySelectorAll('#estrellas'+concepto+' .estrella').forEach(function(e,i){ e.classList.toggle('activa', i < valor); });
+    var tipo = concepto.startsWith('M') ? 'maestro' : 'ce';
+    var completo = tipo==='maestro' ? evalActual.M1>0&&evalActual.M2>0&&evalActual.M3>0 : evalActual.C1>0&&evalActual.C2>0;
+    document.getElementById(tipo==='maestro'?'btnEnviarMaestro':'btnEnviarCE').classList.toggle('activo', completo);
+  }
+
+  function abrirEvaluacion(tipo) {
+    ['M1','M2','M3','C1','C2'].forEach(function(k){ evalActual[k]=0; });
+    document.querySelectorAll('.estrella').forEach(function(e){ e.classList.remove('activa'); });
+    document.getElementById('evalMaestroStatus').textContent='';
+    document.getElementById('evalCEStatus').textContent='';
+    document.getElementById('btnEnviarMaestro').classList.remove('activo');
+    document.getElementById('btnEnviarCE').classList.remove('activo');
+    var label = 'BLOQUE '+bloqueActual+' · Tu opinión nos ayuda a mejorar';
+    document.getElementById('evalMaestroBloque').textContent = label;
+    document.getElementById('evalCEBloque').textContent      = label;
+    document.getElementById(tipo==='maestro'?'modalEvalMaestro':'modalEvalCE').classList.add('visible');
+  }
+
+  function cerrarEval(tipo) {
+    document.getElementById(tipo==='maestro'?'modalEvalMaestro':'modalEvalCE').classList.remove('visible');
+  }
+
+  function enviarEvaluacion(tipo) {
+    if (!alumnoData) return;
+    var a=alumnoData.alumno, g=alumnoData.grupo, s=alumnoData.asistente;
+    var payload = { action:'guardarEvaluacion', idAlumno:a.id, idMaestro:g?(g.idMaestro||''):'', idAsistente:s?s.id:'', bloque:bloqueActual, tipo:tipo };
+    if (tipo==='maestro') { payload.maestro_dinamica=evalActual.M1; payload.maestro_actitud=evalActual.M2; payload.maestro_conocimiento=evalActual.M3; }
+    else { payload.ce_actitud=evalActual.C1; payload.ce_servicio=evalActual.C2; }
+    var btnId=tipo==='maestro'?'btnEnviarMaestro':'btnEnviarCE';
+    var statusId=tipo==='maestro'?'evalMaestroStatus':'evalCEStatus';
+    var btn=document.getElementById(btnId), status=document.getElementById(statusId);
+    btn.textContent='Enviando...'; btn.classList.remove('activo');
+    fetch(APPS_SCRIPT, { method:'POST', body:JSON.stringify(payload) })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status==='ok') {
+          status.textContent='✅ Evaluación enviada. ¡Gracias!'; status.className='eval-status ok';
+          setTimeout(function(){ cerrarEval(tipo); verificarEvaluaciones(alumnoData._semana||6, a.id); }, 2000);
+        } else {
+          btn.textContent='Enviar evaluación'; btn.classList.add('activo');
+          status.textContent='❌ '+(data.mensaje||'Error al enviar.'); status.className='eval-status err';
+        }
+      })
+      .catch(function(){ btn.textContent='Enviar evaluación'; btn.classList.add('activo'); status.textContent='❌ Error de conexión.'; status.className='eval-status err'; });
+  }
+
+  // ── PAGO ─────────────────────────────────────────────────────────
+  function verificarRecordatorio(p) {
+    var hoy = new Date();
+
+    // Ventana de alerta de pago pendiente: desde el jueves (ultimo dia de
+    // vigencia) hasta el domingo siguiente (4 dias, ambos inclusive). El
+    // mensaje siempre dice que la fecha limite es el SABADO -- el sistema
+    // por dentro da un poco mas de margen (hasta el lunes 11:59pm), pero
+    // eso no se le informa al alumno a proposito.
+    if (p && p.periodoFin) {
+      var finVigencia = new Date(p.periodoFin);
+      finVigencia.setHours(23, 59, 59, 999);
+
+      var inicioVentana = new Date(finVigencia); inicioVentana.setHours(0, 0, 0, 0);
+      var finVentana = new Date(finVigencia); finVentana.setDate(finVentana.getDate() + 3); finVentana.setHours(23, 59, 59, 999);
+
+      if (hoy >= inicioVentana && hoy <= finVentana) {
+        var sabadoLimite = new Date(finVigencia);
+        sabadoLimite.setDate(sabadoLimite.getDate() + 2); // jueves + 2 = sabado
+        mostrarAlertaPagoPendiente(sabadoLimite);
+        return;
+      }
+    }
+
+    // Sin pago registrado en ningún día → no mostrar recordatorio normal
+    if (!p||!p.periodoFin) return;
+
+    // Recordatorio de pago próximo a vencer: solo 1 día antes de la fecha de vencimiento
+    // (aviso temprano, antes de entrar a la ventana jueves-domingo de arriba)
+    var fin2=new Date(p.periodoFin);
+    var dias=Math.ceil((fin2-hoy)/(1000*60*60*24));
+    if (dias>1) return;
+    mostrarModalPago(p, dias);
+  }
+
+  function mostrarAlertaPagoPendiente(sabadoLimite) {
+    var s = alumnoData ? alumnoData.asistente : null;
+    var waLink = s && s.whatsapp
+      ? 'https://wa.me/'+cleanWA(s.whatsapp)
+      : 'https://wa.me/';
+    var asisNombre = s ? (s.nombre||'tu asistente CE') : 'tu asistente CE';
+
+    var nombresDias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var fechaTexto = nombresDias[sabadoLimite.getDay()] + ' ' + sabadoLimite.getDate() + ' de ' + meses[sabadoLimite.getMonth()];
+
+    // Crear modal si no existe
+    var modalId = 'modalAlertaBaja';
+    if (!document.getElementById(modalId)) {
+      var div = document.createElement('div');
+      div.id = modalId;
+      div.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;';
+      document.body.appendChild(div);
+    }
+
+    document.getElementById(modalId).innerHTML =
+        '<div style="background:#1e1e2e;border:2px solid #ef4444;border-radius:16px;width:92%;max-width:420px;padding:24px;box-shadow:0 0 40px rgba(239,68,68,0.3);">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">' +
+            '<span style="font-size:28px;">🚨</span>' +
+            '<h3 style="color:#f87171;margin:0;font-size:17px;font-weight:800;">Pago pendiente</h3>' +
+          '</div>' +
+          '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:16px;">' +
+            '<p style="color:#fca5a5;font-size:13px;line-height:1.7;margin:0;">' +
+              'Tu colegiatura de esta semana <strong style="color:#f87171;">aún no se ha reflejado</strong> en el sistema.' +
+              '<br><br>' +
+              'Tu fecha límite de pago es el <strong style="color:#fbbf24;">' + fechaTexto + '</strong>.' +
+              '<br><br>' +
+              'Si ya realizaste tu pago pero no ha sido reflejado, comunícate de inmediato con tu asistente de control escolar.' +
+            '</p>' +
+          '</div>' +
+          '<a href="' + waLink + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#4ade80;border-radius:10px;padding:12px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:12px;">' +
+            '💬 Contactar a ' + asisNombre +
+          '</a>' +
+          '<button onclick="document.getElementById(\'modalAlertaBaja\').style.display=\'none\';" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">Entendido</button>' +
+        '</div>';
+
+    document.getElementById(modalId).style.display = 'flex';
+  }
+
+   function mostrarModalPago(p, dias) {
+    var fechaFin = formatFechaCorta(p.periodoFin);
+    var tv = dias<=0 ? 'Tu pago vencio el '+fechaFin : dias===1 ? 'Tu pago vence manana · '+fechaFin : 'Tu pago vence en '+dias+' dias · '+fechaFin;
+    document.getElementById('modalPagoVigencia').textContent = tv;
+ 
+    // Calcular saldo y cuanto falta para la siguiente semana
+    var monto = Number(p.monto) || 0;
+    var saldo = monto % 100;
+    var falta = saldo > 0 ? (100 - saldo) : 0;
+ 
+    var saldoHtml = '';
+    if (saldo > 0) {
+      saldoHtml = '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#94a3b8;">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+          '<span>Saldo a favor:</span>' +
+          '<span style="color:#4ade80;font-weight:700;">$' + saldo + ' MXN</span>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;">' +
+          '<span>Falta para cubrir siguiente semana:</span>' +
+          '<span style="color:#fbbf24;font-weight:700;">$' + falta + ' MXN</span>' +
+        '</div>' +
+      '</div>';
+    }
+ 
+    document.getElementById('modalPagoSubtitulo').innerHTML =
+      'Tu <strong>colegiatura semanal esta por vencer</strong>. Sube tu comprobante de $100 MXN.' +
+      (saldo > 0 ? ' Tienes <strong style="color:#4ade80;">$'+saldo+' de saldo</strong> a favor.' : '');
+ 
+    // Insertar bloque de saldo antes del upload-zone
+    var uploadZone = document.getElementById('uploadZone');
+    var saldoEl = document.getElementById('saldoInfo');
+    if (saldoEl) saldoEl.remove();
+    if (saldo > 0) {
+      var div = document.createElement('div');
+      div.id = 'saldoInfo';
+      div.innerHTML = saldoHtml;
+      uploadZone.parentNode.insertBefore(div, uploadZone);
+    }
+ 
+    document.getElementById('modalPago').classList.add('visible');
+    verificarBloqueoPago();
+  }
+  function cerrarModalPago() {
+    document.getElementById('modalPago').classList.remove('visible');
+    // Restaurar estado del modal para próxima apertura
+    document.getElementById('uploadZone').style.display = 'block';
+    document.getElementById('btnSubir').style.display = 'block';
+    var aviso = document.getElementById('avisoComprobante24h');
+    if (aviso) aviso.style.display = 'none';
+    quitarArchivo();
+  }
+
+  function archivoSeleccionado(input) {
+    var archivo=input.files[0];
+    if (!archivo) return;
+    if (archivo.size>10*1024*1024) { setUploadStatus('El archivo no debe superar 10 MB.','err'); input.value=''; return; }
+    archivoSubida=archivo;
+    document.getElementById('uploadZone').style.display='none';
+    document.getElementById('uploadPreview').style.display='flex';
+    document.getElementById('uploadPreviewName').textContent=archivo.name;
+    document.getElementById('btnSubir').classList.add('activo');
+    setUploadStatus('','');
+  }
+
+  function quitarArchivo() {
+    archivoSubida=null; document.getElementById('uploadInput').value='';
+    document.getElementById('uploadZone').style.display='block';
+    document.getElementById('uploadPreview').style.display='none';
+    document.getElementById('btnSubir').classList.remove('activo');
+    setUploadStatus('','');
+  }
+
+  function setUploadStatus(msg, tipo) { var el=document.getElementById('uploadStatus'); el.textContent=msg; el.className='upload-status'+(tipo?' '+tipo:''); }
+
+  // ── CLAVE LOCAL PARA CONTROL DE 24H ─────────────────────────────
+  function _claveComprobante() {
+    return 'oe_comprobante_ts_' + (alumnoData ? alumnoData.alumno.id : 'x');
+  }
+  function _tsUltimoComprobante() {
+    try { return parseInt(localStorage.getItem(_claveComprobante()) || '0', 10); } catch(e) { return 0; }
+  }
+  function _guardarTsComprobante() {
+    try { localStorage.setItem(_claveComprobante(), Date.now().toString()); } catch(e) {}
+  }
+  function _horasDesdeUltimoComprobante() {
+    var ts = _tsUltimoComprobante();
+    if (!ts) return 999;
+    return (Date.now() - ts) / (1000 * 60 * 60);
+  }
+
+  // ── BLOQUEO AL ABRIR EL MODAL ────────────────────────────────────
+  function verificarBloqueoPago() {
+    var horas = _horasDesdeUltimoComprobante();
+    if (horas < 24) {
+      var restante = Math.ceil(24 - horas);
+      var s = alumnoData ? alumnoData.asistente : null;
+      var asisNombre = s ? (s.nombre || 'tu asistente') : 'tu asistente';
+      var waHref = s && s.whatsapp ? 'https://wa.me/' + cleanWA(s.whatsapp) : '#';
+
+      // Ocultar zona de carga y botón
+      document.getElementById('uploadZone').style.display = 'none';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('btnSubir').style.display = 'none';
+      document.getElementById('btnSubir').classList.remove('activo');
+      document.querySelector('.btn-cerrar-pago').style.marginTop = '0';
+
+      // Mostrar aviso si no existe
+      var avisoId = 'avisoComprobante24h';
+      var aviso = document.getElementById(avisoId);
+      if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = avisoId;
+        document.getElementById('uploadZone').parentNode.insertBefore(aviso, document.getElementById('uploadZone'));
+      }
+      aviso.innerHTML =
+        '<div style="background:rgba(251,191,36,0.08);border:1.5px solid rgba(251,191,36,0.35);border-radius:14px;padding:20px 18px;margin-bottom:14px;text-align:center;">' +
+          '<div style="font-size:32px;margin-bottom:10px;">📋</div>' +
+          '<div style="font-size:15px;font-weight:700;color:#fbbf24;margin-bottom:8px;">Ya hay un comprobante en el sistema</div>' +
+          '<div style="font-size:13px;color:#94a3b8;line-height:1.65;margin-bottom:14px;">' +
+            'Puedes subir un nuevo comprobante en <strong style="color:#fbbf24;">' + restante + (restante === 1 ? ' hora' : ' horas') + '</strong>.<br>' +
+            'Si crees que hubo un error, contacta a tu asistente.' +
+          '</div>' +
+          '<a href="' + waHref + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;text-decoration:none;">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>' +
+            'Contactar a ' + asisNombre +
+          '</a>' +
+        '</div>';
+      aviso.style.display = 'block';
+      return true; // bloqueado
+    }
+    // No bloqueado: limpiar aviso si existía
+    var aviso = document.getElementById('avisoComprobante24h');
+    if (aviso) aviso.style.display = 'none';
+    document.getElementById('uploadZone').style.display = 'block';
+    document.getElementById('btnSubir').style.display = 'block';
+    return false;
+  }
+
+  function subirComprobante() {
+    if (!archivoSubida||!alumnoData) return;
+    // Doble verificación al momento de subir
+    if (verificarBloqueoPago()) return;
+    var btn=document.getElementById('btnSubir');
+    btn.classList.remove('activo'); btn.classList.add('cargando'); btn.textContent='Subiendo...';
+    setUploadStatus('Enviando comprobante...','');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var base64=e.target.result.split(',')[1];
+      var formData=new FormData();
+      formData.append('action','subirComprobante'); formData.append('idAlumno',alumnoData.alumno.id);
+      formData.append('base64',base64); formData.append('mimeType',archivoSubida.type); formData.append('nombreArchivo',archivoSubida.name);
+      fetch(APPS_SCRIPT,{method:'POST',body:formData})
+        .then(r=>r.json())
+        .then(data=>{
+          btn.classList.remove('cargando'); btn.textContent='Subir comprobante';
+          if(data.success){
+            _guardarTsComprobante();
+            setUploadStatus('✅ Comprobante enviado correctamente.','ok');
+            btn.textContent='¡Enviado!';
+            var s=alumnoData.asistente;
+            if(s&&s.whatsapp){
+              var msg=encodeURIComponent('Hola '+s.nombre.split(' ')[0]+' 👋\n\nTe informo que acabo de subir mi comprobante de pago.\n\n👤 Alumno: '+alumnoData.alumno.nombre+'\n🆔 ID: '+alumnoData.alumno.id+'\n📚 Grupo: '+(alumnoData.grupo?alumnoData.grupo.id:'—')+'\n\nQuedo pendiente de tu validación. ¡Gracias! 🙏');
+              var btnWA=document.createElement('a');
+              btnWA.href='https://wa.me/'+cleanWA(s.whatsapp)+'?text='+msg;
+              btnWA.target='_blank';
+              btnWA.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;background:#16a34a;color:#fff;border-radius:100px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;';
+              btnWA.innerHTML='📱 Notificar a mi asistente CE por WhatsApp';
+              document.getElementById('uploadStatus').after(btnWA);
+              var btnCerrar=document.createElement('button');
+              btnCerrar.textContent='Cerrar';
+              btnCerrar.style.cssText='display:block;width:100%;margin-top:10px;background:transparent;color:#475569;border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:12px;font-size:14px;cursor:pointer;';
+              btnCerrar.onclick=cerrarModalPago;
+              btnWA.after(btnCerrar);
+            }
+            //setTimeout(cerrarModalPago,8000);
+          }else{
+            btn.classList.add('activo');
+            setUploadStatus('Error: '+(data.error||'Intenta de nuevo.'),'err');
+          }
+        })
+        .catch(()=>{ btn.classList.remove('cargando');btn.classList.add('activo');btn.textContent='Subir comprobante';setUploadStatus('Error de conexion.','err'); });
+    };
+    reader.readAsDataURL(archivoSubida);
+  }
+
+  // ── CAMBIO DE GRUPO ──────────────────────────────────────────────
+  function abrirModalDiaCambioGrupo() { document.getElementById('modalDiaCambioGrupo').style.display='flex'; }
+  function cerrarModalDiaCambioGrupo() { document.getElementById('modalDiaCambioGrupo').style.display='none'; }
+
+  function solicitarCambioGrupoWhatsApp() {
+    if (!alumnoData) return;
+    var dia = new Date().getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
+    if (dia !== 4 && dia !== 5 && dia !== 6) {
+      abrirModalDiaCambioGrupo();
+      return;
+    }
+    var s = alumnoData.asistente, a = alumnoData.alumno, g = alumnoData.grupo;
+    if (!s || !s.whatsapp) return;
+    var msg = encodeURIComponent(
+      'Hola ' + s.nombre.split(' ')[0] + ' 👋\n\n' +
+      'Me gustaría solicitar un cambio de grupo.\n\n' +
+      '👤 Alumno: ' + a.nombre + '\n' +
+      '🆔 ID: ' + a.id + '\n' +
+      '📚 Grupo actual: ' + (g ? g.id + ' · ' + g.nombre + ' · ' + g.horario : '—') + '\n\n' +
+      'Quedo al pendiente de las opciones disponibles. ¡Gracias! 🙏'
+    );
+    window.open('https://wa.me/' + cleanWA(s.whatsapp) + '?text=' + msg, '_blank');
+  }
+
+  function abrirModalCambioGrupo() {
+    if (!CAMBIO_GRUPO_ALUMNO_ACTIVO) return; // función desactivada, ver interruptor arriba
+    grupoDestinoCambio=null;
+    document.getElementById('btnConfirmarCambio').classList.remove('activo');
+    document.getElementById('cambioStatus').textContent='';
+    document.getElementById('cambioStatus').className='cambio-status';
+    var dia=new Date().getDay();
+    if (dia===0||dia===5||dia===6) { document.getElementById('vistaReglas').style.display='none'; document.getElementById('vistaSeleccion').style.display='block'; cargarGruposCambio(); }
+    else { document.getElementById('vistaReglas').style.display='block'; document.getElementById('vistaSeleccion').style.display='none'; }
+    document.getElementById('modalCambioGrupo').classList.add('visible');
+  }
+
+  function cerrarModalCambioGrupo() { document.getElementById('modalCambioGrupo').classList.remove('visible'); grupoDestinoCambio=null; }
+
+  function cargarGruposCambio() {
+    var grid=document.getElementById('gruposCambioGrid');
+    grid.innerHTML='<div style="color:#64748b;font-size:13px;text-align:center;padding:20px;grid-column:1/-1;">Verificando disponibilidad...</div>';
+    fetch(APPS_SCRIPT+'?action=getGruposCambioAlumno&idAlumno='+encodeURIComponent(alumnoData.alumno.id), { redirect: 'follow' })
+      .then(r=>r.json())
+      .then(data=>{
+        if(!data.ok){ grid.innerHTML='<div style="color:#f87171;font-size:13px;text-align:center;padding:20px;grid-column:1/-1;">'+(data.error||'Error')+'</div>'; return; }
+        var grupos=data.grupos||[];
+        document.getElementById('cambioSubtitulo').textContent='Grupo actual: '+(alumnoData.grupo?alumnoData.grupo.id:'—');
+        if(!grupos.length){ grid.innerHTML='<div style="color:#64748b;font-size:13px;text-align:center;padding:20px;grid-column:1/-1;">No hay otros grupos disponibles.</div>'; return; }
+        grid.innerHTML=grupos.map(g=>{
+          var libres=g.cupo_max-g.inscritos, sinL=libres<=0, bloq=sinL||g.requiereColocacion;
+          return '<div class="grupo-card-cambio '+(bloq?'bloqueado':'')+'" data-id="'+g.id+'" onclick="seleccionarGrupoCambio(this)">'+
+            '<div class="gcc-id">'+g.id+'</div><div class="gcc-nombre">'+g.nombre+'</div>'+
+            '<div class="gcc-horario">'+g.horario+'</div>'+
+            '<div class="gcc-plazas '+(libres<=2?'pocas':'')+'">'+(libres>0?libres+' lugares':'Sin lugares')+'</div>'+
+            (g.requiereColocacion?'<span class="gcc-tag colocacion">Requiere examen</span>':sinL?'<span class="gcc-tag sin-lugares">Sin lugares</span>':'')+
+          '</div>';
+        }).join('');
+      })
+      .catch(()=>{ grid.innerHTML='<div style="color:#f87171;font-size:13px;text-align:center;padding:20px;grid-column:1/-1;">Error de conexion.</div>'; });
+  }
+
+  function seleccionarGrupoCambio(el) {
+    document.querySelectorAll('.grupo-card-cambio').forEach(g=>g.classList.remove('seleccionado'));
+    el.classList.add('seleccionado'); grupoDestinoCambio=el.dataset.id;
+    document.getElementById('btnConfirmarCambio').classList.add('activo');
+  }
+
+  function confirmarCambioGrupoAlumno() {
+    if (!CAMBIO_GRUPO_ALUMNO_ACTIVO) return; // función desactivada, ver interruptor arriba
+    if (!grupoDestinoCambio||!alumnoData) return;
+    var btn=document.getElementById('btnConfirmarCambio');
+    btn.classList.remove('activo'); btn.classList.add('cargando'); btn.textContent='Procesando...';
+    fetch(APPS_SCRIPT+'?action=cambiarGrupoAlumno&idAlumno='+encodeURIComponent(alumnoData.alumno.id)+'&grupoDestino='+encodeURIComponent(grupoDestinoCambio), { redirect: 'follow' })
+      .then(r=>r.json())
+      .then(data=>{
+        btn.classList.remove('cargando'); btn.textContent='Confirmar cambio';
+        if(data.ok){ document.getElementById('cambioStatus').textContent='Cambio realizado. Revisa tu correo.'; document.getElementById('cambioStatus').className='cambio-status ok'; setTimeout(cerrarModalCambioGrupo,6500); }
+        else{ document.getElementById('cambioStatus').textContent=data.error||'Error.'; document.getElementById('cambioStatus').className='cambio-status err'; btn.classList.add('activo'); }
+      })
+      .catch(()=>{ btn.classList.remove('cargando');btn.classList.add('activo');btn.textContent='Confirmar cambio'; document.getElementById('cambioStatus').textContent='Error de conexion.'; document.getElementById('cambioStatus').className='cambio-status err'; });
+  }
+
+  // ── RENDER PAGOS ─────────────────────────────────────────────────
+  function renderPagos(p) {
+    var div=document.getElementById('pagosContenido');
+    if(!p){div.innerHTML='<div class="califs-empty"><div class="califs-text">Sin pagos registrados</div></div>';return;}
+    var pct=Math.min(100,Math.max(0,Math.round((Date.now()-new Date(p.fecha).getTime())/(new Date(p.periodoFin).getTime()-new Date(p.fecha).getTime())*100)));
+    var semanasP = Math.floor((Number(p.monto)||0) / 100);
+    if (semanasP < 1) semanasP = 1;
+    var tipoTexto = semanasP === 1 ? 'Colegiatura semanal' : semanasP + ' semanas cubiertas';
+    div.innerHTML=
+      '<div class="pago-highlight"><div class="pago-monto">$'+p.monto+' MXN</div><div class="pago-tipo">'+tipoTexto+' · '+formatFechaCorta(p.fecha)+'</div></div>'+
+      '<div class="field-row"><span class="field-label">Vigente hasta</span><span class="field-val">'+formatFechaCorta(p.periodoFin)+'</span></div>'+
+      '<div class="progreso-bar"><div class="progreso-fill" style="width:'+pct+'%"></div></div>'+
+      '<div class="progreso-labels"><span>'+formatFechaMini(p.fecha)+'</span><span>'+formatFechaMini(p.periodoFin)+'</span></div>'+
+      (function(){
+        var hoyTS = Date.now();
+        var limTS = p.limiteSiguiente ? new Date(p.limiteSiguiente).getTime() : null;
+        if (limTS && hoyTS > limTS) {
+          return '<div class="alerta-pago-roja">🚨 Pago vencido desde el sáb '+formatFechaCorta(p.limiteSiguiente)+'</div>';
+        }
+        return '<div class="alerta-pago">⚠️ Límite de pago: sáb '+formatFechaCorta(p.limiteSiguiente)+'</div>';
+      })()+
+      '<button onclick="document.getElementById(\'modalPago\').classList.add(\'visible\')" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Subir comprobante de pago</button>';
+  }
+
+  // ── RENDER HISTORIAL ─────────────────────────────────────────────
+  function renderHistorial(historial) {
+    var div=document.getElementById('historialContenido');
+    if(!historial||!historial.length){div.innerHTML='<div class="califs-empty"><div class="califs-text">Sin registros</div></div>';return;}
+    var filas=historial.map((pago,idx)=>{
+      var etiqueta=idx===historial.length-1?'Inscripcion':'Colegiatura';
+      var montoClass=idx===0?'hist-monto':'hist-monto anterior';
+      var validado=pago.validadoPor?'<span class="badge badge-validado">Validado</span>':'<span class="badge badge-pendiente">Pendiente</span>';
+      return '<tr><td><span class="'+montoClass+'">$'+pago.monto+' MXN</span></td><td>'+formatFechaCorta(pago.fecha)+'</td><td><span style="font-size:12px;color:#64748b;">'+etiqueta+' · '+pago.tipo+'</span></td><td style="text-align:right;">'+validado+'</td></tr>';
+    }).join('');
+    div.innerHTML='<div style="max-height:198px;overflow-y:auto;"><table class="hist-tabla"><thead><tr><th>Monto</th><th>Fecha</th><th>Concepto</th><th style="text-align:right;">Estado</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
+  }
+
+  // ── RENDER CALIFICACIONES ────────────────────────────────────────
+  function renderCalificaciones(g) {
+    var div=document.getElementById('progresoCurso');
+    if(!div) return;
+    if(!g||!g.fechaInicio){div.innerHTML='';return;}
+    var hoy=new Date(), inicio=new Date(g.fechaInicio);
+    var diff=Math.floor((hoy-inicio)/(1000*60*60*24));
+    var sem=Math.max(1,Math.min(16,Math.ceil((diff+1)/7)));
+    alumnoData._semana=sem;
+    // Bloque academico (1 o 2) y semana DENTRO de ese bloque (1-8, se
+    // reinicia en Bloque 2) -- todo lo que se muestra aqui debajo (semana
+    // actual, unidades, progreso) es relativo al bloque en curso, no al
+    // conteo continuo de 16 semanas del nivel completo.
+    var bloqueAcademico = sem <= 8 ? 1 : 2;
+    var semEnBloque = sem > 8 ? sem - 8 : sem;
+    verificarEvaluaciones(semEnBloque, alumnoData.alumno.id, bloqueAcademico);
+    var u,ul,uc;
+    if(semEnBloque<=2){u=1;ul='Unidad 1';uc='#3b82f6';}else if(semEnBloque<=4){u=2;ul='Unidad 2';uc='#8b5cf6';}else if(semEnBloque<=6){u=3;ul='Unidad 3';uc='#f97316';}else{u=4;ul='Unidad 4';uc='#f59e0b';}
+    var sue=(semEnBloque-1)%2+1,tue=2,pct=Math.round(semEnBloque/8*100);
+    var uns=[{l:'U1',s:'1-2',c:'#3b82f6',n:1},{l:'U2',s:'3-4',c:'#8b5cf6',n:2},{l:'U3',s:'5-6',c:'#f97316',n:3},{l:'U4',s:'7-8',c:'#f59e0b',n:4}];
+    var inds=uns.map(x=>{var a=u>=x.n,ea=u===x.n,rgb=hexToRgb(x.c);var bg=a?'background:rgba('+rgb+',0.15);border:1px solid rgba('+rgb+',0.4);':'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);';return '<div style="'+bg+'border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:12px;font-weight:700;color:'+(a?x.c:'#334155')+';">'+x.l+(ea?' ◀':'')+'</div><div style="font-size:10px;color:'+(a?'#64748b':'#1e293b')+';margin-top:2px;">Semana '+x.s+'</div></div>';}).join('');
+    div.innerHTML=
+      '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:13px;color:#94a3b8;">Semana actual · Bloque '+bloqueAcademico+'</span><span style="font-size:20px;font-weight:700;color:#f1f5f9;">'+semEnBloque+'<span style="font-size:13px;color:#475569;font-weight:400;"> / 8</span></span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;color:'+uc+';">'+ul+'</span><span style="font-size:12px;color:#475569;">Semana '+sue+' de '+tue+'</span></div></div>'+
+      '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;margin-bottom:5px;"><span>Progreso del Bloque '+bloqueAcademico+'</span><span>'+pct+'%</span></div><div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;"><div style="background:linear-gradient(90deg,#1c2b5e,'+uc+');height:6px;border-radius:4px;width:'+pct+'%;"></div></div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">'+inds+'</div>';
+  }
+
+  // ── JUSTIFICANTE DE FALTA POR FUERZA MAYOR ────────────────────────
+  // Si el alumno falto un dia, tiene hasta el final del dia SIGUIENTE para
+  // subir un video de 1 minuto sobre el tema de esa clase. El maestro lo
+  // revisa y puede convertir esa falta en "Presente" (tope color Verde).
+  function cargarFaltasJustificables(idAlumno, idGrupo) {
+    fetch(APPS_SCRIPT + '?action=getFaltasJustificables&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(r => r.json())
+      .then(data => { if (data.success) renderFaltasJustificables(data.faltas); })
+      .catch(function(){});
+  }
+
+  function renderFaltasJustificables(faltas) {
+    var div = document.getElementById('faltasJustificables');
+    if (!div) return;
+    if (!faltas || !faltas.length) { div.innerHTML = ''; return; }
+
+    div.innerHTML = faltas.map(function(f) {
+      var vencida = new Date() > new Date(f.fechaLimite);
+      if (f.estatus === 'Aprobado') {
+        return '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#4ade80;">✅ Tu falta del '+formatFechaCorta(f.fecha)+' fue justificada y aprobada por tu maestro.</div>';
+      }
+      if (f.estatus === 'Rechazado') {
+        return '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#f87171;">❌ Tu justificante del '+formatFechaCorta(f.fecha)+' no fue aprobado por tu maestro.</div>';
+      }
+      if (f.estatus === 'Pendiente') {
+        return '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#facc15;">⏳ Tu video del '+formatFechaCorta(f.fecha)+' ya se subió — está pendiente de revisión por tu maestro.</div>';
+      }
+      // Sin justificar todavia -- mostrar boton mientras no haya vencido
+      if (vencida) return '';
+      return '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px 14px;margin-top:10px;">'+
+        '<div style="font-size:12px;color:#fdba74;margin-bottom:8px;">⚠️ Faltaste el <strong>'+formatFechaCorta(f.fecha)+'</strong>. Tienes hasta el <strong>'+formatFechaCorta(f.fechaLimite)+'</strong> para subir un video de 1 minuto sobre el tema de esa clase y evitar que te afecte.</div>'+
+        '<button class="btn-video-orange" onclick="abrirModalVideo(\'Justificante\',\''+f.fecha+'\')">📹 Subir mi video</button>'+
+      '</div>';
+    }).join('');
+  }
+
+  // ── MAPA DEL ALUMNO ──────────────────────────────────────────────
+  function cargarMapaAlumno(idAlumno, idGrupo) {
+    if (!idGrupo) return;
+    var url=APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo);
+    fetch(url, { redirect: 'follow' })
+      .then(r=>r.json()).then(data=>{if(data.success)renderMapaAlumno(data);})
+      .catch(function(){
+        // Reintentar con no-cors si falla por CORS
+        fetch(url, { mode: 'no-cors' }).catch(function(){});
+      });
+  }
+
+  function renderMapaAlumno(data) {
+    var p=data.promedios, clases=data.totalClases;
+    if(!clases) return;
+    var PILARES=['participacion','deduccion','fluidez','consistencia'];
+    var LABELS={participacion:'Participación',deduccion:'Deducción',fluidez:'Fluidez',consistencia:'Consistencia'};
+    function nivelColor(val){if(!val||val<1.5)return{color:'#78716c',emoji:'🟤',label:'Latente'};if(val<2.5)return{color:'#e5e0d0',emoji:'⚪',label:'Semilla'};if(val<3.5)return{color:'#facc15',emoji:'🟡',label:'Brotando'};return{color:'#f97316',emoji:'🟠',label:'Floreciendo'};}
+    function plantaSVG(val,tieneInsignia){val=val||1;var c=nivelColor(val).color;var cielo1=val<1.5?'#1a1a2e':val<2.5?'#1e2a4a':val<3.5?'#1a3a5c':'#0f4c75';var cielo2=val<1.5?'#2d2d2d':val<2.5?'#243570':val<3.5?'#1e6091':'#1a7abf';var svg='<svg width="60" height="140" viewBox="0 0 60 140" xmlns="http://www.w3.org/2000/svg">';svg+='<defs><linearGradient id="sky'+Math.round(val*10)+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+cielo1+'"/><stop offset="100%" stop-color="'+cielo2+'"/></linearGradient></defs>';svg+='<rect width="60" height="140" fill="url(#sky'+Math.round(val*10)+')" rx="8"/>';svg+='<ellipse cx="30" cy="128" rx="26" ry="8" fill="#4a3520" opacity="0.9"/><rect x="4" y="124" width="52" height="12" rx="0" fill="#4a3520" opacity="0.9"/><rect x="4" y="128" width="52" height="8" rx="0" fill="#3d2b16"/>';if(val<1.5){svg+='<rect x="28" y="70" width="4" height="54" rx="2" fill="#6b4e2a" opacity="0.7"/><line x1="22" y1="90" x2="15" y2="82" stroke="#6b4e2a" stroke-width="2" opacity="0.6"/><line x1="38" y1="100" x2="45" y2="92" stroke="#6b4e2a" stroke-width="2" opacity="0.6"/>';}else if(val<2.5){svg+='<rect x="28" y="95" width="4" height="29" rx="2" fill="#4ade80" opacity="0.8"/><ellipse cx="30" cy="92" rx="7" ry="9" fill="#22c55e" opacity="0.9"/><ellipse cx="30" cy="88" rx="4" ry="5" fill="#4ade80" opacity="0.7"/>';}else if(val<3.5){svg+='<rect x="28" y="72" width="4" height="52" rx="2" fill="#16a34a" opacity="0.9"/><ellipse cx="18" cy="105" rx="13" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(-30 18 105)"/><ellipse cx="42" cy="95" rx="13" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(30 42 95)"/><ellipse cx="20" cy="84" rx="11" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(-25 20 84)"/><ellipse cx="40" cy="78" rx="11" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(25 40 78)"/>';}else{svg+='<rect x="28" y="65" width="4" height="59" rx="2" fill="#15803d" opacity="0.9"/><ellipse cx="16" cy="100" rx="14" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(-30 16 100)"/><ellipse cx="44" cy="90" rx="14" ry="6" fill="#22c55e" opacity="0.8" transform="rotate(30 44 90)"/><ellipse cx="18" cy="80" rx="12" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(-25 18 80)"/><ellipse cx="42" cy="74" rx="12" ry="5" fill="#4ade80" opacity="0.75" transform="rotate(25 42 74)"/>';var cx=30,cy=52,pr=10,pc=5;for(var i=0;i<6;i++){var ang=(i*60)*Math.PI/180;var px=cx+pr*Math.cos(ang);var py=cy+pr*Math.sin(ang);svg+='<ellipse cx="'+px+'" cy="'+py+'" rx="'+pc+'" ry="7" fill="'+c+'" opacity="0.9" transform="rotate('+(i*60)+' '+px+' '+py+')" />';}svg+='<circle cx="'+cx+'" cy="'+cy+'" r="7" fill="#fef08a" opacity="0.95"/><circle cx="'+cx+'" cy="'+cy+'" r="3" fill="#ca8a04" opacity="0.9"/>';}if(tieneInsignia){var arcos=['#f87171','#fb923c','#facc15','#4ade80','#60a5fa','#818cf8'];arcos.forEach(function(col,i){var r=28-i*4;svg+='<path d="M '+(30-r)+' 30 A '+r+' '+r+' 0 0 1 '+(30+r)+' 30" fill="none" stroke="'+col+'" stroke-width="3" opacity="0.7"/>';});var sx=30,sy=16,sr=7,si=3.5,pts='';for(var s=0;s<10;s++){var sang=(s*36-90)*Math.PI/180;var sr2=s%2===0?sr:si;pts+=(sx+sr2*Math.cos(sang))+','+(sy+sr2*Math.sin(sang))+' ';}svg+='<polygon points="'+pts+'" fill="#fef08a" opacity="0.95"/><polygon points="'+pts+'" fill="none" stroke="#ca8a04" stroke-width="0.5" opacity="0.8"/>';}svg+='</svg>';return svg;}
+    var promGeneral=(p.participacion+p.deduccion+p.fluidez+p.consistencia)/4, ng=nivelColor(promGeneral);
+    var html='<div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;margin-top:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Tu Jardín de Crecimiento</span><span style="font-size:13px;font-weight:700;color:'+ng.color+'">'+ng.emoji+' '+ng.label+'</span></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'+PILARES.map(function(pi){var val=p[pi]||0,n=nivelColor(val);return'<div style="text-align:center;background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 4px;"><div style="display:flex;justify-content:center;align-items:flex-end;height:144px;">'+plantaSVG(val,data.challenges&&data.challenges.some(function(ch){return ch.aprobado;}))+'</div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">'+LABELS[pi]+'</div><div style="font-size:11px;font-weight:700;color:'+n.color+';margin-top:2px;">'+n.emoji+'</div></div>';}).join('')+'</div><div style="margin-top:14px;background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;"><div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Guia de crecimiento</div><div style="display:flex;flex-direction:column;gap:5px;"><div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span>🟠</span><span style="color:#f97316;font-weight:700;width:90px;">Floreciendo</span><span style="color:#64748b;">Dominio excelente del tema</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span>🟡</span><span style="color:#facc15;font-weight:700;width:90px;">Brotando</span><span style="color:#64748b;">Vas por muy buen camino</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span>⚪</span><span style="color:#e5e0d0;font-weight:700;width:90px;">Semilla</span><span style="color:#64748b;">Presente, pero falta mas esfuerzo</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span>🟤</span><span style="color:#78716c;font-weight:700;width:90px;">Latente</span><span style="color:#64748b;">Necesitas reconectar con tus misiones</span></div></div></div><div style="margin-top:10px;text-align:center;font-size:11px;color:#475569;">Promedio acumulado de '+clases+' clases · Se actualiza cada clase</div></div>';
+    document.getElementById('progresoCurso').innerHTML += html;
+  }
+
+  // ── CLUB DE CONVERSACIÓN ─────────────────────────────────────────
+  var alertaClubCerradaEnSesion = false;
+
+  // Coloca el aviso del Chat Club debajo del post-it de evaluacion cuando
+  // este ultimo esta visible, para que ambos queden apilados en la misma
+  // esquina en vez de superpuestos. Si el post-it no esta visible, el
+  // Chat Club regresa a su posicion por defecto.
+  function posicionarAlertasFlotantes() {
+    var postIt = document.getElementById('postItEval');
+    var club = document.getElementById('alertaChatClub');
+    if (!club) return;
+    var postItVisible = postIt && postIt.style.display !== 'none' && postIt.style.display !== '';
+    if (postItVisible) {
+      var rect = postIt.getBoundingClientRect();
+      club.style.top = Math.round(rect.bottom + 28) + 'px';
+    } else {
+      club.style.top = '90px';
+    }
+  }
+  // Reintenta la posicion una vez que la fuente manuscrita (Caveat) termine
+  // de cargar -- su llegada tardia puede cambiar la altura del post-it y
+  // dejar al aviso del club ligeramente encimado.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function(){ posicionarAlertasFlotantes(); });
+  }
+
+  // Alerta visible SOLO Jueves y Viernes, para alumnos con 4 semanas
+  // o mas de antiguedad (fecha de inscripcion), recordandoles que tienen
+  // acceso al Chat Club del viernes 7pm. Aplica a TODOS los alumnos
+  // elegibles, sin importar si su grupo es de sabado o de entre semana.
+  function verificarAlertaChatClub(alumno) {
+    var alerta = document.getElementById('alertaChatClub');
+    if (!alerta) return;
+
+    if (alertaClubCerradaEnSesion) { alerta.style.display = 'none'; return; }
+
+    var hoy = new Date();
+    var diaSemana = hoy.getDay(); // 0=Dom,1=Lun,2=Mar,3=Mie,4=Jue,5=Vie,6=Sab
+    var esDiaVentana = (diaSemana === 4 || diaSemana === 5); // Jue, Vie
+
+    if (!esDiaVentana || !alumno || !alumno.fechaInscripcion) {
+      alerta.style.display = 'none';
+      posicionarAlertasFlotantes();
+      return;
+    }
+
+    var fechaIns = new Date(alumno.fechaInscripcion);
+    var diasAntiguedad = Math.floor((hoy - fechaIns) / (1000 * 60 * 60 * 24));
+    var semanasAntiguedad = diasAntiguedad / 7;
+
+    alerta.style.display = (semanasAntiguedad >= 4) ? 'flex' : 'none';
+    posicionarAlertasFlotantes();
+  }
+
+  function cerrarAlertaChatClub() {
+    alertaClubCerradaEnSesion = true;
+    document.getElementById('alertaChatClub').style.display = 'none';
+  }
+
+  function abrirClub() {
+    var g=alumnoData.grupo; if(!g) return;
+    var fechaInicio=g.fechaInicio.substring(0,10), fechaCorte='2026-04-13';
+    var esElegible=fechaInicio<=fechaCorte, estaVigente=alumnoData.alumno.estatus==='Validado';
+    if(esElegible&&estaVigente&&g.linkClub){document.getElementById('modalClubAvisoOverlay').classList.add('visible');}
+    else{document.getElementById('modalClubOverlay').classList.add('visible');}
+  }
+  function entrarAlClub(){var g=alumnoData.grupo;document.getElementById('modalClubAvisoOverlay').classList.remove('visible');window.open(g.linkClub,'_blank');}
+  function cerrarModalClub(){document.getElementById('modalClubOverlay').classList.remove('visible');}
+  function cerrarModalClubAviso(){document.getElementById('modalClubAvisoOverlay').classList.remove('visible');}
+
+  // ── UTILS ────────────────────────────────────────────────────────
+  function hexToRgb(hex){return parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16);}
+  // Si "f" es una fecha de solo dia ("yyyy-MM-dd", sin hora), "new Date(f)"
+  // la interpreta como medianoche UTC -- al leerla en hora local (el
+  // navegador del alumno) se puede recorrer al dia anterior. Por eso aqui
+  // se le agrega una hora de mediodia (segura) antes de construir la fecha.
+  function _fechaSegura(f){
+    if (typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f)) return new Date(f+'T12:00:00');
+    return new Date(f);
+  }
+  function formatFechaCorta(f){if(!f)return'—';var d=_fechaSegura(f),m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear();}
+  function formatFechaMini(f){if(!f)return'—';var d=_fechaSegura(f),m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return d.getDate()+' '+m[d.getMonth()];}
+
+  // ── LOGOUT ───────────────────────────────────────────────────────
+  // ── EVALUACIÓN DEL ALUMNO ───────────────────────────────────────────
+  function cargarEvaluacionAlumno(idAlumno, idGrupo) {
+    fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo))
+      .then(r=>r.json())
+      .then(d=>{
+        console.log('EVALUACION DATA:', JSON.stringify(d));
+        if(d.success) {
+          renderEvaluacionAlumno(d);
+          // El justificante de falta por fuerza mayor solo aplica a grupos
+          // con el sistema de colores normal (Personalizado no usa
+          // REGISTRO_DIARIO) -- y solo se puede cargar DESPUES de
+          // renderEvaluacionAlumno, porque el placeholder #faltasJustificables
+          // se crea ahi adentro (para que se vea justo debajo de Asistencia
+          // y Verde+Azul, no al final de toda la tarjeta).
+          var esPersonalizado = alumnoData && alumnoData.grupo && alumnoData.grupo.tipoHorario === 'personalizado';
+          if (!esPersonalizado) cargarFaltasJustificables(idAlumno, idGrupo);
+        }
+        else document.getElementById('evaluacionAlumno').innerHTML='<div style="text-align:center;padding:20px;color:#64748b;">Sin registros aún</div>';
+      })
+      .catch(()=>{
+        document.getElementById('evaluacionAlumno').innerHTML='<div style="text-align:center;padding:20px;color:#64748b;">Error al cargar</div>';
+      });
+  }
+
+  
+
+/* ================================================================
+   PATCH v3 — renderEvaluacionAlumno
+   - Gema mejorada: porcentaje DEBAJO, brillo si 95-100%
+   - Últimas 3 observaciones del maestro en Recomendaciones
+   - Grand fix (Gran/Grand)
+   - Feedback de challenges
+   ================================================================ */
+
+function renderEvaluacionAlumno(d) {
+  var html = '';
+
+  /* ── GEM ──
+     Si el alumno ya esta en Bloque 2, la gema muestra el PROMEDIO del
+     nivel (Bloque 1 ya cerrado + Bloque 2 en curso), para que vea como se
+     va construyendo su calificacion final -- no solo su avance del bloque
+     actual aislado. En Bloque 1, es simplemente su % actual. */
+  var pcBloqueActual = d.porcentajeGlobal || 0;
+  var enBloque2 = d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null;
+  var pc = enBloque2 ? d.promedioNivel : pcBloqueActual;
+  var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
+  var gemaLabel = pc >= 90 ? 'Excelente' : pc >= 80 ? 'Bueno' : pc >= 70 ? 'Regular' : pc >= 60 ? 'Atención' : 'Crítico';
+  var brillar   = pc >= 95;
+
+  var glowStyle = brillar
+    ? 'filter:drop-shadow(0 0 8px '+gemaColor+') drop-shadow(0 0 16px '+gemaColor+');animation:gemGlow 1.8s ease-in-out infinite alternate;'
+    : '';
+
+  /* Inject keyframes once */
+  if (!document.getElementById('gemGlowStyle')) {
+    var st = document.createElement('style');
+    st.id = 'gemGlowStyle';
+    st.textContent = '@keyframes gemGlow{from{filter:drop-shadow(0 0 6px '+gemaColor+') drop-shadow(0 0 12px '+gemaColor+');}to{filter:drop-shadow(0 0 14px '+gemaColor+') drop-shadow(0 0 28px '+gemaColor+');}}';
+    document.head.appendChild(st);
+  }
+
+  var gemSVG = '<svg width="60" height="68" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg" style="'+glowStyle+'">'
+    + '<defs>'
+    + '<linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/></linearGradient>'
+    + '</defs>'
+    + '<polygon points="30,4 44,18 30,14 16,18" fill="url(#gF)" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="30,4 44,18 52,18 42,4" fill="'+gemaColor+'" opacity="0.85" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="'+gemaColor+'" opacity="0.6" stroke="'+gemaColor+'" stroke-width="0.4"/>'
+    + '<polygon points="8,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="52,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="8,22 16,20 30,63" fill="url(#gF)" opacity="0.3"/>'
+    + '<polygon points="52,22 44,20 30,63" fill="url(#gF)" opacity="0.2"/>'
+    + '<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
+    + '<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
+    + '</svg>';
+
+  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">';
+  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">';
+  html += gemSVG;
+  html += '<div style="font-size:13px;font-weight:800;color:'+gemaColor+';">'+pc+'%</div>';
+  html += '</div>';
+  html += '<div><div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+d.estado+'</div>';
+  html += '<div style="font-size:11px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div></div></div>';
+
+  if (enBloque2) {
+    html += '<div style="display:flex;gap:10px;margin-bottom:16px;font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.02);border-radius:8px;padding:8px 12px;">';
+    html += '<span>📘 Bloque 1: <strong style="color:#e2e8f0;">'+d.bloque1Pct+'%</strong></span>';
+    html += '<span>·</span>';
+    html += '<span>📗 Bloque 2 (en curso): <strong style="color:#e2e8f0;">'+pcBloqueActual+'%</strong></span>';
+    html += '<span>·</span>';
+    html += '<span>Promedio del nivel: <strong style="color:'+gemaColor+';">'+pc+'%</strong></span>';
+    html += '</div>';
+  }
+
+  /* ── Stats ── */
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">';
+  html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;text-align:center;">';
+  html += '<div style="font-size:20px;font-weight:700;'+(d.asistencia>=80?'color:#22c55e':d.asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+d.asistencia+'%</div>';
+  html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Asistencia</div></div>';
+  html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;text-align:center;">';
+  html += '<div style="font-size:20px;font-weight:700;'+(d.positivos>=70?'color:#22c55e':d.positivos>=60?'color:#facc15':'color:#ef4444')+'">'+d.positivos+'%</div>';
+  html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div></div>';
+  html += '</div>';
+
+  html += '<div id="faltasJustificables"></div>';
+
+  /* ── Colores ── */
+  var total = d.totalClases || 1;
+  var gp = function(c){ return total>0?Math.round((d.colores[c]/total)*100):0; };
+  html += '<div style="margin-bottom:16px;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Colores obtenidos</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+  html += '<div style="background:rgba(239,68,68,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🔴</div><div style="font-size:12px;font-weight:700;color:#ef4444">'+gp(1)+'%</div></div>';
+  html += '<div style="background:rgba(250,204,21,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🟡</div><div style="font-size:12px;font-weight:700;color:#facc15">'+gp(2)+'%</div></div>';
+  html += '<div style="background:rgba(34,197,94,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🟢</div><div style="font-size:12px;font-weight:700;color:#22c55e">'+gp(3)+'%</div></div>';
+  html += '<div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+gp(4)+'%</div></div>';
+  html += '</div></div>';
+
+  /* ── Últimas 3 observaciones del maestro ── */
+  var obs = d.observaciones || [];
+  if (obs.length > 0) {
+    html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Observaciones recientes del maestro</div>';
+    obs.slice(-3).reverse().forEach(function(o) {
+      html += '<div style="display:flex;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+      html += '<span style="font-size:10px;color:#475569;flex-shrink:0;padding-top:1px;">'+o.fecha+'</span>';
+      html += '<span style="font-size:11px;color:#94a3b8;line-height:1.4;">'+o.texto+'</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  } else if (d.recommendations && d.recommendations.length > 0) {
+    /* fallback: recomendaciones automáticas si no hay observaciones */
+    html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Recomendaciones</div>';
+    d.recommendations.forEach(function(rec){ html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px;line-height:1.4;">'+rec+'</div>'; });
+    html += '</div>';
+  }
+
+  /* ── Challenges ── */
+  var tieneMini  = d.challenges && d.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
+  var tieneGrand = d.challenges && d.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
+
+  var miniCh  = d.challenges && d.challenges.find(function(c){ return c.tipo==='Mini'; });
+  var grandCh = d.challenges && d.challenges.find(function(c){ return c.tipo==='Grand'||c.tipo==='Gran'; });
+  var fbMini  = miniCh  && miniCh.feedback  ? miniCh.feedback  : '';
+  var fbGrand = grandCh && grandCh.feedback ? grandCh.feedback : '';
+
+  function medalSVG(lit, noAprobo){
+    var rc=lit?'#facc15':'#334155',s1=lit?'#f97316':'#1e293b',s2=lit?'#ef4444':'#1e293b';
+    var mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
+    var gl=lit?'filter:drop-shadow(0 0 8px #fbbf24);':noAprobo?'filter:drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);':'';
+    return '<svg width="44" height="60" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+      +'<rect x="17" y="2" width="10" height="22" rx="2" fill="'+rc+'"/>'
+      +'<rect x="17" y="2" width="3" height="22" fill="'+s1+'" opacity="0.85"/>'
+      +'<rect x="24" y="2" width="3" height="22" fill="'+s2+'" opacity="0.85"/>'
+      +'<rect x="12" y="0" width="20" height="5" rx="2" fill="'+mc+'"/>'
+      +'<circle cx="22" cy="44" r="16" fill="'+mc+'"/>'
+      +'<circle cx="22" cy="44" r="14" fill="'+md+'"/>'
+      +'<circle cx="22" cy="44" r="11" fill="none" stroke="'+mc+'" stroke-width="2" opacity="0.7"/>'
+      +'<polygon points="22,34 24.4,40.6 31.5,40.6 25.8,44.9 28,51.5 22,47.2 16,51.5 18.2,44.9 12.5,40.6 19.6,40.6" fill="'+sc+'" opacity="'+(lit?'0.9':'0.2')+'"/>'
+      +(lit?'<circle cx="15" cy="38" r="3" fill="#fff" opacity="0.3"/>':'')
+      +'</svg>';
+  }
+
+  function trophySVG(lit, noAprobo){
+    var cc=lit?'#fbbf24':'#334155',cd=lit?'#d97706':'#1e293b',bc=lit?'#f59e0b':'#1e293b';
+    var sc=lit?'#fff':'#475569';
+    var gl=lit?'filter:drop-shadow(0 0 8px #fbbf24);':noAprobo?'filter:drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);':'';
+    return '<svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+      +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
+      +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
+      +'<path d="M12,8 L38,8 Q38,36 25,42 Q12,36 12,8 Z" fill="'+cc+'"/>'
+      +'<path d="M18,8 L22,8 Q22,36 25,42 Q22,38 18,8 Z" fill="'+cd+'" opacity="0.45"/>'
+      +'<rect x="10" y="6" width="30" height="5" rx="2" fill="'+cd+'"/>'
+      +'<rect x="21" y="42" width="8" height="8" fill="'+cc+'"/>'
+      +'<rect x="13" y="50" width="24" height="6" rx="3" fill="'+bc+'"/>'
+      +'<rect x="10" y="54" width="30" height="4" rx="2" fill="'+cd+'"/>'
+      +'<polygon points="25,14 26.5,18.5 31.5,18.5 27.5,21.2 29,25.7 25,23 21,25.7 22.5,21.2 18.5,18.5 23.5,18.5" fill="'+sc+'" opacity="'+(lit?'0.85':'0.15')+'"/>'
+      +(lit?'<ellipse cx="19" cy="14" rx="3" ry="5" fill="#fff" opacity="0.28"/>':'')
+      +'</svg>';
+  }
+
+  html += '<div style="display:flex;gap:12px;margin-bottom:8px;">';
+
+  var miniExiste = miniCh !== undefined;
+  var miniNoAprobo = miniExiste && !tieneMini;
+  var miniBg = tieneMini ? 'rgba(251,191,36,0.12)' : miniNoAprobo ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)';
+  var miniBorder = tieneMini ? '1px solid rgba(251,191,36,0.45)' : miniNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
+  html += '<div style="flex:1;background:'+miniBg+';border:'+miniBorder+';border-radius:12px;padding:14px 10px;text-align:center;">';
+  html += '<div style="display:flex;justify-content:center;margin-bottom:6px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Mini Challenge</div>';
+  html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 4</div>';
+  html += '<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':miniNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+  if(fbMini){
+    html += '<div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:left;">';
+    html += '<div style="font-size:9px;font-weight:700;color:#facc15;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbMini+'</div></div>';
+  }
+  // Botón subir video Mini Challenge
+  if (!tieneMini) {
+    html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Mini\')">📹 Subir mi video</button>';
+  }
+  var urlMini = miniCh && miniCh.urlVideo ? miniCh.urlVideo : '';
+  html += '<a id="linkVideoMini" class="link-video-subido" href="'+urlMini+'" target="_blank" style="display:'+(urlMini?'block':'none')+'">▶ Ver mi video subido</a>';
+  html += '</div>';
+
+  var grandExiste = grandCh !== undefined;
+  var grandNoAprobo = grandExiste && !tieneGrand;
+  var grandBg = tieneGrand ? 'rgba(251,191,36,0.12)' : grandNoAprobo ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)';
+  var grandBorder = tieneGrand ? '1px solid rgba(251,191,36,0.45)' : grandNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
+  html += '<div style="flex:1;background:'+grandBg+';border:'+grandBorder+';border-radius:12px;padding:14px 10px;text-align:center;">';
+  html += '<div style="display:flex;justify-content:center;margin-bottom:6px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Grand Challenge</div>';
+  html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 8</div>';
+  html += '<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':grandNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+  if(fbGrand){
+    html += '<div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:left;">';
+    html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbGrand+'</div></div>';
+  }
+  // Botón subir video Grand Challenge
+  if (!tieneGrand) {
+    html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Grand\')">📹 Subir mi video</button>';
+  }
+  var urlGrand = grandCh && grandCh.urlVideo ? grandCh.urlVideo : '';
+  html += '<a id="linkVideoGrand" class="link-video-subido" href="'+urlGrand+'" target="_blank" style="display:'+(urlGrand?'block':'none')+'">▶ Ver mi video subido</a>';
+  html += '</div>';
+
+  html += '</div>';
+  html += '<div style="font-size:10px;color:#475569;text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
+
+  document.getElementById('evaluacionAlumno').innerHTML = html;
+}
+ 
+  // ── SISTEMA DE PESTAÑAS (app-like) ──────────────────────────────
+  function cambiarTabApp(tab) {
+    ['inicio', 'clase', 'progreso', 'yo'].forEach(function (t) {
+      var contenido = document.getElementById('tab-' + t);
+      var boton = document.getElementById('navBtn-' + t);
+      if (contenido) contenido.classList.toggle('active', t === tab);
+      if (boton) boton.classList.toggle('active', t === tab);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function logout(){
+    alumnoData=null;archivoSubida=null;grupoDestinoCambio=null;
+    document.getElementById('inputId').value='';document.getElementById('inputEmail').value='';
+    document.getElementById('screenPanel').classList.remove('active');document.getElementById('screenLogin').classList.add('active');
+    document.getElementById('modalPago').classList.remove('visible');document.getElementById('modalCambioGrupo').classList.remove('visible');
+  }
+  document.addEventListener('DOMContentLoaded',function(){document.getElementById('inputEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});});
+</script>
+<!-- ══ Modal Subir Video Challenge ══ -->
+<div id="modalVideoChallenge" class="modal-video-overlay">
+  <div class="modal-video-box">
+    <div style="font-size:36px;text-align:center;margin-bottom:6px;" id="modalVideoIcono">🎬</div>
+    <div class="modal-video-titulo" id="modalVideoTitulo">Subir Video</div>
+    <div class="modal-video-sub" id="modalVideoSub">Mini Challenge</div>
+    <div class="modal-video-drop" id="videoDropZone" onclick="document.getElementById('videoFileInput').click()">
+      <div class="modal-video-drop-icon">📹</div>
+      <div class="modal-video-drop-text">Arrastra tu video aquí o <strong>haz clic para seleccionar</strong><br><span style="font-size:11px;color:#475569;">MP4, MOV, AVI · Máx. 500 MB</span></div>
+      <div class="modal-video-nombre" id="videoNombreArchivo"></div>
+    </div>
+    <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="onVideoSeleccionado(this)">
+    <div class="modal-video-progress" id="videoProgressWrap">
+      <div class="modal-video-progress-bar" id="videoProgressBar"></div>
+    </div>
+    <div class="modal-video-status" id="videoStatus"></div>
+    <button class="btn-subir-video" id="btnEnviarVideo" onclick="subirVideoChallenge()" disabled>📤 Subir Video</button>
+    <button class="btn-cerrar-video" onclick="cerrarModalVideo()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+var _videoTipoChallenge = ''; // 'Mini', 'Grand' o 'Justificante'
+var _videoArchivo = null;
+var _faltaFechaJustificar = null; // yyyy-MM-dd de la falta que se esta justificando
+
+function abrirModalVideo(tipo, fechaFalta) {
+  _videoTipoChallenge = tipo;
+  _videoArchivo = null;
+  _faltaFechaJustificar = fechaFalta || null;
+  document.getElementById('videoFileInput').value = '';
+  document.getElementById('videoNombreArchivo').style.display = 'none';
+  document.getElementById('videoNombreArchivo').textContent = '';
+  document.getElementById('videoProgressWrap').style.display = 'none';
+  document.getElementById('videoProgressBar').style.width = '0%';
+  document.getElementById('videoStatus').textContent = '';
+  document.getElementById('btnEnviarVideo').disabled = true;
+
+  if (tipo === 'Mini') {
+    document.getElementById('modalVideoIcono').textContent = '🎖️';
+    document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Mini Challenge';
+    document.getElementById('modalVideoSub').textContent = 'Semana 4 · Tu video de presentación';
+  } else if (tipo === 'Grand') {
+    document.getElementById('modalVideoIcono').textContent = '🏆';
+    document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Grand Challenge';
+    document.getElementById('modalVideoSub').textContent = 'Semana 8 · Tu proyecto final';
+  } else {
+    document.getElementById('modalVideoIcono').textContent = '🩹';
+    document.getElementById('modalVideoTitulo').textContent = 'Justificar falta · Fuerza mayor';
+    document.getElementById('modalVideoSub').textContent = 'Video de 1 minuto sobre el tema que viste ese día — ' + formatFechaCorta(fechaFalta);
+  }
+  document.getElementById('modalVideoChallenge').classList.add('visible');
+}
+
+function cerrarModalVideo() {
+  document.getElementById('modalVideoChallenge').classList.remove('visible');
+}
+
+function onVideoSeleccionado(input) {
+  var file = input.files[0];
+  if (!file) return;
+  _videoArchivo = file;
+  var nombre = document.getElementById('videoNombreArchivo');
+  nombre.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+  nombre.style.display = 'block';
+  document.getElementById('btnEnviarVideo').disabled = false;
+  document.getElementById('videoStatus').textContent = 'Archivo listo para subir.';
+}
+
+// Drag & drop
+(function(){
+  var dz = document.getElementById('videoDropZone');
+  dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e){
+    e.preventDefault(); dz.classList.remove('dragover');
+    var file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('video/')) {
+      _videoArchivo = file;
+      var input = document.getElementById('videoFileInput');
+      // Asignar via DataTransfer para que el input tenga el archivo
+      try { var dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; } catch(err){}
+      var nombre = document.getElementById('videoNombreArchivo');
+      nombre.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+      nombre.style.display = 'block';
+      document.getElementById('btnEnviarVideo').disabled = false;
+      document.getElementById('videoStatus').textContent = 'Archivo listo para subir.';
+    } else {
+      document.getElementById('videoStatus').textContent = '⚠️ Por favor selecciona un archivo de video.';
+    }
+  });
+})();
+
+function subirVideoChallenge() {
+  if (!_videoArchivo || !alumnoData) return;
+  var btn = document.getElementById('btnEnviarVideo');
+  btn.disabled = true;
+  document.getElementById('videoProgressWrap').style.display = 'block';
+  document.getElementById('videoStatus').textContent = 'Preparando subida…';
+
+  var idCarpeta = _videoTipoChallenge === 'Mini'
+    ? '1GGUDvzHQfuul0oaCbftiUl2nY93pN2h6'
+    : _videoTipoChallenge === 'Grand'
+    ? '1tqUtChzZQlyZWfAlEeremlNMbbd7T7Pi'
+    : '1eHRP89mKKhM1Rygwd0eWEgefkofXOvhj'; // Justificante de falta (fuerza mayor)
+
+  var idAlumno     = alumnoData.alumno.id;
+  var nombreAlumno = alumnoData.alumno.nombre || '';
+  var idGrupo      = alumnoData.alumno.idGrupo || alumnoData.grupo && alumnoData.grupo.id || '';
+  var nombreFinal  = idAlumno + '_' + idGrupo + '_' + _videoTipoChallenge + '_' + _videoArchivo.name;
+
+  var prog   = document.getElementById('videoProgressBar');
+  var pct    = 0;
+  var ticker = setInterval(function(){
+    pct = Math.min(pct + Math.random()*5, 80);
+    prog.style.width = pct + '%';
+  }, 400);
+
+  // Paso 1: obtener token de Google
+  fetch(APPS_SCRIPT + '?action=getUploadToken', { redirect: 'follow' })
+  .then(function(r) { return r.text(); })
+  .then(function(txt) {
+    var res = JSON.parse(txt);
+    if (!res.token) throw new Error('No se obtuvo token');
+    document.getElementById('videoStatus').textContent = 'Subiendo video a Drive…';
+
+    // Paso 2: subir archivo directo a Drive API
+    var metadata = JSON.stringify({ name: nombreFinal, parents: [idCarpeta] });
+    var boundary = '-------OEBoundary';
+    var body =
+      '--' + boundary + '\r\n' +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      metadata + '\r\n' +
+      '--' + boundary + '\r\n' +
+      'Content-Type: ' + _videoArchivo.type + '\r\n\r\n';
+
+    // Usar FormData para evitar problemas de encoding
+    var form = new FormData();
+    form.append('metadata', new Blob([metadata], { type: 'application/json' }));
+    form.append('file', _videoArchivo);
+
+    return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + res.token },
+      body: form
+    });
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(driveResp) {
+    if (!driveResp.id) throw new Error('Drive error: ' + JSON.stringify(driveResp));
+    var urlVideo = driveResp.webViewLink;
+    clearInterval(ticker);
+    prog.style.width = '90%';
+    document.getElementById('videoStatus').textContent = 'Registrando en sistema…';
+
+    // Paso 3: registrar link en Sheets via Apps Script GET -- los
+    // justificantes de falta usan su propia accion (van a otra hoja).
+    var urlRegistro = (_videoTipoChallenge === 'Justificante')
+      ? APPS_SCRIPT + '?action=registrarLinkVideoJustificante' +
+        '&idAlumno=' + encodeURIComponent(idAlumno) +
+        '&idGrupo='  + encodeURIComponent(idGrupo) +
+        '&fecha='    + encodeURIComponent(_faltaFechaJustificar) +
+        '&url='      + encodeURIComponent(urlVideo)
+      : APPS_SCRIPT + '?action=registrarLinkVideo' +
+        '&idAlumno=' + encodeURIComponent(idAlumno) +
+        '&idGrupo='  + encodeURIComponent(idGrupo) +
+        '&bloque='   + encodeURIComponent(Math.max(1, bloqueActual || 1)) +
+        '&tipo='     + encodeURIComponent(_videoTipoChallenge) +
+        '&url='      + encodeURIComponent(urlVideo);
+
+    return fetch(urlRegistro, { redirect: 'follow' })
+    .then(function(r) { return r.text(); })
+    .then(function(txt) {
+      var ok = false;
+      try { ok = JSON.parse(txt).success !== false; } catch(e) { ok = true; }
+      clearInterval(ticker);
+      prog.style.width = '100%';
+      document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
+      if (_videoTipoChallenge === 'Justificante') {
+        cargarFaltasJustificables();
+      } else {
+        var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
+        var linkEl = document.getElementById(linkId);
+        if (linkEl) {
+          linkEl.href = urlVideo;
+          linkEl.textContent = '▶ Ver mi video subido';
+          linkEl.style.display = 'block';
+        }
+      }
+      setTimeout(cerrarModalVideo, 2500);
+    });
+  })
+  .catch(function(err) {
+    clearInterval(ticker);
+    document.getElementById('videoStatus').textContent = '❌ Error: ' + err.message;
+    console.log('ERROR VIDEO:', err);
+    btn.disabled = false;
+  });
+}
+</script>
+<!-- POST-IT: recordatorio de evaluación (semana 4 y 8 desde inicio de grupo) -->
+<div id="postItEval" class="post-it-eval" style="display:none;" onclick="irAEvaluar()">
+  <button class="post-it-cerrar" onclick="event.stopPropagation(); cerrarPostItEval();">×</button>
+  <div class="post-it-pin">📌</div>
+  <div class="post-it-titulo">¡No olvides evaluar!</div>
+  <div class="post-it-texto" id="postItEvalTexto">Esta semana toca calificar a tu maestro y tu asistente CE. Debajo de su nombre encontrarás la opción para evaluarlos. Tu opinión nos ayuda a mejorar 💛</div>
+</div>
+
+</body>
+</html>
