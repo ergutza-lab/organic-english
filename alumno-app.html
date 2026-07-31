@@ -438,14 +438,10 @@
 
 /* ═══ Student Board (tablón de avisos, textura de corcho real) ═══ */
 .student-board {
-  background:
-    radial-gradient(circle at 20% 30%, rgba(0,0,0,0.12) 0, transparent 3%),
-    radial-gradient(circle at 70% 20%, rgba(0,0,0,0.1) 0, transparent 3%),
-    radial-gradient(circle at 40% 70%, rgba(0,0,0,0.12) 0, transparent 3%),
-    radial-gradient(circle at 85% 60%, rgba(0,0,0,0.1) 0, transparent 3%),
-    radial-gradient(circle at 10% 85%, rgba(0,0,0,0.1) 0, transparent 3%),
-    radial-gradient(circle at 60% 45%, rgba(0,0,0,0.1) 0, transparent 3%),
-    linear-gradient(135deg, #8b6b47, #6b4e30);
+  background-image: url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/corcho_textura.png');
+  background-size: cover;
+  background-position: center;
+  background-color: #7a5c3a;
   border: 10px solid #4a3520;
   border-radius: 8px;
   padding: 18px 16px;
@@ -504,6 +500,17 @@
 }
 .stat-mini { flex: 1; background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 12px; padding: 10px; text-align: center; }
 .stat-mini .num { font-size: 18px; font-weight: 700; color: #f1f5f9; margin: 0; }
+
+.btn-pill-naranja {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff; border: none; border-radius: 100px;
+  font-weight: 700; cursor: pointer; text-decoration: none;
+  box-shadow: 0 4px 14px rgba(249,115,22,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-pill-naranja:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 8px 20px rgba(249,115,22,0.5); }
+.btn-pill-naranja:active { transform: translateY(0) scale(0.98); }
 .stat-mini .lbl { font-size: 10px; color: #94a3b8; margin: 0; }
 
 .pantalla-vacia { text-align: center; padding: 40px 20px; color: #64748b; }
@@ -540,14 +547,13 @@
   <div class="panel-root">
 
     <div class="top-bar">
-      <div class="logo-area"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" style="height:48px;object-fit:contain" alt="OE"></div>
       <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
 
-    <!-- FILA 1: INFO ALUMNO (siempre visible, arriba de las 3 pantallas) -->
+    <!-- FILA 1: INFO ALUMNO (logo en vez de iniciales, para compactar el renglon) -->
     <div class="info-alumno-bar">
       <div class="info-alumno-left">
-        <div class="avatar-grande" id="avatarInitials" style="background:var(--color-nivel-suave);border-color:var(--color-nivel);">—</div>
+        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="OE" style="height:44px;width:44px;object-fit:contain;flex-shrink:0;">
         <div>
           <div class="info-alumno-nombre" id="infoNombre">—</div>
           <div class="info-alumno-datos">
@@ -558,36 +564,56 @@
           </div>
         </div>
       </div>
-      <div id="nivelBloqueBadge" style="display:none;font-size:18px;font-weight:800;color:#fff;background:var(--color-nivel);border-radius:10px;padding:10px 18px;letter-spacing:0.3px;white-space:nowrap;">—</div>
+      <div id="nivelBloqueBadge" style="display:none;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:10px;padding:10px 18px;letter-spacing:0.3px;white-space:nowrap;">—</div>
     </div>
 
-    <!-- ═══ PANTALLA 1: DATOS + CALIFICACIONES + MAESTRO (con sub-pestañas) ═══ -->
+    <!-- ═══ PANTALLA 1: MI CLASE (2 columnas) ═══ -->
     <div id="tab-datos" class="tab-content active">
      <div class="mi-clase-grid">
       <div class="col-izq">
-      <!-- STUDENT BOARD: avisos que solo aparecen cuando aplican -->
+      <!-- MURO PERSONAL: avisos que solo aparecen cuando aplican; siguiente
+           clase y grabacion abren directo Zoom/grabacion al darles clic -->
       <div class="student-board">
-        <div class="student-board-titulo">MURO PERSONAL</div>
+        <div class="student-board-titulo">Muro personal</div>
         <div class="student-board-grid">
-          <div class="post-it post-it-amarillo" id="postitSiguienteClase">
+          <div class="post-it post-it-amarillo" id="postitSiguienteClase" onclick="abrirZoomDesdeBoard()">
             <span id="postitSiguienteClaseTexto">Tu siguiente clase de inglés es el —.</span>
           </div>
-          <div class="post-it post-it-morado" id="postitGrabacion" style="display:none;" onclick="abrirGrabacionDesdeBoard()">
+          <div class="post-it post-it-morado" id="postitGrabacion" style="visibility:hidden;" onclick="abrirGrabacionDesdeBoard()">
             Ya está disponible la grabación de tu última clase. Dale clic aquí!!
           </div>
-          <div class="post-it post-it-azul" id="postitChallenge" style="display:none;" onclick="abrirBoardChallenge()">
+          <div class="post-it post-it-azul" id="postitChallenge" style="visibility:hidden;" onclick="abrirBoardChallenge()">
             <span id="postitChallengeTexto">Esta semana toca tu Challenge. Mucho éxito!!</span>
           </div>
-          <div class="post-it post-it-lila" id="postitChatClub" style="display:none;" onclick="abrirClub()">
+          <div class="post-it post-it-lila" id="postitChatClub" style="visibility:hidden;" onclick="abrirClub()">
             Participa en el Chat Club, viernes a las 7 PM. Dale clic aquí!!
           </div>
-          <div class="post-it post-it-celeste" id="postitEvaluar" style="display:none;" onclick="irAEvaluar()">
+          <div class="post-it post-it-celeste" id="postitEvaluar" style="visibility:hidden;" onclick="irAEvaluar()">
             <span id="postitEvaluarTexto">No olvides calificar a tu maestro y a tu asistente. Dale clic aquí!!</span>
           </div>
           <div class="post-it post-it-rojo" id="postitPago" onclick="abrirInfoBancaria()">
             <span id="postitPagoTexto">Consultando tu pago...</span>
           </div>
         </div>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi maestro</span></div>
+        <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;" />
+        <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;">M</div>
+        <div class="persona-nombre" id="maestroNombre">—</div>
+        <div class="persona-rol">Maestro · <span id="maestroId">—</span></div>
+        <br>
+        <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+          Enviar mensaje
+        </a>
+        <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;">⭐ Evaluar a mi maestro</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-icon icon-obs" style="background:var(--color-nivel-suave);">📋</div><span class="card-title">Observaciones recientes del maestro</span></div>
+        <div id="observacionesMaestro"><div style="font-size:12px;color:#64748b;">Cargando...</div></div>
       </div>
       </div>
 
@@ -605,20 +631,21 @@
           <div class="grupo-item"><div class="grupo-label">Dias</div><div class="grupo-val" id="grupoDias">Lun – Jue</div><div class="grupo-sub" id="grupoDiasSub">4 dias por semana</div></div>
           <div class="grupo-item"><div class="grupo-label">Inicio de clases</div><div class="grupo-val" id="grupoFecha">—</div><div class="grupo-sub" id="grupoDiasRestantes">—</div></div>
         </div>
-        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:1.2rem;">
-          <a id="btnZoom" href="#" target="_blank" class="zoom-btn" style="background:var(--color-nivel);"><div class="zoom-dot"></div>Unirme a mis clases por Zoom</a>
-          <a id="btnGrabacion" href="#" target="_blank" style="display:none;align-items:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">🎥 Ver grabación de última clase</a>
-          <button class="btn-club" id="btnClub" onclick="abrirClub()">💬 Chat Club · Viernes 7:00 PM</button>
-        </div>
+        <!-- Los botones de Zoom/Grabacion/Chat Club ya viven en el Muro
+             Personal (post-its) -- se quitan de aqui para no duplicar. -->
+        <a id="btnZoom" href="#" target="_blank" style="display:none;"></a>
+        <a id="btnGrabacion" href="#" target="_blank" style="display:none;"></a>
+        <button id="btnClub" onclick="abrirClub()" style="display:none;"></button>
       </div>
 
       <div class="card">
-        <div class="card-header" style="justify-content: space-between;">
+        <div class="card-header" style="justify-content: space-between;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="card-icon icon-califs" style="background:var(--color-nivel-suave);">📊</div>
             <span class="card-title">Mis calificaciones</span>
           </div>
-          <button onclick="abrirInfoEvaluacion()" style="background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💎 ¿Cómo me evalúan?</button>
+          <div id="gemaInline" style="display:flex;align-items:center;gap:8px;"></div>
+          <button onclick="abrirInfoEvaluacion()" class="btn-pill-naranja" style="padding:8px 16px;font-size:12px;">💎 ¿Cómo me evalúan?</button>
         </div>
         <div id="evaluacionAlumno">
           <div style="text-align:center;padding:20px;color:#64748b;">Cargando...</div>
@@ -626,20 +653,6 @@
         <div id="progresoCurso"></div>
         <div class="field-row"><span class="field-label">Bloque actual</span><span class="field-val" id="nivelActual">—</span></div>
         <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
-      </div>
-
-      <div class="card" style="text-align:center;">
-        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi maestro</span></div>
-        <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;" />
-        <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;">M</div>
-        <div class="persona-nombre" id="maestroNombre">—</div>
-        <div class="persona-rol">Maestro · <span id="maestroId">—</span></div>
-        <br>
-        <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-          Enviar mensaje
-        </a>
-        <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;">⭐ Evaluar a mi maestro</button>
       </div>
       </div>
      </div>
@@ -653,7 +666,7 @@
             <div class="card-icon icon-pagos" style="background:var(--color-nivel-suave);">💳</div>
             <span class="card-title">Mis pagos</span>
           </div>
-          <button onclick="abrirInfoBancaria()" style="background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">💳 Información Bancaria</button>
+          <button onclick="abrirInfoBancaria()" class="btn-pill-naranja" style="padding:8px 16px;font-size:12px;">💳 Información Bancaria</button>
         </div>
         <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
       </div>
@@ -684,7 +697,7 @@
         <div class="emoji">🎯</div>
         <div style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:6px;">Próximamente</div>
         <div style="font-size:13px;">Aquí vas a poder practicar tu inglés con ejercicios interactivos basados en tu Workbook.</div>
-        <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" style="display:inline-flex;margin-top:18px;background:var(--color-nivel);color:#fff;border:none;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:6px;text-decoration:none;">📥 Mientras tanto, descarga tu Workbook</a>
+        <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" class="btn-pill-naranja" style="margin-top:18px;padding:11px 22px;font-size:13px;">📥 Mientras tanto, descarga tu Workbook</a>
       </div>
     </div>
 
@@ -994,8 +1007,6 @@
       btnCambiar.onclick = solicitarCambioGrupoWhatsApp;
     }
 
-    var iniciales = a.nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    document.getElementById('avatarInitials').textContent = iniciales;
     document.getElementById('infoNombre').textContent   = a.nombre;
     document.getElementById('infoId').textContent       = a.id;
     verificarAlertaChatClub(a);
@@ -1126,7 +1137,7 @@
           btnM.style.display = 'none';
           btnC.style.display = 'none';
           var postItFuera = document.getElementById('postitEvaluar');
-          if (postItFuera) postItFuera.style.display = 'none';
+          if (postItFuera) postItFuera.style.visibility = 'hidden';
           return;
         }
         btnM.style.display = 'flex';
@@ -1147,9 +1158,9 @@
             : (!yaM ? 'No olvides calificar a tu maestro. Dale clic aquí!!'
                     : 'No olvides calificar a tu asistente CE. Dale clic aquí!!');
           document.getElementById('postitEvaluarTexto').textContent = textoPostIt;
-          postIt.style.display = 'block';
+          postIt.style.visibility = 'visible';
         } else if (postIt) {
-          postIt.style.display = 'none';
+          postIt.style.visibility = 'hidden';
         }
       })
       .catch(function(){});
@@ -1558,6 +1569,10 @@
   }
 
   // ── RENDER PAGOS ─────────────────────────────────────────────────
+  function abrirZoomDesdeBoard() {
+    var btn = document.getElementById('btnZoom');
+    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
+  }
   function abrirGrabacionDesdeBoard() {
     var btn = document.getElementById('btnGrabacion');
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
@@ -1568,17 +1583,33 @@
   }
 
   // ── STUDENT BOARD: arma el contenido de cada post-it segun su regla ──
+  function calcularProximaClase(tipoHorario) {
+    var diasValidos = (tipoHorario === 'sabado') ? [6] : [1, 2, 3, 4]; // Lun-Jue
+    var hoy = new Date();
+    for (var i = 0; i < 8; i++) {
+      var candidato = new Date(hoy);
+      candidato.setDate(hoy.getDate() + i);
+      if (diasValidos.indexOf(candidato.getDay()) !== -1) return candidato;
+    }
+    return hoy;
+  }
+
   function renderStudentBoard(g, p) {
     if (!g) return;
 
-    // 1) Siguiente clase -- SIEMPRE visible.
-    var txtDias = (g.tipoHorario === 'sabado') ? 'el sábado' : (g.tipoHorario === 'Personalizado' ? g.horario : 'de lunes a jueves');
-    document.getElementById('postitSiguienteClaseTexto').textContent =
-      'Tu siguiente clase de inglés es ' + txtDias + ' a las ' + (g.horario || '—') + '.';
+    // 1) Siguiente clase -- SIEMPRE visible, con la fecha real calculada.
+    if (g.tipoHorario === 'Personalizado') {
+      document.getElementById('postitSiguienteClaseTexto').textContent =
+        'Tu siguiente clase de inglés es ' + (g.horario || '—') + '.';
+    } else {
+      var proxima = calcularProximaClase(g.tipoHorario);
+      document.getElementById('postitSiguienteClaseTexto').textContent =
+        'Tu siguiente clase de inglés es el ' + formatFechaCorta(proxima) + ' a las ' + (g.horario || '—') + '.';
+    }
 
     // 2) Grabación de la ultima clase -- SIEMPRE visible si ya hay una subida.
     var postitGrab = document.getElementById('postitGrabacion');
-    postitGrab.style.display = g.linkGrabacion ? 'block' : 'none';
+    postitGrab.style.visibility = g.linkGrabacion ? 'visible' : 'hidden';
 
     // 3) Mini/Grand Challenge -- solo en su semana de presentacion (4 u 8).
     var sem = alumnoData._semana || 1;
@@ -1586,12 +1617,12 @@
     var postitChal = document.getElementById('postitChallenge');
     if (semEnBloque === 4) {
       document.getElementById('postitChallengeTexto').textContent = 'Esta semana toca tu Mini Challenge. Mucho éxito!!';
-      postitChal.style.display = 'block';
+      postitChal.style.visibility = 'visible';
     } else if (semEnBloque === 8) {
       document.getElementById('postitChallengeTexto').textContent = 'Esta semana toca tu Grand Challenge. Mucho éxito!!';
-      postitChal.style.display = 'block';
+      postitChal.style.visibility = 'visible';
     } else {
-      postitChal.style.display = 'none';
+      postitChal.style.visibility = 'hidden';
     }
 
     // 4) Chat Club -- la regla de dia+antiguedad ya la calcula verificarAlertaChatClub().
@@ -1761,7 +1792,7 @@
     var esDiaVentana = (diaSemana === 4 || diaSemana === 5); // Jue, Vie
 
     if (!esDiaVentana || !alumno || !alumno.fechaInscripcion) {
-      alerta.style.display = 'none';
+      alerta.style.visibility = 'hidden';
       return;
     }
 
@@ -1769,7 +1800,7 @@
     var diasAntiguedad = Math.floor((hoy - fechaIns) / (1000 * 60 * 60 * 24));
     var semanasAntiguedad = diasAntiguedad / 7;
 
-    alerta.style.display = (semanasAntiguedad >= 4) ? 'block' : 'none';
+    alerta.style.visibility = (semanasAntiguedad >= 4) ? 'visible' : 'hidden';
   }
 
   function abrirClub() {
@@ -1874,13 +1905,19 @@ function renderEvaluacionAlumno(d) {
     + '<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
     + '</svg>';
 
-  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">';
-  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">';
-  html += gemSVG;
-  html += '<div style="font-size:13px;font-weight:800;color:'+gemaColor+';">'+pc+'%</div>';
-  html += '</div>';
-  html += '<div><div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+d.estado+'</div>';
-  html += '<div style="font-size:11px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div></div></div>';
+  var gemaInline = document.getElementById('gemaInline');
+  if (gemaInline) {
+    gemaInline.innerHTML =
+      '<svg width="30" height="30" viewBox="0 0 64 64" style="flex-shrink:0;">' +
+        '<circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="6"/>' +
+        '<circle cx="32" cy="32" r="26" fill="none" stroke="'+gemaColor+'" stroke-width="6" stroke-linecap="round" ' +
+          'stroke-dasharray="163.4" stroke-dashoffset="'+(163.4*(1-Math.min(100,pc)/100)).toFixed(1)+'" transform="rotate(-90 32 32)"/>' +
+      '</svg>' +
+      '<div style="text-align:left;">' +
+        '<div style="font-size:14px;font-weight:800;color:'+gemaColor+';line-height:1.1;">'+pc+'% · '+d.estado+'</div>' +
+        '<div style="font-size:10px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div>' +
+      '</div>';
+  }
 
   if (enBloque2) {
     html += '<div style="display:flex;gap:10px;margin-bottom:16px;font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.02);border-radius:8px;padding:8px 12px;">';
@@ -1915,24 +1952,24 @@ function renderEvaluacionAlumno(d) {
   html += '<div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+gp(4)+'%</div></div>';
   html += '</div></div>';
 
-  /* ── Últimas 3 observaciones del maestro ── */
-  var obs = d.observaciones || [];
-  if (obs.length > 0) {
-    html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
-    html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Observaciones recientes del maestro</div>';
-    obs.slice(-3).reverse().forEach(function(o) {
-      html += '<div style="display:flex;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);">';
-      html += '<span style="font-size:10px;color:#475569;flex-shrink:0;padding-top:1px;">'+o.fecha+'</span>';
-      html += '<span style="font-size:11px;color:#94a3b8;line-height:1.4;">'+o.texto+'</span>';
-      html += '</div>';
-    });
-    html += '</div>';
-  } else if (d.recommendations && d.recommendations.length > 0) {
-    /* fallback: recomendaciones automáticas si no hay observaciones */
-    html += '<div style="background:rgba(6,182,212,0.1);border-radius:10px;padding:12px;margin-bottom:12px;">';
-    html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;margin-bottom:8px;">📋 Recomendaciones</div>';
-    d.recommendations.forEach(function(rec){ html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px;line-height:1.4;">'+rec+'</div>'; });
-    html += '</div>';
+  /* ── Últimas 3 observaciones del maestro -- ahora en su propia tarjeta ── */
+  var contObs = document.getElementById('observacionesMaestro');
+  if (contObs) {
+    var obs = d.observaciones || [];
+    if (obs.length > 0) {
+      var htmlObs = '';
+      obs.slice(-3).reverse().forEach(function(o) {
+        htmlObs += '<div style="display:flex;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+        htmlObs += '<span style="font-size:11px;color:#475569;flex-shrink:0;padding-top:1px;">'+o.fecha+'</span>';
+        htmlObs += '<span style="font-size:12px;color:#94a3b8;line-height:1.4;">'+o.texto+'</span>';
+        htmlObs += '</div>';
+      });
+      contObs.innerHTML = htmlObs;
+    } else if (d.recommendations && d.recommendations.length > 0) {
+      contObs.innerHTML = d.recommendations.map(function(rec){ return '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px;line-height:1.4;">'+rec+'</div>'; }).join('');
+    } else {
+      contObs.innerHTML = '<div style="font-size:12px;color:#64748b;">Aún no hay observaciones registradas.</div>';
+    }
   }
 
   /* ── Challenges ── */
