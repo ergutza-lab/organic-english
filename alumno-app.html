@@ -1842,7 +1842,7 @@
     // no se ha justificado y todavia esta dentro del plazo (la mas urgente).
     if (postitFalta) {
       var faltaUrgente = faltas.find(function (f) {
-        return !f.estatus && new Date() <= _fechaSegura(f.fechaLimite);
+        return f.estatus === 'Sin justificar' && new Date() <= _fechaSegura(f.fechaLimite);
       });
       if (faltaUrgente) {
         document.getElementById('postitFaltaTexto').textContent =
@@ -1850,7 +1850,11 @@
         postitFalta.setAttribute('onclick', "abrirModalVideo('Justificante','" + faltaUrgente.fecha + "')");
         postitFalta.style.visibility = 'visible';
       } else {
-        postitFalta.style.visibility = MODO_DEMO_TODOS_LOS_POSTITS ? 'visible' : 'hidden';
+        // A diferencia de los demas post-its, este NO se fuerza en modo
+        // demo -- decirle a un alumno que falto cuando no es cierto seria
+        // enganoso, asi que solo aparece cuando de verdad hay una falta
+        // real sin justificar.
+        postitFalta.style.visibility = 'hidden';
       }
     }
 
