@@ -417,7 +417,7 @@
 .tab-content { display: none; padding-bottom: 90px; }
 .tab-content.active { display: block; }
 
-.bottom-nav-app {
+.nav-btns-inline {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
   background: #111a33;
   border-top: 1px solid rgba(255,255,255,0.08);
@@ -427,24 +427,32 @@
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
 }
-.bottom-nav-app button {
+.nav-btn-app {
   background: rgba(255,255,255,0.05); color: #94a3b8; border: none;
   font-family: inherit; font-size: 12px; font-weight: 700;
   display: flex; align-items: center; gap: 6px;
   padding: 10px 18px; cursor: pointer; border-radius: 100px;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
-.bottom-nav-app button:hover { transform: translateY(-1px); }
-.bottom-nav-app button .nav-icon { font-size: 18px; line-height: 1; }
-.bottom-nav-app button.active {
+.nav-btn-app:hover { transform: translateY(-1px); }
+.nav-btn-app .nav-icon { font-size: 18px; line-height: 1; }
+.nav-btn-app.active {
   color: #fff;
   background: linear-gradient(135deg, #f97316, #ea580c);
   box-shadow: 0 4px 14px rgba(249,115,22,0.4);
 }
 
 @media (max-width: 420px) {
-  .bottom-nav-app { gap: 6px; padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); }
-  .bottom-nav-app button { padding: 9px 12px; font-size: 11px; }
+  .nav-btns-inline { gap: 6px; padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); }
+  .nav-btn-app { padding: 9px 12px; font-size: 11px; }
+}
+
+/* En escritorio (3 columnas): los botones dejan de estar fijos y se
+   integran al final de cada pantalla, como contenido normal. Solo se
+   muestra la copia que corresponde a la pantalla activa (esta dentro de
+   cada .tab-content, asi que eso ya se resuelve solo). */
+@media (min-width: 1000px) {
+  .nav-btns-inline { position: static; background: none; border-top: none; box-shadow: none; padding: 14px 0 0; justify-content: flex-start; }
 }
 
 .tarjeta-nivel { background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 14px; padding: 12px; }
@@ -724,6 +732,12 @@
           </div>
         </div>
       </div>
+
+      <div class="nav-btns-inline">
+        <button class="nav-btn-app active" data-tab="datos" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
+        <button class="nav-btn-app" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
+        <button class="nav-btn-app" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
+      </div>
       </div>
 
      </div>
@@ -760,6 +774,11 @@
         </a>
         <button class="btn-evaluar" id="btnEvaluarCE" onclick="abrirEvaluacion('ce')" style="display:none;margin-top:8px;">⭐ Evaluar a mi asistente CE</button>
       </div>
+      <div class="nav-btns-inline">
+        <button class="nav-btn-app" data-tab="datos" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
+        <button class="nav-btn-app" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
+        <button class="nav-btn-app active" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
+      </div>
     </div>
 
     <!-- ═══ PANTALLA 3: PRÁCTICA DEL IDIOMA (próximamente) ═══ -->
@@ -770,14 +789,13 @@
         <div style="font-size:13px;">Aquí vas a poder practicar tu inglés con ejercicios interactivos basados en tu Workbook.</div>
         <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" class="btn-pill-naranja" style="margin-top:18px;padding:11px 22px;font-size:13px;">📥 Mientras tanto, descarga tu Workbook</a>
       </div>
+      <div class="nav-btns-inline">
+        <button class="nav-btn-app" data-tab="datos" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
+        <button class="nav-btn-app active" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
+        <button class="nav-btn-app" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
+      </div>
     </div>
 
-    <!-- ═══ BARRA DE NAVEGACIÓN INFERIOR ═══ -->
-    <div class="bottom-nav-app">
-      <button id="navBtn-datos" class="active" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
-      <button id="navBtn-practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
-      <button id="navBtn-pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
-    </div>
   </div>
 </div>
 
@@ -2162,9 +2180,10 @@ function renderEvaluacionAlumno(d) {
   function cambiarTabApp(tab) {
     ['datos', 'pagos', 'practica'].forEach(function (t) {
       var contenido = document.getElementById('tab-' + t);
-      var boton = document.getElementById('navBtn-' + t);
       if (contenido) contenido.classList.toggle('active', t === tab);
-      if (boton) boton.classList.toggle('active', t === tab);
+    });
+    document.querySelectorAll('.nav-btn-app').forEach(function (boton) {
+      boton.classList.toggle('active', boton.getAttribute('data-tab') === tab);
     });
     window.scrollTo(0, 0);
   }
