@@ -730,6 +730,10 @@
             <div id="postitPagoTexto">Consultando tu pago...</div>
             <div class="post-it-cta">Dale clic aquí!!</div>
           </div>
+          <div class="post-it post-it-amarillo" id="postitFalta" style="visibility:hidden;">
+            <div id="postitFaltaTexto">—</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
         </div>
       </div>
 
@@ -1826,9 +1830,31 @@
 
   function renderFaltasJustificables(faltas) {
     var div = document.getElementById('faltasJustificables');
-    if (!div) return;
-    if (!faltas || !faltas.length) { div.innerHTML = ''; return; }
+    var postitFalta = document.getElementById('postitFalta');
 
+    if (!faltas || !faltas.length) {
+      if (div) div.innerHTML = '';
+      if (postitFalta) postitFalta.style.visibility = 'hidden';
+      return;
+    }
+
+    // Post-it del Muro Personal: solo muestra la PRIMERA falta que aun
+    // no se ha justificado y todavia esta dentro del plazo (la mas urgente).
+    if (postitFalta) {
+      var faltaUrgente = faltas.find(function (f) {
+        return !f.estatus && new Date() <= _fechaSegura(f.fechaLimite);
+      });
+      if (faltaUrgente) {
+        document.getElementById('postitFaltaTexto').textContent =
+          'Faltaste el ' + formatFechaCorta(faltaUrgente.fecha) + '. Tienes hasta el ' + formatFechaCorta(faltaUrgente.fechaLimite) + ' para subir tu video y evitar que te afecte.';
+        postitFalta.setAttribute('onclick', "abrirModalVideo('Justificante','" + faltaUrgente.fecha + "')");
+        postitFalta.style.visibility = 'visible';
+      } else {
+        postitFalta.style.visibility = MODO_DEMO_TODOS_LOS_POSTITS ? 'visible' : 'hidden';
+      }
+    }
+
+    if (!div) return;
     div.innerHTML = faltas.map(function(f) {
       var vencida = new Date() > new Date(f.fechaLimite);
       if (f.estatus === 'Aprobado') {
