@@ -462,15 +462,20 @@
   box-shadow: inset 0 0 30px rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.3);
 }
 .student-board-titulo {
-  color: #22d3ee;
-  -webkit-text-stroke: 1px #0e3a4a;
+  color: #1e3a8a;
   font-family: 'Luckiest Guy', cursive;
   font-weight: 400;
-  font-size: 34px;
+  font-size: 30px;
   text-align: center;
-  margin-bottom: 14px;
   letter-spacing: 1px;
-  text-shadow: 0 3px 0 rgba(0,0,0,0.5);
+  background: #fde047;
+  border: 3px solid #713f12;
+  border-radius: 8px;
+  padding: 8px 20px;
+  margin: 0 auto 16px;
+  display: table;
+  box-shadow: 3px 4px 10px rgba(0,0,0,0.4);
+  transform: rotate(-1.5deg);
 }
 .student-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 480px) { .student-board-grid { grid-template-columns: 1fr; } }
@@ -521,11 +526,11 @@
 .post-it-celeste  { background: #a5d8ff; color: #1864ab; }
 .post-it-rojo     { background: #f8b4b4; color: #7f1d1d; }
 .post-it-rojo.post-it-brillo {
-  animation: postItBrillo 1.6s ease-in-out infinite;
+  animation: postItBrillo 1.2s ease-in-out infinite;
 }
 @keyframes postItBrillo {
-  0%, 100% { box-shadow: 3px 4px 10px rgba(0,0,0,0.35), 0 0 0 0 rgba(239,68,68,0.55); }
-  50%      { box-shadow: 3px 4px 10px rgba(0,0,0,0.35), 0 0 0 8px rgba(239,68,68,0); }
+  0%, 100% { box-shadow: 3px 4px 10px rgba(0,0,0,0.35), 0 0 0 0 rgba(239,68,68,0.7); filter: brightness(1); }
+  50%      { box-shadow: 3px 4px 10px rgba(0,0,0,0.35), 0 0 14px 10px rgba(239,68,68,0.15); filter: brightness(1.15); }
 }
 .stat-mini { flex: 1; background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 12px; padding: 10px; text-align: center; }
 .stat-mini .num { font-size: 18px; font-weight: 700; color: #f1f5f9; margin: 0; }
@@ -545,15 +550,16 @@
 .pantalla-vacia { text-align: center; padding: 40px 20px; color: #64748b; }
 .pantalla-vacia .emoji { font-size: 40px; margin-bottom: 12px; }
 
-/* ═══ Layout responsivo: 1 columna en celular, 2 en escritorio/tablet ═══ */
+/* ═══ Layout responsivo: 1 columna en celular, 3 en escritorio/tablet ═══ */
 .mi-clase-grid { display: block; }
-@media (min-width: 860px) {
-  .mi-clase-grid { display: flex; gap: 20px; align-items: stretch; max-width: 1100px; margin: 0 auto; }
-  .mi-clase-grid .col-izq,
-  .mi-clase-grid .col-der { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  /* La ultima tarjeta de cada columna crece para que ambas terminen al mismo nivel */
-  .mi-clase-grid .col-izq > .card:last-child,
-  .mi-clase-grid .col-der > .card:last-child { flex: 1; display: flex; flex-direction: column; }
+@media (min-width: 1000px) {
+  .mi-clase-grid { display: flex; gap: 18px; align-items: stretch; max-width: 1500px; margin: 0 auto; }
+  .mi-clase-grid .col-1 { flex: 0.85; min-width: 0; display: flex; flex-direction: column; }
+  .mi-clase-grid .col-2 { flex: 1;    min-width: 0; display: flex; flex-direction: column; }
+  .mi-clase-grid .col-3 { flex: 1.15; min-width: 0; display: flex; flex-direction: column; }
+  /* La ultima tarjeta de la columna 1 crece para nivelar con las columnas 2 y 3 */
+  .mi-clase-grid .col-1 > .card:last-child { flex: 1; display: flex; flex-direction: column; }
+  .mi-clase-grid .col-2 > .card { flex: 1; display: flex; flex-direction: column; }
 }
 </style>
 </head>
@@ -598,66 +604,11 @@
       </div>
     </div>
 
-    <!-- ═══ PANTALLA 1: MI CLASE (2 columnas) ═══ -->
+    <!-- ═══ PANTALLA 1: MI CLASE (3 columnas) ═══ -->
     <div id="tab-datos" class="tab-content active">
      <div class="mi-clase-grid">
-      <div class="col-izq">
-      <!-- MURO PERSONAL: avisos que solo aparecen cuando aplican; siguiente
-           clase y grabacion abren directo Zoom/grabacion al darles clic -->
-      <div class="student-board">
-        <div class="student-board-titulo">Muro personal</div>
-        <div class="student-board-grid">
-          <div class="post-it post-it-amarillo" id="postitSiguienteClase" onclick="abrirZoomDesdeBoard()">
-            <div id="postitSiguienteClaseTexto">Tu siguiente clase de inglés es el —.</div>
-            <div class="post-it-cta">Dale clic aquí!!</div>
-          </div>
-          <div class="post-it post-it-morado" id="postitGrabacion" onclick="abrirGrabacionDesdeBoard()">
-            <div>Ya está disponible la grabación de tu última clase.</div>
-            <div class="post-it-cta">Dale clic aquí!!</div>
-          </div>
-          <div class="post-it post-it-azul" id="postitChallenge" onclick="abrirBoardChallenge()">
-            <div id="postitChallengeTexto">Recuerda que esta semana tendrás tu Mini Challenge. Mucho éxito!!</div>
-            <div class="post-it-cta">Dale clic aquí!!</div>
-          </div>
-          <div class="post-it post-it-lila" id="postitChatClub" onclick="abrirClub()">
-            <div>Participa el Club Chat de los Viernes a las 7 PM.</div>
-            <div class="post-it-cta">Dale clic aquí!!</div>
-          </div>
-          <div class="post-it post-it-celeste" id="postitEvaluar" onclick="irAEvaluar()">
-            <div id="postitEvaluarTexto">No olvides calificar a tu maestro y a tu asistente.</div>
-            <div class="post-it-cta">Dale clic aquí!!</div>
-          </div>
-          <div class="post-it post-it-rojo" id="postitPago" onclick="abrirInfoBancaria()">
-            <div id="postitPagoTexto">Consultando tu pago...</div>
-            <div class="post-it-cta">Dale clic aquí!!</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="card">
-        <div class="card-header"><div class="card-icon icon-maestro" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi maestro y sus observaciones</span></div>
-        <div style="display:flex;gap:16px;align-items:flex-start;">
-          <div style="text-align:center;flex-shrink:0;width:96px;">
-            <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;width:56px;height:56px;" />
-            <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;width:56px;height:56px;font-size:18px;">M</div>
-            <div class="persona-nombre" id="maestroNombre" style="font-size:13px;margin-top:6px;">—</div>
-            <div class="persona-rol" style="font-size:10px;">Maestro · <span id="maestroId">—</span></div>
-            <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja" style="font-size:10px;padding:6px 10px;margin-top:6px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-              Mensaje
-            </a>
-            <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;font-size:10px;padding:6px 8px;margin-top:6px;">⭐ Evaluar</button>
-          </div>
-          <div style="flex:1;min-width:0;border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;">
-            <div style="font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Observaciones recientes</div>
-            <div id="observacionesMaestro"><div style="font-size:12px;color:#64748b;">Cargando...</div></div>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      <div class="col-der">
-
+      <div class="col-1">
       <div class="card">
         <div class="card-header">
           <div class="card-icon icon-grupo" style="background:var(--color-nivel-suave);">📅</div>
@@ -678,6 +629,29 @@
       </div>
 
       <div class="card">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-maestro" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi maestro</span></div>
+        <div style="text-align:center;">
+          <img id="maestroFoto" class="persona-foto foto-maestro" src="" alt="" style="display:none;margin:0 auto;" />
+          <div id="maestroAvatarFallback" class="persona-avatar-fallback avatar-maestro" style="margin:0 auto;">M</div>
+          <div class="persona-nombre" id="maestroNombre">—</div>
+          <div class="persona-rol">Maestro · <span id="maestroId">—</span></div>
+          <br>
+          <a id="maestroWa" href="#" target="_blank" class="btn-wa-naranja">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+            Enviar mensaje
+          </a>
+          <button class="btn-evaluar" id="btnEvaluarMaestro" onclick="abrirEvaluacion('maestro')" style="display:none;">⭐ Evaluar a mi maestro</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-icon icon-obs" style="background:var(--color-nivel-suave);">📋</div><span class="card-title">Observaciones recientes del maestro</span></div>
+        <div id="observacionesMaestro"><div style="font-size:12px;color:#64748b;">Cargando...</div></div>
+      </div>
+      </div>
+
+      <div class="col-2">
+      <div class="card">
         <div class="card-header" style="justify-content: space-between;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="card-icon icon-califs" style="background:var(--color-nivel-suave);">📊</div>
@@ -694,6 +668,40 @@
         <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
       </div>
       </div>
+
+      <div class="col-3">
+      <!-- MURO PERSONAL: avisos que solo aparecen cuando aplican; siguiente
+           clase y grabacion abren directo Zoom/grabacion al darles clic -->
+      <div class="student-board">
+        <div class="student-board-titulo">Muro personal</div>
+        <div class="student-board-grid">
+          <div class="post-it post-it-amarillo" id="postitSiguienteClase" onclick="abrirZoomDesdeBoard()">
+            <div id="postitSiguienteClaseTexto">Tu siguiente clase de inglés es el —.</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
+          <div class="post-it post-it-morado" id="postitGrabacion" onclick="abrirGrabacionDesdeBoard()">
+            <div>Ya está disponible la grabación de tu última clase.</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
+          <div class="post-it post-it-azul" id="postitChallenge" style="cursor:default;">
+            <div id="postitChallengeTexto">Recuerda que esta semana tendrás tu Mini Challenge. Mucho éxito!!</div>
+          </div>
+          <div class="post-it post-it-lila" id="postitChatClub" onclick="abrirClub()">
+            <div>Participa el Club Chat de los Viernes a las 7 PM.</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
+          <div class="post-it post-it-celeste" id="postitEvaluar" onclick="irAEvaluar()">
+            <div id="postitEvaluarTexto">No olvides calificar a tu maestro y a tu asistente.</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
+          <div class="post-it post-it-rojo" id="postitPago" onclick="abrirSubirComprobante()">
+            <div id="postitPagoTexto">Consultando tu pago...</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
+        </div>
+      </div>
+      </div>
+
      </div>
     </div>
 
@@ -1608,6 +1616,11 @@
   }
 
   // ── RENDER PAGOS ─────────────────────────────────────────────────
+  function abrirSubirComprobante() {
+    var modal = document.getElementById('modalPago');
+    if (modal) modal.classList.add('visible');
+  }
+
   function abrirZoomDesdeBoard() {
     var btn = document.getElementById('btnZoom');
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
