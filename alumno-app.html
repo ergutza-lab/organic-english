@@ -447,12 +447,15 @@
   .nav-btn-app { padding: 9px 12px; font-size: 11px; }
 }
 
-/* En escritorio (3 columnas): los botones dejan de estar fijos y se
-   integran al final de cada pantalla, como contenido normal. Solo se
-   muestra la copia que corresponde a la pantalla activa (esta dentro de
-   cada .tab-content, asi que eso ya se resuelve solo). */
+.nav-header-btns { display: none; }
+
+/* En escritorio: la barra fija/integrada de abajo se oculta por completo --
+   los botones ahora viven junto al nombre del alumno en el encabezado. */
 @media (min-width: 1000px) {
-  .nav-btns-inline { position: static; background: none; border-top: none; box-shadow: none; padding: 14px 0 0; justify-content: flex-start; }
+  .nav-btns-inline { display: none !important; }
+  .nav-header-btns { display: flex; gap: 8px; margin: 6px 0; }
+  .nav-header-btns .nav-btn-app { padding: 6px 12px; font-size: 11px; }
+  .nav-header-btns .nav-icon { font-size: 14px; }
 }
 
 .tarjeta-nivel { background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 14px; padding: 12px; }
@@ -587,8 +590,10 @@
   .mi-clase-grid .grupo-item:nth-child(4) { border-bottom: none; }
 
   /* Post-its verticales (mas altos que anchos), tamano fijo para no estirarse */
-  .mi-clase-grid .post-it { height: 180px; min-height: 0; font-size: 17px; padding: 14px 10px 10px; gap: 6px; }
-  .mi-clase-grid .post-it-cta { font-size: 14px; padding: 1px 8px; }
+  .mi-clase-grid .student-board-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .mi-clase-grid .post-it { height: 105px; min-height: 0; font-size: 13px; padding: 10px 6px 6px; gap: 3px; }
+  .mi-clase-grid .post-it::before { width: 10px; height: 10px; top: -6px; }
+  .mi-clase-grid .post-it-cta { font-size: 11px; padding: 1px 6px; }
   .mi-clase-grid .student-board-grid { gap: 8px; }
   .mi-clase-grid .student-board { padding: 10px; }
   .mi-clase-grid .student-board-titulo { font-size: 22px; margin-bottom: 8px; padding: 5px 14px; }
@@ -622,6 +627,11 @@
         <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="OE" class="logo-header" style="height:110px;width:110px;object-fit:contain;flex-shrink:0;">
         <div>
           <div class="info-alumno-nombre" id="infoNombre">—</div>
+          <div class="nav-header-btns">
+            <button class="nav-btn-app active" data-tab="datos" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
+            <button class="nav-btn-app" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
+            <button class="nav-btn-app" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
+          </div>
           <div class="info-alumno-datos">
             <div class="info-dato"><span class="info-dato-label">ID</span><span class="badge-id" id="infoId" style="background:var(--color-nivel);">—</span></div>
             <div class="info-dato"><span class="info-dato-label">Correo</span><span class="info-dato-val" id="infoEmail">—</span></div>
@@ -1870,12 +1880,9 @@
       if (f.estatus === 'Pendiente') {
         return '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#facc15;">⏳ Tu video del '+formatFechaCorta(f.fecha)+' ya se subió — está pendiente de revisión por tu maestro.</div>';
       }
-      // Sin justificar todavia -- mostrar boton mientras no haya vencido
-      if (vencida) return '';
-      return '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px 14px;margin-top:10px;">'+
-        '<div style="font-size:12px;color:#fdba74;margin-bottom:8px;">⚠️ Faltaste el <strong>'+formatFechaCorta(f.fecha)+'</strong>. Tienes hasta el <strong>'+formatFechaCorta(f.fechaLimite)+'</strong> para subir un video de 1 minuto sobre el tema de esa clase y evitar que te afecte.</div>'+
-        '<button class="btn-video-orange" onclick="abrirModalVideo(\'Justificante\',\''+f.fecha+'\')">📹 Subir mi video</button>'+
-      '</div>';
+      // Sin justificar todavia -- ahora este caso solo vive en el post-it
+      // del Muro Personal (para no duplicarlo aqui tambien).
+      return '';
     }).join('');
   }
 
