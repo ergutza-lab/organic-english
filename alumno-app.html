@@ -552,9 +552,29 @@
 .pantalla-vacia { text-align: center; padding: 40px 20px; color: #64748b; }
 .pantalla-vacia .emoji { font-size: 40px; margin-bottom: 12px; }
 
+/* ═══ Mis Pagos: 1 columna en celular, 2 en escritorio ═══ */
+.pagos-grid { display: block; }
+.pagos-grid > div > .card { margin-bottom: 16px; }
+.historial-scroll { max-height: 260px; overflow-y: auto; padding-right: 4px; }
+
 /* ═══ Layout responsivo: 1 columna en celular, 3 en escritorio/tablet ═══ */
+/* ═══ Columna persistente (Zoom/Grabacion + Muro Personal + Nav) al lado
+   de cualquier pantalla que este activa -- se ve igual en las 3 ═══ */
+.layout-shell { display: block; }
+.col-swap { display: block; }
+
 .mi-clase-grid { display: block; }
 @media (min-width: 1000px) {
+  .layout-shell { display: flex; gap: 14px; align-items: flex-start; max-width: 1500px; margin: 0 auto; }
+  .col-swap { flex: 1.85; min-width: 0; }
+  .col-persistente { flex: 1.15; min-width: 0; display: flex; flex-direction: column; }
+
+  .pagos-grid { display: flex; gap: 14px; align-items: flex-start; }
+  .pagos-grid .col-pagos-1 { flex: 1.2; min-width: 0; }
+  .pagos-grid .col-pagos-2 { flex: 1;   min-width: 0; }
+  .pagos-grid .card { padding: 0.85rem 1rem; margin-bottom: 12px; }
+  .historial-scroll { max-height: 220px; }
+
   .nav-btns-inline {
     position: static; background: none; border-top: none; box-shadow: none;
     padding: 0; margin-top: 10px; justify-content: flex-start; gap: 10px;
@@ -577,9 +597,8 @@
   #nivelBloqueBadge { font-size: 15px !important; padding: 10px 18px !important; }
 
   .mi-clase-grid { display: flex; gap: 14px; align-items: flex-start; max-width: 1500px; margin: 0 auto; }
-  .mi-clase-grid .col-1 { flex: 0.85; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-  .mi-clase-grid .col-2 { flex: 1;    min-width: 0; display: flex; flex-direction: column; }
-  .mi-clase-grid .col-3 { flex: 1.15; min-width: 0; display: flex; flex-direction: column; }
+  .mi-clase-grid .col-1 { flex: 0.9; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .mi-clase-grid .col-2 { flex: 1;   min-width: 0; display: flex; flex-direction: column; }
 
   /* Compactar tarjetas para que todo quepa sin scroll, SIN estirar nada */
   .mi-clase-grid .card { padding: 0.6rem 0.75rem; }
@@ -595,12 +614,12 @@
   .mi-clase-grid .grupo-item:nth-child(4) { border-bottom: none; }
 
   /* Post-its verticales (mas altos que anchos), tamano fijo para no estirarse */
-  .mi-clase-grid .student-board-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .mi-clase-grid .post-it { height: 155px; min-height: 0; font-size: 18px; padding: 12px 8px 8px; gap: 5px; }
-  .mi-clase-grid .post-it::before { width: 10px; height: 10px; top: -6px; }
-  .mi-clase-grid .post-it-cta { font-size: 15px; padding: 1px 8px; }
-  .mi-clase-grid .student-board { padding: 10px; }
-  .mi-clase-grid .student-board-titulo { font-size: 22px; margin-bottom: 8px; padding: 5px 14px; }
+  .col-persistente .student-board-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .col-persistente .post-it { height: 155px; min-height: 0; font-size: 18px; padding: 12px 8px 8px; gap: 5px; }
+  .col-persistente .post-it::before { width: 10px; height: 10px; top: -6px; }
+  .col-persistente .post-it-cta { font-size: 15px; padding: 1px 8px; }
+  .col-persistente .student-board { padding: 10px; }
+  .col-persistente .student-board-titulo { font-size: 22px; margin-bottom: 8px; padding: 5px 14px; }
 }
 </style>
 </head>
@@ -647,7 +666,10 @@
       </div>
     </div>
 
-    <!-- ═══ PANTALLA 1: MI CLASE (3 columnas) ═══ -->
+    <div class="layout-shell">
+     <div class="col-swap">
+
+    <!-- ═══ PANTALLA 1: MI CLASE (2 columnas propias + columna persistente) ═══ -->
     <div id="tab-datos" class="tab-content active">
      <div class="mi-clase-grid">
 
@@ -709,8 +731,68 @@
         <div class="field-row"><span class="field-label">Duracion del Bloque</span><span class="field-val">8 semanas</span></div>
       </div>
       </div>
+     </div>
+    </div>
 
-      <div class="col-3">
+    <!-- ═══ PANTALLA 2: PAGOS + ASISTENTE CE ═══ -->
+    <div id="tab-pagos" class="tab-content">
+     <div class="pagos-grid">
+      <div class="col-pagos-1">
+      <div class="card">
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="card-icon icon-pagos" style="background:var(--color-nivel-suave);">💳</div>
+            <span class="card-title">Mis pagos</span>
+          </div>
+          <button onclick="abrirInfoBancaria()" class="btn-pill-naranja" style="padding:8px 16px;font-size:12px;">💳 Información Bancaria</button>
+        </div>
+        <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-icon icon-hist" style="background:var(--color-nivel-suave);">📋</div><span class="card-title">Historial de pagos</span></div>
+        <div id="historialContenido" class="historial-scroll"><div class="califs-empty"><div class="califs-text">Sin registros</div></div></div>
+      </div>
+      </div>
+
+      <div class="col-pagos-2">
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-asist" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi asistente CE</span></div>
+        <img id="asisFoto" class="persona-foto foto-asistente" src="" alt="" style="display:none;margin:0 auto;" />
+        <div id="asisAvatarFallback" class="persona-avatar-fallback avatar-asistente" style="margin:0 auto;">CE</div>
+        <div class="persona-nombre" id="asisNombre">—</div>
+        <div class="persona-rol">Asistente de Control Escolar · <span id="asisId">—</span></div>
+        <br>
+        <a id="asisWa" href="#" target="_blank" class="btn-wa-verde">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+          Enviar mensaje
+        </a>
+        <button class="btn-evaluar" id="btnEvaluarCE" onclick="abrirEvaluacion('ce')" style="display:none;margin-top:8px;">⭐ Evaluar a mi asistente CE</button>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-hist" style="background:var(--color-nivel-suave);">📖</div><span class="card-title">Reglamento general</span></div>
+        <p style="font-size:12px;color:#94a3b8;margin-bottom:12px;">Conoce las normas de nuestra comunidad antes de tu primera clase.</p>
+        <a href="https://drive.google.com/file/d/1NuGxWfG2-287E-4G4zigO1Cldh4cgu36/view?usp=drive_link" target="_blank" class="btn-pill-naranja" style="padding:9px 18px;font-size:12px;">📥 Descargar Reglamento</a>
+      </div>
+      </div>
+     </div>
+    </div>
+
+    <!-- ═══ PANTALLA 3: PRÁCTICA DEL IDIOMA (próximamente) ═══ -->
+    <div id="tab-practica" class="tab-content">
+      <div class="pantalla-vacia">
+        <div class="emoji">🎯</div>
+        <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:6px;">Próximamente</div>
+        <div style="font-size:13px;">Aquí vas a poder practicar tu inglés con ejercicios interactivos basados en tu Workbook.</div>
+        <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" class="btn-pill-naranja" style="margin-top:18px;padding:11px 22px;font-size:13px;">📥 Mientras tanto, descarga tu Workbook</a>
+      </div>
+    </div>
+
+     </div>
+
+     <!-- ═══ COLUMNA PERSISTENTE: se ve igual en las 3 pantallas ═══ -->
+     <div class="col-persistente">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <a id="btnZoom" href="#" target="_blank" class="zoom-btn" style="background:#2D8CFF;flex:1;">
           <div class="zoom-dot"></div>Unirme a Zoom
@@ -750,62 +832,7 @@
         <button class="nav-btn-app" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
         <button class="nav-btn-app" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
       </div>
-      </div>
-
      </div>
-    </div>
-
-    <!-- ═══ PANTALLA 2: PAGOS (con scroll) + ASISTENTE CE ═══ -->
-    <div id="tab-pagos" class="tab-content">
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-header" style="justify-content: space-between;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div class="card-icon icon-pagos" style="background:var(--color-nivel-suave);">💳</div>
-            <span class="card-title">Mis pagos</span>
-          </div>
-          <button onclick="abrirInfoBancaria()" class="btn-pill-naranja" style="padding:8px 16px;font-size:12px;">💳 Información Bancaria</button>
-        </div>
-        <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
-      </div>
-
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-header"><div class="card-icon icon-hist" style="background:var(--color-nivel-suave);">📋</div><span class="card-title">Historial de pagos</span></div>
-        <div id="historialContenido"><div class="califs-empty"><div class="califs-text">Sin registros</div></div></div>
-      </div>
-
-      <div class="card" style="text-align:center;">
-        <div class="card-header" style="justify-content:center;"><div class="card-icon icon-asist" style="background:var(--color-nivel-suave);">🎓</div><span class="card-title">Mi asistente CE</span></div>
-        <img id="asisFoto" class="persona-foto foto-asistente" src="" alt="" style="display:none;margin:0 auto;" />
-        <div id="asisAvatarFallback" class="persona-avatar-fallback avatar-asistente" style="margin:0 auto;">CE</div>
-        <div class="persona-nombre" id="asisNombre">—</div>
-        <div class="persona-rol">Asistente de Control Escolar · <span id="asisId">—</span></div>
-        <br>
-        <a id="asisWa" href="#" target="_blank" class="btn-wa-verde">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-          Enviar mensaje
-        </a>
-        <button class="btn-evaluar" id="btnEvaluarCE" onclick="abrirEvaluacion('ce')" style="display:none;margin-top:8px;">⭐ Evaluar a mi asistente CE</button>
-      </div>
-      <div class="nav-btns-inline">
-        <button class="nav-btn-app" data-tab="datos" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
-        <button class="nav-btn-app" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
-        <button class="nav-btn-app active" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
-      </div>
-    </div>
-
-    <!-- ═══ PANTALLA 3: PRÁCTICA DEL IDIOMA (próximamente) ═══ -->
-    <div id="tab-practica" class="tab-content">
-      <div class="pantalla-vacia">
-        <div class="emoji">🎯</div>
-        <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:6px;">Próximamente</div>
-        <div style="font-size:13px;">Aquí vas a poder practicar tu inglés con ejercicios interactivos basados en tu Workbook.</div>
-        <a id="btnWorkbook" href="https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link" target="_blank" class="btn-pill-naranja" style="margin-top:18px;padding:11px 22px;font-size:13px;">📥 Mientras tanto, descarga tu Workbook</a>
-      </div>
-      <div class="nav-btns-inline">
-        <button class="nav-btn-app" data-tab="datos" onclick="cambiarTabApp('datos')"><span class="nav-icon">📚</span>Mi clase</button>
-        <button class="nav-btn-app active" data-tab="practica" onclick="cambiarTabApp('practica')"><span class="nav-icon">🎯</span>Practiquemos</button>
-        <button class="nav-btn-app" data-tab="pagos" onclick="cambiarTabApp('pagos')"><span class="nav-icon">💳</span>Mis pagos</button>
-      </div>
     </div>
 
   </div>
