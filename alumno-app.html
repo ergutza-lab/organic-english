@@ -449,18 +449,6 @@
 
 .nav-header-btns { display: none; }
 
-/* En escritorio: la barra fija/integrada de abajo se oculta por completo --
-   los botones ahora viven junto al nombre del alumno en el encabezado. */
-@media (min-width: 1000px) {
-  .nav-btns-inline { display: none !important; }
-  .nav-derecha-grid { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; gap: 8px; align-items: stretch; }
-  .nav-derecha-grid .nav-btn-app { padding: 10px 18px; font-size: 13px; border-radius: 100px; background: linear-gradient(135deg,#0891b2,#0e7490); color: #fff; box-shadow: 0 4px 12px rgba(8,145,178,0.35); }
-  .nav-derecha-grid .nav-icon { font-size: 16px; }
-  .nav-derecha-grid .nav-btn-app.tab-actual { display: none; }
-  .nav-derecha-grid .btn-logout { padding: 10px 18px; }
-  #nivelBloqueBadge { font-size: 15px !important; padding: 10px 18px !important; }
-}
-
 .tarjeta-nivel { background: var(--color-nivel-suave); border: 1px solid var(--color-nivel-borde); border-radius: 14px; padding: 12px; }
 
 /* ═══ Student Board (tablón de avisos, textura de corcho real) ═══ */
@@ -567,13 +555,25 @@
 /* ═══ Layout responsivo: 1 columna en celular, 3 en escritorio/tablet ═══ */
 .mi-clase-grid { display: block; }
 @media (min-width: 1000px) {
-  .info-alumno-bar { padding: 4px 18px; margin-bottom: 8px; }
-  .panel-root { padding: 0.5rem 1.5rem 1rem; }
-  .logo-header { height: 175px !important; width: 175px !important; }
+  .nav-btns-inline { display: none !important; }
+  .info-alumno-bar { padding: 6px 18px; margin-bottom: 6px; }
+  .panel-root { padding: 0.25rem 1.5rem 0.5rem; }
+  .logo-header { height: 120px !important; width: 120px !important; }
   .info-alumno-nombre { font-size: 17px !important; margin-bottom: 2px !important; }
   .info-alumno-datos { gap: 14px !important; }
   .info-dato-label { font-size: 9px !important; }
   .info-dato-val { font-size: 11px !important; }
+
+  /* Cuadricula 2x2 del lado derecho del encabezado: los 2 botones de nav
+     visibles (el de la pantalla activa se oculta) se emparejan uno con
+     Salir y el otro con el badge de Bloque, gracias a grid-auto-flow. */
+  .nav-derecha-grid { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; gap: 8px; align-items: stretch; }
+  .nav-derecha-grid .nav-btn-app { padding: 10px 18px; font-size: 13px; border-radius: 100px; background: linear-gradient(135deg,#0891b2,#0e7490); color: #fff; box-shadow: 0 4px 12px rgba(8,145,178,0.35); }
+  .nav-derecha-grid .nav-icon { font-size: 16px; }
+  .nav-derecha-grid .nav-btn-app.tab-actual { display: none; }
+  .nav-derecha-grid .btn-logout { padding: 10px 18px; }
+  #nivelBloqueBadge { font-size: 15px !important; padding: 10px 18px !important; }
+
   .mi-clase-grid { display: flex; gap: 14px; align-items: flex-start; max-width: 1500px; margin: 0 auto; }
   .mi-clase-grid .col-1 { flex: 0.85; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .mi-clase-grid .col-2 { flex: 1;    min-width: 0; display: flex; flex-direction: column; }
@@ -623,8 +623,9 @@
 <div id="screenPanel" class="screen">
   <div class="panel-root">
 
-    <!-- FILA 1: INFO ALUMNO (logo, nombre, y del lado derecho: botones de
-         navegacion apilados + badge de nivel + Salir) -->
+    <!-- FILA 1: INFO ALUMNO (logo, nombre, y del lado derecho: Salir + badge
+         de nivel. Los botones de navegacion ahora viven abajo del Muro
+         Personal, en la columna 3). -->
     <div class="info-alumno-bar">
       <div class="info-alumno-left">
         <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="OE" class="logo-header" style="height:110px;width:110px;object-fit:contain;flex-shrink:0;">
@@ -696,9 +697,9 @@
             <div class="card-icon icon-califs" style="background:var(--color-nivel-suave);flex-shrink:0;">📊</div>
             <span class="card-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Mis calificaciones</span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <div id="gemaInline" style="display:flex;align-items:center;gap:6px;"></div>
-            <button onclick="abrirInfoEvaluacion()" class="btn-pill-naranja" style="padding:5px 10px;font-size:10px;white-space:nowrap;">💎 ¿Cómo me evalúan?</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <div id="gemaInline" style="display:flex;align-items:center;gap:4px;"></div>
+            <button onclick="abrirInfoEvaluacion()" class="btn-pill-naranja" style="padding:4px 6px;font-size:10px;white-space:normal;line-height:1.15;width:66px;flex-shrink:0;text-align:center;">💎 ¿Cómo me evalúan?</button>
           </div>
         </div>
         <div id="evaluacionAlumno">
@@ -2033,13 +2034,10 @@ function renderEvaluacionAlumno(d) {
 
   var gemaInline = document.getElementById('gemaInline');
   if (gemaInline) {
-    var gemSVGchica = gemSVG.replace('width="60" height="68"', 'width="30" height="34"');
+    var gemSVGchica = gemSVG.replace('width="60" height="68"', 'width="24" height="27"');
     gemaInline.innerHTML =
       gemSVGchica +
-      '<div style="text-align:left;">' +
-        '<div style="font-size:14px;font-weight:800;color:'+gemaColor+';line-height:1.1;">'+pc+'% · '+d.estado+'</div>' +
-        '<div style="font-size:10px;color:'+d.estadoColor+';">'+gemaLabel+' · Bloque '+d.bloque+' · Semana '+d.semana+'</div>' +
-      '</div>';
+      '<div style="font-size:12px;font-weight:800;color:'+gemaColor+';line-height:1.1;white-space:nowrap;">'+pc+'%</div>';
   }
 
   if (enBloque2) {
