@@ -586,6 +586,12 @@
 .libro-workbook img { width: 130px; height: auto; border-radius: 4px; box-shadow: 0 10px 24px rgba(0,0,0,0.5), 4px 0 0 rgba(0,0,0,0.15) inset; }
 .libro-workbook .libro-label { margin-top: 8px; font-size: 12px; color: #f1f5f9; font-weight: 600; }
 
+.leccion-link {
+  color: #fb923c; font-size: 13px; font-weight: 700;
+  padding: 4px 0; cursor: pointer; transition: color 0.15s, transform 0.15s;
+}
+.leccion-link:hover { color: #fdba74; transform: translateX(3px); }
+
 /* ═══ Mis Pagos: 1 columna en celular, 2 en escritorio ═══ */
 .pagos-grid { display: block; }
 .pagos-grid > div > .card { margin-bottom: 16px; }
@@ -814,6 +820,7 @@
 
     <!-- ═══ PANTALLA 3: PRÁCTICA DEL IDIOMA (por niveles) ═══ -->
     <div id="tab-practica" class="tab-content">
+     <div id="nivelesGridView">
       <div class="practica-titulo">Practica tu clase:</div>
       <div class="niveles-grid">
         <div class="nivel-card nivel-clicable" style="--color-nivel-btn:#bbbbbb;--color-nivel-texto:#3f3f3f;" onclick="abrirNivelPractica('Pre-A1')">
@@ -851,6 +858,22 @@
           <div class="nivel-cefr">ADVANCED</div>
           <div class="nivel-trad">Avanzado</div>
           <p class="nivel-desc">Dominarás el inglés con un alto nivel de fluidez y precisión. Te comunicarás con espontaneidad en contextos académicos, profesionales y sociales, adaptando tu lenguaje a diferentes situaciones.</p>
+        </div>
+      </div>
+     </div>
+
+      <!-- VISTA DE DETALLE: se muestra al elegir un nivel (workbooks + lecciones) -->
+      <div id="nivelDetalleView" style="display:none;">
+        <button onclick="volverANiveles()" style="background:rgba(255,255,255,0.08);color:#cbd5e1;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:16px;">← Volver a niveles</button>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;">
+          <div style="flex-shrink:0;">
+            <div class="practica-titulo" style="color:#fb923c;font-size:20px;line-height:1.2;">Descarga tu<br>Workbook</div>
+            <div id="workbooksDescarga" style="display:flex;flex-direction:column;gap:16px;"></div>
+          </div>
+          <div style="flex:1;min-width:260px;">
+            <div class="practica-titulo" id="nivelDetalleTitulo">Practica tu clase:</div>
+            <div id="leccionesGrid" style="display:flex;gap:30px;flex-wrap:wrap;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1782,31 +1805,49 @@
   }
 
   function abrirNivelPractica(nivel) {
-    var titulo = document.getElementById('modalNivelPracticaTitulo');
-    var contenido = document.getElementById('modalNivelPracticaContenido');
-    titulo.textContent = 'Nivel ' + nivel;
-
     if (nivel === 'A1') {
-      var bloque = alumnoData._bloqueActual || 1;
-      var html = '<div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;">';
-      html += libroWorkbookHtml(
-        'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.1.jpg',
-        'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link',
-        'Workbook A1.1'
-      );
-      if (bloque === 2) {
-        html += libroWorkbookHtml(
-          'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.2.jpg',
-          'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link',
-          'Workbook A1.2'
-        );
-      }
-      html += '</div>';
-      contenido.innerHTML = html;
-    } else {
-      contenido.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;">Muy pronto tendrás ejercicios interactivos para este nivel.</p>';
+      mostrarDetalleNivel('A1');
+      return;
     }
+    document.getElementById('modalNivelPracticaTitulo').textContent = 'Nivel ' + nivel;
+    document.getElementById('modalNivelPracticaContenido').innerHTML =
+      '<p style="text-align:center;color:#94a3b8;font-size:13px;">Muy pronto tendrás ejercicios interactivos para este nivel.</p>';
     document.getElementById('modalNivelPractica').classList.add('visible');
+  }
+
+  function mostrarDetalleNivel(nivel) {
+    document.getElementById('nivelesGridView').style.display = 'none';
+    document.getElementById('nivelDetalleView').style.display = 'block';
+
+    var wb = document.getElementById('workbooksDescarga');
+    wb.innerHTML =
+      libroWorkbookHtml('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.1.jpg', 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link', 'Workbook A1.1') +
+      libroWorkbookHtml('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.2.jpg', 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link', 'Workbook A1.2');
+
+    document.getElementById('leccionesGrid').innerHTML =
+      columnaLecciones('A1.1') + columnaLecciones('A1.2');
+  }
+
+  function columnaLecciones(subnivel) {
+    var html = '<div><div style="color:#fde047;font-family:\'Luckiest Guy\',cursive;font-size:16px;margin-bottom:10px;">NIVEL ' + subnivel + '</div>';
+    for (var i = 1; i <= 18; i++) {
+      var num = i < 10 ? '0' + i : '' + i;
+      html += '<div class="leccion-link" onclick="abrirLeccion(\''+subnivel+'\','+i+')">LESSON ' + num + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function abrirLeccion(subnivel, numero) {
+    document.getElementById('modalNivelPracticaTitulo').textContent = subnivel + ' · Lesson ' + numero;
+    document.getElementById('modalNivelPracticaContenido').innerHTML =
+      '<p style="text-align:center;color:#94a3b8;font-size:13px;">Próximamente vas a poder practicar los ejercicios de esta clase directamente aquí.</p>';
+    document.getElementById('modalNivelPractica').classList.add('visible');
+  }
+
+  function volverANiveles() {
+    document.getElementById('nivelesGridView').style.display = 'block';
+    document.getElementById('nivelDetalleView').style.display = 'none';
   }
 
   function cerrarModalNivelPractica() {
