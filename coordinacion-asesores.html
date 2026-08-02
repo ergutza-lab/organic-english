@@ -716,6 +716,13 @@ function abrirModalReporte(){
   document.getElementById('modalReporte').classList.add('open');
 }
 
+// Quita el sufijo "-SAT" del nombre de grupo (asi los sabatinos se
+// tratan como el mismo tipo que su version entre semana, ej. "TEENS-SAT"
+// y "TEENS" cuentan como "TEENS" para efectos de reporte).
+function nombreBaseGrupo(nombre){
+  return (nombre||'').trim().replace(/-SAT$/i, '').trim();
+}
+
 function poblarNivelesReporte(){
   var tipo=document.getElementById('repTipo').value;
   var selNivel=document.getElementById('repNivel');
@@ -764,7 +771,7 @@ function poblarNombresReporte(){
   var nombres=[];
   gruposPorTipo(tipo).forEach(function(g){
     if((g.nivel||'').trim()!==nivel) return;
-    var nom=(g.nombre||'').trim();
+    var nom=nombreBaseGrupo(g.nombre);
     if(nom && nombres.indexOf(nom)===-1) nombres.push(nom);
   });
   nombres.sort();
@@ -794,7 +801,7 @@ function generarReporteFiltrado(){
   }
 
   var seleccionados=gruposPorTipo(tipo).filter(function(g){
-    return (g.nivel||'').trim()===nivel && (g.nombre||'').trim()===nombre;
+    return (g.nivel||'').trim()===nivel && nombreBaseGrupo(g.nombre)===nombre;
   });
 
   if(!seleccionados.length){
@@ -837,7 +844,7 @@ function generarReporteFiltrado(){
     porFecha[fecha].forEach(function(g){
       var ll=g.lugaresLibres||0;
       var emoji=nombreColorEmoji(g.nombre);
-      var nom=g.nombre.replace(/ADOLESCENTES/gi,'JOVENES');
+      var nom=g.nombre.replace(/ADOLESCENTES/gi,'JOVENES').replace(/-SAT$/i,' (Sábado)');
       var pendLine=(g.pendientes&&g.pendientes>0?' | ⏳ *'+g.pendientes+' pendiente'+(g.pendientes>1?'s':'')+'*':'');
       lineas.push(emoji+'*'+g.id+'*  '+nom+' '+g.horario+'-> *'+ll+'Vac.*'+pendLine);
       totalGrupos++;totalVacantes+=ll;
