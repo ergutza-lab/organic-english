@@ -1149,21 +1149,24 @@ function seleccionarAlumnoCambio(){
     return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
   }
   const fechaActualObj = parseFechaInicio(fechaInicioActual);
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
 
-  // Filtro estricto: mismo nivel, mismo nombre de grupo, distinto grupo actual,
-  // y jamás un grupo cuya fecha de inicio sea MÁS ANTIGUA que la del grupo actual.
+  // Filtro correcto: mismo nivel, mismo nombre de grupo, distinto grupo actual,
+  // y jamas un grupo que YA HAYA INICIADO (comparado contra HOY, no contra la
+  // fecha del grupo original -- un grupo que aun no inicia y tiene cupo es una
+  // opcion valida de cambio, sin importar si es "mas viejo" que el original).
   const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>{
     if (g.id===grupoActual) return false;
     if (nivel && g.nivel!==nivel) return false;
     if (nombreGrupo && g.nombre!==nombreGrupo) return false;
     const fechaGrupoObj=parseFechaInicio(g.fecha_inicio);
-    if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj) return false; // más antiguo -> fuera
+    if (fechaGrupoObj && fechaGrupoObj < hoy) return false; // ya inicio -> fuera
     return true;
   });
 
   gruposCompartirCambio=[]; // se llena abajo con los grupos que sí se pueden ofrecer
 
-  if(!todosGruposFiltrados.length){contenedor.innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay grupos del mismo nivel y nombre disponibles (más recientes o iguales).</p>';actualizarBtnCompartirCambio();return;}
+  if(!todosGruposFiltrados.length){contenedor.innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay grupos del mismo nivel y nombre disponibles que aún no hayan iniciado.</p>';actualizarBtnCompartirCambio();return;}
 
   // Ordenar: más próximos en fecha primero
   const gruposOrdenados = [...todosGruposFiltrados].sort((a,b)=>{
