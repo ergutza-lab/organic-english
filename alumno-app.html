@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi Panel — Organic English</title>
+
+<!-- ═══ PWA: instalable en pantalla de inicio (version ALUMNOS -- entra directo aqui, sin pasar por staff) ═══ -->
+<link rel="manifest" href="manifest-alumnos.json">
+<meta name="theme-color" content="#0f1c3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OE">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-180.png">
+<link rel="icon" href="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png">
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
@@ -618,6 +629,17 @@
 .mision-kids-titulo { font-size: 11px; color: #1e293b; font-weight: 600; margin-top: 2px; line-height: 1.25; }
 .leccion-imagen { width: 100%; max-width: 520px; display: block; margin: 0 auto 14px; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.4); }
 
+/* ═══ Barra fija (titulo + boton volver) para no perderse al hacer scroll ═══ */
+.practica-sticky-header {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(15,23,42,0.94); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border-radius: 14px; padding: 10px 16px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+.practica-sticky-header .practica-titulo { margin-bottom: 0; font-size: 20px; }
+.practica-sticky-header button { margin-bottom: 0 !important; flex-shrink: 0; }
+
 /* ═══ Lección interactiva ═══ */
 .leccion-header { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
 .leccion-header h2 { font-size: 18px; color: #f1f5f9; margin-bottom: 8px; }
@@ -729,6 +751,14 @@
       <div class="field"><label>Correo electronico</label><input type="text" id="inputEmail" placeholder="tu@correo.com" autocomplete="off" /></div>
       <button class="btn-primary" onclick="login()">Entrar</button>
       <div class="error-msg" id="errorMsg">ID o correo incorrectos. Intenta de nuevo.</div>
+
+      <!-- ═══ PWA: instalar la app de alumnos en la pantalla de inicio ═══ -->
+      <button id="btnInstalarApp" onclick="instalarAppOE()" style="display:none;width:100%;margin:16px 0 4px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 24px rgba(249,115,22,0.35);">
+        📲 Instalar app Organic English
+      </button>
+      <div id="avisoIOS" style="display:none;width:100%;margin-top:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 16px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
+        📱 Para instalar la app: toca el ícono de <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) y luego <strong>"Agregar a inicio"</strong>.
+      </div>
     </div>
   </div>
 </div>
@@ -875,7 +905,7 @@
     <!-- ═══ PANTALLA 3: PRÁCTICA DEL IDIOMA (por niveles) ═══ -->
     <div id="tab-practica" class="tab-content">
      <div id="nivelesGridView">
-      <div class="practica-titulo">Practica tu clase:</div>
+      <div class="practica-sticky-header"><div class="practica-titulo">Practica tu clase:</div></div>
       <div class="niveles-grid">
         <div class="nivel-card nivel-clicable" style="--color-nivel-btn:#bbbbbb;--color-nivel-texto:#3f3f3f;" onclick="abrirNivelPractica('Pre-A1')">
           <div class="nivel-nombre">Pre-A1</div>
@@ -918,14 +948,16 @@
 
       <!-- VISTA DE DETALLE: se muestra al elegir un nivel (workbooks + lecciones) -->
       <div id="nivelDetalleView" style="display:none;">
-        <button id="btnVolverNiveles" onclick="volverANiveles()" style="background:rgba(255,255,255,0.08);color:#cbd5e1;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:16px;">← Volver a niveles</button>
+        <div class="practica-sticky-header">
+          <button id="btnVolverNiveles" onclick="volverANiveles()" style="background:rgba(255,255,255,0.08);color:#cbd5e1;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">← Volver a niveles</button>
+          <div class="practica-titulo" id="nivelDetalleTitulo" style="text-align:center;">Practica tu clase:</div>
+        </div>
         <div style="display:flex;gap:24px;flex-wrap:wrap;">
           <div style="flex-shrink:0;">
             <div class="practica-titulo" style="color:#fb923c;font-size:20px;line-height:1.2;">Descarga tu<br>Workbook</div>
             <div id="workbooksDescarga" style="display:flex;flex-direction:column;gap:16px;"></div>
           </div>
           <div style="flex:1;min-width:260px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-            <div class="practica-titulo" id="nivelDetalleTitulo" style="text-align:center;">Practica tu clase:</div>
             <div id="leccionesGrid" style="display:flex;gap:40px;flex-wrap:wrap;justify-content:center;"></div>
           </div>
         </div>
@@ -933,7 +965,9 @@
 
       <!-- VISTA DE LECCION INTERACTIVA -->
       <div id="leccionPracticaView" style="display:none;">
-        <button id="btnVolverLecciones" onclick="volverALecciones()" style="background:rgba(255,255,255,0.08);color:#cbd5e1;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:12px;">← Volver a lecciones</button>
+        <div class="practica-sticky-header">
+          <button id="btnVolverLecciones" onclick="volverALecciones()" style="background:rgba(255,255,255,0.08);color:#cbd5e1;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">← Volver a lecciones</button>
+        </div>
         <div id="leccionPracticaHeader"></div>
         <div id="leccionPracticaContenido" class="leccion-scroll"></div>
       </div>
@@ -1348,7 +1382,7 @@
         if (btnWorkbook) {
           btnWorkbook.style.display = 'flex';
           btnWorkbook.href = esKids
-            ? KIDS_WORKBOOK_DRIVE
+            ? KIDS_WORKBOOK_A11_DRIVE
             : (bloqueParaMostrar === 2
               ? 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link'
               : 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link');
@@ -1949,8 +1983,16 @@
   // ilustradas, con su propio Workbook para descargar.
   var KIDS_IMG_BASE      = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/';
   var KIDS_FONDO_URL     = KIDS_IMG_BASE + 'FONDO%20KIDS.webp';
-  var KIDS_WORKBOOK_DRIVE = 'https://drive.google.com/file/d/16CQGgOF0GgKO94bMNi4hD9t0MWeZVO8q/view?usp=drive_link';
-  var KIDS_WORKBOOK = { img: KIDS_IMG_BASE + '1.png', drive: KIDS_WORKBOOK_DRIVE, label: 'Workbook Growie Kids A1.1' };
+  var KIDS_WORKBOOK_A11_DRIVE = 'https://drive.google.com/file/d/16CQGgOF0GgKO94bMNi4hD9t0MWeZVO8q/view?usp=drive_link';
+  // TODO Erick: el Workbook Kids A1.2 aun no tiene PDF ni misiones -- en
+  // cuanto lo tengas, cambia este link y agrega su contenido igual que
+  // se hizo para A1.1 (mismo patron en MISIONES_KIDS_CONTENIDO/LISTA).
+  var KIDS_WORKBOOK_A12_DRIVE = '#';
+  var KIDS_WORKBOOKS = [
+    { subnivel: 'KIDS-A1.1', img: KIDS_IMG_BASE + 'KIDS%20A1.1.jpg', drive: KIDS_WORKBOOK_A11_DRIVE, label: 'Workbook Kids A1.1' },
+    { subnivel: 'KIDS-A1.2', img: KIDS_IMG_BASE + 'KIDS%20A1.2.jpg', drive: KIDS_WORKBOOK_A12_DRIVE, label: 'Workbook Kids A1.2' }
+  ];
+  var kidsSubnivelSeleccionado = 'KIDS-A1.1';
 
   function esNombreGrupoKids(nombre) {
     var n = (nombre || '').trim().toUpperCase().replace(/-SAT$/, '');
@@ -1964,18 +2006,39 @@
     if (btnVolver) btnVolver.style.display = 'none';
     document.getElementById('tab-practica').classList.add('kids-fondo');
 
+    kidsSubnivelSeleccionado = 'KIDS-A1.1';
+    renderWorkbooksYMisionesKids();
+  }
+
+  function seleccionarWorkbookKids(subnivel) {
+    kidsSubnivelSeleccionado = subnivel;
+    renderWorkbooksYMisionesKids();
+  }
+
+  function libroWorkbookKidsHtml(w, activo) {
+    return '<div class="libro-workbook '+(activo?'activo':'tenue')+'" onclick="seleccionarWorkbookKids(\''+w.subnivel+'\')">' +
+      '<img src="'+w.img+'" alt="'+w.label+'">' +
+      '<div class="libro-label">'+w.label+'</div>' +
+      (activo ? '<a href="'+w.drive+'" target="_blank" class="libro-descarga-btn" onclick="event.stopPropagation()">📥 Descargar</a>' : '') +
+    '</div>';
+  }
+
+  function renderWorkbooksYMisionesKids() {
     var wb = document.getElementById('workbooksDescarga');
-    wb.innerHTML =
-      '<div class="libro-workbook activo">' +
-        '<img src="'+KIDS_WORKBOOK.img+'" alt="'+KIDS_WORKBOOK.label+'">' +
-        '<div class="libro-label">'+KIDS_WORKBOOK.label+'</div>' +
-        '<a href="'+KIDS_WORKBOOK.drive+'" target="_blank" class="libro-descarga-btn">📥 Descargar</a>' +
-      '</div>';
+    wb.innerHTML = KIDS_WORKBOOKS.map(function (w) {
+      return libroWorkbookKidsHtml(w, w.subnivel === kidsSubnivelSeleccionado);
+    }).join('');
 
     var titulo = document.getElementById('nivelDetalleTitulo');
-    if (titulo) titulo.innerHTML = '🌱 Growie Kids A1.1<br><span style="font-size:12px;font-family:inherit;-webkit-text-stroke:0;color:#fde68a;">Growie Explorers 1</span>';
+    var subLabel = kidsSubnivelSeleccionado === 'KIDS-A1.2' ? 'A1.2' : 'A1.1';
+    if (titulo) titulo.innerHTML = '🌱 Growie Kids ' + subLabel + '<br><span style="font-size:12px;font-family:inherit;-webkit-text-stroke:0;color:#fde68a;">Growie Explorers ' + (subLabel === 'A1.2' ? '2' : '1') + '</span>';
 
-    document.getElementById('leccionesGrid').innerHTML = columnaMisionesKids();
+    var grid = document.getElementById('leccionesGrid');
+    if (kidsSubnivelSeleccionado === 'KIDS-A1.1') {
+      grid.innerHTML = columnaMisionesKids();
+    } else {
+      grid.innerHTML = '<p style="text-align:center;color:#e2e8f0;font-size:13px;max-width:320px;line-height:1.6;">🌱 Las misiones de <strong>Growie Kids A1.2</strong> estarán disponibles muy pronto.</p>';
+    }
   }
 
   function columnaMisionesKids() {
@@ -4684,6 +4747,7 @@
       titulo: "MISSION 32: \"Celebration Day\"",
       objetivo: "Recibir tu insignia de Explorador A1.1.",
       tema: "Celebration Day",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png",
       ejercicios: [
         {
           tipo: 'completar',
@@ -4747,7 +4811,7 @@
     { num: 29, titulo: "Challenge Prep", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/29.png" },
     { num: 30, titulo: "Challenge Practice", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/30.png" },
     { num: 31, titulo: "Final Adventure", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/31.png" },
-    { num: 32, titulo: "Celebration Day", img: null },
+    { num: 32, titulo: "Celebration Day", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png" },
   ];
 
   function abrirLeccion(subnivel, numero) {
@@ -5651,6 +5715,58 @@ function subirVideoChallenge() {
   });
 }
 </script>
+
+<!-- ═══ PWA: instalar app + registrar service worker (version ALUMNOS) ═══ -->
+<script>
+var _deferredPromptOEAlumno = null;
+
+// Android/Chrome: el navegador avisa CUANDO se puede instalar -- en vez
+// de que el alumno tenga que buscarlo en el menu de 3 puntos, mostramos
+// aqui mismo un boton grande y visible en la pantalla de login.
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  _deferredPromptOEAlumno = e;
+  var btn = document.getElementById('btnInstalarApp');
+  if (btn) btn.style.display = 'flex';
+});
+
+function instalarAppOE() {
+  if (!_deferredPromptOEAlumno) return;
+  _deferredPromptOEAlumno.prompt();
+  _deferredPromptOEAlumno.userChoice.then(function () {
+    _deferredPromptOEAlumno = null;
+    var btn = document.getElementById('btnInstalarApp');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', function () {
+  var btn = document.getElementById('btnInstalarApp');
+  if (btn) btn.style.display = 'none';
+});
+
+// iPhone/iPad: Apple NUNCA permite un boton automatico de instalar (es
+// una restriccion de Safari, no de nuestro codigo) -- en su lugar, se
+// muestra un aviso fijo con las instrucciones manuales, solo si no esta
+// ya instalada.
+(function () {
+  var esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (esIOS && !yaInstalada) {
+    var aviso = document.getElementById('avisoIOS');
+    if (aviso) aviso.style.display = 'block';
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('service-worker-alumnos.js')
+      .then(function (reg) { console.log('Service worker de alumnos registrado:', reg.scope); })
+      .catch(function (err) { console.log('No se pudo registrar el service worker:', err); });
+  });
+}
+</script>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
 
 </body>
 </html>
