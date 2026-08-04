@@ -842,7 +842,7 @@ function abrirModalGrupo(idx){
       const tipoChip = a.tipoInscripcion
         ? `<span style="font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
         : '';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
+      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-correo="${a.correo||a.email||''}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
@@ -941,7 +941,8 @@ function renderNuevos(){
       fechaMostrada=a.Vig_del||'Pendiente de confirmar';
     }
 
-    const msg=encodeURIComponent(`Hola ${a.nombre} \uD83D\uDC4B Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. \uD83C\uDF89 Estoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. \uD83D\uDE0A\n\n\uD83D\uDCCB Datos de tu grupo:\n\uD83C\uDD94 ID de grupo: ${idGrupo}\n\uD83D\uDD52 Horario: ${horario}\n\uD83D\uDCC5 ${etiquetaFecha}: ${fechaMostrada}\n\n\uD83D\uDCCC IMPORTANTE: Por favor, en tus próximas colegiaturas deberás subir tus comprobantes de pago desde tu panel personal de nuestra plataforma y notificarme por este medio para que pueda validarlo y confirmar tu pago en el sistema.\u2705\n\n\u26A0\uFE0FAdemás te sugerimos guardar este número en tus contactos con la finalidad de evitar fallas técnicas de comunicación. Esto contribuye a la correcta recepción de avisos y buen funcionamiento de los grupos.\uD83E\uDDE1\n\n¡Bienvenido/a a Organic English!\uD83C\uDF31\uD83C\uDF3F`);
+    const correoAlumno = a.correo || a.email || '';
+    const msg=encodeURIComponent(`Hola ${a.nombre} \uD83D\uDC4B Soy ${nombreAsistente}, tu Asistente Escolar de Organic English. \uD83C\uDF89 Estoy para apoyarte con cualquier duda sobre tus clases, pagos y lo que necesites. \uD83D\uDE0A\nTu ID es: *${a.id}*\nTu correo registrado es: *${correoAlumno}*\n\n\uD83D\uDCCB Datos de tu grupo:\n\uD83C\uDD94 ID de grupo: *${idGrupo}*\n\uD83D\uDD52 Horario: *${horario}*\n\uD83D\uDCC5 ${etiquetaFecha}: *${fechaMostrada}*\n\n\uD83D\uDCCC IMPORTANTE: Por favor, en tus próximas colegiaturas deberás subir tus comprobantes de pago desde tu panel personal de nuestra plataforma y notificarme por este medio para que pueda validarlo y confirmar tu pago en el sistema.\u2705\n\n\u26A0\uFE0FAdemás te sugerimos guardar este número en tus contactos con la finalidad de evitar fallas técnicas de comunicación. Esto contribuye a la correcta recepción de avisos y buen funcionamiento de los grupos.\uD83E\uDDE1\n\n¡Bienvenido/a a Organic English!\uD83C\uDF31\uD83C\uDF3F`);
 
     // Si el alumno tiene tutor registrado (menor de edad), tambien conviene
     // presentarse con el tutor por separado -- mensaje en tono formal,
@@ -1064,7 +1065,7 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
         <div class="alerta-icon">⚠️</div>
         <div class="alerta-info" style="flex:1;min-width:0;">
           <div class="alerta-nombre" style="cursor:pointer;display:flex;align-items:center;gap:6px;"
-               onclick="toggleInfoAlerta(this,'${a.id}','${a.ultimo_pago_fecha||''}','${a.ultimo_pago_monto||''}','${(a.comprobante_url||'').replace(/'/g,'%27')}','${(a.comentario||'').replace(/'/g,'%27')}','${a.fecha_vencimiento||''}')">
+               onclick="toggleInfoAlerta(this,'${a.id}','${a.ultimo_pago_fecha||''}','${a.ultimo_pago_monto||''}','${(a.comprobante_url||'').replace(/'/g,'%27')}','${(a.comentario||'').replace(/'/g,'%27')}','${a.fecha_vencimiento||''}','${encodeURIComponent(a.correo||a.email||'')}')">
             ${a.nombre}${tipoChip}
             <span style="font-size:10px;color:#64748b;font-weight:600;">▼ ver más</span>
           </div>
@@ -1671,22 +1672,24 @@ function toggleInfoAlumno(el, e) {
     next.classList.toggle('open');
     return;
   }
+  var correo     = el.dataset.correo     || '';
   var fecha      = el.dataset.fecha      || '—';
   var monto      = el.dataset.monto      || '';
   var url        = el.dataset.url        || '';
   var coment     = el.dataset.comentario || '';
   var vencimiento= el.dataset.vencimiento|| '';
   var montoStr   = monto ? ' · $'+monto : '';
+  var correoHtml = correo ? '<div class="det-row">✉️ '+correo+'</div>' : '';
   var urlHtml    = url ? '<div class="det-row">🔗 <a href="'+url+'" target="_blank">Ver comprobante</a></div>' : '';
   var comentHtml = coment ? '<div class="det-row">💬 '+coment+'</div>' : '';
   var vencHtml   = vencimiento ? '<div class="det-row">⏳ Vigencia hasta: <strong>'+vencimiento+'</strong></div>' : '<div class="det-row" style="color:#ef4444;">⚠️ Sin vigencia registrada</div>';
   var div = document.createElement('div');
   div.className = 'alumno-detalle open';
-  div.innerHTML = '<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml;
+  div.innerHTML = correoHtml+'<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml;
   row.parentNode.insertBefore(div, row.nextSibling);
 }
 
-function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento) {
+function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento, correo) {
   var panel = document.getElementById('detalle-alerta-' + idAlumno);
   if (!panel) return;
   if (panel.classList.contains('open')) {
@@ -1697,8 +1700,10 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento) 
   // Decodificar valores que pueden tener %27
   url    = decodeURIComponent(url    || '');
   coment = decodeURIComponent(coment || '');
+  correo = decodeURIComponent(correo || '');
   fecha  = fecha || '—';
   var montoStr   = monto ? ' · $' + monto : '';
+  var correoHtml = correo ? '<div class="det-row">✉️ ' + correo + '</div>' : '';
   var vencHtml   = vencimiento
     ? '<div class="det-row">⏳ Vigencia hasta: <strong>' + vencimiento + '</strong></div>'
     : '<div class="det-row" style="color:#ef4444;">⚠️ Sin vigencia registrada</div>';
@@ -1727,7 +1732,8 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento) 
   }
 
   panel.innerHTML =
-    '<div class="det-row">📅 Último pago: <strong>' + fecha + montoStr + '</strong></div>'
+    correoHtml
+    + '<div class="det-row">📅 Último pago: <strong>' + fecha + montoStr + '</strong></div>'
     + vencHtml + urlHtml + comentHtml + histHtml;
   panel.classList.add('open');
 }
