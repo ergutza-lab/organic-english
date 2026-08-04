@@ -579,10 +579,19 @@
 .nivel-trad { font-size: 12px; opacity: 0.75; margin-bottom: 10px; }
 .nivel-desc { font-size: 12px; line-height: 1.5; opacity: 0.95; }
 
-.libro-workbook { text-decoration: none; text-align: center; display: block; transition: transform 0.15s; }
+.libro-workbook { text-decoration: none; text-align: center; display: block; transition: transform 0.15s, opacity 0.2s; cursor: pointer; }
 .libro-workbook:hover { transform: scale(1.05); }
 .libro-workbook img { width: 130px; height: auto; border-radius: 4px; box-shadow: 0 10px 24px rgba(0,0,0,0.5), 4px 0 0 rgba(0,0,0,0.15) inset; }
 .libro-workbook .libro-label { margin-top: 8px; font-size: 12px; color: #f1f5f9; font-weight: 600; }
+.libro-workbook.tenue { opacity: 0.35; filter: grayscale(30%); }
+.libro-workbook.tenue:hover { opacity: 0.6; }
+.libro-workbook.activo .libro-label { color: #fde047; }
+.libro-descarga-btn {
+  display: inline-block; margin-top: 8px; text-decoration: none;
+  background: #fb923c; color: #1e1400; font-size: 11px; font-weight: 700;
+  padding: 6px 12px; border-radius: 100px; transition: background 0.15s;
+}
+.libro-descarga-btn:hover { background: #fdba74; }
 
 .leccion-link {
   color: #fb923c; font-size: 15px; font-weight: 700;
@@ -1830,11 +1839,22 @@
   }
 
   // ── RENDER PAGOS ─────────────────────────────────────────────────
-  function libroWorkbookHtml(imgUrl, driveUrl, label) {
-    return '<a href="'+driveUrl+'" target="_blank" class="libro-workbook">' +
-      '<img src="'+imgUrl+'" alt="'+label+'">' +
-      '<div class="libro-label">📥 '+label+'</div>' +
-    '</a>';
+  // ── WORKBOOKS disponibles por nivel (agregar mas niveles/subniveles aqui) ──
+  var WORKBOOKS_POR_NIVEL = {
+    'A1': [
+      { subnivel: 'A1.1', img: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.1.jpg', drive: 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link', label: 'Workbook A1.1' },
+      { subnivel: 'A1.2', img: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.2.jpg', drive: 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link', label: 'Workbook A1.2' }
+    ]
+  };
+  var nivelPracticaActual = null;
+  var subnivelSeleccionado = null;
+
+  function libroWorkbookHtml(w, activo) {
+    return '<div class="libro-workbook '+(activo?'activo':'tenue')+'" onclick="seleccionarWorkbook(\''+w.subnivel+'\')">' +
+      '<img src="'+w.img+'" alt="'+w.label+'">' +
+      '<div class="libro-label">'+w.label+'</div>' +
+      (activo ? '<a href="'+w.drive+'" target="_blank" class="libro-descarga-btn" onclick="event.stopPropagation()">📥 Descargar</a>' : '') +
+    '</div>';
   }
 
   function abrirNivelPractica(nivel) {
@@ -1852,18 +1872,41 @@
     document.getElementById('nivelesGridView').style.display = 'none';
     document.getElementById('nivelDetalleView').style.display = 'block';
 
-    var wb = document.getElementById('workbooksDescarga');
-    wb.innerHTML =
-      libroWorkbookHtml('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.1.jpg', 'https://drive.google.com/file/d/18jSRHQmp9w-f_Klcq6e6DFm3hquk5XyR/view?usp=drive_link', 'Workbook A1.1') +
-      libroWorkbookHtml('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/WORBOOK%20A1.2.jpg', 'https://drive.google.com/file/d/15otGij_wjkbDtxKvKhrwJ82hC_r8HJqS/view?usp=drive_link', 'Workbook A1.2');
-
-    document.getElementById('leccionesGrid').innerHTML =
-      columnaLecciones('A1.1') + columnaLecciones('A1.2');
+    nivelPracticaActual = nivel;
+    var lista = WORKBOOKS_POR_NIVEL[nivel] || [];
+    // Selecciona el primer workbook del nivel por defecto
+    subnivelSeleccionado = lista.length ? lista[0].subnivel : null;
+    renderWorkbooksYLecciones();
   }
 
-  function columnaLecciones(subnivel) {
-    var html = '<div><div style="color:#fde047;font-family:\'Luckiest Guy\',cursive;font-size:16px;margin-bottom:10px;">NIVEL ' + subnivel + '</div>';
-    for (var i = 1; i <= 28; i++) {
+  function seleccionarWorkbook(subnivel) {
+    subnivelSeleccionado = subnivel;
+    renderWorkbooksYLecciones();
+  }
+
+  function renderWorkbooksYLecciones() {
+    var lista = WORKBOOKS_POR_NIVEL[nivelPracticaActual] || [];
+
+    var wb = document.getElementById('workbooksDescarga');
+    wb.innerHTML = lista.map(function (w) {
+      return libroWorkbookHtml(w, w.subnivel === subnivelSeleccionado);
+    }).join('');
+
+    var titulo = document.getElementById('nivelDetalleTitulo');
+    if (titulo) titulo.textContent = 'Practica tu clase: ' + (subnivelSeleccionado || '');
+
+    document.getElementById('leccionesGrid').innerHTML =
+      subnivelSeleccionado ? columnaLeccionesDoble(subnivelSeleccionado) : '';
+  }
+
+  // Muestra las 28 lecciones del subnivel seleccionado en 2 columnas: 1-14 y 15-28
+  function columnaLeccionesDoble(subnivel) {
+    return columnaRangoLecciones(subnivel, 1, 14) + columnaRangoLecciones(subnivel, 15, 28);
+  }
+
+  function columnaRangoLecciones(subnivel, desde, hasta) {
+    var html = '<div>';
+    for (var i = desde; i <= hasta; i++) {
       var num = i < 10 ? '0' + i : '' + i;
       html += '<div class="leccion-link" onclick="abrirLeccion(\''+subnivel+'\','+i+')">LESSON ' + num + '</div>';
     }
