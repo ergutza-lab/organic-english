@@ -597,6 +597,10 @@
 .libro-workbook.tenue { opacity: 0.35; filter: grayscale(30%); }
 .libro-workbook.tenue:hover { opacity: 0.6; }
 .libro-workbook.activo .libro-label { color: #fde047; }
+.libro-workbook.bloqueado { cursor: not-allowed; opacity: 0.4; filter: grayscale(85%); }
+.libro-workbook.bloqueado:hover { transform: none; }
+.libro-workbook.bloqueado .libro-label { color: #94a3b8; }
+.libro-candado { margin-top: 6px; font-size: 10px; color: #94a3b8; font-weight: 700; letter-spacing: 0.3px; }
 .libro-descarga-btn {
   display: inline-block; margin-top: 8px; text-decoration: none;
   background: #fb923c; color: #1e1400; font-size: 11px; font-weight: 700;
@@ -1901,6 +1905,24 @@
   }
 
   // ── RENDER PAGOS ─────────────────────────────────────────────────
+  // ── Control de acceso por nivel: un alumno solo puede ver/descargar el
+  // Workbook y practicar las lecciones de SU bloque actual o de bloques
+  // ya cursados -- nunca de un bloque superior al que tiene, sin importar
+  // si es Adults/Teens o Kids. La fuente de verdad es alumnoData._bloqueActual
+  // (1 o 2), calculado en mostrarPanel() a partir del nivel real del grupo.
+  function bloqueDeSubnivel(subnivel) {
+    return (subnivel || '').indexOf('.2') !== -1 ? 2 : 1;
+  }
+  function bloqueDesbloqueadoAlumno() {
+    return (alumnoData && alumnoData._bloqueActual) || 1;
+  }
+  function mostrarAvisoNivelBloqueado() {
+    document.getElementById('modalNivelPracticaTitulo').textContent = 'Nivel bloqueado';
+    document.getElementById('modalNivelPracticaContenido').innerHTML =
+      '<p style="text-align:center;color:#94a3b8;font-size:13px;">Este contenido se desbloqueará cuando avances a ese nivel.</p>';
+    document.getElementById('modalNivelPractica').classList.add('visible');
+  }
+
   // ── WORKBOOKS disponibles por nivel (agregar mas niveles/subniveles aqui) ──
   var WORKBOOKS_POR_NIVEL = {
     'A1': [
@@ -1911,7 +1933,14 @@
   var nivelPracticaActual = null;
   var subnivelSeleccionado = null;
 
-  function libroWorkbookHtml(w, activo) {
+  function libroWorkbookHtml(w, activo, bloqueado) {
+    if (bloqueado) {
+      return '<div class="libro-workbook bloqueado" title="Se desbloquea cuando avances a este nivel">' +
+        '<img src="'+w.img+'" alt="'+w.label+'">' +
+        '<div class="libro-label">'+w.label+'</div>' +
+        '<div class="libro-candado">🔒 Próximo nivel</div>' +
+      '</div>';
+    }
     return '<div class="libro-workbook '+(activo?'activo':'tenue')+'" onclick="seleccionarWorkbook(\''+w.subnivel+'\')">' +
       '<img src="'+w.img+'" alt="'+w.label+'">' +
       '<div class="libro-label">'+w.label+'</div>' +
@@ -1936,22 +1965,28 @@
 
     nivelPracticaActual = nivel;
     var lista = WORKBOOKS_POR_NIVEL[nivel] || [];
-    // Selecciona el primer workbook del nivel por defecto
-    subnivelSeleccionado = lista.length ? lista[0].subnivel : null;
+    // Por default selecciona el subnivel MAS ALTO que el alumno ya tiene
+    // desbloqueado (su bloque actual), nunca uno superior.
+    var bloqueAlumno = bloqueDesbloqueadoAlumno();
+    var desbloqueados = lista.filter(function (w) { return bloqueDeSubnivel(w.subnivel) <= bloqueAlumno; });
+    subnivelSeleccionado = desbloqueados.length ? desbloqueados[desbloqueados.length - 1].subnivel : (lista.length ? lista[0].subnivel : null);
     renderWorkbooksYLecciones();
   }
 
   function seleccionarWorkbook(subnivel) {
+    if (bloqueDeSubnivel(subnivel) > bloqueDesbloqueadoAlumno()) return; // bloqueado, ignora el clic
     subnivelSeleccionado = subnivel;
     renderWorkbooksYLecciones();
   }
 
   function renderWorkbooksYLecciones() {
     var lista = WORKBOOKS_POR_NIVEL[nivelPracticaActual] || [];
+    var bloqueAlumno = bloqueDesbloqueadoAlumno();
 
     var wb = document.getElementById('workbooksDescarga');
     wb.innerHTML = lista.map(function (w) {
-      return libroWorkbookHtml(w, w.subnivel === subnivelSeleccionado);
+      var bloqueado = bloqueDeSubnivel(w.subnivel) > bloqueAlumno;
+      return libroWorkbookHtml(w, w.subnivel === subnivelSeleccionado, bloqueado);
     }).join('');
 
     var titulo = document.getElementById('nivelDetalleTitulo');
@@ -2006,16 +2041,28 @@
     if (btnVolver) btnVolver.style.display = 'none';
     document.getElementById('tab-practica').classList.add('kids-fondo');
 
-    kidsSubnivelSeleccionado = 'KIDS-A1.1';
+    // Igual que Adults/Teens: por default selecciona el subnivel Kids MAS
+    // ALTO que el alumno ya tiene desbloqueado, nunca uno superior.
+    var bloqueAlumno = bloqueDesbloqueadoAlumno();
+    var desbloqueados = KIDS_WORKBOOKS.filter(function (w) { return bloqueDeSubnivel(w.subnivel) <= bloqueAlumno; });
+    kidsSubnivelSeleccionado = desbloqueados.length ? desbloqueados[desbloqueados.length - 1].subnivel : 'KIDS-A1.1';
     renderWorkbooksYMisionesKids();
   }
 
   function seleccionarWorkbookKids(subnivel) {
+    if (bloqueDeSubnivel(subnivel) > bloqueDesbloqueadoAlumno()) return; // bloqueado, ignora el clic
     kidsSubnivelSeleccionado = subnivel;
     renderWorkbooksYMisionesKids();
   }
 
-  function libroWorkbookKidsHtml(w, activo) {
+  function libroWorkbookKidsHtml(w, activo, bloqueado) {
+    if (bloqueado) {
+      return '<div class="libro-workbook bloqueado" title="Se desbloquea cuando avances a este nivel">' +
+        '<img src="'+w.img+'" alt="'+w.label+'">' +
+        '<div class="libro-label">'+w.label+'</div>' +
+        '<div class="libro-candado">🔒 Próximo nivel</div>' +
+      '</div>';
+    }
     return '<div class="libro-workbook '+(activo?'activo':'tenue')+'" onclick="seleccionarWorkbookKids(\''+w.subnivel+'\')">' +
       '<img src="'+w.img+'" alt="'+w.label+'">' +
       '<div class="libro-label">'+w.label+'</div>' +
@@ -2024,9 +2071,11 @@
   }
 
   function renderWorkbooksYMisionesKids() {
+    var bloqueAlumno = bloqueDesbloqueadoAlumno();
     var wb = document.getElementById('workbooksDescarga');
     wb.innerHTML = KIDS_WORKBOOKS.map(function (w) {
-      return libroWorkbookKidsHtml(w, w.subnivel === kidsSubnivelSeleccionado);
+      var bloqueado = bloqueDeSubnivel(w.subnivel) > bloqueAlumno;
+      return libroWorkbookKidsHtml(w, w.subnivel === kidsSubnivelSeleccionado, bloqueado);
     }).join('');
 
     var titulo = document.getElementById('nivelDetalleTitulo');
@@ -4815,6 +4864,13 @@
   ];
 
   function abrirLeccion(subnivel, numero) {
+    // Blindaje central: aplica a Adults/Teens (A1.2) y a Kids (KIDS-A1.2)
+    // por igual, incluso si alguien intenta forzar el llamado desde la
+    // consola del navegador saltandose los candados visuales.
+    if (bloqueDeSubnivel(subnivel) > bloqueDesbloqueadoAlumno()) {
+      mostrarAvisoNivelBloqueado();
+      return;
+    }
     var key = subnivel + '-' + numero;
     if (LECCIONES_CONTENIDO[key]) {
       mostrarLeccionPractica(key);
