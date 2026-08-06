@@ -802,8 +802,17 @@ function renderMaestrosBurbujas(){
     // Contar grupos reales (sin DEMO) desde gruposData
     var gruposReales=gruposData.filter(function(g){return g.idMaestro===m.id&&String(g.demo||'').toUpperCase()!=='DEMO';}).length;
     var inactivo=m.activo?'':' burbuja-inactivo';
-    return '<div class="maestro-burbuja'+inactivo+'" onclick="abrirModalMaestro(\''+m.id+'\')">'+ foto +'<div class="burbuja-nombre">'+m.nombre+'</div><div class="burbuja-id">'+m.id+'</div><div class="burbuja-grupos">'+gruposReales+' grupo'+(gruposReales!==1?'s':'')+'<div style="margin-top:5px;font-size:11px;font-weight:700;color:'+lenteSVG_color(m.porcentajeEval||75)+'">'+fmtPct(m.porcentajeEval||75)+' · N'+getNivel(m.porcentajeEval||75).n+'</div>'+'</div></div>';
+    return '<div class="maestro-burbuja'+inactivo+'" onclick="abrirModalMaestro(\''+m.id+'\')">'+ foto +'<div class="burbuja-nombre">'+m.nombre+'</div><div class="burbuja-id">'+m.id+' · 🔑 '+(m.clave||'—')+'</div><div class="burbuja-grupos">'+gruposReales+' grupo'+(gruposReales!==1?'s':'')+'<div style="margin-top:5px;font-size:11px;font-weight:700;color:'+lenteSVG_color(m.porcentajeEval||75)+'">'+fmtPct(m.porcentajeEval||75)+' · N'+getNivel(m.porcentajeEval||75).n+'</div>'+'</div></div>';
   }).join('');
+}
+
+// Abre maestro.html en una pestana nueva, con el id y clave del maestro en
+// la URL -- maestro.html ya sabe leer esos parametros y entrar
+// automaticamente sin pedir que se escriban a mano (ver autoLoginDesdeURL
+// en maestro.html).
+function entrarComoMaestro(idMaestro, clave){
+  if (!idMaestro || !clave) { alert('Este maestro no tiene una clave registrada, no se puede entrar a su panel.'); return; }
+  window.open('maestro.html?id='+encodeURIComponent(idMaestro)+'&clave='+encodeURIComponent(clave), '_blank');
 }
 
 // ── MODAL DETALLE MAESTRO ──
@@ -814,7 +823,7 @@ function abrirModalMaestro(idMaestro){
   var fotoHtml=m.foto?'<img src="'+m.foto+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid rgba(249,115,22,0.5);" onerror="this.outerHTML=\'<div style=&quot;width:80px;height:80px;border-radius:50%;background:rgba(249,115,22,0.15);border:3px solid rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#f97316;margin:0 auto;&quot;>'+m.nombre[0]+'</div>\'" />':'<div style="width:80px;height:80px;border-radius:50%;background:rgba(249,115,22,0.15);border:3px solid rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#f97316;margin:0 auto;">'+(m.nombre[0]||'M')+'</div>';
   document.getElementById('modalMaestroFoto').innerHTML=fotoHtml;
   document.getElementById('modalMaestroNombre').textContent=m.nombre;
-  document.getElementById('modalMaestroId').textContent=m.id+' · '+(m.activo?'Activo':'Inactivo');
+  document.getElementById('modalMaestroId').textContent=m.id+' · 🔑 '+(m.clave||'—')+' · '+(m.activo?'Activo':'Inactivo');
 
   var nv=getNivel(mapaEval[idMaestro]||75);
   document.getElementById('modalMaestroDatos').innerHTML=
@@ -824,7 +833,8 @@ function abrirModalMaestro(idMaestro){
     '<div><span style="color:var(--muted)">Email:</span> '+(m.email||'—')+'</div>'+
     '<div><span style="color:var(--muted)">Nivel:</span> <span style="color:'+nv.color+';font-weight:700;">N'+nv.n+' · $'+nv.costo+'/clase</span></div>'+
     '<div><span style="color:var(--muted)">Evaluación:</span> <span style="font-weight:700;">'+(mapaEval[idMaestro]||75)+'%</span></div>'+
-    '</div>';
+    '</div>'+
+    '<button onclick="entrarComoMaestro(\''+m.id+'\',\''+(m.clave||'')+'\')" style="margin-top:12px;width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">🔓 Entrar como este maestro</button>';
 
   // Grupos asignados con clic para ver evaluaciones
   var misGrupos=gruposData.filter(function(g){return g.idMaestro===idMaestro;});
