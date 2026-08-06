@@ -1024,6 +1024,9 @@
           🎥 Ver grabación
         </a>
       </div>
+      <button id="btnNotificaciones" onclick="activarNotificacionesOE()" class="btn-brillo" style="width:100%;margin-bottom:12px;background:#0f172a;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        🔔 Activar notificaciones
+      </button>
       <!-- MURO PERSONAL: avisos que solo aparecen cuando aplican -->
       <div class="student-board">
         <div class="student-board-titulo">Muro personal</div>
@@ -1335,6 +1338,7 @@
         if (data.success) {
           alumnoData = data;
           mostrarPanel();
+          if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
         }
         else {
           err.style.display = 'block';
@@ -7507,6 +7511,99 @@ function subirVideoChallenge() {
     btn.disabled = false;
   });
 }
+</script>
+
+<!-- ═══ Notificaciones push (Firebase Cloud Messaging) ═══ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+<script>
+  var _firebaseAppOE = firebase.initializeApp({
+    apiKey: "AIzaSyB8tBr0rYLbhDXUDHLCqJm2fM8lHA0aBlM",
+    authDomain: "organic-english.firebaseapp.com",
+    projectId: "organic-english",
+    storageBucket: "organic-english.firebasestorage.app",
+    messagingSenderId: "535971507724",
+    appId: "1:535971507724:web:82f9f057936b4c2f8e0829"
+  });
+  var _vapidKeyOE = "BI3q0_1E24pxZGzkcJHUo8a9c4T7a4cp-4pFojhtg1nZJv9TcPDnC8E0Z0ucVkQqIQ25opOswA3VVEUYMfQjwe8";
+
+  // El service worker de alumnos (service-worker-alumnos.js) ya se registra
+  // en el bloque de instalacion mas abajo -- aqui solo usamos firebase.messaging()
+  // sobre ese mismo registro para pedir el token de este dispositivo.
+
+  firebase.messaging().onMessage(function (payload) {
+    var titulo = (payload.notification && payload.notification.title) || 'Organic English';
+    var cuerpo = (payload.notification && payload.notification.body) || '';
+    if (Notification.permission === 'granted') {
+      new Notification(titulo, {
+        body: cuerpo,
+        icon: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png'
+      });
+    }
+  });
+
+  // Si el alumno ya habia activado notificaciones antes (en una sesion previa),
+  // esto actualiza el boton a "activadas" sin que tenga que volver a darle clic.
+  function sincronizarNotificacionesSiYaActivadas() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!alumnoData || !alumnoData.alumno || !alumnoData.alumno.id) return;
+
+    var btn = document.getElementById('btnNotificaciones');
+    if (btn) { btn.textContent = '🔔 Notificaciones activadas'; btn.style.background = '#16a34a'; }
+
+    navigator.serviceWorker.ready.then(function (registro) {
+      var messaging = firebase.messaging();
+      messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+        .then(function (token) {
+          if (!token) return;
+          fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(alumnoData.alumno.id) +
+            '&rol=alumno&token=' + encodeURIComponent(token));
+        })
+        .catch(function () {});
+    });
+  }
+
+  function activarNotificacionesOE() {
+    var btn = document.getElementById('btnNotificaciones');
+    if (!alumnoData || !alumnoData.alumno || !alumnoData.alumno.id) {
+      alert('Primero inicia sesión para poder activar tus notificaciones.');
+      return;
+    }
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('Tu navegador no soporta notificaciones push.');
+      return;
+    }
+
+    Notification.requestPermission().then(function (permiso) {
+      if (permiso !== 'granted') {
+        alert('No se activaron las notificaciones — necesitas darle permiso al navegador.');
+        return;
+      }
+      navigator.serviceWorker.ready.then(function (registro) {
+        var messaging = firebase.messaging();
+        messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+          .then(function (token) {
+            if (!token) { alert('No se pudo generar el token de notificaciones.'); return; }
+            fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(alumnoData.alumno.id) +
+              '&rol=alumno&token=' + encodeURIComponent(token))
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.success) {
+                  btn.textContent = '🔔 Notificaciones activadas';
+                  btn.style.background = '#16a34a';
+                } else {
+                  alert('Error al guardar: ' + (data.error || ''));
+                }
+              });
+          })
+          .catch(function (err) {
+            console.log('Error al obtener token FCM:', err);
+            alert('Error al activar notificaciones: ' + err.message);
+          });
+      });
+    });
+  }
 </script>
 
 <!-- ═══ PWA: instalar app + registrar service worker (version ALUMNOS) ═══ -->
