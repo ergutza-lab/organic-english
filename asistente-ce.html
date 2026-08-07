@@ -1422,7 +1422,29 @@ async function validarDesdeModal(){
   cerrarModalComp();
 }
 
-function rechazarDesdeModal(){mostrarToast('Funcionalidad de rechazo próximamente','error');cerrarModalComp();}
+async function rechazarDesdeModal(){
+  if(!pagoActivoId)return;
+  if(!confirm('¿Seguro que quieres rechazar este comprobante?\n\nSe eliminará el registro de pago pendiente y el alumno deberá volver a enviarlo.')) return;
+  const motivo = prompt('Motivo del rechazo (opcional, se puede dejar en blanco):','') || '';
+  await rechazarPago(pagoActivoId,pagoActivoFecha,motivo);
+  cerrarModalComp();
+}
+
+async function rechazarPago(idAlumno,fechaPago,motivo){
+  try{
+    let url=`${APPS_SCRIPT}?action=rechazarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fechaPago=${encodeURIComponent(fechaPago)}&idAsistente=${encodeURIComponent(asistente.id)}&motivo=${encodeURIComponent(motivo||'')}`;
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.status==='ok'){
+      mostrarToast('✗ Comprobante rechazado','success');
+      await cargarDatos();
+    } else {
+      mostrarToast(data.mensaje||'Error al rechazar el pago','error');
+    }
+  }catch(e){
+    mostrarToast('Error de conexión','error');
+  }
+}
 
 async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin){
   try{
