@@ -913,52 +913,84 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
   /* ═══════════════════════════════════════════════════════════
       NOTIFICACIONES WHATSAPP
    ═══════════════════════════════════════════════════════════ */
+  // Nombre EXACTO del boton que ve cada rol dentro del hub de Staff
+  // (organicenglish1.com/staff.html) -- debe coincidir letra por letra
+  // con el texto real de cada boton, para que la instruccion no confunda
+  // a quien la lee.
+  var nombreBotonStaff = {
+    direccion: 'Dirección',
+    academica: 'Coordinación Académica',
+    maestros: 'Maestros',
+    escolar: 'Coordinación Escolar',
+    asistentes: 'Asistentes de CE',
+    ventas: 'Coordinación de Ventas',
+    asesores: 'Asesores de Ventas'
+  };
+
+  // Arma el mensaje de bienvenida/credenciales que se manda por WhatsApp a
+  // CUALQUIER miembro nuevo del personal, sin importar su rol -- usado por
+  // notificarNuevo(), notificarExistente() y notificarDesdeTabla() para que
+  // el texto nunca se desincronice entre los 3 lugares donde se genera.
+  //
+  // Primero le pide instalar la app Organic English (el mismo instalador
+  // para TODO el personal, vive en staff.html) y despues le da sus
+  // credenciales para entrar a su panel especifico -- y de una vez le
+  // confirma los datos que tenemos de el/ella en el sistema (whatsapp,
+  // correo, info y banco), para evitar confusiones mas adelante.
+  //
+  // datos = { tipo, nombre, id, clave, whatsapp, email, infoBancaria,
+  //           instBancaria, linkInscripcion }
+  function construirMensajeBienvenida(datos) {
+    var tipo = datos.tipo;
+    var linkAsesorMsg = (tipo === 'asesores' && datos.linkInscripcion)
+      ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + datos.linkInscripcion
+      : '';
+    var mensajeCapacitacion = (tipo === 'maestros')
+      ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
+      : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
+
+    return 'Hola ' + datos.nombre + '.' +
+      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
+      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
+      '%0A%0A*Paso 1 — Instala la app Organic English:*' +
+      '%0A📍 Enlace: https://organicenglish1.com/staff.html' +
+      '%0AÁbrelo desde tu computadora, tablet o celular y toca el botón "Instalar" que aparece en pantalla (o el ícono de instalar en la barra de direcciones si usas computadora). Así te queda un acceso directo a Organic English, como cualquier otra app.' +
+      '%0A%0A*Paso 2 — Entra a tu panel:*' +
+      '%0AUna vez dentro de Organic English, toca el botón *"' + (nombreBotonStaff[tipo] || tipo) + '"* e inicia sesión con tus credenciales:' +
+      '%0A👤 Usuario: ' + datos.id +
+      (datos.clave ? '%0A🔐 Contraseña: ' + datos.clave : '') +
+      linkAsesorMsg +
+      '%0A%0A*Estos son los datos que tenemos registrados de ti en el sistema — avísame si algo está mal, para evitar confusiones más adelante:*' +
+      '%0A📱 WhatsApp: ' + (datos.whatsapp || '—') +
+      '%0A✉️ Correo: ' + (datos.email || '—') +
+      '%0A🏦 Info bancaria: ' + (datos.infoBancaria || '—') +
+      '%0A🏛️ Institución bancaria: ' + (datos.instBancaria || '—') +
+      '%0A%0A' + mensajeCapacitacion +
+      '%0A%0ACualquier duda, estoy para orientarte.' +
+      '%0A%0ASaludos cordiales.';
+  }
+
   function notificarNuevo() {
     var nombre   = val('newNombre');
     var whatsapp = val('newWhatsapp');
     var id       = val('newId').toUpperCase();
     var clave    = val('newClave');
     var tipo     = window.tipoActual || 'direccion';
-    
+
     if (!nombre)   { alert('Escribe el nombre antes de notificar.'); return; }
     if (!whatsapp) { alert('Escribe el WhatsApp antes de notificar.'); return; }
-    
-    var panelLink = {
-      direccion: 'https://organicenglish1.com/director.html',
-      academica: 'https://organicenglish1.com/coordinador_academico.html',
-      maestros: 'https://organicenglish1.com/maestro.html',
-      escolar: 'https://organicenglish1.com/coordinador_escolar.html',
-      asistentes: 'https://organicenglish1.com/asistente-ce.html',
-      ventas: 'https://organicenglish1.com/coordinacion-asesores.html',
-      asesores: 'https://organicenglish1.com/asesor.html'
-    };
-    
-    var nombrePanel = {
-      direccion: 'Director',
-      academica: 'Coordinador Académico',
-      maestros: 'Maestro',
-      escolar: 'Coordinador Escolar',
-      asistentes: 'Asistente CE',
-      ventas: 'Coordinador de Ventas',
-      asesores: 'Asesor'
-    };
-    
-    var linkInsc = (tipo === 'asesores') ? val('newLinkInscripcion') : '';
-    var linkAsesorMsg = (tipo === 'asesores' && linkInsc) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + linkInsc : '';
-    var mensajeCapacitacion = (tipo === 'maestros')
-      ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
-      : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
-    var msg = 'Hola ' + nombre + '.' +
-      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
-      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
-      '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
-      '%0A📍 Enlace: ' + panelLink[tipo] +
-      '%0A👤 Usuario: ' + id +
-      (clave ? '%0A🔐 Contraseña: ' + clave : '') +
-      linkAsesorMsg +
-      '%0A%0A' + mensajeCapacitacion +
-      '%0A%0ACualquier duda, estoy para orientarte.' +
-      '%0A%0ASaludos cordiales.';
+
+    var msg = construirMensajeBienvenida({
+      tipo: tipo,
+      nombre: nombre,
+      id: id,
+      clave: clave,
+      whatsapp: whatsapp,
+      email: val('newEmail'),
+      infoBancaria: val('newInfoBancaria') || val('newCuentaBancaria'),
+      instBancaria: val('newInstBancaria'),
+      linkInscripcion: (tipo === 'asesores') ? val('newLinkInscripcion') : ''
+    });
     window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + msg, '_blank');
   }
 
@@ -1000,42 +1032,18 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
     var tipo = window.tipoActual || 'direccion';
     if (!d.Nombre)   { alert('No hay datos del registro.'); return; }
     if (!d.WhatsApp) { alert('No hay WhatsApp registrado.'); return; }
-    
-    var panelLink = {
-      direccion: 'https://organicenglish1.com/director.html',
-      academica: 'https://organicenglish1.com/control-academico.html',
-      maestros: 'https://organicenglish1.com/maestro.html',
-      escolar: 'https://organicenglish1.com/control_ce.html',
-      asistentes: 'https://organicenglish1.com/asistente-ce.html',
-      ventas: 'https://organicenglish1.com/coordinacion-asesores.html',
-      asesores: 'https://organicenglish1.com/asesor.html'
-    };
-    
-    var nombrePanel = {
-      direccion: 'Director',
-      academica: 'Coordinador Académico',
-      maestros: 'Maestro',
-      escolar: 'Coordinador Escolar',
-      asistentes: 'Asistente CE',
-      ventas: 'Coordinador de Ventas',
-      asesores: 'Asesor'
-    };
-    
-    var linkAsesorMsg = (tipo === 'asesores' && d.LinkInscripcion) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + d.LinkInscripcion : '';
-    var mensajeCapacitacion2 = (tipo === 'maestros')
-      ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
-      : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
-    var msg = 'Hola ' + d.Nombre + '.' +
-      '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
-      '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
-      '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
-      '%0A📍 Enlace: ' + panelLink[tipo] +
-      '%0A👤 Usuario: ' + (d.ID || '') +
-      (d.Clave ? '%0A🔐 Contraseña: ' + d.Clave : '') +
-      linkAsesorMsg +
-      '%0A%0A' + mensajeCapacitacion2 +
-      '%0A%0ACualquier duda, estoy para orientarte.' +
-      '%0A%0ASaludos cordiales.';
+
+    var msg = construirMensajeBienvenida({
+      tipo: tipo,
+      nombre: d.Nombre,
+      id: d.ID || '',
+      clave: d.Clave,
+      whatsapp: d.WhatsApp,
+      email: d.Email,
+      infoBancaria: d.InfoBancaria || d.CuentaBancaria,
+      instBancaria: d.InstBancaria,
+      linkInscripcion: (tipo === 'asesores') ? d.LinkInscripcion : ''
+    });
     window.open('https://wa.me/' + cleanWA(d.WhatsApp) + '?text=' + msg, '_blank');
   }
 
@@ -1052,42 +1060,18 @@ if (seccion === 'ventas')     renderVentas(data.ventas         || []);
         }
         if (!datos) { alert('No se encontró el registro'); return; }
         if (!datos.WhatsApp) { alert('No hay WhatsApp registrado'); return; }
-        
-var panelLink = {
-      direccion: 'https://organicenglish1.com/director.html',
-      academica: 'https://organicenglish1.com/control-academico.html',
-      maestros: 'https://organicenglish1.com/maestro.html',
-      escolar: 'https://organicenglish1.com/control_ce.html',
-      asistentes: 'https://organicenglish1.com/asistente-ce.html',
-      ventas: 'https://organicenglish1.com/coordinacion-asesores.html',
-      asesores: 'https://organicenglish1.com/asesor.html'
-    };
-        
-        var nombrePanel = {
-          direccion: 'Director',
-          academica: 'Coordinador Académico',
-          maestros: 'Maestro',
-          escolar: 'Coordinador Escolar',
-          asistentes: 'Asistente CE',
-          ventas: 'Coordinador de Ventas',
-          asesores: 'Asesor'
-        };
-        
-        var linkAsesor = (tipo === 'asesores' && datos.LinkInscripcion) ? '%0A%0ATambién te comparto tu enlace personalizado para trámite de inscripción para los futuros alumnos:%0A📍 ' + datos.LinkInscripcion : '';
-        var mensajeCapacitacion3 = (tipo === 'maestros')
-          ? 'El Coordinador Académico es el responsable de tu capacitación, y él se pondrá en contacto contigo para ese fin.'
-          : 'Es necesario que tengamos una reunión de inducción para conocer el módulo que vas a utilizar dentro de la plataforma. Pongámonos de acuerdo con la fecha y el horario.';
-        var msg = 'Hola ' + datos.Nombre + '.' +
-          '%0A%0ASoy Erick Gutz, Coordinador de IT de Organic English.' +
-          '%0A%0ATe informo que ya tienes acceso a la plataforma.' +
-          '%0A%0A*Tu acceso al panel de ' + nombrePanel[tipo] + ':*' +
-          '%0A📍 Enlace: ' + panelLink[tipo] +
-          '%0A👤 Usuario: ' + (datos.ID || '') +
-          (datos.Clave ? '%0A🔐 Contraseña: ' + datos.Clave : '') +
-          linkAsesor +
-          '%0A%0A' + mensajeCapacitacion3 +
-          '%0A%0ACualquier duda, estoy para orientarte.' +
-          '%0A%0ASaludos cordiales.';
+
+        var msg = construirMensajeBienvenida({
+          tipo: tipo,
+          nombre: datos.Nombre,
+          id: datos.ID || '',
+          clave: datos.Clave,
+          whatsapp: datos.WhatsApp,
+          email: datos.Email,
+          infoBancaria: datos.InfoBancaria || datos.CuentaBancaria,
+          instBancaria: datos.InstBancaria,
+          linkInscripcion: (tipo === 'asesores') ? datos.LinkInscripcion : ''
+        });
         window.open('https://wa.me/' + cleanWA(datos.WhatsApp) + '?text=' + msg, '_blank');
       })
       .catch(function(e) { alert('Error: ' + e.message); });
