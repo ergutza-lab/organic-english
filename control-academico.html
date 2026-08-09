@@ -1454,11 +1454,34 @@ function _dosLetrasJS(texto){
   var limpio = String(texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z]/g,'');
   return limpio.substring(0,2).toUpperCase();
 }
+// Cache simple para no golpear el servidor con cada tecla -- solo se
+// vuelve a consultar cuando cambia el tipo (Maestro/Colocador).
+var _siguienteIdCache = { MAE: null, COL: null };
+
 function actualizarPreviewAlta(){
   var tipo = document.querySelector('input[name="altaTipo"]:checked').value;
-  document.getElementById('previewTipoTexto').textContent = (tipo==='COL'?'COL-XX':'MAE-XX');
   document.getElementById('labelTipoMAE').style.borderColor = tipo==='MAE' ? 'var(--orange)' : 'var(--border)';
   document.getElementById('labelTipoCOL').style.borderColor = tipo==='COL' ? 'var(--orange)' : 'var(--border)';
+
+  if (_siguienteIdCache[tipo]) {
+    document.getElementById('previewTipoTexto').textContent = _siguienteIdCache[tipo];
+  } else {
+    document.getElementById('previewTipoTexto').textContent = 'Calculando...';
+    fetch(APPS_SCRIPT+'?action=getSiguienteIdPersonal&tipo='+encodeURIComponent(tipo),{redirect:'follow'})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if (data.success) {
+          _siguienteIdCache[tipo] = data.siguienteId;
+          // Solo actualizar si el tipo seleccionado sigue siendo el mismo
+          // (por si el coordinador ya cambio de opcion mientras cargaba).
+          var tipoActual = document.querySelector('input[name="altaTipo"]:checked').value;
+          if (tipoActual === tipo) document.getElementById('previewTipoTexto').textContent = data.siguienteId;
+        } else {
+          document.getElementById('previewTipoTexto').textContent = (tipo==='COL'?'COL-XX':'MAE-XX');
+        }
+      })
+      .catch(function(){ document.getElementById('previewTipoTexto').textContent = (tipo==='COL'?'COL-XX':'MAE-XX'); });
+  }
 
   var pn = document.getElementById('altaPrimerNombre').value.trim();
   var sn = document.getElementById('altaSegundoNombre').value.trim();
@@ -1475,12 +1498,32 @@ function actualizarPreviewAlta(){
   document.getElementById('previewClave').textContent = (clave && clave.length===6) ? clave : '— — —';
 }
 
+// Mismo patron de mensaje de bienvenida que ya usa Coordinacion IT,
+// adaptado: aqui es Coordinacion Academica quien da de alta y quien va
+// a instruir al maestro/colocador en el uso de la plataforma.
+function construirMensajeBienvenidaCA(nombre, id, clave, rol){
+  var nombreBoton = (rol === 'Colocador') ? 'Colocación' : 'Maestros';
+  return 'Hola ' + nombre + '.' +
+    '%0A%0AYa estás dado de alta en el sistema de Organic English.' +
+    '%0A%0A*Paso 1 — Instala la app Organic English:*' +
+    '%0A📍 Enlace: https://organicenglish1.com/staff.html' +
+    '%0AÁbrelo desde tu computadora, tablet o celular y toca el botón "Instalar" que aparece en pantalla (o el ícono de instalar en la barra de direcciones si usas computadora).' +
+    '%0A%0A*Paso 2 — Entra a tu panel:*' +
+    '%0AUna vez dentro de Organic English, toca el botón *"' + nombreBoton + '"* e inicia sesión con tus credenciales:' +
+    '%0A👤 Usuario: ' + id +
+    '%0A🔐 Contraseña: ' + clave +
+    '%0A%0AEl Coordinador Académico será quien te instruya en el uso de la plataforma — él se pondrá en contacto contigo para eso.' +
+    '%0A%0ACualquier duda, estoy para orientarte.' +
+    '%0A%0ASaludos cordiales.';
+}
+
 function guardarAltaPersonal(){
   var tipo = document.querySelector('input[name="altaTipo"]:checked').value;
   var pn = document.getElementById('altaPrimerNombre').value.trim();
   var sn = document.getElementById('altaSegundoNombre').value.trim();
   var pa = document.getElementById('altaPrimerApellido').value.trim();
   var sa = document.getElementById('altaSegundoApellido').value.trim();
+  var whatsapp = document.getElementById('altaWhatsapp').value.trim();
   var resultado = document.getElementById('altaResultado');
 
   if (!pn || !pa) { resultado.innerHTML='<div style="color:#f87171;font-size:13px;">⚠️ Falta el primer nombre o el primer apellido.</div>'; return; }
@@ -1496,7 +1539,7 @@ function guardarAltaPersonal(){
     '&segundoNombre='+encodeURIComponent(sn)+
     '&primerApellido='+encodeURIComponent(pa)+
     '&segundoApellido='+encodeURIComponent(sa)+
-    '&whatsapp='+encodeURIComponent(document.getElementById('altaWhatsapp').value.trim())+
+    '&whatsapp='+encodeURIComponent(whatsapp)+
     '&email='+encodeURIComponent(document.getElementById('altaEmail').value.trim())+
     '&costo='+encodeURIComponent(document.getElementById('altaCosto').value.trim())+
     '&infoBancaria='+encodeURIComponent(document.getElementById('altaInfoBancaria').value.trim())+
@@ -1506,17 +1549,34 @@ function guardarAltaPersonal(){
     .then(function(data){
       btn.disabled=false; btn.textContent='✅ Registrar';
       if (!data.success){ resultado.innerHTML='<div style="color:#f87171;font-size:13px;">❌ '+(data.error||'Error al guardar.')+'</div>'; return; }
+
+      var btnWhatsHtml = whatsapp
+        ? '<button onclick="notificarNuevoPersonalWA(\''+data.nombre.replace(/'/g,"\\'")+'\',\''+data.id+'\',\''+data.clave+'\',\''+data.rol+'\',\''+whatsapp+'\')" style="margin-top:10px;width:100%;background:#22c55e;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;">📲 Notificar por WhatsApp</button>'
+        : '<div style="margin-top:10px;font-size:12px;color:var(--muted);">No se puso WhatsApp, así que no se puede notificar automáticamente — avísale por otro medio.</div>';
+
       resultado.innerHTML='<div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:10px;padding:14px;font-size:13px;color:#4ade80;">'+
         '✅ <strong>'+data.nombre+'</strong> registrado correctamente.<br>'+
         'ID: <strong>'+data.id+'</strong> · Clave: <strong>'+data.clave+'</strong><br>'+
-        '<span style="color:var(--muted);">Recuerda avisarle sus credenciales y pedirle su foto para Coordinación IT.</span>'+
+        '<span style="color:var(--muted);">Recuerda pedirle su foto para Coordinación IT.</span>'+
+        btnWhatsHtml+
       '</div>';
+
+      // El tipo recien usado ya gasto su siguiente ID -- limpiar el cache
+      // de ese tipo para que la proxima alta consulte el numero correcto.
+      _siguienteIdCache[tipo] = null;
+
       // limpiar el formulario para la siguiente alta
       ['altaPrimerNombre','altaSegundoNombre','altaPrimerApellido','altaSegundoApellido','altaWhatsapp','altaEmail','altaInfoBancaria','altaInstBancaria'].forEach(function(id){document.getElementById(id).value='';});
       document.getElementById('altaCosto').value='90';
       actualizarPreviewAlta();
     })
     .catch(function(){ btn.disabled=false; btn.textContent='✅ Registrar'; resultado.innerHTML='<div style="color:#f87171;font-size:13px;">Error de conexión.</div>'; });
+}
+
+function notificarNuevoPersonalWA(nombre, id, clave, rol, whatsapp){
+  var msg = construirMensajeBienvenidaCA(nombre, id, clave, rol);
+  var limpio = String(whatsapp).replace(/\D/g,'');
+  window.open('https://wa.me/'+limpio+'?text='+msg, '_blank');
 }
 
 // ── MATERIAL DE CLASES v2: cuadricula por nivel (lecciones x maestros) ──
