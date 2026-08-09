@@ -758,7 +758,12 @@ function actualizarEstadoFecha(fechaStr) {
     var nivelGrupo = extraerNivelBase(grupoActual.nivel);
     var visibles = materialData.filter(function(m){
       var nivelMat = String(m.nivel || '').trim().toUpperCase();
-      return nivelMat === 'TODOS' || nivelMat === nivelGrupo;
+      // m.nivel ahora puede venir compuesto, ej. "A1 · ADULTS · BLOQUE 1"
+      // -- comparamos solo el primer pedazo (el nivel base) contra el
+      // nivel de este grupo, sin importar la modalidad/bloque que traiga
+      // despues.
+      var nivelBaseMat = nivelMat.split('·')[0].trim();
+      return nivelMat === 'TODOS' || nivelBaseMat === nivelGrupo;
     });
     if (!visibles.length) {
       cont.innerHTML = '<div class="loading">Aún no hay material subido para el nivel de este grupo.</div>';
@@ -766,8 +771,8 @@ function actualizarEstadoFecha(fechaStr) {
     }
     cont.innerHTML = visibles.map(function(m){
       return '<a href="'+m.link+'" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:inherit;">'+
-        '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:var(--gris2);margin-top:2px;">Nivel: '+m.nivel+'</div></div>'+
-        '<div style="font-size:12px;font-weight:700;color:#f97316;white-space:nowrap;">⬇️ Abrir</div>'+
+        '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:var(--gris2);margin-top:2px;">'+m.nivel+'</div></div>'+
+        '<div style="font-size:12px;font-weight:700;color:#f97316;white-space:nowrap;">▶️ Ver clase</div>'+
       '</a>';
     }).join('');
   }
