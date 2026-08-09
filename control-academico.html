@@ -1374,7 +1374,7 @@ function cargarNivelesMaterial(){
       }
       _nivelesMaterialCargados=true;
       sel.innerHTML='<option value="">Selecciona un nivel...</option>'+
-        data.niveles.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('');
+        data.niveles.map(function(n){return '<option value="'+n.path.replace(/"/g,'&quot;')+'">'+n.etiqueta+'</option>';}).join('');
     })
     .catch(function(){
       document.getElementById('materialNivelSelect').innerHTML='<option value="">Error al cargar niveles</option>';
@@ -1382,17 +1382,19 @@ function cargarNivelesMaterial(){
 }
 
 function cargarGrillaMaterial(){
-  var nivel=document.getElementById('materialNivelSelect').value;
+  var sel=document.getElementById('materialNivelSelect');
+  var rutaHoja=sel.value;
+  var etiqueta=sel.selectedOptions[0] ? sel.selectedOptions[0].text : rutaHoja;
   var wrap=document.getElementById('grillaMaterialWrap');
-  if(!nivel){ wrap.innerHTML='<div class="empty-state">Selecciona un nivel arriba para ver sus lecciones.</div>'; return; }
+  if(!rutaHoja){ wrap.innerHTML='<div class="empty-state">Selecciona un nivel arriba para ver sus lecciones.</div>'; return; }
 
   wrap.innerHTML='<div class="empty-state">Cargando...</div>';
-  fetch(APPS_SCRIPT+'?action=getGrillaMaterialCA&nivel='+encodeURIComponent(nivel),{redirect:'follow'})
+  fetch(APPS_SCRIPT+'?action=getGrillaMaterialCA&nivel='+encodeURIComponent(rutaHoja),{redirect:'follow'})
     .then(function(r){return r.json();})
     .then(function(data){
       if(!data.success){ wrap.innerHTML='<div class="empty-state">'+(data.error||'Error al cargar.')+'</div>'; return; }
-      if(!data.lecciones.length){ wrap.innerHTML='<div class="empty-state">No hay lecciones subidas todavía para el nivel '+nivel+'.</div>'; return; }
-      if(!data.maestros.length){ wrap.innerHTML='<div class="empty-state">Ningún maestro tiene grupos de nivel '+nivel+' asignados todavía.</div>'; return; }
+      if(!data.lecciones.length){ wrap.innerHTML='<div class="empty-state">No hay lecciones subidas todavía para '+etiqueta+'.</div>'; return; }
+      if(!data.maestros.length){ wrap.innerHTML='<div class="empty-state">Ningún maestro tiene grupos de ese nivel asignados todavía.</div>'; return; }
 
       var activosSet={};
       data.activos.forEach(function(par){ activosSet[par]=true; });
@@ -1414,7 +1416,7 @@ function cargarGrillaMaterial(){
           var clave=lec.path+'|'+m.id;
           var checked=activosSet[clave]?'checked':'';
           html+='<td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;">'+
-            '<input type="checkbox" '+checked+' onchange="toggleAccesoMaterialUI(this,\''+nivel+'\',\''+lec.path.replace(/'/g,"\\'")+'\',\''+lec.nombre.replace(/'/g,"\\'")+'\',\''+m.id+'\')" style="width:16px;height:16px;cursor:pointer;">'+
+            '<input type="checkbox" '+checked+' onchange="toggleAccesoMaterialUI(this,\''+etiqueta.replace(/'/g,"\\'")+'\',\''+lec.path.replace(/'/g,"\\'")+'\',\''+lec.nombre.replace(/'/g,"\\'")+'\',\''+m.id+'\')" style="width:16px;height:16px;cursor:pointer;">'+
           '</td>';
         });
         html+='</tr>';
