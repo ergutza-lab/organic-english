@@ -2195,34 +2195,95 @@ function descargarHistorialAlumnoPDF() {
 
 </script>
 
-<!-- HORARIO FLOTANTE -->
-<button onclick="abrirHorario()" style="position:fixed;bottom:24px;right:24px;z-index:998;background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Arial,sans-serif;">📅 Horario</button>
-<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
-  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
-</div>
-
-<!-- Botón flotante Agenda del Equipo -->
+<!-- ═══ Menu flotante colapsable: un solo boton "..." que se expande al
+     tocarlo, en vez de botones sueltos siempre encima del contenido ═══ -->
 <style>
 @keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
 #btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
-</style>
-<button id="btnAgenda" onclick="abrirAgenda()" style="
-  position:fixed;bottom:24px;right:190px;z-index:998;
-  background:#7c3aed;color:#fff;
+.fab-flotante-oe{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.fab-menu-oe{
+  display:flex;flex-direction:column;align-items:flex-end;gap:10px;
+  opacity:0;transform:translateY(12px) scale(0.96);pointer-events:none;
+  transition:opacity 0.18s ease,transform 0.18s ease;
+}
+.fab-menu-oe.abierto{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+.fab-menu-oe button{
+  background:#1c2b5e;color:#fff;
   border:1px solid rgba(255,255,255,0.15);
   border-radius:100px;padding:12px 20px;
   font-size:13px;font-weight:700;cursor:pointer;
   box-shadow:0 4px 20px rgba(0,0,0,0.35);
   display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;">
-  📌 Agenda
-  <span id="agendaBadge" style="
-    display:none;position:absolute;top:-6px;right:-6px;
-    background:#dc2626;color:#fff;font-size:11px;font-weight:800;
-    min-width:20px;height:20px;padding:0 5px;border-radius:999px;
-    align-items:center;justify-content:center;
-    box-shadow:0 0 0 2px #0f1c3f;"></span>
-</button>
+  font-family:'Segoe UI',Arial,sans-serif;
+  white-space:nowrap;position:relative;
+}
+.fab-toggle-oe{
+  width:52px;height:52px;border-radius:50%;
+  background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);
+  font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);
+  display:flex;align-items:center;justify-content:center;position:relative;
+  transition:transform 0.2s ease;flex-shrink:0;
+}
+.fab-toggle-oe.abierto{transform:rotate(45deg);}
+.fab-dot-oe{display:none;position:absolute;top:2px;right:2px;width:12px;height:12px;
+  background:#dc2626;border-radius:50%;box-shadow:0 0 0 2px #0f1c3f;}
+.fab-dot-oe.visible{display:block;}
+</style>
+<div class="fab-flotante-oe">
+  <div class="fab-menu-oe" id="fabMenuOE">
+    <button id="btnAgenda" onclick="abrirAgenda()">
+      📌 Agenda
+      <span id="agendaBadge" style="
+        display:none;position:absolute;top:-6px;right:-6px;
+        background:#dc2626;color:#fff;font-size:11px;font-weight:800;
+        min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+        align-items:center;justify-content:center;
+        box-shadow:0 0 0 2px #0f1c3f;"></span>
+    </button>
+    <button onclick="abrirHorario()">📅 Horario</button>
+  </div>
+  <button class="fab-toggle-oe" id="fabToggleOE" onclick="toggleFabMenuOE()" aria-label="Más opciones">
+    <span id="fabToggleIcon">☰</span>
+    <span class="fab-dot-oe" id="fabDotOE"></span>
+  </button>
+</div>
+<script>
+function toggleFabMenuOE() {
+  var menu = document.getElementById('fabMenuOE');
+  var toggle = document.getElementById('fabToggleOE');
+  var icono = document.getElementById('fabToggleIcon');
+  var abierto = menu.classList.toggle('abierto');
+  toggle.classList.toggle('abierto', abierto);
+  if (icono) icono.textContent = abierto ? '✕' : '☰';
+}
+document.addEventListener('click', function (e) {
+  var cont = document.querySelector('.fab-flotante-oe');
+  var menu = document.getElementById('fabMenuOE');
+  if (!cont || !menu) return;
+  if (!cont.contains(e.target) && menu.classList.contains('abierto')) {
+    menu.classList.remove('abierto');
+    document.getElementById('fabToggleOE').classList.remove('abierto');
+    var icono = document.getElementById('fabToggleIcon');
+    if (icono) icono.textContent = '☰';
+  }
+});
+(function () {
+  var badge = document.getElementById('agendaBadge');
+  var dot = document.getElementById('fabDotOE');
+  if (!badge || !dot) return;
+  function sync() {
+    var visible = badge.style.display !== 'none' && badge.style.display !== '';
+    dot.classList.toggle('visible', visible);
+  }
+  sync();
+  new MutationObserver(sync).observe(badge, { attributes: true, attributeFilter: ['style'] });
+})();
+</script>
+
+<div id="horarioOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
+  <iframe id="horarioFrame" src="" style="width:96vw;max-width:1200px;height:92vh;border:none;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.5);display:block;"></iframe>
+</div>
+
 
 <!-- Overlay con iframe -->
 <div id="agendaOverlay" style="
