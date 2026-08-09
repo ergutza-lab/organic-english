@@ -256,6 +256,9 @@
       <button class="tab" onclick="switchTab('reporte')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reporte calificaciones
       </button>
+      <button class="tab" onclick="switchTab('material')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Material de clases
+      </button>
     </div>
 
     <!-- TAB: MAESTROS (burbujas) -->
@@ -407,6 +410,34 @@
             <tbody id="reporteBody"><tr><td colspan="12" class="empty-state">Selecciona un grupo</td></tr></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- TAB: MATERIAL DE CLASES -->
+    <div id="tab-material" class="tab-content">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><span class="card-title">Subir nuevo material</span></div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Pega el link de Drive del documento o clase (asegúrate que esté compartido como "Cualquier persona con el enlace puede ver"), escribe una descripción clara, y elige a qué nivel aplica. Solo los maestros con grupos de ese nivel lo van a ver en su panel.</p>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:10px;">
+          <select id="materialNivel" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:13px;">
+            <option value="TODOS">Todos los niveles</option>
+            <option value="A1">A1</option>
+            <option value="A1.1">A1.1 (Kids)</option>
+            <option value="A1.2">A1.2 (Kids)</option>
+            <option value="A2">A2</option>
+            <option value="B1">B1</option>
+            <option value="B2">B2</option>
+            <option value="C1">C1</option>
+          </select>
+          <input type="text" id="materialDescripcion" placeholder="Descripción clara, ej: Clase 12 · Present Simple" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+        </div>
+        <input type="url" id="materialLink" placeholder="https://drive.google.com/..." style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px;">
+        <button onclick="agregarMaterialUI()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;">➕ Agregar material</button>
+        <span id="materialStatus" style="font-size:12px;color:var(--muted);margin-left:10px;"></span>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Material ya subido</span></div>
+        <div id="listaMaterialCA"><div class="empty-state">Cargando...</div></div>
       </div>
     </div>
 
@@ -1333,10 +1364,69 @@ function confirmarBaja(){
 
 // ── TABS ──
 function switchTab(nombre){
-  var nombres=['maestros','asistencia','semana','evaluacion','reporte'];
+  var nombres=['maestros','asistencia','semana','evaluacion','reporte','material'];
   document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',nombres[i]===nombre);});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
   document.getElementById('tab-'+nombre).classList.add('active');
+  if (nombre==='material') cargarMaterialCA();
+}
+
+// ── MATERIAL DE CLASES ──────────────────────────────────────────────
+function cargarMaterialCA(){
+  var cont=document.getElementById('listaMaterialCA');
+  cont.innerHTML='<div class="empty-state">Cargando...</div>';
+  fetch(APPS_SCRIPT+'?action=getMaterialClasesCA',{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!data.success||!data.material||!data.material.length){
+        cont.innerHTML='<div class="empty-state">Aún no has subido ningún material.</div>';return;
+      }
+      cont.innerHTML=data.material.map(function(m){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;">'+
+          '<div>'+
+            '<span style="display:inline-block;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;margin-right:8px;">'+m.nivel+'</span>'+
+            '<a href="'+m.link+'" target="_blank" style="color:var(--text);font-size:13px;font-weight:600;text-decoration:none;">'+m.descripcion+'</a>'+
+          '</div>'+
+          '<button onclick="eliminarMaterialUI(\''+m.id+'\')" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🗑 Borrar</button>'+
+        '</div>';
+      }).join('');
+    })
+    .catch(function(){ cont.innerHTML='<div class="empty-state">Error al cargar el material.</div>'; });
+}
+
+function agregarMaterialUI(){
+  var nivel=document.getElementById('materialNivel').value;
+  var descripcion=document.getElementById('materialDescripcion').value.trim();
+  var link=document.getElementById('materialLink').value.trim();
+  var status=document.getElementById('materialStatus');
+  if(!descripcion||!link){ status.textContent='Falta la descripción o el link.'; status.style.color='#f87171'; return; }
+
+  status.textContent='Guardando...'; status.style.color='var(--muted)';
+  fetch(APPS_SCRIPT+'?action=agregarMaterialClase&idCA='+encodeURIComponent(caData.id)+
+    '&nivel='+encodeURIComponent(nivel)+'&descripcion='+encodeURIComponent(descripcion)+'&link='+encodeURIComponent(link),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        status.textContent='✅ Agregado';status.style.color='#4ade80';
+        document.getElementById('materialDescripcion').value='';
+        document.getElementById('materialLink').value='';
+        cargarMaterialCA();
+      } else {
+        status.textContent=data.error||'Error al guardar.';status.style.color='#f87171';
+      }
+    })
+    .catch(function(){ status.textContent='Error de conexión.';status.style.color='#f87171'; });
+}
+
+function eliminarMaterialUI(idItem){
+  if(!confirm('¿Borrar este material? Los maestros ya no podrán verlo.')) return;
+  fetch(APPS_SCRIPT+'?action=eliminarMaterialClase&idItem='+encodeURIComponent(idItem),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success) cargarMaterialCA();
+      else alert(data.error||'No se pudo borrar.');
+    })
+    .catch(function(){ alert('Error de conexión.'); });
 }
 
 // ── UTILS ──
