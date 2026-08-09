@@ -756,6 +756,14 @@ function actualizarEstadoFecha(fechaStr) {
     var cont = document.getElementById('listaMaterial');
     if (!grupoActual) { cont.innerHTML = '<div class="loading">Selecciona un grupo primero.</div>'; return; }
     var nivelGrupo = extraerNivelBase(grupoActual.nivel);
+
+    // Niveles academicos reales que este maestro da (A1, A2, etc.), segun
+    // TODOS sus grupos -- para distinguir "esto es de otro nivel mio" de
+    // "esto no es un nivel academico en absoluto" (como Chat Club, que
+    // no pertenece a ningun grupo especifico y debe verse siempre).
+    var misNiveles = {};
+    (panelData.grupos || []).forEach(function(g){ misNiveles[extraerNivelBase(g.nivel)] = true; });
+
     var visibles = materialData.filter(function(m){
       var nivelMat = String(m.nivel || '').trim().toUpperCase();
       // m.nivel ahora puede venir compuesto, ej. "A1 · ADULTS · BLOQUE 1"
@@ -763,7 +771,13 @@ function actualizarEstadoFecha(fechaStr) {
       // nivel de este grupo, sin importar la modalidad/bloque que traiga
       // despues.
       var nivelBaseMat = nivelMat.split('·')[0].trim();
-      return nivelMat === 'TODOS' || nivelBaseMat === nivelGrupo;
+      if (nivelMat === 'TODOS') return true;
+      if (nivelBaseMat === nivelGrupo) return true;
+      // Si ese "nivel" no corresponde a NINGUNO de mis grupos (ej. Chat
+      // Club), no es exclusivo de un grupo en particular -- se muestra
+      // sin importar cual grupo tenga abierto.
+      if (!misNiveles[nivelBaseMat]) return true;
+      return false;
     });
     if (!visibles.length) {
       cont.innerHTML = '<div class="loading">Aún no hay material subido para el nivel de este grupo.</div>';
