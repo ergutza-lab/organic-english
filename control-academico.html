@@ -259,6 +259,9 @@
       <button class="tab" onclick="switchTab('material')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Material de clases
       </button>
+      <button class="tab" onclick="switchTab('altaPersonal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>Alta de personal
+      </button>
     </div>
 
     <!-- TAB: MAESTROS (burbujas) -->
@@ -426,6 +429,92 @@
         <div id="grillaMaterialWrap" style="overflow-x:auto;overflow-y:auto;max-height:65vh;border-radius:8px;">
           <div class="empty-state">Selecciona un nivel arriba para ver sus lecciones.</div>
         </div>
+      </div>
+    </div>
+
+    <!-- TAB: ALTA DE PERSONAL (nuevo Maestro o Colocador, a prueba de errores) -->
+    <div id="tab-altaPersonal" class="tab-content">
+      <div class="card" style="max-width:640px;">
+        <div class="card-header"><span class="card-title">Registrar nuevo Maestro o Colocador</span></div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px;">El ID y la Clave se generan automáticamente — no los escribas tú, solo llena los datos de la persona.</p>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Tipo de alta *</label>
+          <div style="display:flex;gap:10px;">
+            <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;" id="labelTipoMAE">
+              <input type="radio" name="altaTipo" value="MAE" checked onchange="actualizarPreviewAlta()" style="width:auto;">
+              <span>👨‍🏫 Maestro <span style="color:var(--muted);font-size:11px;">(MAE-XX)</span></span>
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;" id="labelTipoCOL">
+              <input type="radio" name="altaTipo" value="COL" onchange="actualizarPreviewAlta()" style="width:auto;">
+              <span>📋 Colocador <span style="color:var(--muted);font-size:11px;">(COL-XX)</span></span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Primer nombre *</label>
+            <input type="text" id="altaPrimerNombre" oninput="actualizarPreviewAlta()" placeholder="Ej: María" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Segundo nombre</label>
+            <input type="text" id="altaSegundoNombre" oninput="actualizarPreviewAlta()" placeholder="Ej: José (opcional)" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Primer apellido *</label>
+            <input type="text" id="altaPrimerApellido" oninput="actualizarPreviewAlta()" placeholder="Ej: Martínez" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Segundo apellido <span id="labelSegApellidoReq" style="color:#fdba74;"></span></label>
+            <input type="text" id="altaSegundoApellido" oninput="actualizarPreviewAlta()" placeholder="Ej: Pérez" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin:6px 0 18px;">Si la persona <strong>no tiene segundo nombre</strong>, el segundo apellido pasa a ser obligatorio (se necesita para armar la clave).</p>
+
+        <div id="previewAlta" style="display:flex;gap:16px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:14px 16px;margin-bottom:20px;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">ID (se asigna al guardar)</div>
+            <div style="font-size:15px;font-weight:800;color:#60a5fa;" id="previewTipoTexto">MAE-XX</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Clave que se generará</div>
+            <div style="font-size:15px;font-weight:800;color:#4ade80;" id="previewClave">— — —</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">WhatsApp</label>
+            <input type="text" id="altaWhatsapp" placeholder="2721234567" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Email</label>
+            <input type="email" id="altaEmail" placeholder="correo@ejemplo.com" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Costo por clase</label>
+            <input type="number" id="altaCosto" value="90" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div></div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Info bancaria</label>
+            <input type="text" id="altaInfoBancaria" placeholder="Cuenta / CLABE" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Institución bancaria</label>
+            <input type="text" id="altaInstBancaria" placeholder="HSBC / Banamex..." style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+        </div>
+
+        <div style="background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#fde047;">
+          📸 <strong>No olvides pedirle su foto</strong> — debe enviarla directo a Coordinación IT para que la procesen en el sistema. Este formulario no sube fotos.
+        </div>
+
+        <button onclick="guardarAltaPersonal()" id="btnGuardarAlta" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">
+          ✅ Registrar
+        </button>
+        <div id="altaResultado" style="margin-top:14px;"></div>
       </div>
     </div>
 
@@ -1352,11 +1441,82 @@ function confirmarBaja(){
 
 // ── TABS ──
 function switchTab(nombre){
-  var nombres=['maestros','asistencia','semana','evaluacion','reporte','material'];
+  var nombres=['maestros','asistencia','semana','evaluacion','reporte','material','altaPersonal'];
   document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',nombres[i]===nombre);});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
   document.getElementById('tab-'+nombre).classList.add('active');
   if (nombre==='material') cargarNivelesMaterial();
+  if (nombre==='altaPersonal') actualizarPreviewAlta();
+}
+
+// ── ALTA DE PERSONAL (Maestro / Colocador) ──────────────────────────
+function _dosLetrasJS(texto){
+  var limpio = String(texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z]/g,'');
+  return limpio.substring(0,2).toUpperCase();
+}
+function actualizarPreviewAlta(){
+  var tipo = document.querySelector('input[name="altaTipo"]:checked').value;
+  document.getElementById('previewTipoTexto').textContent = (tipo==='COL'?'COL-XX':'MAE-XX');
+  document.getElementById('labelTipoMAE').style.borderColor = tipo==='MAE' ? 'var(--orange)' : 'var(--border)';
+  document.getElementById('labelTipoCOL').style.borderColor = tipo==='COL' ? 'var(--orange)' : 'var(--border)';
+
+  var pn = document.getElementById('altaPrimerNombre').value.trim();
+  var sn = document.getElementById('altaSegundoNombre').value.trim();
+  var pa = document.getElementById('altaPrimerApellido').value.trim();
+  var sa = document.getElementById('altaSegundoApellido').value.trim();
+
+  document.getElementById('labelSegApellidoReq').textContent = sn ? '' : '(obligatorio si no hay 2do nombre)';
+
+  var clave;
+  if (sn) { clave = _dosLetrasJS(pn)+_dosLetrasJS(sn)+_dosLetrasJS(pa); }
+  else if (sa) { clave = _dosLetrasJS(pn)+_dosLetrasJS(pa)+_dosLetrasJS(sa); }
+  else { clave = null; }
+
+  document.getElementById('previewClave').textContent = (clave && clave.length===6) ? clave : '— — —';
+}
+
+function guardarAltaPersonal(){
+  var tipo = document.querySelector('input[name="altaTipo"]:checked').value;
+  var pn = document.getElementById('altaPrimerNombre').value.trim();
+  var sn = document.getElementById('altaSegundoNombre').value.trim();
+  var pa = document.getElementById('altaPrimerApellido').value.trim();
+  var sa = document.getElementById('altaSegundoApellido').value.trim();
+  var resultado = document.getElementById('altaResultado');
+
+  if (!pn || !pa) { resultado.innerHTML='<div style="color:#f87171;font-size:13px;">⚠️ Falta el primer nombre o el primer apellido.</div>'; return; }
+  if (!sn && !sa) { resultado.innerHTML='<div style="color:#f87171;font-size:13px;">⚠️ Como no hay segundo nombre, el segundo apellido es obligatorio.</div>'; return; }
+
+  var btn = document.getElementById('btnGuardarAlta');
+  btn.disabled = true; btn.textContent='Guardando...';
+  resultado.innerHTML='';
+
+  fetch(APPS_SCRIPT+'?action=altaPersonalCA'+
+    '&tipo='+encodeURIComponent(tipo)+
+    '&primerNombre='+encodeURIComponent(pn)+
+    '&segundoNombre='+encodeURIComponent(sn)+
+    '&primerApellido='+encodeURIComponent(pa)+
+    '&segundoApellido='+encodeURIComponent(sa)+
+    '&whatsapp='+encodeURIComponent(document.getElementById('altaWhatsapp').value.trim())+
+    '&email='+encodeURIComponent(document.getElementById('altaEmail').value.trim())+
+    '&costo='+encodeURIComponent(document.getElementById('altaCosto').value.trim())+
+    '&infoBancaria='+encodeURIComponent(document.getElementById('altaInfoBancaria').value.trim())+
+    '&instBancaria='+encodeURIComponent(document.getElementById('altaInstBancaria').value.trim()),
+    {redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      btn.disabled=false; btn.textContent='✅ Registrar';
+      if (!data.success){ resultado.innerHTML='<div style="color:#f87171;font-size:13px;">❌ '+(data.error||'Error al guardar.')+'</div>'; return; }
+      resultado.innerHTML='<div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:10px;padding:14px;font-size:13px;color:#4ade80;">'+
+        '✅ <strong>'+data.nombre+'</strong> registrado correctamente.<br>'+
+        'ID: <strong>'+data.id+'</strong> · Clave: <strong>'+data.clave+'</strong><br>'+
+        '<span style="color:var(--muted);">Recuerda avisarle sus credenciales y pedirle su foto para Coordinación IT.</span>'+
+      '</div>';
+      // limpiar el formulario para la siguiente alta
+      ['altaPrimerNombre','altaSegundoNombre','altaPrimerApellido','altaSegundoApellido','altaWhatsapp','altaEmail','altaInfoBancaria','altaInstBancaria'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('altaCosto').value='90';
+      actualizarPreviewAlta();
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent='✅ Registrar'; resultado.innerHTML='<div style="color:#f87171;font-size:13px;">Error de conexión.</div>'; });
 }
 
 // ── MATERIAL DE CLASES v2: cuadricula por nivel (lecciones x maestros) ──
