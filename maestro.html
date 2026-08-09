@@ -212,8 +212,20 @@
 
     <!-- VISTA GRUPOS -->
     <div id="vistaGrupos">
+      <button onclick="abrirMiMaterial()" style="width:100%;margin-bottom:14px;background:rgba(249,115,22,0.12);color:#fdba74;border:1px solid rgba(249,115,22,0.35);border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        📚 Mi Material
+      </button>
       <div class="seccion-titulo">Mis grupos</div>
       <div id="listaGrupos"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <!-- VISTA MI MATERIAL (no depende de tener un grupo abierto -- aqui
+         entra todo lo que Coordinacion Academica le haya activado,
+         incluyendo cosas como Chat Club que no son un grupo academico) -->
+    <div id="vistaMiMaterial" style="display:none;">
+      <button class="back-btn" onclick="volverGruposDesdeMiMaterial()">← Mis grupos</button>
+      <div class="seccion-titulo">📚 Mi Material</div>
+      <div id="listaMiMaterial"><div class="loading">Cargando...</div></div>
     </div>
 
     <!-- VISTA CHAT CLUB (grupo sin evaluacion, solo sube su link de Zoom) -->
@@ -549,6 +561,33 @@ function volverGruposDesdeClub() {
   document.getElementById('vistaClub').style.display='none';
   document.getElementById('vistaGrupos').style.display='block';
   grupoActual=null;
+}
+
+// "Mi Material" -- entrada independiente de tener un grupo abierto, para
+// que material que no esta ligado a un grupo academico (como Chat Club)
+// siempre sea alcanzable, incluso si el maestro no tiene ningun grupo
+// asignado todavia.
+function abrirMiMaterial() {
+  document.getElementById('vistaGrupos').style.display='none';
+  document.getElementById('vistaMiMaterial').style.display='block';
+  renderMiMaterialGlobal();
+}
+function volverGruposDesdeMiMaterial() {
+  document.getElementById('vistaMiMaterial').style.display='none';
+  document.getElementById('vistaGrupos').style.display='block';
+}
+function renderMiMaterialGlobal() {
+  var cont = document.getElementById('listaMiMaterial');
+  if (!materialData || !materialData.length) {
+    cont.innerHTML = '<div class="loading">Aún no tienes material asignado. Cuando Coordinación Académica te active alguna lección, aparecerá aquí.</div>';
+    return;
+  }
+  cont.innerHTML = materialData.map(function(m){
+    return '<a href="'+m.link+'" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:inherit;">'+
+      '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:var(--gris2);margin-top:2px;">'+m.nivel+'</div></div>'+
+      '<div style="font-size:12px;font-weight:700;color:#f97316;white-space:nowrap;">▶️ Ver clase</div>'+
+    '</a>';
+  }).join('');
 }
 function guardarLinkClub() {
   var link = document.getElementById('inputLinkClub').value.trim();
