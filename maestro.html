@@ -270,6 +270,7 @@
         <div class="tab active" id="tabRegistro"  onclick="cambiarTab('Registro')">Registro del día</div>
         <div class="tab"        id="tabMapa"      onclick="cambiarTab('Mapa')">Evaluación del grupo</div>
         <div class="tab"        id="tabChallenge" onclick="cambiarTab('Challenge')">Challenges</div>
+        <div class="tab"        id="tabMaterial"  onclick="cambiarTab('Material')">📚 Material</div>
       </div>
 
       <!-- TAB REGISTRO -->
@@ -329,6 +330,14 @@
         <div id="listaChallenges"></div>
         </div>
 
+    <!-- TAB MATERIAL DE CLASES -->
+      <div id="contenidoMaterial" style="display:none;">
+        <div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#fdba74;">
+          <strong>📚 Material para esta clase:</strong> documentos y clases que Coordinación Académica subió para el nivel de este grupo. Toca cualquiera para abrirlo o descargarlo desde Drive.
+        </div>
+        <div id="listaMaterial"><div class="loading">Cargando material...</div></div>
+      </div>
+
 <div class="toast" id="toast"></div>
 </div><!-- cierre de #vistaDetalle -->
 
@@ -336,6 +345,7 @@
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
   var maestroData = null;
+  var materialData = [];
   var panelData   = null;
   var grupoActual = null;
   var bloqueActualChallenge = 1;
@@ -401,6 +411,14 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
         else mostrarToast('Error al cargar datos','error');
       })
       .catch(()=>mostrarToast('Error de conexión','error'));
+
+    // Material de clases (links de Drive subidos por Coordinacion
+    // Academica) -- se carga una sola vez al entrar; luego se filtra
+    // en el navegador segun el nivel del grupo que se tenga abierto.
+    fetch(APPS_SCRIPT+'?action=getMaterialClasesMaestro&idMaestro='+encodeURIComponent(maestroData.id))
+      .then(r=>r.json())
+      .then(function(data){ materialData = (data.success && data.material) ? data.material : []; })
+      .catch(function(){ materialData = []; });
   }
 
   // ── JUSTIFICANTES DE FALTA POR FUERZA MAYOR ───────────────────────
@@ -709,7 +727,7 @@ function actualizarEstadoFecha(fechaStr) {
 
   // ── TABS ───────────────────────────────────────────────────────────
   function cambiarTab(tab) {
-    ['Registro','Mapa','Challenge'].forEach(function(t){
+    ['Registro','Mapa','Challenge','Material'].forEach(function(t){
       document.getElementById('tab'+t).classList.toggle('active',t===tab);
       document.getElementById('contenido'+t).style.display=t===tab?'block':'none';
     });
@@ -722,6 +740,36 @@ function actualizarEstadoFecha(fechaStr) {
         .then(function(d){ _linksVideo = d.links || {}; renderChallenge(); })
         .catch(function(){ renderChallenge(); });
     }
+    if (tab==='Material')  renderMaterial();
+  }
+
+  // Extrae el nivel "base" de un texto como "NIVEL A1-Bloque 1" -> "A1", o
+  // "NIVEL A1.1" -> "A1.1" -- misma logica que usa el backend, para que el
+  // material coincida con el grupo abierto sin importar el formato exacto.
+  function extraerNivelBase(nivelCompleto) {
+    var texto = String(nivelCompleto || '').trim();
+    var m = texto.match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
+    return (m ? m[1] : texto).trim().toUpperCase();
+  }
+
+  function renderMaterial() {
+    var cont = document.getElementById('listaMaterial');
+    if (!grupoActual) { cont.innerHTML = '<div class="loading">Selecciona un grupo primero.</div>'; return; }
+    var nivelGrupo = extraerNivelBase(grupoActual.nivel);
+    var visibles = materialData.filter(function(m){
+      var nivelMat = String(m.nivel || '').trim().toUpperCase();
+      return nivelMat === 'TODOS' || nivelMat === nivelGrupo;
+    });
+    if (!visibles.length) {
+      cont.innerHTML = '<div class="loading">Aún no hay material subido para el nivel de este grupo.</div>';
+      return;
+    }
+    cont.innerHTML = visibles.map(function(m){
+      return '<a href="'+m.link+'" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:inherit;">'+
+        '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:var(--gris2);margin-top:2px;">Nivel: '+m.nivel+'</div></div>'+
+        '<div style="font-size:12px;font-weight:700;color:#f97316;white-space:nowrap;">⬇️ Abrir</div>'+
+      '</a>';
+    }).join('');
   }
 
   // ── REGISTRO DIARIO ────────────────────────────────────────────────
