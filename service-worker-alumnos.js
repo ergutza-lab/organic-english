@@ -135,6 +135,17 @@ function paginaSinConexion() {
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
 
+  // Las llamadas al backend (Google Apps Script) NUNCA deben pasar por
+  // el limite de tiempo ni el cache de este service worker -- son datos
+  // en vivo (JSON), no paginas. Si se les aplica el mismo manejo que a
+  // las paginas del sitio, un timeout puede terminar entregando la
+  // pagina "Sin conexion" (HTML) como si fuera la respuesta de la API,
+  // rompiendo cualquier fetch() que este esperando JSON real.
+  var urlPeticion = new URL(event.request.url);
+  if (urlPeticion.hostname === 'script.google.com' || urlPeticion.hostname === 'script.googleusercontent.com') {
+    return; // se deja pasar tal cual, sin interceptar
+  }
+
   event.respondWith(
     fetchConLimiteDeTiempo(event.request, TIEMPO_MAXIMO_ESPERA_MS)
       .then(function (response) {
