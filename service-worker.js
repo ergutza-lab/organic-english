@@ -47,7 +47,7 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 // ═══ PWA: cache + instalacion (lo que ya teniamos) ═══
-const CACHE_NAME = 'oe-app-v3';
+const CACHE_NAME = 'oe-app-v1.1';
 const APP_SHELL = [
   'staff.html'
 ];
