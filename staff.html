@@ -257,6 +257,15 @@
 </head>
 <body>
 
+<!-- ═══ Aviso de actualización disponible: aparece solo cuando el
+     service worker detecta una version nueva y ya toma el control --
+     con un toque, recarga la pagina para aplicarla de inmediato, sin
+     esperar a que el navegador la revise solo (puede tardar hasta 24h). ═══ -->
+<div id="avisoActualizacionOE" style="display:none;position:fixed;top:16px;left:16px;right:16px;z-index:9999;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,0.4);align-items:center;justify-content:space-between;gap:12px;">
+  <span style="font-size:13px;font-weight:600;">🔄 Hay una versión nueva disponible</span>
+  <button onclick="location.reload()" style="background:#fff;color:#ea580c;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;">Actualizar</button>
+</div>
+
 <!-- ═══ Pantalla de bienvenida (splash propio, con efecto de carga) ═══ -->
 <style>
 @keyframes llenarFlorOE {
@@ -354,7 +363,7 @@
         </a>
       </div>
 
-      <div class="form-footer">© 2026 Organic English · Uso exclusivo del personal</div>
+      <div class="form-footer">© 2026 Organic English · Uso exclusivo del personal · v1.1</div>
     </div>
   </div>
 </div>
@@ -514,9 +523,17 @@ window.addEventListener('appinstalled', function () {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
+    var yaHabiaControlador = !!navigator.serviceWorker.controller;
+
     navigator.serviceWorker.register('service-worker.js')
-      .then(function (reg) { console.log('Service worker registrado:', reg.scope); })
+      .then(function (reg) { console.log('Service worker registrado (v1.1):', reg.scope); })
       .catch(function (err) { console.log('No se pudo registrar el service worker:', err); });
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!yaHabiaControlador) { yaHabiaControlador = true; return; }
+      var aviso = document.getElementById('avisoActualizacionOE');
+      if (aviso) aviso.style.display = 'flex';
+    });
   });
 }
 </script>
