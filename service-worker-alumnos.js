@@ -51,7 +51,7 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 // ═══ PWA: cache + instalacion (lo que ya teniamos) ═══
-const CACHE_NAME = 'oe-alumno-v2';
+const CACHE_NAME = 'oe-alumno-v1.1';
 const APP_SHELL = [
   'alumno-app.html'
 ];
