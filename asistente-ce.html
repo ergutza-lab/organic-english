@@ -552,7 +552,7 @@ function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
 
 let asistente=null,datosPanel=null;
-let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null;
+let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null,pagoActivoFila=null;
 let pagoActivoCoberturaInicio=null,pagoActivoCoberturaFin=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null,gruposCompartirCambio=[];
 
@@ -889,13 +889,13 @@ function renderPagos(){
         </div>
       </div>
       <div class="pago-meta">Enviado el ${p.fecha_pago} · Grupo: ${p.grupo}</div>
-      <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}')">
+      <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila})">
         <div class="comp-icon">${tipoIcon}</div>
         <div class="comp-info"><div class="comp-nombre">${p.comprobante_url?'Comprobante adjunto':'Sin comprobante'}</div><div class="comp-tipo">${tipoLabel}</div></div>
         <span class="comp-ver">${p.comprobante_url?'Ver →':''}</span>
       </div>
       <div class="pago-actions">
-        <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}')">Ver y validar</button>
+        <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila})">Ver y validar</button>
       </div>
     </div>`;
   }).join('');
@@ -1380,8 +1380,8 @@ function calRender(containerId){
   cont.innerHTML = html;
 }
 
-function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
-  pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;
+function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila){
+  pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;pagoActivoFila=fila;
   document.getElementById('input-monto-validar').value=monto>0?monto:'';
   document.getElementById('modal-alumno-info').innerHTML=`
     <div class="row"><span>Alumno</span><span>${nombre} (${idAlumno})</span></div>
@@ -1403,7 +1403,7 @@ function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl){
 function cerrarModalComp(){
   document.getElementById('modal-comprobante').classList.remove('open');
   document.body.style.overflow='';
-  pagoActivoId=null;pagoActivoFecha=null;
+  pagoActivoId=null;pagoActivoFecha=null;pagoActivoFila=null;
 }
 
 async function validarDesdeModal(){
@@ -1422,7 +1422,33 @@ async function validarDesdeModal(){
   cerrarModalComp();
 }
 
-function rechazarDesdeModal(){mostrarToast('Funcionalidad de rechazo próximamente','error');cerrarModalComp();}
+async function rechazarDesdeModal(){
+  if(!pagoActivoId)return;
+  if(!pagoActivoFila){
+    mostrarToast('No se pudo identificar la fila exacta del comprobante. Cierra y vuelve a abrir el panel.','error');
+    return;
+  }
+  if(!confirm('¿Seguro que quieres rechazar este comprobante?\n\nSe eliminará el registro de pago pendiente y el alumno deberá volver a enviarlo.')) return;
+  const motivo = prompt('Motivo del rechazo (opcional, se puede dejar en blanco):','') || '';
+  await rechazarPago(pagoActivoId,pagoActivoFila,motivo);
+  cerrarModalComp();
+}
+
+async function rechazarPago(idAlumno,fila,motivo){
+  try{
+    let url=`${APPS_SCRIPT}?action=rechazarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fila=${encodeURIComponent(fila)}&idAsistente=${encodeURIComponent(asistente.id)}&motivo=${encodeURIComponent(motivo||'')}`;
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.status==='ok'){
+      mostrarToast('✗ Comprobante rechazado','success');
+      await cargarDatos();
+    } else {
+      mostrarToast(data.mensaje||'Error al rechazar el pago','error');
+    }
+  }catch(e){
+    mostrarToast('Error de conexión','error');
+  }
+}
 
 async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin){
   try{
@@ -2079,19 +2105,10 @@ function generarReportePDF(idGrupo) {
      justo antes de </body>
      ═══════════════════════════════════════════════════ -->
 
-<!-- ═══ Menu flotante colapsable: un solo boton "..." que se expande al
-     tocarlo, en vez de 3 botones siempre encima del contenido ═══ -->
+<!-- ═══ Botones flotantes (Notificaciones, Agenda, Horario) -- apilados en columna ═══ -->
 <style>
-@keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
-#btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
-.fab-flotante-oe{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
-.fab-menu-oe{
-  display:flex;flex-direction:column;align-items:flex-end;gap:10px;
-  opacity:0;transform:translateY(12px) scale(0.96);pointer-events:none;
-  transition:opacity 0.18s ease,transform 0.18s ease;
-}
-.fab-menu-oe.abierto{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
-.fab-menu-oe button{
+.botones-flotantes-oe{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.botones-flotantes-oe button{
   background:#1c2b5e;color:#fff;
   border:1px solid rgba(255,255,255,0.15);
   border-radius:100px;padding:12px 20px;
@@ -2101,21 +2118,9 @@ function generarReportePDF(idGrupo) {
   font-family:'Segoe UI',Arial,sans-serif;
   white-space:nowrap;
 }
-.fab-toggle-oe{
-  width:52px;height:52px;border-radius:50%;
-  background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);
-  font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;justify-content:center;position:relative;
-  transition:transform 0.2s ease;flex-shrink:0;
-}
-.fab-toggle-oe.abierto{transform:rotate(45deg);}
-.fab-dot-oe{display:none;position:absolute;top:2px;right:2px;width:12px;height:12px;
-  background:#dc2626;border-radius:50%;box-shadow:0 0 0 2px #0f1c3f;}
-.fab-dot-oe.visible{display:block;}
 </style>
-<div class="fab-flotante-oe">
-  <div class="fab-menu-oe" id="fabMenuOE">
-<button id="btnNotificaciones" onclick="activarNotificacionesOE()" style="background:#0f172a;">🔔 Activar notificaciones</button>
+<div class="botones-flotantes-oe">
+  <button id="btnNotificaciones" onclick="activarNotificacionesOE()" style="background:#0f172a;">🔔 Activar notificaciones</button>
   <button id="btnAgenda" onclick="abrirAgenda()" style="background:#7c3aed;position:relative;">
     📌 Agenda
     <span id="agendaBadge" style="
@@ -2126,47 +2131,8 @@ function generarReportePDF(idGrupo) {
       box-shadow:0 0 0 2px #0f1c3f;"></span>
   </button>
   <button onclick="abrirHorario()">📅 Horario</button>
-  </div>
-  <button class="fab-toggle-oe" id="fabToggleOE" onclick="toggleFabMenuOE()" aria-label="Más opciones">
-    <span id="fabToggleIcon">☰</span>
-    <span class="fab-dot-oe" id="fabDotOE"></span>
-  </button>
 </div>
-<script>
-function toggleFabMenuOE() {
-  var menu = document.getElementById('fabMenuOE');
-  var toggle = document.getElementById('fabToggleOE');
-  var icono = document.getElementById('fabToggleIcon');
-  var abierto = menu.classList.toggle('abierto');
-  toggle.classList.toggle('abierto', abierto);
-  if (icono) icono.textContent = abierto ? '✕' : '☰';
-}
-document.addEventListener('click', function (e) {
-  var cont = document.querySelector('.fab-flotante-oe');
-  var menu = document.getElementById('fabMenuOE');
-  if (!cont || !menu) return;
-  if (!cont.contains(e.target) && menu.classList.contains('abierto')) {
-    menu.classList.remove('abierto');
-    document.getElementById('fabToggleOE').classList.remove('abierto');
-    var icono = document.getElementById('fabToggleIcon');
-    if (icono) icono.textContent = '☰';
-  }
-});
-// Refleja el aviso de Agenda pendiente (si existe) tambien en el punto
-// rojo del boton principal, para saber que hay algo sin tener que abrir
-// el menu.
-(function () {
-  var badge = document.getElementById('agendaBadge');
-  var dot = document.getElementById('fabDotOE');
-  if (!badge || !dot) return;
-  function sync() {
-    var visible = badge.style.display !== 'none' && badge.style.display !== '';
-    dot.classList.toggle('visible', visible);
-  }
-  sync();
-  new MutationObserver(sync).observe(badge, { attributes: true, attributeFilter: ['style'] });
-})();
-</script>
+
 <!-- Overlay con iframe -->
 <div id="horarioOverlay" style="
   display:none;position:fixed;inset:0;z-index:999;
@@ -2219,38 +2185,8 @@ document.getElementById('horarioOverlay').addEventListener('click', function(e) 
 <style>
 @keyframes parpadeoAgenda{0%,100%{box-shadow:0 4px 20px rgba(0,0,0,0.35);}50%{box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 6px rgba(250,204,21,0.75);}}
 #btnAgenda.parpadea{animation:parpadeoAgenda 1.2s ease-in-out infinite;}
-
-/* ═══ Menu flotante colapsable: un solo boton "..." que se expande al
-     tocarlo, en vez de 3 botones siempre encima del contenido ═══ */
-.fab-flotante-oe{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
-.fab-menu-oe{
-  display:flex;flex-direction:column;align-items:flex-end;gap:10px;
-  opacity:0;transform:translateY(12px) scale(0.96);pointer-events:none;
-  transition:opacity 0.18s ease,transform 0.18s ease;
-}
-.fab-menu-oe.abierto{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
-.fab-menu-oe button{
-  background:#1c2b5e;color:#fff;
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:100px;padding:12px 20px;
-  font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:8px;
-  font-family:'Segoe UI',Arial,sans-serif;
-  white-space:nowrap;
-}
-.fab-toggle-oe{
-  width:52px;height:52px;border-radius:50%;
-  background:#1c2b5e;color:#fff;border:1px solid rgba(255,255,255,0.15);
-  font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.35);
-  display:flex;align-items:center;justify-content:center;position:relative;
-  transition:transform 0.2s ease;flex-shrink:0;
-}
-.fab-toggle-oe.abierto{transform:rotate(45deg);}
-.fab-dot-oe{display:none;position:absolute;top:2px;right:2px;width:12px;height:12px;
-  background:#dc2626;border-radius:50%;box-shadow:0 0 0 2px #0f1c3f;}
-.fab-dot-oe.visible{display:block;}
 </style>
+
 <!-- Overlay con iframe -->
 <div id="agendaOverlay" style="
   display:none;position:fixed;inset:0;z-index:999;
