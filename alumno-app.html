@@ -17,7 +17,12 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+<!-- Carga NO BLOQUEANTE de la fuente: si Google Fonts tarda o falla en
+     redes como Telcel, esto ya NO detiene el resto del JavaScript de la
+     pagina (antes, una fuente externa lenta congelaba TODO el script,
+     incluyendo el splash de 5s, dejando la app pegada en el logo). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap"></noscript>
 <style>
   :root { --color-nivel: #1e3a6e; --color-nivel-suave: rgba(30,58,110,0.18); --color-nivel-borde: rgba(30,58,110,0.45); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -748,6 +753,15 @@
 </head>
 <body>
 
+<!-- ═══ Aviso de actualización disponible: aparece solo cuando el
+     service worker detecta una version nueva y ya toma el control --
+     con un toque, recarga la pagina para aplicarla de inmediato, sin
+     esperar a que el navegador la revise solo (puede tardar hasta 24h). ═══ -->
+<div id="avisoActualizacionOE" style="display:none;position:fixed;top:16px;left:16px;right:16px;z-index:9999;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,0.4);align-items:center;justify-content:space-between;gap:12px;">
+  <span style="font-size:13px;font-weight:600;">🔄 Hay una versión nueva disponible</span>
+  <button onclick="location.reload()" style="background:#fff;color:#ea580c;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;">Actualizar</button>
+</div>
+
 <!-- ═══ SPLASH DE BIENVENIDA: se ve 5 segundos cada vez que se abre la app,
      ya sea instalada o desde el navegador. Es lo primero que ve el alumno,
      antes del login. ═══ -->
@@ -795,6 +809,7 @@
       <div id="avisoIOS" style="display:none;width:100%;margin-top:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 16px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
         📱 Para instalar la app: toca el ícono de <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) y luego <strong>"Agregar a inicio"</strong>.
       </div>
+      <div style="text-align:center;margin-top:14px;font-size:10px;color:#475569;">v<span id="versionVisible">1.1</span></div>
     </div>
   </div>
 </div>
@@ -1302,6 +1317,7 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+  const APP_VERSION = '1.1';
 
   // ── INTERRUPTOR: cambio de grupo por el propio alumno ──────────────────
   // Se desactivó a petición de dirección: ahora solo el asistente CE puede
@@ -7650,9 +7666,21 @@ window.addEventListener('appinstalled', function () {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
+    // Si ya habia un service worker controlando esta pestaña antes de
+    // registrar, cualquier cambio de controlador despues de esto es una
+    // ACTUALIZACION de verdad (no la primera instalacion) -- solo en
+    // ese caso mostramos el aviso para recargar.
+    var yaHabiaControlador = !!navigator.serviceWorker.controller;
+
     navigator.serviceWorker.register('service-worker-alumnos.js')
-      .then(function (reg) { console.log('Service worker de alumnos registrado:', reg.scope); })
+      .then(function (reg) { console.log('Service worker de alumnos registrado (v' + APP_VERSION + '):', reg.scope); })
       .catch(function (err) { console.log('No se pudo registrar el service worker:', err); });
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!yaHabiaControlador) { yaHabiaControlador = true; return; }
+      var aviso = document.getElementById('avisoActualizacionOE');
+      if (aviso) aviso.style.display = 'flex';
+    });
   });
 }
 </script>
