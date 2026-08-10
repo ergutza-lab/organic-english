@@ -1612,8 +1612,19 @@ function cargarGrillaMaterial(){
 
   wrap.innerHTML='<div class="empty-state">Cargando...</div>';
   fetch(APPS_SCRIPT+'?action=getGrillaMaterialCA&nivel='+encodeURIComponent(rutaHoja),{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(data){
+    .then(function(r){return r.text();})
+    .then(function(textoCrudo){
+      var data;
+      try {
+        data = JSON.parse(textoCrudo);
+      } catch (e) {
+        console.error('El servidor NO devolvió JSON. Respuesta cruda:', textoCrudo);
+        wrap.innerHTML='<div class="empty-state" style="text-align:left;white-space:pre-wrap;font-family:monospace;font-size:11px;">'+
+          '⚠️ El servidor devolvió algo inesperado en vez de los datos:<br><br>'+
+          textoCrudo.substring(0,600).replace(/</g,'&lt;').replace(/>/g,'&gt;')+
+        '</div>';
+        return;
+      }
       if(!data.success){ wrap.innerHTML='<div class="empty-state">'+(data.error||'Error al cargar.')+'</div>'; return; }
       if(!data.lecciones.length){ wrap.innerHTML='<div class="empty-state">No hay lecciones subidas todavía para '+etiqueta+'.</div>'; return; }
       if(!data.maestros.length){ wrap.innerHTML='<div class="empty-state">Ningún maestro tiene grupos de ese nivel asignados todavía.</div>'; return; }
