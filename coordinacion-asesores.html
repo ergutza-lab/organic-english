@@ -196,6 +196,7 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
     <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid rgba(255,255,255,0.07);padding-bottom:0;">
       <button id="tabGruposBtn" onclick="cambiarTab('grupos')" style="padding:10px 20px;border:none;background:none;color:#f97316;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid #f97316;margin-bottom:-2px;">📅 Grupos</button>
       <button id="tabAsesoresBtn" onclick="cambiarTab('asesores')" style="padding:10px 20px;border:none;background:none;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;">👥 Asesores</button>
+      <button id="tabAltaAsesorBtn" onclick="cambiarTab('altaAsesor')" style="padding:10px 20px;border:none;background:none;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;">➕ Alta de asesor</button>
     </div>
 
     <!-- SECCION GRUPOS -->
@@ -239,6 +240,78 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
         <button onclick="abrirHistoricoComisionesTodos()" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.35);color:#fb923c;border-radius:100px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📊 Histórico de comisiones</button>
       </div>
       <div id="listaAsesores"><div style="text-align:center;color:#64748b;padding:40px;">Cargando asesores...</div></div>
+    </div>
+
+    <!-- SECCION ALTA DE ASESOR (a prueba de errores: ID y Clave se generan solos) -->
+    <div id="secAltaAsesor" style="display:none;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.4rem;max-width:640px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Registrar nuevo Asesor</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px;">El ID y la Clave se generan automáticamente — no los escribas tú, solo llena los datos de la persona.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Primer nombre *</label>
+            <input type="text" id="altaAsePrimerNombre" oninput="actualizarPreviewAltaAsesor()" placeholder="Ej: Laura" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Segundo nombre</label>
+            <input type="text" id="altaAseSegundoNombre" oninput="actualizarPreviewAltaAsesor()" placeholder="Ej: Patricia (opcional)" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Primer apellido *</label>
+            <input type="text" id="altaAsePrimerApellido" oninput="actualizarPreviewAltaAsesor()" placeholder="Ej: Gómez" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Segundo apellido <span id="altaAseLabelSegApellidoReq" style="color:#fdba74;"></span></label>
+            <input type="text" id="altaAseSegundoApellido" oninput="actualizarPreviewAltaAsesor()" placeholder="Ej: Ruiz" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin:6px 0 18px;">Si la persona <strong>no tiene segundo nombre</strong>, el segundo apellido pasa a ser obligatorio (se necesita para armar la clave).</p>
+
+        <div style="display:flex;gap:16px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:14px 16px;margin-bottom:20px;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">ID (se asigna al guardar)</div>
+            <div style="font-size:15px;font-weight:800;color:#60a5fa;" id="altaAsePreviewId">ASE-XX</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Clave que se generará</div>
+            <div style="font-size:15px;font-weight:800;color:#4ade80;" id="altaAsePreviewClave">— — —</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">WhatsApp</label>
+            <input type="text" id="altaAseWhatsapp" placeholder="2721234567" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Email</label>
+            <input type="email" id="altaAseEmail" placeholder="correo@ejemplo.com" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Comisión</label>
+            <input type="number" id="altaAseComision" value="100" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div></div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Info bancaria</label>
+            <input type="text" id="altaAseInfoBancaria" placeholder="Cuenta / CLABE" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Institución bancaria</label>
+            <input type="text" id="altaAseInstBancaria" placeholder="HSBC / Banamex..." style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+          </div>
+        </div>
+
+        <div style="background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#fde047;">
+          📸 <strong>No olvides pedirle su foto</strong> — debe enviarla directo a Coordinación IT para que la procesen en el sistema. Este formulario no sube fotos.
+        </div>
+
+        <button onclick="guardarAltaAsesor()" id="btnGuardarAltaAsesor" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">
+          ✅ Registrar
+        </button>
+        <div id="altaAseResultado" style="margin-top:14px;"></div>
+      </div>
     </div>
 
   </div><!-- /panel-root -->
@@ -894,10 +967,135 @@ function generarReporteFiltrado(){
 function cambiarTab(tab) {
   document.getElementById('secGrupos').style.display   = tab==='grupos'   ? '' : 'none';
   document.getElementById('secAsesores').style.display = tab==='asesores' ? '' : 'none';
+  document.getElementById('secAltaAsesor').style.display = tab==='altaAsesor' ? '' : 'none';
   document.getElementById('tabGruposBtn').style.color        = tab==='grupos'   ? '#f97316' : '#64748b';
   document.getElementById('tabGruposBtn').style.borderBottomColor   = tab==='grupos'   ? '#f97316' : 'transparent';
   document.getElementById('tabAsesoresBtn').style.color      = tab==='asesores' ? '#f97316' : '#64748b';
   document.getElementById('tabAsesoresBtn').style.borderBottomColor = tab==='asesores' ? '#f97316' : 'transparent';
+  document.getElementById('tabAltaAsesorBtn').style.color      = tab==='altaAsesor' ? '#f97316' : '#64748b';
+  document.getElementById('tabAltaAsesorBtn').style.borderBottomColor = tab==='altaAsesor' ? '#f97316' : 'transparent';
+  if (tab==='altaAsesor') actualizarPreviewAltaAsesor();
+}
+
+// ── ALTA DE ASESOR ───────────────────────────────────────────────────────
+var _siguienteIdAsesorCache = null;
+
+function _dosLetrasJS_ase(texto){
+  var limpio = String(texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z]/g,'');
+  return limpio.substring(0,2).toUpperCase();
+}
+
+function actualizarPreviewAltaAsesor(){
+  if (_siguienteIdAsesorCache) {
+    document.getElementById('altaAsePreviewId').textContent = _siguienteIdAsesorCache;
+  } else {
+    document.getElementById('altaAsePreviewId').textContent = 'Calculando...';
+    fetch(AGENDA_APPS_SCRIPT+'?action=getSiguienteIdAsesor',{redirect:'follow'})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if (data.success) {
+          _siguienteIdAsesorCache = data.siguienteId;
+          document.getElementById('altaAsePreviewId').textContent = data.siguienteId;
+        } else {
+          document.getElementById('altaAsePreviewId').textContent = 'ASE-XX';
+        }
+      })
+      .catch(function(){ document.getElementById('altaAsePreviewId').textContent = 'ASE-XX'; });
+  }
+
+  var pn = document.getElementById('altaAsePrimerNombre').value.trim();
+  var sn = document.getElementById('altaAseSegundoNombre').value.trim();
+  var pa = document.getElementById('altaAsePrimerApellido').value.trim();
+  var sa = document.getElementById('altaAseSegundoApellido').value.trim();
+
+  document.getElementById('altaAseLabelSegApellidoReq').textContent = sn ? '' : '(obligatorio si no hay 2do nombre)';
+
+  var clave;
+  if (sn) { clave = _dosLetrasJS_ase(pn)+_dosLetrasJS_ase(sn)+_dosLetrasJS_ase(pa); }
+  else if (sa) { clave = _dosLetrasJS_ase(pn)+_dosLetrasJS_ase(pa)+_dosLetrasJS_ase(sa); }
+  else { clave = null; }
+
+  document.getElementById('altaAsePreviewClave').textContent = (clave && clave.length===6) ? clave : '— — —';
+}
+
+// Escapa tanto comillas simples (delimitador del string de JS) como
+// comillas dobles (delimitador del atributo HTML onclick) -- asi un
+// nombre con cualquiera de las dos nunca puede romper el codigo.
+function escAttrJS_ase(s){
+  return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+
+function construirMensajeBienvenidaAsesor(nombre, id, clave){
+  return 'Hola ' + nombre + '.' +
+    '%0A%0ASoy de Coordinación de Ventas de Organic English.' +
+    '%0A%0ATe informo que ya estás dado de alta en el sistema.' +
+    '%0A%0A*Paso 1 — Instala la app Organic English:*' +
+    '%0A📍 Enlace: https://organicenglish1.com/staff.html' +
+    '%0AÁbrelo desde tu computadora, tablet o celular y toca el botón "Instalar" que aparece en pantalla (o el ícono de instalar en la barra de direcciones si usas computadora).' +
+    '%0A%0A*Paso 2 — Entra a tu panel:*' +
+    '%0AUna vez dentro de Organic English, toca el botón *"Asesores de Ventas"* e inicia sesión con tus credenciales:' +
+    '%0A👤 Usuario: ' + id +
+    '%0A🔐 Contraseña: ' + clave +
+    '%0A%0AYo, como Coordinador de Ventas, seré quien te instruya en el uso de la plataforma — me pondré en contacto contigo para eso.' +
+    '%0A%0ACualquier duda, estoy para orientarte.' +
+    '%0A%0ASaludos cordiales.';
+}
+
+function notificarNuevoAsesorWA(nombre, id, clave, whatsapp){
+  var msg = construirMensajeBienvenidaAsesor(nombre, id, clave);
+  var limpio = String(whatsapp).replace(/\D/g,'');
+  window.open('https://wa.me/'+limpio+'?text='+msg, '_blank');
+}
+
+function guardarAltaAsesor(){
+  var pn = document.getElementById('altaAsePrimerNombre').value.trim();
+  var sn = document.getElementById('altaAseSegundoNombre').value.trim();
+  var pa = document.getElementById('altaAsePrimerApellido').value.trim();
+  var sa = document.getElementById('altaAseSegundoApellido').value.trim();
+  var whatsapp = document.getElementById('altaAseWhatsapp').value.trim();
+  var resultado = document.getElementById('altaAseResultado');
+
+  if (!pn || !pa) { resultado.innerHTML='<div style="color:#f87171;font-size:13px;">⚠️ Falta el primer nombre o el primer apellido.</div>'; return; }
+  if (!sn && !sa) { resultado.innerHTML='<div style="color:#f87171;font-size:13px;">⚠️ Como no hay segundo nombre, el segundo apellido es obligatorio.</div>'; return; }
+
+  var btn = document.getElementById('btnGuardarAltaAsesor');
+  btn.disabled = true; btn.textContent='Guardando...';
+  resultado.innerHTML='';
+
+  fetch(AGENDA_APPS_SCRIPT+'?action=altaAsesorVentas'+
+    '&primerNombre='+encodeURIComponent(pn)+
+    '&segundoNombre='+encodeURIComponent(sn)+
+    '&primerApellido='+encodeURIComponent(pa)+
+    '&segundoApellido='+encodeURIComponent(sa)+
+    '&whatsapp='+encodeURIComponent(whatsapp)+
+    '&email='+encodeURIComponent(document.getElementById('altaAseEmail').value.trim())+
+    '&comision='+encodeURIComponent(document.getElementById('altaAseComision').value.trim())+
+    '&infoBancaria='+encodeURIComponent(document.getElementById('altaAseInfoBancaria').value.trim())+
+    '&instBancaria='+encodeURIComponent(document.getElementById('altaAseInstBancaria').value.trim()),
+    {redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      btn.disabled=false; btn.textContent='✅ Registrar';
+      if (!data.success){ resultado.innerHTML='<div style="color:#f87171;font-size:13px;">❌ '+(data.error||'Error al guardar.')+'</div>'; return; }
+
+      var btnWhatsHtml = whatsapp
+        ? '<button onclick="notificarNuevoAsesorWA(\''+escAttrJS_ase(data.nombre)+'\',\''+escAttrJS_ase(data.id)+'\',\''+escAttrJS_ase(data.clave)+'\',\''+escAttrJS_ase(whatsapp)+'\')" style="margin-top:10px;width:100%;background:#22c55e;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;">📲 Notificar por WhatsApp</button>'
+        : '<div style="margin-top:10px;font-size:12px;color:var(--muted);">No se puso WhatsApp, así que no se puede notificar automáticamente — avísale por otro medio.</div>';
+
+      resultado.innerHTML='<div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:10px;padding:14px;font-size:13px;color:#4ade80;">'+
+        '✅ <strong>'+data.nombre+'</strong> registrado correctamente.<br>'+
+        'ID: <strong>'+data.id+'</strong> · Clave: <strong>'+data.clave+'</strong><br>'+
+        '<span style="color:var(--muted);">Recuerda pedirle su foto para Coordinación IT.</span>'+
+        btnWhatsHtml+
+        '<button onclick="document.getElementById(\'altaAseResultado\').innerHTML=\'\'" style="margin-top:8px;width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;">✖️ Cerrar</button>'+
+      '</div>';
+
+      _siguienteIdAsesorCache = null;
+      ['altaAsePrimerNombre','altaAseSegundoNombre','altaAsePrimerApellido','altaAseSegundoApellido','altaAseWhatsapp','altaAseEmail','altaAseInfoBancaria','altaAseInstBancaria'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('altaAseComision').value='100';
+      actualizarPreviewAltaAsesor();
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent='✅ Registrar'; resultado.innerHTML='<div style="color:#f87171;font-size:13px;">Error de conexión.</div>'; });
 }
 
 // ── ASESORES ─────────────────────────────────────────────────────────────
