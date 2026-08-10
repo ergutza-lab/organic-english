@@ -1621,6 +1621,17 @@ function cargarGrillaMaterial(){
       var activosSet={};
       data.activos.forEach(function(par){ activosSet[par]=true; });
 
+      // Escapa tanto comillas simples (delimitador del string de JS)
+      // como comillas dobles (delimitador del atributo HTML onchange) --
+      // asi un nombre de clase o de maestro con cualquiera de las dos
+      // nunca puede romper el codigo generado.
+      function escAttrJS(s){
+        return String(s||'')
+          .replace(/\\/g,'\\\\')
+          .replace(/'/g,"\\'")
+          .replace(/"/g,'&quot;');
+      }
+
       var html='<table style="width:100%;border-collapse:collapse;font-size:12px;">';
       html+='<thead><tr><th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);position:sticky;top:0;left:0;background:var(--surface);z-index:3;">Lección</th>';
       data.maestros.forEach(function(m){
@@ -1638,7 +1649,7 @@ function cargarGrillaMaterial(){
           var clave=lec.path+'|'+m.id;
           var checked=activosSet[clave]?'checked':'';
           html+='<td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;">'+
-            '<input type="checkbox" '+checked+' onchange="toggleAccesoMaterialUI(this,\''+etiqueta.replace(/'/g,"\\'")+'\',\''+lec.path.replace(/'/g,"\\'")+'\',\''+lec.nombre.replace(/'/g,"\\'")+'\',\''+m.id+'\')" style="width:16px;height:16px;cursor:pointer;">'+
+            '<input type="checkbox" '+checked+' onchange="toggleAccesoMaterialUI(this,\''+escAttrJS(etiqueta)+'\',\''+escAttrJS(lec.path)+'\',\''+escAttrJS(lec.nombre)+'\',\''+escAttrJS(m.id)+'\')" style="width:16px;height:16px;cursor:pointer;">'+
           '</td>';
         });
         html+='</tr>';
