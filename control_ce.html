@@ -323,7 +323,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   <div class="tabs-bar">
     <button class="tab activo" onclick="cambiarTab('resumen',this)">Resumen</button>
     <button class="tab" onclick="cambiarTab('grupos',this)">Grupos</button>
-    <button class="tab" onclick="cambiarTab('nuevo-grupo',this)" style="display:none;">+ Nuevo Grupo</button>
+    <button class="tab" onclick="cambiarTab('nuevo-grupo',this);abrirTabNuevoGrupo();" style="display:none;">+ Nuevo Grupo</button>
     <button class="tab" onclick="cambiarTab('nuevo-asistente',this)" style="display:none;">+ Nuevo Asistente</button>
     <button class="tab" onclick="cambiarTab('asistentes',this)">Asistentes CE</button>
     <button class="tab" onclick="cambiarTab('seguimiento',this)">Seguimiento de alumnos</button>
@@ -418,42 +418,91 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 
     <!-- TAB: NUEVO GRUPO -->
     <div id="sec-nuevo-grupo" class="seccion" style="display:none;">
-      <div class="card">
+      <div class="card" style="max-width:640px;">
         <div class="card-header">
-          <div><div class="card-titulo">Crear nuevo grupo</div><div class="card-sub">Los campos marcados con * son obligatorios</div></div>
+          <div><div class="card-titulo">Crear nuevo grupo</div><div class="card-sub">Igual que el formulario de Grupo especial adicional de Dirección</div></div>
         </div>
-        <div class="form-nuevo-grupo">
-          <div class="form-grid">
-            <div class="form-campo"><label>ID del Grupo *</label><input type="text" id="ng-id" placeholder="Ej: AC-01" autocomplete="off" oninput="this.value=this.value.toUpperCase()" /></div>
-            <div class="form-campo"><label>Nombre del Grupo *</label><input type="text" id="ng-nombre" placeholder="Ej: Beginner 1 — Mañana" autocomplete="off" /></div>
-            <div class="form-campo"><label>Horario *</label>
-              <select id="ng-horario">
-                <option value="">-- Selecciona horario --</option>
-                <option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option>
-                <option>11:00 AM</option><option>12:00 PM</option><option>5:00 PM</option>
-                <option>6:00 PM</option><option>7:00 PM</option><option>8:00 PM</option>
-                <option>9:00 PM</option><option>10:00 PM</option>
-              </select>
-            </div>
-            <div class="form-campo"><label>Fecha de Inicio *</label><input type="date" id="ng-fecha" /></div>
-            <div class="form-campo"><label>Nivel *</label>
-              <select id="ng-nivel">
-                <option value="">-- Selecciona nivel --</option>
-                <option value="NIVEL A1.1">A1.1 — Beginner 1</option>
-                <option value="NIVEL A1.2">A1.2 — Beginner 2</option>
-                <option value="NIVEL B1.1">B1.1 — Elementary 1</option>
-                <option value="NIVEL B1.2">B1.2 — Elementary 2</option>
-              </select>
-            </div>
-            <div class="form-campo"><label>Cupo Máximo *</label><input type="number" id="ng-cupo" value="10" min="1" max="10" /></div>
-            <div class="form-campo full"><label>Link de Zoom *</label><input type="url" id="ng-zoom" placeholder="https://zoom.us/j/..." autocomplete="off" /></div>
-            <div class="form-campo full"><label>Asistente CE *</label><select id="ng-asistente"><option value="">-- Selecciona asistente --</option></select></div>
+        <div style="padding:4px 2px;">
+
+          <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Tipo de grupo</label>
+          <select id="ge-tipo" onchange="alCambiarTipoGrupoEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;font-weight:700;box-sizing:border-box;">
+            <option value="normal">Normal (letra + consecutivo, según nivel)</option>
+            <option value="personalizado">Personalizado — 1 a 1, costo por clase a acordar</option>
+          </select>
+
+          <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nivel</label>
+          <select id="ge-nivel" onchange="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;box-sizing:border-box;">
+            <option value="">Selecciona un nivel...</option>
+          </select>
+
+          <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Fecha de inicio</label>
+          <input type="date" id="ge-fecha" oninput="alCambiarNivelEspecial()" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+
+          <div id="ge-id-preview" style="display:none;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:4px;" id="ge-id-preview-label">ID de grupo (consecutivo a la última serie en uso)</div>
+            <div style="color:#fb923c;font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="ge-id-valor"></div>
           </div>
+
+          <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Nombre del grupo</label>
+          <select id="ge-nombre" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;font-size:14px;outline:none;margin-bottom:14px;font-weight:700;box-sizing:border-box;"></select>
+
+          <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Horario</label>
+          <select id="ge-horario" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;"></select>
+          <input type="text" id="ge-horario-libre" placeholder="Ej: Por definir -- se coordina con el maestro" style="display:none;width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;" />
+
+          <div id="ge-costos-wrap" style="display:none;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div>
+              <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Costo por clase (al alumno)</label>
+              <input type="number" id="ge-costo-alumno" placeholder="Ej: 150" min="0" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+            </div>
+            <div>
+              <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Pago por clase (al maestro)</label>
+              <input type="number" id="ge-costo-maestro" placeholder="Ej: 100" min="0" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+            </div>
+          </div>
+          <div id="ge-costos-nota" style="display:none;font-size:11px;color:#94a3b8;margin:-6px 0 14px;">Este costo es por clase impartida, sin importar cuánto dure (puede haber más de una clase el mismo día).</div>
+
+          <div id="ge-observaciones-wrap" style="display:none;margin-bottom:14px;">
+            <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Observaciones</label>
+            <textarea id="ge-observaciones" rows="3" placeholder="Ej: la clase dura 40 minutos. Alumno con autismo, requiere seguimiento especial." style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Anota aquí cualquier detalle particular de este grupo -- por ejemplo, cuántos minutos dura cada clase (puede variar: 30, 40, 55 min, etc.), condiciones especiales del alumno, o cualquier otra nota útil.</div>
+          </div>
+
+          <div id="ge-sabatino-wrap" style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+            <input type="checkbox" id="ge-sabatino" onchange="alCambiarSabatinoEspecial()" style="width:18px;height:18px;accent-color:#7c3aed;flex-shrink:0;" />
+            <label for="ge-sabatino" style="font-size:13px;color:#e2e8f0;cursor:pointer;">Es un grupo <strong style="color:#a78bfa;">sabatino</strong> — una sola clase de 4 horas (9:00 AM a 1:00 PM), en vez de Lunes a Jueves.</label>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div>
+              <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cupo máximo</label>
+              <input type="number" id="ge-cupo" value="10" min="1" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;" />
+            </div>
+            <div>
+              <label style="display:block;color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Asistente CE</label>
+              <select id="ge-asistente" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;">
+                <option value="">Cargando asistentes...</option>
+              </select>
+            </div>
+          </div>
+
           <div class="form-acciones">
-            <button class="btn btn-primario" onclick="crearGrupo()">Crear grupo</button>
-            <button class="btn btn-outline" onclick="limpiarFormNuevoGrupo()">Limpiar</button>
-            <div class="form-msg" id="form-nuevo-grupo-msg"></div>
+            <button class="btn btn-primario" onclick="crearGrupoEspecial()">Crear grupo</button>
+            <button class="btn btn-outline" onclick="limpiarFormGrupoEspecial()">Limpiar</button>
+            <div class="form-msg" id="ge-status"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: VISTA PREVIA DEL GRUPO RECIEN CREADO -->
+    <div class="modal-overlay" id="modal-preview-grupo">
+      <div class="modal">
+        <div class="modal-titulo">Grupo creado</div>
+        <div class="modal-sub">Puedes tomarle una captura de pantalla para compartirla</div>
+        <div id="previewGrupoCard" style="background:linear-gradient(135deg,#1c2b5e 0%,#0f1a3d 100%);border-radius:16px;padding:22px 20px;border:1px solid rgba(255,255,255,0.1);margin-top:14px;"></div>
+        <div class="modal-acciones">
+          <button class="btn btn-primario" onclick="cerrarModal('modal-preview-grupo')">Listo</button>
         </div>
       </div>
     </div>
@@ -1275,23 +1324,342 @@ function renderAlertas() {
 }
 
 // ── CREAR GRUPO ──
-function crearGrupo() {
-  var id=document.getElementById('ng-id').value.trim().toUpperCase(), nombre=document.getElementById('ng-nombre').value.trim(), horario=document.getElementById('ng-horario').value, fecha=document.getElementById('ng-fecha').value, nivel=document.getElementById('ng-nivel').value, cupo=document.getElementById('ng-cupo').value, zoom=document.getElementById('ng-zoom').value.trim(), asistente=document.getElementById('ng-asistente').value;
-  var msgEl=document.getElementById('form-nuevo-grupo-msg'); msgEl.className='form-msg'; msgEl.style.display='none';
-  if (!id||!nombre||!horario||!fecha||!nivel||!cupo||!zoom||!asistente) { msgEl.textContent='Completa todos los campos.'; msgEl.className='form-msg error'; return; }
-  if (!/^[A-Z]{2}-\d{2}$/.test(id)) { msgEl.textContent='El ID debe tener formato XX-00.'; msgEl.className='form-msg error'; return; }
-  var btn=document.querySelector('.form-acciones .btn-primario'); btn.textContent='Creando...'; btn.disabled=true;
-  api({ action:'crearGrupo', idGrupo:id, nombre:nombre, horario:horario, fechaInicio:fecha, nivel:nivel, cupoMax:cupo, linkZoom:zoom, idAsistente:asistente, idCE:estado.idCE })
-    .then(function(res) {
-      btn.textContent='Crear grupo'; btn.disabled=false;
-      if (res.ok) { msgEl.textContent='Grupo '+id+' creado.'; msgEl.className='form-msg ok'; limpiarFormNuevoGrupo(); cargarDatos(); }
-      else { msgEl.textContent=res.error||'Error al crear.'; msgEl.className='form-msg error'; }
-    }).catch(function() { btn.textContent='Crear grupo'; btn.disabled=false; msgEl.textContent='Error de conexión.'; msgEl.className='form-msg error'; });
+// ── GRUPO ESPECIAL ADICIONAL (replicado de Direccion) ──────────────────
+var NOMBRES_GRUPO = [
+  { valor: 'ADULTS',  label: 'ADULTS',  color: '#f1f5f9' },
+  { valor: 'TEENS',   label: 'TEENS',   color: '#fbbf24' },
+  { valor: 'KIDS',    label: 'KIDS',    color: '#22c55e' },
+  { valor: 'KIDS JR', label: 'KIDS JR', color: '#c084fc' }
+];
+var NOMBRES_GRUPO_SABATINO = NOMBRES_GRUPO.map(function (x) {
+  return { valor: x.valor + '-SAT', label: x.label + '-SAT', color: x.color };
+});
+function colorPorNombreGrupo(nombre) {
+  var n = String(nombre || '').trim().toUpperCase();
+  var match = NOMBRES_GRUPO.concat(NOMBRES_GRUPO_SABATINO).find(function (x) { return x.valor === n; });
+  return match ? match.color : '#94a3b8';
 }
-function limpiarFormNuevoGrupo() {
-  ['ng-id','ng-nombre','ng-zoom'].forEach(function(id){document.getElementById(id).value='';});
-  document.getElementById('ng-horario').value=''; document.getElementById('ng-fecha').value='';
-  document.getElementById('ng-nivel').value=''; document.getElementById('ng-cupo').value='10'; document.getElementById('ng-asistente').value='';
+function opcionesNombreGrupoHTML(seleccionado, sabatino) {
+  var lista = sabatino ? NOMBRES_GRUPO_SABATINO : NOMBRES_GRUPO;
+  return lista.map(function (x) {
+    return '<option value="' + x.valor + '" ' + (x.valor === seleccionado ? 'selected' : '') + ' style="color:' + x.color + ';background:#0f172a;">' + x.label + '</option>';
+  }).join('');
+}
+
+var NIVELES_OPCIONES = [
+  'PRE A-1',
+  'A1-Bloque 1', 'A1-Bloque 2',
+  'A2-Bloque 1', 'A2-Bloque 2',
+  'B1-Bloque 1', 'B1-Bloque 2',
+  'B2-Bloque 1', 'B2-Bloque 2',
+  'C1-Bloque 1', 'C1-Bloque 2'
+];
+function poblarSelectNiveles(selectId) {
+  var sel = document.getElementById(selectId);
+  var actual = sel.value;
+  sel.innerHTML = '<option value="">Selecciona un nivel...</option>' +
+    NIVELES_OPCIONES.map(function (n) { return '<option value="' + n + '">NIVEL ' + n + '</option>'; }).join('');
+  sel.value = actual;
+}
+
+// Misma ancla de fechas que usa Direccion, para que las 2 pantallas calculen
+// exactamente la misma letra de serie sin importar quien de alta el grupo.
+var ANCLA_FECHA = new Date(2026, 7, 10); // 10 de agosto de 2026
+var ANCLA_SLOT  = 11; // K es la letra numero 11 (A=1, B=2, ... K=11)
+function letraDeSlot(slot) {
+  var letras = '';
+  var n = slot;
+  while (n > 0) {
+    var resto = (n - 1) % 26;
+    letras = String.fromCharCode(65 + resto) + letras;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letras;
+}
+function letraEsperadaParaFecha(fecha) {
+  var dias = Math.round((fecha - ANCLA_FECHA) / (1000 * 60 * 60 * 24));
+  var slot = ANCLA_SLOT + Math.ceil(dias / 7);
+  if (slot < 1) slot = 1;
+  return letraDeSlot(slot);
+}
+// NOTA: en control_ce, los grupos usan el campo "id" (no "idGrupo" como en
+// Direccion) -- adaptado en las 3 funciones siguientes.
+function analizarSeriesIds(grupos) {
+  var maxPorLetra = {};
+  var numerosPorLetra = {};
+  var letraPorFecha = {};
+  (grupos || []).forEach(function (g) {
+    var id = String(g.id || '').trim().toUpperCase();
+    var m = id.match(/^([A-Z]+)(\d{2,})$/);
+    if (!m) return;
+    var letra = m[1];
+    var num = parseInt(m[2], 10);
+    if (!(letra in maxPorLetra) || num > maxPorLetra[letra]) maxPorLetra[letra] = num;
+    if (!numerosPorLetra[letra]) numerosPorLetra[letra] = {};
+    numerosPorLetra[letra][num] = true;
+    var fechaG = g.fechaInicio ? new Date(g.fechaInicio).toISOString().slice(0, 10) : null;
+    if (fechaG && !(fechaG in letraPorFecha)) letraPorFecha[fechaG] = letra;
+  });
+  var letras = Object.keys(maxPorLetra).sort();
+  var ultimaLetra = letras.length ? letras[letras.length - 1] : null;
+  var maxNumeroUltimaLetra = ultimaLetra ? maxPorLetra[ultimaLetra] : 0;
+  return {
+    ultimaLetra: ultimaLetra,
+    maxNumeroUltimaLetra: maxNumeroUltimaLetra,
+    siguienteNumeroEnSerie: maxNumeroUltimaLetra + 1,
+    maxPorLetra: maxPorLetra,
+    numerosPorLetra: numerosPorLetra,
+    letraPorFecha: letraPorFecha
+  };
+}
+function letraParaFecha(analisis, fechaISO) {
+  if (fechaISO && analisis.letraPorFecha[fechaISO]) {
+    return { letra: analisis.letraPorFecha[fechaISO], esFechaNueva: false };
+  }
+  var fechaObj = fechaISO ? new Date(fechaISO + 'T00:00:00') : new Date();
+  return { letra: letraEsperadaParaFecha(fechaObj), esFechaNueva: true };
+}
+function siguienteNumeroDisponible(analisis, letra, reservadosExtra) {
+  var usados = analisis.numerosPorLetra[letra] || {};
+  var n = 1;
+  while (usados[n] || (reservadosExtra && reservadosExtra[n])) n++;
+  return n;
+}
+function siguienteIdPorPrefijo(prefijo, grupos) {
+  var maxNum = 0;
+  (grupos || []).forEach(function (g) {
+    var id = String(g.id || '').trim().toUpperCase();
+    var m = id.match(new RegExp('^' + prefijo + '-(\\d{2,})$'));
+    if (m) { var n = parseInt(m[1], 10); if (n > maxNum) maxNum = n; }
+  });
+  return prefijo + '-' + String(maxNum + 1).padStart(2, '0');
+}
+
+function horariosDelDia() {
+  var lista = [];
+  for (var h = 8; h <= 22; h++) {
+    var h12 = h > 12 ? h - 12 : h;
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    lista.push(h12 + ':00 ' + ampm);
+  }
+  return lista;
+}
+
+// Nombrado distinto a poblarSelectAsistentes() (que ya existe para el modal
+// de asignar asistente a un grupo existente) para no pisarla.
+function poblarSelectAsistentesGE(selectId) {
+  var sel = document.getElementById(selectId);
+  var lista = estado.asistentes || [];
+  if (!lista.length) { sel.innerHTML = '<option value="">Sin asistentes disponibles</option>'; return; }
+  sel.innerHTML = '<option value="">Selecciona...</option>' +
+    lista.map(function (a) { return '<option value="' + a.id + '">' + a.nombre + '</option>'; }).join('');
+}
+
+function abrirTabNuevoGrupo() {
+  poblarSelectNiveles('ge-nivel');
+  document.getElementById('ge-tipo').value = 'normal';
+  document.getElementById('ge-nivel').value = '';
+  document.getElementById('ge-fecha').value = '';
+  document.getElementById('ge-id-preview').style.display = 'none';
+  document.getElementById('ge-nombre').innerHTML = opcionesNombreGrupoHTML('ADULTS');
+  document.getElementById('ge-nombre').style.color = colorPorNombreGrupo('ADULTS');
+  document.getElementById('ge-nombre').onchange = function () { this.style.color = colorPorNombreGrupo(this.value); };
+  document.getElementById('ge-horario').innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
+  document.getElementById('ge-horario-libre').value = '';
+  document.getElementById('ge-costo-alumno').value = '';
+  document.getElementById('ge-costo-maestro').value = '';
+  document.getElementById('ge-observaciones').value = '';
+  document.getElementById('ge-cupo').value = 10;
+  document.getElementById('ge-cupo').disabled = false;
+  document.getElementById('ge-sabatino').checked = false;
+  document.getElementById('ge-status').style.display = 'none';
+  poblarSelectAsistentesGE('ge-asistente');
+  alCambiarTipoGrupoEspecial();
+}
+function limpiarFormGrupoEspecial() { abrirTabNuevoGrupo(); }
+
+function alCambiarTipoGrupoEspecial() {
+  var tipo = document.getElementById('ge-tipo').value;
+  var esPersonalizado = (tipo === 'personalizado');
+
+  document.getElementById('ge-sabatino-wrap').style.display = esPersonalizado ? 'none' : 'flex';
+  document.getElementById('ge-horario').style.display = esPersonalizado ? 'none' : '';
+  document.getElementById('ge-horario-libre').style.display = esPersonalizado ? '' : 'none';
+  document.getElementById('ge-costos-wrap').style.display = esPersonalizado ? 'grid' : 'none';
+  document.getElementById('ge-costos-nota').style.display = esPersonalizado ? '' : 'none';
+  document.getElementById('ge-observaciones-wrap').style.display = esPersonalizado ? '' : 'none';
+
+  var cupoInput = document.getElementById('ge-cupo');
+  if (esPersonalizado) {
+    cupoInput.value = 1;
+    cupoInput.disabled = true;
+    if (!document.getElementById('ge-horario-libre').value) {
+      document.getElementById('ge-horario-libre').value = 'Por definir -- se coordina con el maestro';
+    }
+  } else {
+    cupoInput.disabled = false;
+  }
+  alCambiarNivelEspecial();
+}
+
+function alCambiarNivelEspecial() {
+  var tipo  = document.getElementById('ge-tipo').value;
+  var nivel = document.getElementById('ge-nivel').value;
+  var fecha = document.getElementById('ge-fecha').value;
+
+  if (tipo === 'personalizado') {
+    if (!fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
+    var idPreview = siguienteIdPorPrefijo('PER', estado.grupos || []);
+    document.getElementById('ge-id-preview-label').textContent = 'ID de grupo (consecutivo dentro de PER-)';
+    document.getElementById('ge-id-valor').textContent = idPreview;
+    document.getElementById('ge-id-preview').style.display = '';
+    return;
+  }
+
+  document.getElementById('ge-id-preview-label').textContent = 'ID de grupo (consecutivo a la última serie en uso)';
+  if (!nivel || !fecha) { document.getElementById('ge-id-preview').style.display = 'none'; return; }
+  var analisis = analizarSeriesIds(estado.grupos || []);
+  var resultado = letraParaFecha(analisis, fecha);
+  var numero = siguienteNumeroDisponible(analisis, resultado.letra, null);
+  var idPreview = resultado.letra + String(numero).padStart(2, '0');
+  document.getElementById('ge-id-valor').textContent = idPreview;
+  document.getElementById('ge-id-preview').style.display = '';
+}
+
+function alCambiarSabatinoEspecial() {
+  var chk = document.getElementById('ge-sabatino');
+  var sel = document.getElementById('ge-horario');
+  var selNombre = document.getElementById('ge-nombre');
+  var nombreActual = selNombre.value.replace(/-SAT$/, '');
+  if (chk.checked) {
+    sel.innerHTML = '<option value="9:00 AM">9:00 AM (a 1:00 PM)</option>';
+    sel.disabled = true;
+    selNombre.innerHTML = opcionesNombreGrupoHTML(nombreActual + '-SAT', true);
+  } else {
+    sel.disabled = false;
+    sel.innerHTML = horariosDelDia().map(function (h) { return '<option value="' + h + '">' + h + '</option>'; }).join('');
+    selNombre.innerHTML = opcionesNombreGrupoHTML(nombreActual, false);
+  }
+  selNombre.style.color = colorPorNombreGrupo(selNombre.value);
+}
+
+function crearGrupoEspecial() {
+  var tipo     = document.getElementById('ge-tipo').value;
+  var esPersonalizado = (tipo === 'personalizado');
+  var nivel    = document.getElementById('ge-nivel').value;
+  var fecha    = document.getElementById('ge-fecha').value;
+  var nombre   = document.getElementById('ge-nombre').value.trim();
+  var horario  = esPersonalizado
+    ? document.getElementById('ge-horario-libre').value.trim()
+    : document.getElementById('ge-horario').value.trim();
+  var cupo     = document.getElementById('ge-cupo').value;
+  var idAsis   = document.getElementById('ge-asistente').value;
+  var idPreview = document.getElementById('ge-id-valor').textContent;
+  var status   = document.getElementById('ge-status');
+  var costoAlumno  = document.getElementById('ge-costo-alumno').value;
+  var costoMaestro = document.getElementById('ge-costo-maestro').value;
+  var observaciones = document.getElementById('ge-observaciones').value.trim();
+
+  status.className = 'form-msg';
+
+  if (!nivel || !fecha || !nombre || !horario || !idAsis || !idPreview) {
+    status.textContent = 'Faltan datos obligatorios.';
+    status.className = 'form-msg error';
+    return;
+  }
+  if (esPersonalizado && (!costoAlumno || !costoMaestro)) {
+    status.textContent = 'Para un grupo Personalizado, indica el costo por clase al alumno y el pago por clase al maestro.';
+    status.className = 'form-msg error';
+    return;
+  }
+
+  status.textContent = 'Creando grupo...';
+  status.className = 'form-msg';
+
+  var esSabatino = document.getElementById('ge-sabatino').checked;
+  var tipoHorarioEnviar = esPersonalizado ? 'personalizado' : (esSabatino ? 'sabado' : 'entre_semana');
+
+  var bodyParams = {
+    action: 'crearGrupo',
+    idGrupo: idPreview, nombre: nombre, horario: horario,
+    fechaInicio: fecha, nivel: nivel, cupoMax: cupo,
+    idAsistente: idAsis, idCE: estado.idCE,
+    tipoHorario: tipoHorarioEnviar
+  };
+  if (esPersonalizado) {
+    bodyParams.costoClaseAlumno = costoAlumno;
+    bodyParams.costoClaseMaestro = costoMaestro;
+    bodyParams.observaciones = observaciones;
+  }
+
+  api(bodyParams).then(function (res) {
+    if (res.ok) {
+      status.textContent = 'Grupo ' + (res.idGrupo || idPreview) + ' creado correctamente.';
+      status.className = 'form-msg ok';
+      cargarDatos();
+      var asisSelect = document.getElementById('ge-asistente');
+      var asisNombre = asisSelect.selectedIndex >= 0 ? asisSelect.options[asisSelect.selectedIndex].text : idAsis;
+      mostrarPreviewGrupo({
+        idGrupo:      res.idGrupo || idPreview,
+        nombre:       nombre,
+        nivel:        nivel,
+        horario:      horario,
+        fechaInicio:  fecha,
+        cupo:         cupo,
+        asistente:    asisNombre,
+        tipoHorario:  tipoHorarioEnviar,
+        costoAlumno:  costoAlumno,
+        costoMaestro: costoMaestro,
+        observaciones:observaciones
+      });
+    } else {
+      status.textContent = 'Error: ' + (res.error || 'desconocido');
+      status.className = 'form-msg error';
+    }
+  }).catch(function () {
+    status.textContent = 'Error de conexión.';
+    status.className = 'form-msg error';
+  });
+}
+
+function mostrarPreviewGrupo(g) {
+  var esPersonalizado = g.tipoHorario === 'personalizado';
+  var filaEstilo = 'padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);';
+  var etiquetaEstilo = 'color:#94a3b8;font-size:12px;';
+  function fila(etiqueta, valor, valorEstilo) {
+    return '<tr><td style="'+filaEstilo+etiquetaEstilo+'">'+etiqueta+'</td>' +
+      '<td style="'+filaEstilo+'text-align:right;'+(valorEstilo||'color:#f1f5f9;font-weight:600;')+'">'+valor+'</td></tr>';
+  }
+  var filas = '';
+  filas += fila('ID de grupo', g.idGrupo, 'color:#fb923c;font-weight:700;font-family:\'JetBrains Mono\',monospace;');
+  filas += fila('Nombre', g.nombre);
+  filas += fila('Nivel', g.nivel);
+  filas += fila('Horario', g.horario, esPersonalizado ? 'color:#ef4444;font-weight:700;' : 'color:#f1f5f9;font-weight:600;');
+  filas += fila('Fecha de inicio', g.fechaInicio);
+  filas += fila('Cupo', g.cupo);
+  filas += fila('Asistente CE', g.asistente);
+  if (esPersonalizado) {
+    filas += fila('Costo por clase (alumno)', '$' + g.costoAlumno, 'color:#4ade80;font-weight:700;');
+    filas += fila('Pago por clase (maestro)', '$' + g.costoMaestro, 'color:#fbbf24;font-weight:700;');
+  }
+  var obsHtml = (esPersonalizado && g.observaciones)
+    ? '<div style="margin-top:14px;padding:12px 14px;background:rgba(255,255,255,0.04);border-radius:10px;">' +
+        '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Observaciones</div>' +
+        '<div style="font-size:13px;color:#e2e8f0;line-height:1.5;">' + g.observaciones + '</div>' +
+      '</div>'
+    : '';
+
+  document.getElementById('previewGrupoCard').innerHTML =
+    '<div style="text-align:center;margin-bottom:14px;">' +
+      '<div style="font-size:11px;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">Organic English</div>' +
+      (esPersonalizado
+        ? '<div style="display:inline-block;margin-top:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;">GRUPO PERSONALIZADO</div>'
+        : '<div style="display:inline-block;margin-top:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#4ade80;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;">✔ CREADO</div>') +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;">' + filas + '</table>' +
+    obsHtml;
+
+  document.getElementById('modal-preview-grupo').classList.add('abierto');
 }
 
 // ── MODAL ASIGNAR ──
