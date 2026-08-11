@@ -750,7 +750,6 @@
   .col-persistente .student-board-titulo { font-size: 22px; margin-bottom: 8px; padding: 5px 14px; }
 }
 </style>
-<script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
 
@@ -1332,30 +1331,29 @@
   // a nuestra propia sala en vez de salir a Zoom. El resto del sistema
   // (grabaciones, etc.) sigue igual, esto solo cambia como se une a la
   // clase en vivo.
-  var _jitsiApi = null;
   function esLinkJitsi(link) {
     return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
   }
-  function extraerSalaJitsi(link) {
-    return (link || '').trim().substring(6).trim();
-  }
-  function abrirClaseJitsi(nombreSala, nombreUsuario) {
-    if (!nombreSala) { alert('Esta clase no tiene una sala configurada todavía.'); return; }
-    document.getElementById('modalJitsi').style.display = 'block';
-    document.getElementById('jitsiContainer').innerHTML = '';
-    _jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
-      roomName: nombreSala,
-      width: '100%',
-      height: '100%',
-      parentNode: document.getElementById('jitsiContainer'),
-      userInfo: { displayName: nombreUsuario || 'Alumno' },
-      configOverwrite: { prejoinPageEnabled: false }
-    });
-    _jitsiApi.addListener('readyToClose', cerrarClaseJitsi);
-  }
-  function cerrarClaseJitsi() {
-    if (_jitsiApi) { _jitsiApi.dispose(); _jitsiApi = null; }
-    document.getElementById('modalJitsi').style.display = 'none';
+  function abrirClaseJitsi(idGrupo, nombreUsuario) {
+    fetch(APPS_SCRIPT + '?action=getEstadoClaseJitsi&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success && data.disponible && data.sala) {
+          // NOTA: meet.jit.si limita a 5 minutos las llamadas INCRUSTADAS
+          // dentro de una pagina (iframe/API). Por eso se abre en pestaña
+          // nueva -- sigue sin pedir codigo ni cuenta, el alumno entra
+          // igual desde su panel, pero sin ese limite de tiempo.
+          var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
+            + '#userInfo.displayName=%22' + encodeURIComponent(nombreUsuario || 'Alumno') + '%22'
+            + '&config.prejoinPageEnabled=false';
+          window.open(url, '_blank');
+        } else if (data.esperando) {
+          alert('Tu maestro ya está por iniciar la clase. Espera unos segundos y vuelve a darle clic.');
+        } else {
+          alert('Tu maestro aún no ha iniciado la clase. Inténtalo de nuevo en unos momentos.');
+        }
+      })
+      .catch(function () { alert('No se pudo comprobar el estado de la clase. Revisa tu conexión e intenta de nuevo.'); });
   }
 
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
@@ -1508,7 +1506,7 @@
         btnZoomEl.href = '#';
         btnZoomEl.onclick = function (e) {
           e.preventDefault();
-          abrirClaseJitsi(extraerSalaJitsi(linkZoomActual), alumnoData.alumno.nombre || 'Alumno');
+          abrirClaseJitsi(g.id, alumnoData.alumno.nombre || 'Alumno');
         };
       } else {
         btnZoomEl.href = linkZoomActual || '#';
@@ -7734,10 +7732,5 @@ if ('serviceWorker' in navigator) {
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
-<!-- SALA DE CLASE (piloto Jitsi Meet, reemplaza a Zoom solo en el grupo de prueba) -->
-<div id="modalJitsi" style="display:none;position:fixed;inset:0;z-index:99999;background:#000;">
-  <button onclick="cerrarClaseJitsi()" style="position:absolute;top:14px;right:14px;z-index:100000;background:#ef4444;color:#fff;border:none;border-radius:100px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.4);">✕ Salir de la clase</button>
-  <div id="jitsiContainer" style="width:100%;height:100%;"></div>
-</div>
 </body>
 </html>
