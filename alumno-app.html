@@ -1335,25 +1335,42 @@
     return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
   }
   function abrirClaseJitsi(idGrupo, nombreUsuario) {
+    var pantalla = document.getElementById('pantallaEntradaClase');
+    var icono    = document.getElementById('entradaClaseIcono');
+    var titulo   = document.getElementById('entradaClaseTitulo');
+    var sub      = document.getElementById('entradaClaseSub');
+
+    pantalla.style.display = 'flex';
+    icono.textContent  = '🔒';
+    titulo.textContent = 'Entrando a tu sala de clase segura';
+    sub.textContent    = 'Verificando que tu maestro ya haya iniciado la clase...';
+
     fetch(APPS_SCRIPT + '?action=getEstadoClaseJitsi&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.success && data.disponible && data.sala) {
+          icono.textContent  = '✅';
+          titulo.textContent = '¡Todo listo!';
+          sub.textContent    = 'Organic English · Sala de clase verificada';
           // NOTA: meet.jit.si limita a 5 minutos las llamadas INCRUSTADAS
           // dentro de una pagina (iframe/API). Por eso se abre en pestaña
           // nueva -- sigue sin pedir codigo ni cuenta, el alumno entra
           // igual desde su panel, pero sin ese limite de tiempo.
           var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
             + '#userInfo.displayName=%22' + encodeURIComponent(nombreUsuario || 'Alumno') + '%22'
-            + '&config.prejoinPageEnabled=false';
+            + '&config.prejoinPageEnabled=false'
+            + '&config.disableDeepLinking=true';
           window.open(url, '_blank');
+          setTimeout(function () { pantalla.style.display = 'none'; }, 900);
         } else if (data.esperando) {
+          pantalla.style.display = 'none';
           alert('Tu maestro ya está por iniciar la clase. Espera unos segundos y vuelve a darle clic.');
         } else {
+          pantalla.style.display = 'none';
           alert('Tu maestro aún no ha iniciado la clase. Inténtalo de nuevo en unos momentos.');
         }
       })
-      .catch(function () { alert('No se pudo comprobar el estado de la clase. Revisa tu conexión e intenta de nuevo.'); });
+      .catch(function () { pantalla.style.display = 'none'; alert('No se pudo comprobar el estado de la clase. Revisa tu conexión e intenta de nuevo.'); });
   }
 
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
@@ -7732,5 +7749,12 @@ if ('serviceWorker' in navigator) {
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
+<!-- PANTALLA DE TRANSICION: se ve justo antes de abrir la sala de clase (Jitsi no permite poner nuestro logo dentro, asi que esto se muestra justo antes) -->
+<div id="pantallaEntradaClase" style="display:none;position:fixed;inset:0;z-index:999999;background:linear-gradient(135deg,#0f1a3d 0%,#1c2b5e 100%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;">
+  <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="width:180px;height:auto;margin-bottom:28px;">
+  <div id="entradaClaseIcono" style="font-size:38px;margin-bottom:14px;">🔒</div>
+  <div id="entradaClaseTitulo" style="color:#fff;font-size:19px;font-weight:700;margin-bottom:8px;">Entrando a tu sala de clase segura</div>
+  <div id="entradaClaseSub" style="color:#94a3b8;font-size:13px;max-width:320px;">Verificando que tu maestro ya haya iniciado la clase...</div>
+</div>
 </body>
 </html>
