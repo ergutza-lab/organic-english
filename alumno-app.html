@@ -750,6 +750,7 @@
   .col-persistente .student-board-titulo { font-size: 22px; margin-bottom: 8px; padding: 5px 14px; }
 }
 </style>
+<script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
 
@@ -1324,6 +1325,39 @@
   // cambiar de grupo a un alumno (ya disponible en asistente-ce.html).
   // Para reactivar que el alumno lo haga el mismo, poner en true.
   const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
+
+  // ── PILOTO: sala de clase propia (Jitsi Meet) en vez de Zoom ────────────
+  // Convencion: si el campo "Link de Zoom" de un grupo empieza con
+  // "JITSI:" (por ejemplo "JITSI:oe-grupo-prueba-x7k2"), el alumno entra
+  // a nuestra propia sala en vez de salir a Zoom. El resto del sistema
+  // (grabaciones, etc.) sigue igual, esto solo cambia como se une a la
+  // clase en vivo.
+  var _jitsiApi = null;
+  function esLinkJitsi(link) {
+    return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
+  }
+  function extraerSalaJitsi(link) {
+    return (link || '').trim().substring(6).trim();
+  }
+  function abrirClaseJitsi(nombreSala, nombreUsuario) {
+    if (!nombreSala) { alert('Esta clase no tiene una sala configurada todavía.'); return; }
+    document.getElementById('modalJitsi').style.display = 'block';
+    document.getElementById('jitsiContainer').innerHTML = '';
+    _jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
+      roomName: nombreSala,
+      width: '100%',
+      height: '100%',
+      parentNode: document.getElementById('jitsiContainer'),
+      userInfo: { displayName: nombreUsuario || 'Alumno' },
+      configOverwrite: { prejoinPageEnabled: false }
+    });
+    _jitsiApi.addListener('readyToClose', cerrarClaseJitsi);
+  }
+  function cerrarClaseJitsi() {
+    if (_jitsiApi) { _jitsiApi.dispose(); _jitsiApi = null; }
+    document.getElementById('modalJitsi').style.display = 'none';
+  }
+
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
   var alumnoData = null;
   var archivoSubida = null;
@@ -1465,7 +1499,21 @@
       // Adults/Teens y va directo a sus 32 misiones.
       if (esKids) prepararPracticaKids();
 
-      document.getElementById('btnZoom').href             = g.linkZoom || '#';
+      var btnZoomEl = document.getElementById('btnZoom');
+      var linkZoomActual = g.linkZoom || '';
+      if (esLinkJitsi(linkZoomActual)) {
+        // PILOTO: este grupo usa nuestra propia sala de clase (Jitsi Meet)
+        // en vez de Zoom -- el alumno nunca ve un codigo ni un link externo,
+        // solo le da clic al mismo boton de siempre y la clase se abre aqui.
+        btnZoomEl.href = '#';
+        btnZoomEl.onclick = function (e) {
+          e.preventDefault();
+          abrirClaseJitsi(extraerSalaJitsi(linkZoomActual), alumnoData.alumno.nombre || 'Alumno');
+        };
+      } else {
+        btnZoomEl.href = linkZoomActual || '#';
+        btnZoomEl.onclick = null;
+      }
       if (g.grabacion) {
         var btnGrab = document.getElementById('btnGrabacion');
         btnGrab.href = g.grabacion;
@@ -6746,7 +6794,7 @@
 
   function abrirZoomDesdeBoard() {
     var btn = document.getElementById('btnZoom');
-    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
+    if (btn) btn.click();
   }
   function abrirGrabacionDesdeBoard() {
     var btn = document.getElementById('btnGrabacion');
@@ -7686,5 +7734,10 @@ if ('serviceWorker' in navigator) {
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
+<!-- SALA DE CLASE (piloto Jitsi Meet, reemplaza a Zoom solo en el grupo de prueba) -->
+<div id="modalJitsi" style="display:none;position:fixed;inset:0;z-index:99999;background:#000;">
+  <button onclick="cerrarClaseJitsi()" style="position:absolute;top:14px;right:14px;z-index:100000;background:#ef4444;color:#fff;border:none;border-radius:100px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.4);">✕ Salir de la clase</button>
+  <div id="jitsiContainer" style="width:100%;height:100%;"></div>
+</div>
 </body>
 </html>
