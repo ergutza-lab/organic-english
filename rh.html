@@ -510,6 +510,12 @@ function renderCandidatos(){
     var opcionesResolucion = ['','Aceptado','En capacitación','Rechazado','En espera'].map(function(r){
       return '<option value="'+r+'"'+(c.resolucion===r?' selected':'')+'>'+(r||'Sin resolución')+'</option>';
     }).join('');
+    var opcionesPuestoEdit = puestosDisponibles.map(function(p){
+      return '<option value="'+p+'"'+(c.puesto===p?' selected':'')+'>'+p+'</option>';
+    }).join('');
+    var opcionesComoLlegoEdit = ['Grupo de WhatsApp','Referido','Redes sociales','Bolsa de trabajo','Otro'].map(function(o){
+      return '<option value="'+o+'"'+(c.comoLlego===o?' selected':'')+'>'+o+'</option>';
+    }).join('');
 
     return '<div class="cand-card">'
       + '<div class="cand-top">'
@@ -523,6 +529,26 @@ function renderCandidatos(){
         + (c.disponibilidad?' · Disp: '+esc(c.disponibilidad):'')
         + (c.comoLlego?' · Vía: '+esc(c.comoLlego):'') + '</div>'
       + '<div class="cand-archivos">'+archivos+'</div>'
+      + '<button class="btn-mini" onclick="toggleEdicionCandidato(\''+c.id+'\')" id="btnToggleEdit-'+c.id+'" style="margin-bottom:8px;">✏️ Editar datos del candidato</button>'
+      + '<div id="editDatos-'+c.id+'" style="display:none;margin-bottom:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;">'
+        + '<div class="grid2">'
+          + '<div class="field"><label>Nombre completo</label><input type="text" id="edNombre-'+c.id+'" value="'+esc(c.nombre)+'"></div>'
+          + '<div class="field"><label>WhatsApp</label><input type="text" id="edWhatsapp-'+c.id+'" value="'+esc(c.whatsapp)+'"></div>'
+        + '</div>'
+        + '<div class="grid2">'
+          + '<div class="field"><label>Email</label><input type="email" id="edEmail-'+c.id+'" value="'+esc(c.email||'')+'"></div>'
+          + '<div class="field"><label>Ciudad</label><input type="text" id="edCiudad-'+c.id+'" value="'+esc(c.ciudad||'')+'"></div>'
+        + '</div>'
+        + '<div class="grid2">'
+          + '<div class="field"><label>Puesto</label><select id="edPuesto-'+c.id+'">'+opcionesPuestoEdit+'</select></div>'
+          + '<div class="field"><label>¿Cómo llegó?</label><select id="edComoLlego-'+c.id+'">'+opcionesComoLlegoEdit+'</select></div>'
+        + '</div>'
+        + '<div class="grid2">'
+          + '<div class="field"><label>Nivel de inglés</label><input type="text" id="edNivelIngles-'+c.id+'" value="'+esc(c.nivelIngles||'')+'"></div>'
+          + '<div class="field"><label>Experiencia previa</label><input type="text" id="edExperiencia-'+c.id+'" value="'+esc(c.experienciaPrevia||'')+'"></div>'
+        + '</div>'
+        + '<div class="field"><label>Disponibilidad de horario</label><input type="text" id="edDisponibilidad-'+c.id+'" value="'+esc(c.disponibilidad||'')+'"></div>'
+      + '</div>'
       + '<div class="cand-controles">'
         + '<select id="est-'+c.id+'">'+opcionesEstatus+'</select>'
         + '<select id="res-'+c.id+'">'+opcionesResolucion+'</select>'
@@ -538,6 +564,14 @@ function renderCandidatos(){
   }).join('');
 }
 
+function toggleEdicionCandidato(idCandidato){
+  var box = document.getElementById('editDatos-'+idCandidato);
+  var btn = document.getElementById('btnToggleEdit-'+idCandidato);
+  var abierto = box.style.display !== 'none';
+  box.style.display = abierto ? 'none' : 'block';
+  btn.textContent = abierto ? '✏️ Editar datos del candidato' : '✖️ Ocultar edición de datos';
+}
+
 function guardarCambiosCandidato(idCandidato){
   var estatus = document.getElementById('est-'+idCandidato).value;
   var resolucion = document.getElementById('res-'+idCandidato).value;
@@ -546,10 +580,28 @@ function guardarCambiosCandidato(idCandidato){
   var status = document.getElementById('statusCand-'+idCandidato);
   status.style.display = 'block'; status.style.color = '#94a3b8'; status.textContent = 'Guardando...';
 
-  var params = new URLSearchParams({
+  var datosPersonales = {
+    nombre:            document.getElementById('edNombre-'+idCandidato).value.trim(),
+    whatsapp:          document.getElementById('edWhatsapp-'+idCandidato).value.trim(),
+    email:             document.getElementById('edEmail-'+idCandidato).value.trim(),
+    ciudad:            document.getElementById('edCiudad-'+idCandidato).value.trim(),
+    puesto:            document.getElementById('edPuesto-'+idCandidato).value,
+    comoLlego:         document.getElementById('edComoLlego-'+idCandidato).value,
+    nivelIngles:       document.getElementById('edNivelIngles-'+idCandidato).value.trim(),
+    experienciaPrevia: document.getElementById('edExperiencia-'+idCandidato).value.trim(),
+    disponibilidad:    document.getElementById('edDisponibilidad-'+idCandidato).value.trim()
+  };
+
+  if(!datosPersonales.nombre || !datosPersonales.whatsapp){
+    status.style.color = '#f87171';
+    status.textContent = 'Nombre y WhatsApp no pueden quedar vacíos.';
+    return;
+  }
+
+  var params = new URLSearchParams(Object.assign({
     action: 'actualizarCandidatoRH', idCandidato: idCandidato, estatus: estatus,
     resolucion: resolucion, responsable: responsable, notas: notas, idActor: miId
-  });
+  }, datosPersonales));
   fetch(APPS_SCRIPT + '?' + params.toString())
     .then(function(r){ return r.json(); })
     .then(function(data){
