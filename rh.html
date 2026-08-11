@@ -243,18 +243,11 @@ function login(){
   var clave = document.getElementById('loginClave').value.trim();
   if(!id || !clave){ mostrarErrorLogin('Escribe tu ID y tu clave.'); return; }
 
-  fetch(APPS_SCRIPT+'?action=loginCA&id='+encodeURIComponent(id)+'&clave='+encodeURIComponent(clave))
+  fetch(APPS_SCRIPT+'?action=loginRH&id='+encodeURIComponent(id)+'&clave='+encodeURIComponent(clave))
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if(data.status==='ok'){ entrarPanel(data.id, data.nombre); return; }
-      // Si no es Coordinador Academico, probar como Director
-      fetch(APPS_SCRIPT+'?action=loginDirector&id='+encodeURIComponent(id)+'&clave='+encodeURIComponent(clave))
-        .then(function(r2){ return r2.json(); })
-        .then(function(data2){
-          if(data2.success){ entrarPanel(data2.director.id, data2.director.nombre); }
-          else { mostrarErrorLogin('ID o clave incorrectos.'); }
-        })
-        .catch(function(){ mostrarErrorLogin('Error de conexión.'); });
+      if(data.status==='ok'){ entrarPanel(data.id, data.nombre); }
+      else { mostrarErrorLogin('ID o clave incorrectos.'); }
     })
     .catch(function(){ mostrarErrorLogin('Error de conexión.'); });
 }
