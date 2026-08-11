@@ -1682,9 +1682,40 @@ var OBS_OPCIONES = {
     cerrarModalObs();
   }
 
+function esLinkJitsi(link) {
+  return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
+}
+
 function entrarZoomMaestro() {
     if (!grupoActual || !grupoActual.linkZoom) {
       mostrarToast('No hay enlace Zoom configurado para este grupo','error');
+      return;
+    }
+    if (esLinkJitsi(grupoActual.linkZoom)) {
+      // PILOTO: se genera una sala NUEVA cada vez que el maestro entra --
+      // asi el maestro siempre es el primero (y por lo tanto el anfitrion),
+      // ya que el alumno no puede ver ningun link hasta que esto se genere.
+      var btn = document.getElementById('btnEntrarZoomMaestro');
+      var textoOriginal = btn.textContent;
+      btn.textContent = '⏳ Preparando sala...'; btn.disabled = true;
+      fetch(APPS_SCRIPT + '?action=iniciarClaseJitsi&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          btn.textContent = textoOriginal; btn.disabled = false;
+          if (data.success && data.sala) {
+            var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
+              + '#userInfo.displayName=%22' + encodeURIComponent(maestroData.nombre || 'Maestro') + '%22'
+              + '&config.prejoinPageEnabled=false';
+            window.open(url, '_blank');
+            mostrarToast('Sala lista. Tus alumnos podrán entrar en unos segundos.','success');
+          } else {
+            mostrarToast('No se pudo preparar la sala: ' + (data.error||'desconocido'), 'error');
+          }
+        })
+        .catch(function () {
+          btn.textContent = textoOriginal; btn.disabled = false;
+          mostrarToast('Error de conexión al preparar la sala.','error');
+        });
       return;
     }
     window.open(grupoActual.linkZoom, '_blank');
