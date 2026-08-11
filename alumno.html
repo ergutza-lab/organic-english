@@ -17,7 +17,12 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+<!-- Carga NO BLOQUEANTE de la fuente: si Google Fonts tarda o falla en
+     redes como Telcel, esto ya NO detiene el resto del JavaScript de la
+     pagina (antes, una fuente externa lenta congelaba TODO el script,
+     incluyendo el splash de 5s, dejando la app pegada en el logo). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Luckiest+Guy&display=swap"></noscript>
 <style>
   :root { --color-nivel: #1e3a6e; --color-nivel-suave: rgba(30,58,110,0.18); --color-nivel-borde: rgba(30,58,110,0.45); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -688,7 +693,10 @@
 .col-swap { display: block; }
 
 .mi-clase-grid { display: block; }
+#btnZoom { display: none; }
 @media (min-width: 1000px) {
+  #btnZoomMovil { display: none !important; }
+  #btnZoom { display: inline-flex; }
   .layout-shell { display: flex; gap: 14px; align-items: flex-start; max-width: 1500px; margin: 0 auto; }
   .col-swap { flex: 1.85; min-width: 0; }
   .col-persistente { flex: 1.15; min-width: 0; display: flex; flex-direction: column; }
@@ -748,8 +756,45 @@
 </head>
 <body>
 
+<!-- ═══ Aviso de actualización disponible: aparece solo cuando el
+     service worker detecta una version nueva y ya toma el control --
+     con un toque, recarga la pagina para aplicarla de inmediato, sin
+     esperar a que el navegador la revise solo (puede tardar hasta 24h). ═══ -->
+<div id="avisoActualizacionOE" style="display:none;position:fixed;top:16px;left:16px;right:16px;z-index:9999;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,0.4);align-items:center;justify-content:space-between;gap:12px;">
+  <span style="font-size:13px;font-weight:600;">🔄 Hay una versión nueva disponible</span>
+  <button onclick="location.reload()" style="background:#fff;color:#ea580c;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;">Actualizar</button>
+</div>
+
+<!-- ═══ SPLASH DE BIENVENIDA: se ve 5 segundos cada vez que se abre la app,
+     ya sea instalada o desde el navegador. Es lo primero que ve el alumno,
+     antes del login. ═══ -->
+<div id="screenSplash" class="screen active" style="background:#0f1c3f;">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+    <div style="position:relative;width:260px;max-width:70vw;">
+      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="width:100%;height:auto;display:block;filter:grayscale(1) brightness(0.45);">
+      <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="" style="width:100%;height:auto;display:block;position:absolute;top:0;left:0;clip-path:inset(0 100% 0 0);animation:splashLlenado 5s ease-in-out forwards;">
+    </div>
+    <div style="margin-top:28px;width:180px;height:4px;background:rgba(255,255,255,0.12);border-radius:100px;overflow:hidden;">
+      <div style="height:100%;width:0%;background:linear-gradient(90deg,#f97316,#fbbf24);border-radius:100px;animation:splashBarra 5s ease-in-out forwards;"></div>
+    </div>
+    <div style="margin-top:16px;color:#64748b;font-size:13px;letter-spacing:0.5px;">Cargando tu experiencia...</div>
+  </div>
+</div>
+<style>
+@keyframes splashLlenado { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0% 0 0); } }
+@keyframes splashBarra { from { width: 0%; } to { width: 100%; } }
+</style>
+<script>
+  setTimeout(function () {
+    var splash = document.getElementById('screenSplash');
+    var login  = document.getElementById('screenLogin');
+    if (splash) splash.classList.remove('active');
+    if (login) login.classList.add('active');
+  }, 5000);
+</script>
+
 <!-- LOGIN -->
-<div id="screenLogin" class="screen active">
+<div id="screenLogin" class="screen">
   <div class="login-wrap">
     <div class="login-box">
       <img src="images/logoblanco.png" />
@@ -767,6 +812,7 @@
       <div id="avisoIOS" style="display:none;width:100%;margin-top:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 16px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
         📱 Para instalar la app: toca el ícono de <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) y luego <strong>"Agregar a inicio"</strong>.
       </div>
+      <div style="text-align:center;margin-top:14px;font-size:10px;color:#475569;">v<span id="versionVisible">1.1</span></div>
     </div>
   </div>
 </div>
@@ -799,6 +845,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Boton "Ingresar a mi clase" -- solo visible en movil, justo debajo del nav y antes de Mi Grupo. En escritorio se sigue viendo el de la columna persistente de siempre. -->
+    <a id="btnZoomMovil" href="#" onclick="event.preventDefault();document.getElementById('btnZoom').click();" class="zoom-btn btn-brillo" style="background:#2D8CFF;display:flex;margin:0 0 14px;">
+      <div class="zoom-dot"></div>🎓 Ingresar a mi clase
+    </a>
 
     <div class="layout-shell">
      <div class="col-swap">
@@ -990,12 +1041,15 @@
      <div class="col-persistente">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <a id="btnZoom" href="#" target="_blank" class="zoom-btn btn-brillo" style="background:#2D8CFF;flex:1;">
-          <div class="zoom-dot"></div>Mi clase por Zoom
+          <div class="zoom-dot"></div>🎓 Ingresar a mi clase
         </a>
         <a id="btnGrabacion" href="#" target="_blank" class="btn-brillo" style="display:none;flex:1;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">
           🎥 Ver grabación
         </a>
       </div>
+      <button id="btnNotificaciones" onclick="activarNotificacionesOE()" class="btn-brillo" style="width:100%;margin-bottom:12px;background:#0f172a;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        🔔 Activar notificaciones
+      </button>
       <!-- MURO PERSONAL: avisos que solo aparecen cuando aplican -->
       <div class="student-board">
         <div class="student-board-titulo">Muro personal</div>
@@ -1271,12 +1325,62 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+  const APP_VERSION = '1.1';
 
   // ── INTERRUPTOR: cambio de grupo por el propio alumno ──────────────────
   // Se desactivó a petición de dirección: ahora solo el asistente CE puede
   // cambiar de grupo a un alumno (ya disponible en asistente-ce.html).
   // Para reactivar que el alumno lo haga el mismo, poner en true.
   const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
+
+  // ── PILOTO: sala de clase propia (Jitsi Meet) en vez de Zoom ────────────
+  // Convencion: si el campo "Link de Zoom" de un grupo empieza con
+  // "JITSI:" (por ejemplo "JITSI:oe-grupo-prueba-x7k2"), el alumno entra
+  // a nuestra propia sala en vez de salir a Zoom. El resto del sistema
+  // (grabaciones, etc.) sigue igual, esto solo cambia como se une a la
+  // clase en vivo.
+  function esLinkJitsi(link) {
+    return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
+  }
+  function abrirClaseJitsi(idGrupo, nombreUsuario) {
+    var pantalla = document.getElementById('pantallaEntradaClase');
+    var icono    = document.getElementById('entradaClaseIcono');
+    var titulo   = document.getElementById('entradaClaseTitulo');
+    var sub      = document.getElementById('entradaClaseSub');
+
+    pantalla.style.display = 'flex';
+    icono.textContent  = '🔒';
+    titulo.textContent = 'Entrando a tu sala de clase segura';
+    sub.textContent    = 'Verificando que tu maestro ya haya iniciado la clase...';
+
+    fetch(APPS_SCRIPT + '?action=getEstadoClaseJitsi&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success && data.disponible && data.sala) {
+          icono.textContent  = '✅';
+          titulo.textContent = '¡Todo listo!';
+          sub.textContent    = 'Organic English · Sala de clase verificada';
+          // NOTA: meet.jit.si limita a 5 minutos las llamadas INCRUSTADAS
+          // dentro de una pagina (iframe/API). Por eso se abre en pestaña
+          // nueva -- sigue sin pedir codigo ni cuenta, el alumno entra
+          // igual desde su panel, pero sin ese limite de tiempo.
+          var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
+            + '#userInfo.displayName=%22' + encodeURIComponent(nombreUsuario || 'Alumno') + '%22'
+            + '&config.prejoinPageEnabled=false'
+            + '&config.disableDeepLinking=true';
+          window.open(url, '_blank');
+          setTimeout(function () { pantalla.style.display = 'none'; }, 900);
+        } else if (data.esperando) {
+          pantalla.style.display = 'none';
+          alert('Tu maestro ya está por iniciar la clase. Espera unos segundos y vuelve a darle clic.');
+        } else {
+          pantalla.style.display = 'none';
+          alert('Tu maestro aún no ha iniciado la clase. Inténtalo de nuevo en unos momentos.');
+        }
+      })
+      .catch(function () { pantalla.style.display = 'none'; alert('No se pudo comprobar el estado de la clase. Revisa tu conexión e intenta de nuevo.'); });
+  }
+
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
   var alumnoData = null;
   var archivoSubida = null;
@@ -1307,6 +1411,7 @@
         if (data.success) {
           alumnoData = data;
           mostrarPanel();
+          if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
         }
         else {
           err.style.display = 'block';
@@ -1417,7 +1522,21 @@
       // Adults/Teens y va directo a sus 32 misiones.
       if (esKids) prepararPracticaKids();
 
-      document.getElementById('btnZoom').href             = g.linkZoom || '#';
+      var btnZoomEl = document.getElementById('btnZoom');
+      var linkZoomActual = g.linkZoom || '';
+      if (esLinkJitsi(linkZoomActual)) {
+        // PILOTO: este grupo usa nuestra propia sala de clase (Jitsi Meet)
+        // en vez de Zoom -- el alumno nunca ve un codigo ni un link externo,
+        // solo le da clic al mismo boton de siempre y la clase se abre aqui.
+        btnZoomEl.href = '#';
+        btnZoomEl.onclick = function (e) {
+          e.preventDefault();
+          abrirClaseJitsi(g.id, alumnoData.alumno.nombre || 'Alumno');
+        };
+      } else {
+        btnZoomEl.href = linkZoomActual || '#';
+        btnZoomEl.onclick = null;
+      }
       if (g.grabacion) {
         var btnGrab = document.getElementById('btnGrabacion');
         btnGrab.href = g.grabacion;
@@ -3789,6 +3908,1099 @@
       ]
     }
   };
+
+  // ── CONTENIDO DE MISIONES KIDS (Growie Kids A1.1) ──────────────────
+  var MISIONES_KIDS_CONTENIDO = {
+    "KIDS-A1.1-1": {
+      titulo: "MISSION 1: \"Nice to Meet You\"",
+      objetivo: "Presentarte y saludar a los amigos de Growie.",
+      tema: "Nice to Meet You",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/1.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Lee los saludos y escribe cuáles se usan para conocer a alguien.",
+          items: [
+            { texto: "Hello! · Good night! · Hi! · Nice to meet you! · Goodbye! -> ¿cuáles son saludos para conocer a alguien?", sugerida: "Hello!, Hi!, Nice to meet you!" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa la conversación",
+          instrucciones: "Completa el diálogo con tu nombre y el de un amigo.",
+          items: [
+            { texto: "A: Hello! I'm ___.", sugerida: "A: Hello! I'm Ana." },
+            { texto: "B: Hi! I'm ___.", sugerida: "B: Hi! I'm Leo." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Da un saludo a dos amigos usando Hello y Hi.",
+          writing: [
+            { texto: "Child 1: ___", sugerida: "Child 1: Hello!" },
+            { texto: "Child 2: ___", sugerida: "Child 2: Hi!" },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-2": {
+      titulo: "MISSION 2: \"Where Are You From?\"",
+      objetivo: "Decir de dónde eres.",
+      tema: "Where Are You From?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/2.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Relaciona cada niño con su país: Mexico · Canada · Japan.",
+          items: [
+            { texto: "Child 1: ___ Child 2: ___ Child 3: ___", sugerida: "Child 1: Mexico, Child 2: Canada, Child 3: Japan" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa las oraciones sobre el origen de cada persona.",
+          items: [
+            { texto: "I'm from ___.", sugerida: "I'm from Mexico." },
+            { texto: "She is from ___.", sugerida: "She is from Japan." },
+            { texto: "He is from ___.", sugerida: "He is from Canada." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Practica decir de dónde eres en voz alta.",
+          writing: [
+            { texto: "I'm from ___.", sugerida: "I'm from Mexico." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-3": {
+      titulo: "MISSION 3: \"How Are You?\"",
+      objetivo: "Preguntar y responder cómo te sientes.",
+      tema: "How Are You?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/3.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Escribe el sentimiento correcto debajo de cada cara: happy · good · tired · sad.",
+          items: [
+            { texto: "Face 1: ___ Face 2: ___ Face 3: ___ Face 4: ___", sugerida: "Face 1: happy, Face 2: good, Face 3: tired, Face 4: sad" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Elige",
+          instrucciones: "¿Qué niño dice \"I'm tired today\"? Descríbelo.",
+          items: [
+            { texto: "El niño que combina con \"I'm tired today\" es el que...", sugerida: "...tiene los ojos cerrados / bosteza." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Di cómo te sientes hoy.",
+          writing: [
+            { texto: "I'm ___ today.", sugerida: "I'm happy today." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-4": {
+      titulo: "MISSION 4: \"This Is My Friend\"",
+      objetivo: "Presentar a otra persona.",
+      tema: "This Is My Friend",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/4.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "¿Qué niño está siendo presentado en la imagen?",
+          items: [
+            { texto: "El niño presentado es...", sugerida: "...el que está en medio, señalado por los otros dos." },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa la presentación de un amigo.",
+          items: [
+            { texto: "This is my friend, ___.", sugerida: "This is my friend, Leo." },
+            { texto: "He / She is from ___.", sugerida: "He is from Mexico." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Presenta a un amigo real o imaginario.",
+          writing: [
+            { texto: "This is ___.", sugerida: "This is Ana." },
+            { texto: "He / She is my ___.", sugerida: "She is my friend." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-5": {
+      titulo: "MISSION 5: \"Phone Numbers\"",
+      objetivo: "Dar un número de teléfono sencillo.",
+      tema: "Phone Numbers",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/5.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Copia el número de teléfono que se ve en la imagen.",
+          items: [
+            { texto: "Phone number: ___", sugerida: "246-813-5709" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa la conversación sobre números de teléfono.",
+          items: [
+            { texto: "B: My practice phone number is ___.", sugerida: "B: My practice phone number is 555-123-4567." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Inventa (no uses tu número real) un número de práctica.",
+          writing: [
+            { texto: "My practice number is: ___", sugerida: "555-987-6543 (inventado, no real)" },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-6": {
+      titulo: "MISSION 6: \"How Old Are You?\"",
+      objetivo: "Preguntar y responder sobre la edad.",
+      tema: "How Old Are You?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/6.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Cuenta las velitas del pastel en la imagen.",
+          items: [
+            { texto: "There are ___ candles.", sugerida: "There are 7 candles." },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa la respuesta sobre tu edad.",
+          items: [
+            { texto: "B: I'm ___ years old.", sugerida: "B: I'm 8 years old." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Elige una tarjeta de número de la imagen y escríbela.",
+          writing: [
+            { texto: "The number is ___.", sugerida: "The number is 6." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-7": {
+      titulo: "MISSION 7: \"What's Your Email?\"",
+      objetivo: "Deletrear información de contacto sencilla.",
+      tema: "What's Your Email?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/7.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Encuentra el símbolo @ y el punto en la imagen.",
+          items: [
+            { texto: "El símbolo @ y el punto están en...", sugerida: "...growie@kids.com" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Ordena",
+          instrucciones: "Ordena las partes para formar el correo.",
+          items: [
+            { texto: "growie · @ · kids · .com -> ___", sugerida: "growie@kids.com" },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe un nombre corto y deletréalo en voz alta.",
+          writing: [
+            { texto: "Name: ___ Spelling: ___", sugerida: "Name: Leo, Spelling: L-E-O" },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-8": {
+      titulo: "MISSION 8: \"Personal Information Review\"",
+      objetivo: "Completar tu perfil de explorador.",
+      tema: "Personal Information Review",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/8.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Relaciona cada ícono con la palabra correcta: name · country · age · phone · email.",
+          items: [
+            { texto: "persona=___, globo=___, calendario=___, teléfono=___, sobre=___", sugerida: "persona=name, globo=country, calendario=age, teléfono=phone, sobre=email" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa tu Explorer ID.",
+          items: [
+            { texto: "Name: ___ Country: ___", sugerida: "Name: Ana, Country: Mexico" },
+            { texto: "Age: ___ Practice phone: ___", sugerida: "Age: 8, Practice phone: 555-123-4567" },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe tu perfil con tu propia información.",
+          writing: [
+            { texto: "My name is ___. I'm from ___.", sugerida: "My name is Ana. I'm from Mexico." },
+            { texto: "I'm ___ years old.", sugerida: "I'm 8 years old." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-9": {
+      titulo: "MISSION 9: \"This Is My Family\"",
+      objetivo: "Hablar sobre los miembros de la familia.",
+      tema: "This Is My Family",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/9.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Escribe la palabra correcta debajo de cada persona: mother · father · sister · brother.",
+          items: [
+            { texto: "Persona 1: ___ Persona 2: ___", sugerida: "Persona 1: mother, Persona 2: father" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa las oraciones sobre tu familia.",
+          items: [
+            { texto: "This is my ___.", sugerida: "This is my mother." },
+            { texto: "This is my ___.", sugerida: "This is my brother." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe dos palabras de familia que describan a las personas que quieres.",
+          writing: [
+            { texto: "___ and ___", sugerida: "mother and sister" },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-10": {
+      titulo: "MISSION 10: \"Who Is She?\"",
+      objetivo: "Identificar personas con he, she y they.",
+      tema: "Who Is She?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/10.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Escribe he, she o they para cada imagen.",
+          items: [
+            { texto: "Girl: ___ Boy: ___ Group: ___", sugerida: "Girl: she, Boy: he, Group: they" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa las oraciones con el pronombre correcto.",
+          items: [
+            { texto: "___ is my sister. ___ is my brother.", sugerida: "She is my sister. He is my brother." },
+            { texto: "___ are my friends.", sugerida: "They are my friends." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Describe quién es ella y quién es él en tu propia vida.",
+          writing: [
+            { texto: "Who is she? She is ___.", sugerida: "She is my sister." },
+            { texto: "Who is he? He is ___.", sugerida: "He is my brother." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-11": {
+      titulo: "MISSION 11: \"He Is My Brother\"",
+      objetivo: "Describir relaciones familiares.",
+      tema: "He Is My Brother",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/11.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Completa según el árbol familiar de la imagen.",
+          items: [
+            { texto: "He is my ___.", sugerida: "He is my father." },
+            { texto: "She is my ___.", sugerida: "She is my mother." },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Relaciona",
+          instrucciones: "Relaciona las palabras en inglés con los miembros de la familia: mother · father · brother · sister.",
+          items: [
+            { texto: "Relaciona cada palabra con la persona correcta en la imagen", sugerida: "mother=mamá, father=papá, brother=hermano, sister=hermana" },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Habla de tu propia familia usando he/she is my ___.",
+          writing: [
+            { texto: "He is my ___.", sugerida: "He is my brother." },
+            { texto: "She is my ___.", sugerida: "She is my sister." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-12": {
+      titulo: "MISSION 12: \"My Family Is Small\"",
+      objetivo: "Describir tu familia con adjetivos.",
+      tema: "My Family Is Small",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/12.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "¿Cuál familia de la imagen es pequeña y cuál es grande?",
+          items: [
+            { texto: "Family A es ___ y Family B es ___", sugerida: "Family A is small, Family B is big" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Describe cada familia de la imagen.",
+          items: [
+            { texto: "Family A is ___.", sugerida: "Family A is small." },
+            { texto: "Family B is ___.", sugerida: "Family B is big." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Elige un adjetivo y describe tu propia familia: small · big · happy.",
+          writing: [
+            { texto: "My family is ___.", sugerida: "My family is happy." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-13": {
+      titulo: "MISSION 13: \"What's This?\"",
+      objetivo: "Identificar objetos del salón de clases.",
+      tema: "What's This?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/13.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Escribe la palabra correcta para cada objeto: book · pencil · notebook · backpack.",
+          items: [
+            { texto: "Objeto 1: ___ Objeto 2: ___", sugerida: "Objeto 1: book, Objeto 2: pencil" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Responde qué es cada objeto.",
+          items: [
+            { texto: "What's this? It's a ___.", sugerida: "It's a pencil." },
+            { texto: "What's that? It's a ___.", sugerida: "It's a book." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Busca un objeto escolar cerca de ti y nómbralo.",
+          writing: [
+            { texto: "This is my ___.", sugerida: "This is my backpack." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-14": {
+      titulo: "MISSION 14: \"In My Bag\"",
+      objetivo: "Hablar sobre objetos personales.",
+      tema: "In My Bag",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/14.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Marca los objetos que ves en la mochila: notebook, keys, shoe, pencil, water bottle, pencil case.",
+          items: [
+            { texto: "Objetos que veo en la imagen:", sugerida: "notebook, pencil, water bottle, pencil case" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Describe lo que hay en la mochila.",
+          items: [
+            { texto: "In the bag, there is a ___.", sugerida: "There is a notebook." },
+            { texto: "There are ___.", sugerida: "There are two pencils." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe dos cosas que tienes en tu propia mochila.",
+          writing: [
+            { texto: "I have ___ and ___.", sugerida: "I have a pencil and a notebook." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-15": {
+      titulo: "MISSION 15: \"Open Your Book\"",
+      objetivo: "Usar instrucciones del salón de clases.",
+      tema: "Open Your Book",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/15.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Ordena",
+          instrucciones: "Numera las acciones en orden: Open the book. Read the book. Close the book.",
+          items: [
+            { texto: "Open ___ Read ___ Close ___", sugerida: "Open 1, Read 2, Close 3" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa las instrucciones de clase.",
+          items: [
+            { texto: "___ your book.", sugerida: "Open your book." },
+            { texto: "Raise your ___.", sugerida: "Raise your hand." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Practica las instrucciones en voz alta con un adulto.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-16": {
+      titulo: "MISSION 16: \"Can You Repeat, Please?\"",
+      objetivo: "Pedir ayuda en clase.",
+      tema: "Can You Repeat, Please?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/16.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Elige",
+          instrucciones: "¿Cuál es la mejor frase para pedir ayuda? Can you repeat, please? · Goodbye! · I like pizza.",
+          items: [
+            { texto: "La mejor frase para pedir ayuda es:", sugerida: "Can you repeat, please?" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa las frases de ayuda.",
+          items: [
+            { texto: "Can you ___, please?", sugerida: "Can you repeat, please?" },
+            { texto: "One more ___, please.", sugerida: "One more time, please." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Practica en voz alta: Can you repeat, please? · One more time, please. · I don't understand.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-17": {
+      titulo: "MISSION 17: \"My House\"",
+      objetivo: "Nombrar los cuartos de una casa.",
+      tema: "My House",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/17.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Escribe el nombre de cada cuarto: kitchen · bedroom · bathroom · living room.",
+          items: [
+            { texto: "Cuarto 1: ___ Cuarto 2: ___", sugerida: "Cuarto 1: kitchen, Cuarto 2: bedroom" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Describe los cuartos de la imagen.",
+          items: [
+            { texto: "This is the ___.", sugerida: "This is the kitchen." },
+            { texto: "This is the ___.", sugerida: "This is the bedroom." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Describe dos cuartos de tu propia casa.",
+          writing: [
+            { texto: "My house has a ___ and a ___.", sugerida: "My house has a kitchen and a bedroom." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-18": {
+      titulo: "MISSION 18: \"Where Is the Bathroom?\"",
+      objetivo: "Preguntar dónde están las cosas.",
+      tema: "Where Is the Bathroom?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/18.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "Encuentra el baño en la imagen.",
+          items: [
+            { texto: "El baño en la imagen es el cuarto con...", sugerida: "...el lavabo y el excusado." },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa la conversación sobre ubicaciones.",
+          items: [
+            { texto: "B: It's next to the ___.", sugerida: "It's next to the bedroom." },
+            { texto: "B: It's near the ___.", sugerida: "It's near the kitchen." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Pregunta y responde sobre un cuarto de tu casa.",
+          writing: [
+            { texto: "Where is the ___? It's ___.", sugerida: "Where is the kitchen? It's next to the living room." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-19": {
+      titulo: "MISSION 19: \"There Is a Table\"",
+      objetivo: "Describir un cuarto.",
+      tema: "There Is a Table",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/19.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Cuenta",
+          instrucciones: "Cuenta cuántas sillas, mesas y lámparas hay en la imagen.",
+          items: [
+            { texto: "chairs: ___ tables: ___ lamps: ___", sugerida: "chairs: 2, tables: 1, lamps: 1" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Describe lo que hay en el cuarto.",
+          items: [
+            { texto: "There is a ___.", sugerida: "There is a sofa." },
+            { texto: "There are ___ chairs.", sugerida: "There are two chairs." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Describe qué hay en tu cuarto favorito de tu casa.",
+          writing: [
+            { texto: "There is ___. There are ___.", sugerida: "There is a bed. There are two lamps." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-20": {
+      titulo: "MISSION 20: \"My Favorite Place\"",
+      objetivo: "Hablar sobre tu lugar favorito en casa.",
+      tema: "My Favorite Place",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/20.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Marca",
+          instrucciones: "Marca lo que ves en la imagen: chair, lamp, bed, books, plant, window.",
+          items: [
+            { texto: "Objetos que veo:", sugerida: "chair, lamp, books, window" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Describe el lugar favorito de la imagen.",
+          items: [
+            { texto: "My favorite place is the ___.", sugerida: "My favorite place is the bedroom." },
+            { texto: "There is a ___.", sugerida: "There is a chair." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Describe tu propio lugar favorito de tu casa y por qué te gusta.",
+          writing: [
+            { texto: "My favorite place is ___.", sugerida: "My favorite place is my room." },
+            { texto: "I like it because ___.", sugerida: "I like it because it's quiet." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-21": {
+      titulo: "MISSION 21: \"I Like Juice\"",
+      objetivo: "Hablar de comida y bebidas que te gustan.",
+      tema: "I Like Juice",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/21.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Clasifica",
+          instrucciones: "Escribe F para food y D para drink: juice, apple, water, pizza, milk, sandwich.",
+          items: [
+            { texto: "juice=___ apple=___ water=___", sugerida: "juice=D, apple=F, water=D" },
+            { texto: "pizza=___ milk=___ sandwich=___", sugerida: "pizza=F, milk=D, sandwich=F" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Di qué te gusta y qué no.",
+          items: [
+            { texto: "I like ___.", sugerida: "I like pizza." },
+            { texto: "I don't like ___.", sugerida: "I don't like milk." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe lo que a ti te gusta comer o tomar.",
+          writing: [
+            { texto: "I like ___.", sugerida: "I like juice and apples." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-22": {
+      titulo: "MISSION 22: \"Do You Like Pizza?\"",
+      objetivo: "Hacer preguntas de sí/no sobre gustos.",
+      tema: "Do You Like Pizza?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/22.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "¿Qué niño de la imagen dice que le gusta la pizza?",
+          items: [
+            { texto: "Who likes pizza?", sugerida: "Child A" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Responde con Yes, I do / No, I don't.",
+          items: [
+            { texto: "B: Yes, I ___.", sugerida: "Yes, I do." },
+            { texto: "B: No, I ___.", sugerida: "No, I don't." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Responde con tu propio gusto por la pizza.",
+          writing: [
+            { texto: "Do you like pizza? I like ___.", sugerida: "Yes, I do. I like pizza and juice." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-23": {
+      titulo: "MISSION 23: \"I Want a Sandwich\"",
+      objetivo: "Pedir comida sencilla con cortesía.",
+      tema: "I Want a Sandwich",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/23.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "¿Qué quiere el niño y qué bebida hay en la imagen? sandwich · pizza · salad / juice · milk · water.",
+          items: [
+            { texto: "El niño quiere ___ y la bebida es ___", sugerida: "sandwich, juice" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa el pedido de comida cortésmente.",
+          items: [
+            { texto: "I want a ___, please.", sugerida: "I want a sandwich, please." },
+            { texto: "Thank ___.", sugerida: "Thank you." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Practica pedir tu propia comida favorita con cortesía.",
+          writing: [
+            { texto: "I want ___, please.", sugerida: "I want a pizza, please." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-24": {
+      titulo: "MISSION 24: \"At the Café\"",
+      objetivo: "Completar un juego de roles en un café.",
+      tema: "At the Café",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/24.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "¿Quién es customer y quién es server en la imagen?",
+          items: [
+            { texto: "Child A: ___ Child B: ___", sugerida: "Child A: customer, Child B: server" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa la conversación del café.",
+          items: [
+            { texto: "Customer: I want a ___, please.", sugerida: "I want a sandwich, please." },
+            { texto: "Customer: ___, please.", sugerida: "Juice, please." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Practica la conversación en voz alta, cambiando la comida y la bebida.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-25": {
+      titulo: "MISSION 25: \"I Wake Up at 7\"",
+      objetivo: "Hablar sobre rutinas sencillas.",
+      tema: "I Wake Up at 7",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/25.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Observa y responde",
+          instrucciones: "¿Qué hora marca el reloj de la imagen?",
+          items: [
+            { texto: "It's ___.", sugerida: "It's seven o'clock." },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa tu rutina de la mañana.",
+          items: [
+            { texto: "I wake up at ___.", sugerida: "I wake up at 7." },
+            { texto: "I get up at ___.", sugerida: "I get up at 7:15." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe una acción que haces en la mañana.",
+          writing: [
+            { texto: "I ___ in the morning.", sugerida: "I brush my teeth in the morning." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-26": {
+      titulo: "MISSION 26: \"What Time Is It?\"",
+      objetivo: "Preguntar y decir la hora.",
+      tema: "What Time Is It?",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/26.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Relaciona",
+          instrucciones: "Relaciona cada reloj con su hora: seven o'clock · nine o'clock · twelve o'clock.",
+          items: [
+            { texto: "Clock A: ___ Clock B: ___ Clock C: ___", sugerida: "Clock A: seven, Clock B: nine, Clock C: twelve" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Responde qué hora es.",
+          items: [
+            { texto: "B: It's ___.", sugerida: "It's nine o'clock." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Dibuja tu hora favorita en un reloj y escríbela.",
+          writing: [
+            { texto: "It's ___.", sugerida: "It's three o'clock." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-27": {
+      titulo: "MISSION 27: \"My Day\"",
+      objetivo: "Describir tu rutina diaria.",
+      tema: "My Day",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/27.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Ordena",
+          instrucciones: "Numera del 1 al 4: sleep, eat, wake up, go to school.",
+          items: [
+            { texto: "wake up ___ go to school ___ eat ___ sleep ___", sugerida: "wake up 1, go to school 2, eat 3, sleep 4" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa tu rutina diaria.",
+          items: [
+            { texto: "I wake up at ___.", sugerida: "I wake up at 7." },
+            { texto: "I go to school at ___.", sugerida: "I go to school at 8." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Escribe una oración sobre tu día.",
+          writing: [
+            { texto: "I ___.", sugerida: "I play soccer after school." },
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-28": {
+      titulo: "MISSION 28: \"My Life Review\"",
+      objetivo: "Hablar de ti, tu familia, tu casa, tus gustos y tu rutina.",
+      tema: "My Life Review",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/28.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Relaciona",
+          instrucciones: "Relaciona cada sección con su tema: personal information · family · house · food · routine.",
+          items: [
+            { texto: "Relaciona cada palabra con su sección", sugerida: "personal information, family, house, food, routine" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa tus cinco oraciones sobre tu vida.",
+          items: [
+            { texto: "My name is ___.", sugerida: "My name is Ana." },
+            { texto: "My family is ___. I like ___.", sugerida: "My family is small. I like pizza." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Lee tus cinco oraciones a alguien en casa.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-29": {
+      titulo: "MISSION 29: \"Challenge Prep\"",
+      objetivo: "Preparar tu \"My Explorer Profile\".",
+      tema: "Challenge Prep",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/29.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Ordena",
+          instrucciones: "Numera las secciones del 1 al 7: name, country, age, family, home, likes, routine.",
+          items: [
+            { texto: "Numera las secciones en el orden que prefieras", sugerida: "name 1, country 2, age 3, family 4, home 5, likes 6, routine 7" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Completa",
+          instrucciones: "Completa tus mejores oraciones para tu perfil.",
+          items: [
+            { texto: "My name is ___. I'm from ___.", sugerida: "My name is Ana. I'm from Mexico." },
+            { texto: "I like ___. I wake up at ___.", sugerida: "I like pizza. I wake up at 7." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Lee tu Explorer Profile en voz alta una vez.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-30": {
+      titulo: "MISSION 30: \"Challenge Practice\"",
+      objetivo: "Practicar preguntas y respuestas.",
+      tema: "Challenge Practice",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/30.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Relaciona",
+          instrucciones: "Relaciona cada pregunta con su respuesta.",
+          items: [
+            { texto: "1. What's your name? 2. Where are you from? 3. How old are you? 4. Do you like pizza? 5. What time do you wake up?", sugerida: "1-c (My name is Leo), 2-a (I'm from Mexico), 3-b (I'm nine years old), 4-d (Yes, I do), 5-e (I wake up at seven)" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Escribe",
+          instrucciones: "Escribe dos preguntas y sus respuestas.",
+          items: [
+            { texto: "Question 1: ___ Answer: ___", sugerida: "Question 1: Do you like milk? Answer: No, I don't." },
+            { texto: "Question 2: ___ Answer: ___", sugerida: "Question 2: How old are you? Answer: I'm eight." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Pregunta y responde con alguien en casa.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-31": {
+      titulo: "MISSION 31: \"Final Adventure\"",
+      objetivo: "Presentar \"This Is Me\".",
+      tema: "Final Adventure",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/31.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Completa",
+          instrucciones: "Completa tu presentación final.",
+          items: [
+            { texto: "Hello! My name is ___. I'm from ___.", sugerida: "Hello! My name is Ana. I'm from Mexico." },
+            { texto: "My family is ___. I like ___. I wake up at ___.", sugerida: "My family is small. I like pizza. I wake up at 7." },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Revisa",
+          instrucciones: "Marca lo que incluiste en tu presentación: nombre, país, familia, gustos, rutina, thank you.",
+          items: [
+            { texto: "Revisa tu presentación y marca lo que ya incluiste", sugerida: "name, country, family, likes, routine, thank you" },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Practica tu presentación completa dos veces en voz alta.",
+          writing: [
+          ]
+        }
+      ]
+    },
+    "KIDS-A1.1-32": {
+      titulo: "MISSION 32: \"Celebration Day\"",
+      objetivo: "Recibir tu insignia de Explorador A1.1.",
+      tema: "Celebration Day",
+      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png",
+      ejercicios: [
+        {
+          tipo: 'completar',
+          titulo: "Actividad 1 · Revisa",
+          instrucciones: "Marca todo lo que ya puedes hacer en inglés.",
+          items: [
+            { texto: "Marca: introduce myself, country/age, family, classroom objects, ask for help, house, order food, my day", sugerida: "¡Marca todo lo que ya sabes hacer!" },
+          ]
+        },
+        {
+          tipo: 'completar',
+          titulo: "Actividad 2 · Escribe",
+          instrucciones: "Cuenta cuál fue tu misión favorita.",
+          items: [
+            { texto: "My favorite mission was Mission ___.", sugerida: "My favorite mission was Mission 21." },
+            { texto: "I liked it because ___.", sugerida: "I liked it because I like pizza and juice." },
+          ]
+        },
+        {
+          tipo: 'hablar_escribir',
+          titulo: 'Actividad 3 · Mi inglés',
+          speaking: "Dibuja tu propia insignia de Explorador A1.1.",
+          writing: [
+          ]
+        }
+      ]
+    }
+  };
+  Object.assign(LECCIONES_CONTENIDO, MISIONES_KIDS_CONTENIDO);
+
+  // ── Lista de misiones para el grid de Practiquemos (titulo + imagen) ──
+  var MISIONES_KIDS_LISTA = [
+    { num: 1, titulo: "Nice to Meet You", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/1.png" },
+    { num: 2, titulo: "Where Are You From?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/2.png" },
+    { num: 3, titulo: "How Are You?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/3.png" },
+    { num: 4, titulo: "This Is My Friend", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/4.png" },
+    { num: 5, titulo: "Phone Numbers", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/5.png" },
+    { num: 6, titulo: "How Old Are You?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/6.png" },
+    { num: 7, titulo: "What's Your Email?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/7.png" },
+    { num: 8, titulo: "Personal Information Review", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/8.png" },
+    { num: 9, titulo: "This Is My Family", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/9.png" },
+    { num: 10, titulo: "Who Is She?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/10.png" },
+    { num: 11, titulo: "He Is My Brother", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/11.png" },
+    { num: 12, titulo: "My Family Is Small", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/12.png" },
+    { num: 13, titulo: "What's This?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/13.png" },
+    { num: 14, titulo: "In My Bag", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/14.png" },
+    { num: 15, titulo: "Open Your Book", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/15.png" },
+    { num: 16, titulo: "Can You Repeat, Please?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/16.png" },
+    { num: 17, titulo: "My House", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/17.png" },
+    { num: 18, titulo: "Where Is the Bathroom?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/18.png" },
+    { num: 19, titulo: "There Is a Table", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/19.png" },
+    { num: 20, titulo: "My Favorite Place", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/20.png" },
+    { num: 21, titulo: "I Like Juice", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/21.png" },
+    { num: 22, titulo: "Do You Like Pizza?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/22.png" },
+    { num: 23, titulo: "I Want a Sandwich", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/23.png" },
+    { num: 24, titulo: "At the Café", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/24.png" },
+    { num: 25, titulo: "I Wake Up at 7", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/25.png" },
+    { num: 26, titulo: "What Time Is It?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/26.png" },
+    { num: 27, titulo: "My Day", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/27.png" },
+    { num: 28, titulo: "My Life Review", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/28.png" },
+    { num: 29, titulo: "Challenge Prep", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/29.png" },
+    { num: 30, titulo: "Challenge Practice", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/30.png" },
+    { num: 31, titulo: "Final Adventure", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/31.png" },
+    { num: 32, titulo: "Celebration Day", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png" },
+  ];
+
   // ── CONTENIDO DE LECCIONES A1.2 (Adults/Teens) ──────────────────
   var LECCIONES_A12_CONTENIDO = {
     "A1.2-1": {
@@ -5450,1099 +6662,6 @@
   };
   Object.assign(LECCIONES_CONTENIDO, LECCIONES_A12_CONTENIDO);
 
-
-  // ── CONTENIDO DE MISIONES KIDS (Growie Kids A1.1) ──────────────────
-  var MISIONES_KIDS_CONTENIDO = {
-    "KIDS-A1.1-1": {
-      titulo: "MISSION 1: \"Nice to Meet You\"",
-      objetivo: "Presentarte y saludar a los amigos de Growie.",
-      tema: "Nice to Meet You",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/1.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Lee los saludos y escribe cuáles se usan para conocer a alguien.",
-          items: [
-            { texto: "Hello! · Good night! · Hi! · Nice to meet you! · Goodbye! -> ¿cuáles son saludos para conocer a alguien?", sugerida: "Hello!, Hi!, Nice to meet you!" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa la conversación",
-          instrucciones: "Completa el diálogo con tu nombre y el de un amigo.",
-          items: [
-            { texto: "A: Hello! I'm ___.", sugerida: "A: Hello! I'm Ana." },
-            { texto: "B: Hi! I'm ___.", sugerida: "B: Hi! I'm Leo." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Da un saludo a dos amigos usando Hello y Hi.",
-          writing: [
-            { texto: "Child 1: ___", sugerida: "Child 1: Hello!" },
-            { texto: "Child 2: ___", sugerida: "Child 2: Hi!" },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-2": {
-      titulo: "MISSION 2: \"Where Are You From?\"",
-      objetivo: "Decir de dónde eres.",
-      tema: "Where Are You From?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/2.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Relaciona cada niño con su país: Mexico · Canada · Japan.",
-          items: [
-            { texto: "Child 1: ___ Child 2: ___ Child 3: ___", sugerida: "Child 1: Mexico, Child 2: Canada, Child 3: Japan" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa las oraciones sobre el origen de cada persona.",
-          items: [
-            { texto: "I'm from ___.", sugerida: "I'm from Mexico." },
-            { texto: "She is from ___.", sugerida: "She is from Japan." },
-            { texto: "He is from ___.", sugerida: "He is from Canada." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Practica decir de dónde eres en voz alta.",
-          writing: [
-            { texto: "I'm from ___.", sugerida: "I'm from Mexico." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-3": {
-      titulo: "MISSION 3: \"How Are You?\"",
-      objetivo: "Preguntar y responder cómo te sientes.",
-      tema: "How Are You?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/3.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Escribe el sentimiento correcto debajo de cada cara: happy · good · tired · sad.",
-          items: [
-            { texto: "Face 1: ___ Face 2: ___ Face 3: ___ Face 4: ___", sugerida: "Face 1: happy, Face 2: good, Face 3: tired, Face 4: sad" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Elige",
-          instrucciones: "¿Qué niño dice \"I'm tired today\"? Descríbelo.",
-          items: [
-            { texto: "El niño que combina con \"I'm tired today\" es el que...", sugerida: "...tiene los ojos cerrados / bosteza." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Di cómo te sientes hoy.",
-          writing: [
-            { texto: "I'm ___ today.", sugerida: "I'm happy today." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-4": {
-      titulo: "MISSION 4: \"This Is My Friend\"",
-      objetivo: "Presentar a otra persona.",
-      tema: "This Is My Friend",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/4.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "¿Qué niño está siendo presentado en la imagen?",
-          items: [
-            { texto: "El niño presentado es...", sugerida: "...el que está en medio, señalado por los otros dos." },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa la presentación de un amigo.",
-          items: [
-            { texto: "This is my friend, ___.", sugerida: "This is my friend, Leo." },
-            { texto: "He / She is from ___.", sugerida: "He is from Mexico." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Presenta a un amigo real o imaginario.",
-          writing: [
-            { texto: "This is ___.", sugerida: "This is Ana." },
-            { texto: "He / She is my ___.", sugerida: "She is my friend." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-5": {
-      titulo: "MISSION 5: \"Phone Numbers\"",
-      objetivo: "Dar un número de teléfono sencillo.",
-      tema: "Phone Numbers",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/5.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Copia el número de teléfono que se ve en la imagen.",
-          items: [
-            { texto: "Phone number: ___", sugerida: "246-813-5709" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa la conversación sobre números de teléfono.",
-          items: [
-            { texto: "B: My practice phone number is ___.", sugerida: "B: My practice phone number is 555-123-4567." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Inventa (no uses tu número real) un número de práctica.",
-          writing: [
-            { texto: "My practice number is: ___", sugerida: "555-987-6543 (inventado, no real)" },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-6": {
-      titulo: "MISSION 6: \"How Old Are You?\"",
-      objetivo: "Preguntar y responder sobre la edad.",
-      tema: "How Old Are You?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/6.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Cuenta las velitas del pastel en la imagen.",
-          items: [
-            { texto: "There are ___ candles.", sugerida: "There are 7 candles." },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa la respuesta sobre tu edad.",
-          items: [
-            { texto: "B: I'm ___ years old.", sugerida: "B: I'm 8 years old." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Elige una tarjeta de número de la imagen y escríbela.",
-          writing: [
-            { texto: "The number is ___.", sugerida: "The number is 6." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-7": {
-      titulo: "MISSION 7: \"What's Your Email?\"",
-      objetivo: "Deletrear información de contacto sencilla.",
-      tema: "What's Your Email?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/7.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Encuentra el símbolo @ y el punto en la imagen.",
-          items: [
-            { texto: "El símbolo @ y el punto están en...", sugerida: "...growie@kids.com" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Ordena",
-          instrucciones: "Ordena las partes para formar el correo.",
-          items: [
-            { texto: "growie · @ · kids · .com -> ___", sugerida: "growie@kids.com" },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe un nombre corto y deletréalo en voz alta.",
-          writing: [
-            { texto: "Name: ___ Spelling: ___", sugerida: "Name: Leo, Spelling: L-E-O" },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-8": {
-      titulo: "MISSION 8: \"Personal Information Review\"",
-      objetivo: "Completar tu perfil de explorador.",
-      tema: "Personal Information Review",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/8.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Relaciona cada ícono con la palabra correcta: name · country · age · phone · email.",
-          items: [
-            { texto: "persona=___, globo=___, calendario=___, teléfono=___, sobre=___", sugerida: "persona=name, globo=country, calendario=age, teléfono=phone, sobre=email" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa tu Explorer ID.",
-          items: [
-            { texto: "Name: ___ Country: ___", sugerida: "Name: Ana, Country: Mexico" },
-            { texto: "Age: ___ Practice phone: ___", sugerida: "Age: 8, Practice phone: 555-123-4567" },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe tu perfil con tu propia información.",
-          writing: [
-            { texto: "My name is ___. I'm from ___.", sugerida: "My name is Ana. I'm from Mexico." },
-            { texto: "I'm ___ years old.", sugerida: "I'm 8 years old." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-9": {
-      titulo: "MISSION 9: \"This Is My Family\"",
-      objetivo: "Hablar sobre los miembros de la familia.",
-      tema: "This Is My Family",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/9.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Escribe la palabra correcta debajo de cada persona: mother · father · sister · brother.",
-          items: [
-            { texto: "Persona 1: ___ Persona 2: ___", sugerida: "Persona 1: mother, Persona 2: father" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa las oraciones sobre tu familia.",
-          items: [
-            { texto: "This is my ___.", sugerida: "This is my mother." },
-            { texto: "This is my ___.", sugerida: "This is my brother." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe dos palabras de familia que describan a las personas que quieres.",
-          writing: [
-            { texto: "___ and ___", sugerida: "mother and sister" },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-10": {
-      titulo: "MISSION 10: \"Who Is She?\"",
-      objetivo: "Identificar personas con he, she y they.",
-      tema: "Who Is She?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/10.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Escribe he, she o they para cada imagen.",
-          items: [
-            { texto: "Girl: ___ Boy: ___ Group: ___", sugerida: "Girl: she, Boy: he, Group: they" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa las oraciones con el pronombre correcto.",
-          items: [
-            { texto: "___ is my sister. ___ is my brother.", sugerida: "She is my sister. He is my brother." },
-            { texto: "___ are my friends.", sugerida: "They are my friends." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Describe quién es ella y quién es él en tu propia vida.",
-          writing: [
-            { texto: "Who is she? She is ___.", sugerida: "She is my sister." },
-            { texto: "Who is he? He is ___.", sugerida: "He is my brother." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-11": {
-      titulo: "MISSION 11: \"He Is My Brother\"",
-      objetivo: "Describir relaciones familiares.",
-      tema: "He Is My Brother",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/11.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Completa según el árbol familiar de la imagen.",
-          items: [
-            { texto: "He is my ___.", sugerida: "He is my father." },
-            { texto: "She is my ___.", sugerida: "She is my mother." },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Relaciona",
-          instrucciones: "Relaciona las palabras en inglés con los miembros de la familia: mother · father · brother · sister.",
-          items: [
-            { texto: "Relaciona cada palabra con la persona correcta en la imagen", sugerida: "mother=mamá, father=papá, brother=hermano, sister=hermana" },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Habla de tu propia familia usando he/she is my ___.",
-          writing: [
-            { texto: "He is my ___.", sugerida: "He is my brother." },
-            { texto: "She is my ___.", sugerida: "She is my sister." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-12": {
-      titulo: "MISSION 12: \"My Family Is Small\"",
-      objetivo: "Describir tu familia con adjetivos.",
-      tema: "My Family Is Small",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/12.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "¿Cuál familia de la imagen es pequeña y cuál es grande?",
-          items: [
-            { texto: "Family A es ___ y Family B es ___", sugerida: "Family A is small, Family B is big" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Describe cada familia de la imagen.",
-          items: [
-            { texto: "Family A is ___.", sugerida: "Family A is small." },
-            { texto: "Family B is ___.", sugerida: "Family B is big." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Elige un adjetivo y describe tu propia familia: small · big · happy.",
-          writing: [
-            { texto: "My family is ___.", sugerida: "My family is happy." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-13": {
-      titulo: "MISSION 13: \"What's This?\"",
-      objetivo: "Identificar objetos del salón de clases.",
-      tema: "What's This?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/13.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Escribe la palabra correcta para cada objeto: book · pencil · notebook · backpack.",
-          items: [
-            { texto: "Objeto 1: ___ Objeto 2: ___", sugerida: "Objeto 1: book, Objeto 2: pencil" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Responde qué es cada objeto.",
-          items: [
-            { texto: "What's this? It's a ___.", sugerida: "It's a pencil." },
-            { texto: "What's that? It's a ___.", sugerida: "It's a book." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Busca un objeto escolar cerca de ti y nómbralo.",
-          writing: [
-            { texto: "This is my ___.", sugerida: "This is my backpack." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-14": {
-      titulo: "MISSION 14: \"In My Bag\"",
-      objetivo: "Hablar sobre objetos personales.",
-      tema: "In My Bag",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/14.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Marca los objetos que ves en la mochila: notebook, keys, shoe, pencil, water bottle, pencil case.",
-          items: [
-            { texto: "Objetos que veo en la imagen:", sugerida: "notebook, pencil, water bottle, pencil case" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Describe lo que hay en la mochila.",
-          items: [
-            { texto: "In the bag, there is a ___.", sugerida: "There is a notebook." },
-            { texto: "There are ___.", sugerida: "There are two pencils." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe dos cosas que tienes en tu propia mochila.",
-          writing: [
-            { texto: "I have ___ and ___.", sugerida: "I have a pencil and a notebook." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-15": {
-      titulo: "MISSION 15: \"Open Your Book\"",
-      objetivo: "Usar instrucciones del salón de clases.",
-      tema: "Open Your Book",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/15.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Ordena",
-          instrucciones: "Numera las acciones en orden: Open the book. Read the book. Close the book.",
-          items: [
-            { texto: "Open ___ Read ___ Close ___", sugerida: "Open 1, Read 2, Close 3" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa las instrucciones de clase.",
-          items: [
-            { texto: "___ your book.", sugerida: "Open your book." },
-            { texto: "Raise your ___.", sugerida: "Raise your hand." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Practica las instrucciones en voz alta con un adulto.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-16": {
-      titulo: "MISSION 16: \"Can You Repeat, Please?\"",
-      objetivo: "Pedir ayuda en clase.",
-      tema: "Can You Repeat, Please?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/16.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Elige",
-          instrucciones: "¿Cuál es la mejor frase para pedir ayuda? Can you repeat, please? · Goodbye! · I like pizza.",
-          items: [
-            { texto: "La mejor frase para pedir ayuda es:", sugerida: "Can you repeat, please?" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa las frases de ayuda.",
-          items: [
-            { texto: "Can you ___, please?", sugerida: "Can you repeat, please?" },
-            { texto: "One more ___, please.", sugerida: "One more time, please." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Practica en voz alta: Can you repeat, please? · One more time, please. · I don't understand.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-17": {
-      titulo: "MISSION 17: \"My House\"",
-      objetivo: "Nombrar los cuartos de una casa.",
-      tema: "My House",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/17.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Escribe el nombre de cada cuarto: kitchen · bedroom · bathroom · living room.",
-          items: [
-            { texto: "Cuarto 1: ___ Cuarto 2: ___", sugerida: "Cuarto 1: kitchen, Cuarto 2: bedroom" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Describe los cuartos de la imagen.",
-          items: [
-            { texto: "This is the ___.", sugerida: "This is the kitchen." },
-            { texto: "This is the ___.", sugerida: "This is the bedroom." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Describe dos cuartos de tu propia casa.",
-          writing: [
-            { texto: "My house has a ___ and a ___.", sugerida: "My house has a kitchen and a bedroom." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-18": {
-      titulo: "MISSION 18: \"Where Is the Bathroom?\"",
-      objetivo: "Preguntar dónde están las cosas.",
-      tema: "Where Is the Bathroom?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/18.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "Encuentra el baño en la imagen.",
-          items: [
-            { texto: "El baño en la imagen es el cuarto con...", sugerida: "...el lavabo y el excusado." },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa la conversación sobre ubicaciones.",
-          items: [
-            { texto: "B: It's next to the ___.", sugerida: "It's next to the bedroom." },
-            { texto: "B: It's near the ___.", sugerida: "It's near the kitchen." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Pregunta y responde sobre un cuarto de tu casa.",
-          writing: [
-            { texto: "Where is the ___? It's ___.", sugerida: "Where is the kitchen? It's next to the living room." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-19": {
-      titulo: "MISSION 19: \"There Is a Table\"",
-      objetivo: "Describir un cuarto.",
-      tema: "There Is a Table",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/19.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Cuenta",
-          instrucciones: "Cuenta cuántas sillas, mesas y lámparas hay en la imagen.",
-          items: [
-            { texto: "chairs: ___ tables: ___ lamps: ___", sugerida: "chairs: 2, tables: 1, lamps: 1" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Describe lo que hay en el cuarto.",
-          items: [
-            { texto: "There is a ___.", sugerida: "There is a sofa." },
-            { texto: "There are ___ chairs.", sugerida: "There are two chairs." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Describe qué hay en tu cuarto favorito de tu casa.",
-          writing: [
-            { texto: "There is ___. There are ___.", sugerida: "There is a bed. There are two lamps." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-20": {
-      titulo: "MISSION 20: \"My Favorite Place\"",
-      objetivo: "Hablar sobre tu lugar favorito en casa.",
-      tema: "My Favorite Place",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/20.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Marca",
-          instrucciones: "Marca lo que ves en la imagen: chair, lamp, bed, books, plant, window.",
-          items: [
-            { texto: "Objetos que veo:", sugerida: "chair, lamp, books, window" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Describe el lugar favorito de la imagen.",
-          items: [
-            { texto: "My favorite place is the ___.", sugerida: "My favorite place is the bedroom." },
-            { texto: "There is a ___.", sugerida: "There is a chair." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Describe tu propio lugar favorito de tu casa y por qué te gusta.",
-          writing: [
-            { texto: "My favorite place is ___.", sugerida: "My favorite place is my room." },
-            { texto: "I like it because ___.", sugerida: "I like it because it's quiet." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-21": {
-      titulo: "MISSION 21: \"I Like Juice\"",
-      objetivo: "Hablar de comida y bebidas que te gustan.",
-      tema: "I Like Juice",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/21.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Clasifica",
-          instrucciones: "Escribe F para food y D para drink: juice, apple, water, pizza, milk, sandwich.",
-          items: [
-            { texto: "juice=___ apple=___ water=___", sugerida: "juice=D, apple=F, water=D" },
-            { texto: "pizza=___ milk=___ sandwich=___", sugerida: "pizza=F, milk=D, sandwich=F" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Di qué te gusta y qué no.",
-          items: [
-            { texto: "I like ___.", sugerida: "I like pizza." },
-            { texto: "I don't like ___.", sugerida: "I don't like milk." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe lo que a ti te gusta comer o tomar.",
-          writing: [
-            { texto: "I like ___.", sugerida: "I like juice and apples." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-22": {
-      titulo: "MISSION 22: \"Do You Like Pizza?\"",
-      objetivo: "Hacer preguntas de sí/no sobre gustos.",
-      tema: "Do You Like Pizza?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/22.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "¿Qué niño de la imagen dice que le gusta la pizza?",
-          items: [
-            { texto: "Who likes pizza?", sugerida: "Child A" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Responde con Yes, I do / No, I don't.",
-          items: [
-            { texto: "B: Yes, I ___.", sugerida: "Yes, I do." },
-            { texto: "B: No, I ___.", sugerida: "No, I don't." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Responde con tu propio gusto por la pizza.",
-          writing: [
-            { texto: "Do you like pizza? I like ___.", sugerida: "Yes, I do. I like pizza and juice." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-23": {
-      titulo: "MISSION 23: \"I Want a Sandwich\"",
-      objetivo: "Pedir comida sencilla con cortesía.",
-      tema: "I Want a Sandwich",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/23.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "¿Qué quiere el niño y qué bebida hay en la imagen? sandwich · pizza · salad / juice · milk · water.",
-          items: [
-            { texto: "El niño quiere ___ y la bebida es ___", sugerida: "sandwich, juice" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa el pedido de comida cortésmente.",
-          items: [
-            { texto: "I want a ___, please.", sugerida: "I want a sandwich, please." },
-            { texto: "Thank ___.", sugerida: "Thank you." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Practica pedir tu propia comida favorita con cortesía.",
-          writing: [
-            { texto: "I want ___, please.", sugerida: "I want a pizza, please." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-24": {
-      titulo: "MISSION 24: \"At the Café\"",
-      objetivo: "Completar un juego de roles en un café.",
-      tema: "At the Café",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/24.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "¿Quién es customer y quién es server en la imagen?",
-          items: [
-            { texto: "Child A: ___ Child B: ___", sugerida: "Child A: customer, Child B: server" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa la conversación del café.",
-          items: [
-            { texto: "Customer: I want a ___, please.", sugerida: "I want a sandwich, please." },
-            { texto: "Customer: ___, please.", sugerida: "Juice, please." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Practica la conversación en voz alta, cambiando la comida y la bebida.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-25": {
-      titulo: "MISSION 25: \"I Wake Up at 7\"",
-      objetivo: "Hablar sobre rutinas sencillas.",
-      tema: "I Wake Up at 7",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/25.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Observa y responde",
-          instrucciones: "¿Qué hora marca el reloj de la imagen?",
-          items: [
-            { texto: "It's ___.", sugerida: "It's seven o'clock." },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa tu rutina de la mañana.",
-          items: [
-            { texto: "I wake up at ___.", sugerida: "I wake up at 7." },
-            { texto: "I get up at ___.", sugerida: "I get up at 7:15." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe una acción que haces en la mañana.",
-          writing: [
-            { texto: "I ___ in the morning.", sugerida: "I brush my teeth in the morning." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-26": {
-      titulo: "MISSION 26: \"What Time Is It?\"",
-      objetivo: "Preguntar y decir la hora.",
-      tema: "What Time Is It?",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/26.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Relaciona",
-          instrucciones: "Relaciona cada reloj con su hora: seven o'clock · nine o'clock · twelve o'clock.",
-          items: [
-            { texto: "Clock A: ___ Clock B: ___ Clock C: ___", sugerida: "Clock A: seven, Clock B: nine, Clock C: twelve" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Responde qué hora es.",
-          items: [
-            { texto: "B: It's ___.", sugerida: "It's nine o'clock." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Dibuja tu hora favorita en un reloj y escríbela.",
-          writing: [
-            { texto: "It's ___.", sugerida: "It's three o'clock." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-27": {
-      titulo: "MISSION 27: \"My Day\"",
-      objetivo: "Describir tu rutina diaria.",
-      tema: "My Day",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/27.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Ordena",
-          instrucciones: "Numera del 1 al 4: sleep, eat, wake up, go to school.",
-          items: [
-            { texto: "wake up ___ go to school ___ eat ___ sleep ___", sugerida: "wake up 1, go to school 2, eat 3, sleep 4" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa tu rutina diaria.",
-          items: [
-            { texto: "I wake up at ___.", sugerida: "I wake up at 7." },
-            { texto: "I go to school at ___.", sugerida: "I go to school at 8." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Escribe una oración sobre tu día.",
-          writing: [
-            { texto: "I ___.", sugerida: "I play soccer after school." },
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-28": {
-      titulo: "MISSION 28: \"My Life Review\"",
-      objetivo: "Hablar de ti, tu familia, tu casa, tus gustos y tu rutina.",
-      tema: "My Life Review",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/28.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Relaciona",
-          instrucciones: "Relaciona cada sección con su tema: personal information · family · house · food · routine.",
-          items: [
-            { texto: "Relaciona cada palabra con su sección", sugerida: "personal information, family, house, food, routine" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa tus cinco oraciones sobre tu vida.",
-          items: [
-            { texto: "My name is ___.", sugerida: "My name is Ana." },
-            { texto: "My family is ___. I like ___.", sugerida: "My family is small. I like pizza." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Lee tus cinco oraciones a alguien en casa.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-29": {
-      titulo: "MISSION 29: \"Challenge Prep\"",
-      objetivo: "Preparar tu \"My Explorer Profile\".",
-      tema: "Challenge Prep",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/29.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Ordena",
-          instrucciones: "Numera las secciones del 1 al 7: name, country, age, family, home, likes, routine.",
-          items: [
-            { texto: "Numera las secciones en el orden que prefieras", sugerida: "name 1, country 2, age 3, family 4, home 5, likes 6, routine 7" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Completa",
-          instrucciones: "Completa tus mejores oraciones para tu perfil.",
-          items: [
-            { texto: "My name is ___. I'm from ___.", sugerida: "My name is Ana. I'm from Mexico." },
-            { texto: "I like ___. I wake up at ___.", sugerida: "I like pizza. I wake up at 7." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Lee tu Explorer Profile en voz alta una vez.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-30": {
-      titulo: "MISSION 30: \"Challenge Practice\"",
-      objetivo: "Practicar preguntas y respuestas.",
-      tema: "Challenge Practice",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/30.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Relaciona",
-          instrucciones: "Relaciona cada pregunta con su respuesta.",
-          items: [
-            { texto: "1. What's your name? 2. Where are you from? 3. How old are you? 4. Do you like pizza? 5. What time do you wake up?", sugerida: "1-c (My name is Leo), 2-a (I'm from Mexico), 3-b (I'm nine years old), 4-d (Yes, I do), 5-e (I wake up at seven)" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Escribe",
-          instrucciones: "Escribe dos preguntas y sus respuestas.",
-          items: [
-            { texto: "Question 1: ___ Answer: ___", sugerida: "Question 1: Do you like milk? Answer: No, I don't." },
-            { texto: "Question 2: ___ Answer: ___", sugerida: "Question 2: How old are you? Answer: I'm eight." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Pregunta y responde con alguien en casa.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-31": {
-      titulo: "MISSION 31: \"Final Adventure\"",
-      objetivo: "Presentar \"This Is Me\".",
-      tema: "Final Adventure",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/31.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Completa",
-          instrucciones: "Completa tu presentación final.",
-          items: [
-            { texto: "Hello! My name is ___. I'm from ___.", sugerida: "Hello! My name is Ana. I'm from Mexico." },
-            { texto: "My family is ___. I like ___. I wake up at ___.", sugerida: "My family is small. I like pizza. I wake up at 7." },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Revisa",
-          instrucciones: "Marca lo que incluiste en tu presentación: nombre, país, familia, gustos, rutina, thank you.",
-          items: [
-            { texto: "Revisa tu presentación y marca lo que ya incluiste", sugerida: "name, country, family, likes, routine, thank you" },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Practica tu presentación completa dos veces en voz alta.",
-          writing: [
-          ]
-        }
-      ]
-    },
-    "KIDS-A1.1-32": {
-      titulo: "MISSION 32: \"Celebration Day\"",
-      objetivo: "Recibir tu insignia de Explorador A1.1.",
-      tema: "Celebration Day",
-      imagen: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png",
-      ejercicios: [
-        {
-          tipo: 'completar',
-          titulo: "Actividad 1 · Revisa",
-          instrucciones: "Marca todo lo que ya puedes hacer en inglés.",
-          items: [
-            { texto: "Marca: introduce myself, country/age, family, classroom objects, ask for help, house, order food, my day", sugerida: "¡Marca todo lo que ya sabes hacer!" },
-          ]
-        },
-        {
-          tipo: 'completar',
-          titulo: "Actividad 2 · Escribe",
-          instrucciones: "Cuenta cuál fue tu misión favorita.",
-          items: [
-            { texto: "My favorite mission was Mission ___.", sugerida: "My favorite mission was Mission 21." },
-            { texto: "I liked it because ___.", sugerida: "I liked it because I like pizza and juice." },
-          ]
-        },
-        {
-          tipo: 'hablar_escribir',
-          titulo: 'Actividad 3 · Mi inglés',
-          speaking: "Dibuja tu propia insignia de Explorador A1.1.",
-          writing: [
-          ]
-        }
-      ]
-    }
-  };
-  Object.assign(LECCIONES_CONTENIDO, MISIONES_KIDS_CONTENIDO);
-
-  // ── Lista de misiones para el grid de Practiquemos (titulo + imagen) ──
-  var MISIONES_KIDS_LISTA = [
-    { num: 1, titulo: "Nice to Meet You", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/1.png" },
-    { num: 2, titulo: "Where Are You From?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/2.png" },
-    { num: 3, titulo: "How Are You?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/3.png" },
-    { num: 4, titulo: "This Is My Friend", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/4.png" },
-    { num: 5, titulo: "Phone Numbers", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/5.png" },
-    { num: 6, titulo: "How Old Are You?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/6.png" },
-    { num: 7, titulo: "What's Your Email?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/7.png" },
-    { num: 8, titulo: "Personal Information Review", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/8.png" },
-    { num: 9, titulo: "This Is My Family", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/9.png" },
-    { num: 10, titulo: "Who Is She?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/10.png" },
-    { num: 11, titulo: "He Is My Brother", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/11.png" },
-    { num: 12, titulo: "My Family Is Small", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/12.png" },
-    { num: 13, titulo: "What's This?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/13.png" },
-    { num: 14, titulo: "In My Bag", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/14.png" },
-    { num: 15, titulo: "Open Your Book", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/15.png" },
-    { num: 16, titulo: "Can You Repeat, Please?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/16.png" },
-    { num: 17, titulo: "My House", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/17.png" },
-    { num: 18, titulo: "Where Is the Bathroom?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/18.png" },
-    { num: 19, titulo: "There Is a Table", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/19.png" },
-    { num: 20, titulo: "My Favorite Place", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/20.png" },
-    { num: 21, titulo: "I Like Juice", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/21.png" },
-    { num: 22, titulo: "Do You Like Pizza?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/22.png" },
-    { num: 23, titulo: "I Want a Sandwich", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/23.png" },
-    { num: 24, titulo: "At the Café", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/24.png" },
-    { num: 25, titulo: "I Wake Up at 7", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/25.png" },
-    { num: 26, titulo: "What Time Is It?", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/26.png" },
-    { num: 27, titulo: "My Day", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/27.png" },
-    { num: 28, titulo: "My Life Review", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/28.png" },
-    { num: 29, titulo: "Challenge Prep", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/29.png" },
-    { num: 30, titulo: "Challenge Practice", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/30.png" },
-    { num: 31, titulo: "Final Adventure", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/31.png" },
-    { num: 32, titulo: "Celebration Day", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png" },
-  ];
-
   function abrirLeccion(subnivel, numero) {
     // Blindaje central: aplica a Adults/Teens (A1.2) y a Kids (KIDS-A1.2)
     // por igual, incluso si alguien intenta forzar el llamado desde la
@@ -6698,7 +6817,7 @@
 
   function abrirZoomDesdeBoard() {
     var btn = document.getElementById('btnZoom');
-    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
+    if (btn) btn.click();
   }
   function abrirGrabacionDesdeBoard() {
     var btn = document.getElementById('btnGrabacion');
@@ -6714,7 +6833,7 @@
   // Personal sin importar su condicion real (semana, dia, antiguedad, etc).
   // Cuando ya no se necesite, cambiar a "false" y cada post-it vuelve a
   // aparecer solo cuando de verdad aplica.
-  var MODO_DEMO_TODOS_LOS_POSTITS = false;
+  var MODO_DEMO_TODOS_LOS_POSTITS = true;
 
   function calcularProximaClase(tipoHorario) {
     var diasValidos = (tipoHorario === 'sabado') ? [6] : [1, 2, 3, 4]; // Lun-Jue
@@ -7481,6 +7600,99 @@ function subirVideoChallenge() {
 }
 </script>
 
+<!-- ═══ Notificaciones push (Firebase Cloud Messaging) ═══ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+<script>
+  var _firebaseAppOE = firebase.initializeApp({
+    apiKey: "AIzaSyB8tBr0rYLbhDXUDHLCqJm2fM8lHA0aBlM",
+    authDomain: "organic-english.firebaseapp.com",
+    projectId: "organic-english",
+    storageBucket: "organic-english.firebasestorage.app",
+    messagingSenderId: "535971507724",
+    appId: "1:535971507724:web:82f9f057936b4c2f8e0829"
+  });
+  var _vapidKeyOE = "BI3q0_1E24pxZGzkcJHUo8a9c4T7a4cp-4pFojhtg1nZJv9TcPDnC8E0Z0ucVkQqIQ25opOswA3VVEUYMfQjwe8";
+
+  // El service worker de alumnos (service-worker-alumnos.js) ya se registra
+  // en el bloque de instalacion mas abajo -- aqui solo usamos firebase.messaging()
+  // sobre ese mismo registro para pedir el token de este dispositivo.
+
+  firebase.messaging().onMessage(function (payload) {
+    var titulo = (payload.notification && payload.notification.title) || 'Organic English';
+    var cuerpo = (payload.notification && payload.notification.body) || '';
+    if (Notification.permission === 'granted') {
+      new Notification(titulo, {
+        body: cuerpo,
+        icon: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png'
+      });
+    }
+  });
+
+  // Si el alumno ya habia activado notificaciones antes (en una sesion previa),
+  // esto actualiza el boton a "activadas" sin que tenga que volver a darle clic.
+  function sincronizarNotificacionesSiYaActivadas() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!alumnoData || !alumnoData.alumno || !alumnoData.alumno.id) return;
+
+    var btn = document.getElementById('btnNotificaciones');
+    if (btn) { btn.textContent = '🔔 Notificaciones activadas'; btn.style.background = '#16a34a'; }
+
+    navigator.serviceWorker.ready.then(function (registro) {
+      var messaging = firebase.messaging();
+      messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+        .then(function (token) {
+          if (!token) return;
+          fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(alumnoData.alumno.id) +
+            '&rol=alumno&token=' + encodeURIComponent(token));
+        })
+        .catch(function () {});
+    });
+  }
+
+  function activarNotificacionesOE() {
+    var btn = document.getElementById('btnNotificaciones');
+    if (!alumnoData || !alumnoData.alumno || !alumnoData.alumno.id) {
+      alert('Primero inicia sesión para poder activar tus notificaciones.');
+      return;
+    }
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('Tu navegador no soporta notificaciones push.');
+      return;
+    }
+
+    Notification.requestPermission().then(function (permiso) {
+      if (permiso !== 'granted') {
+        alert('No se activaron las notificaciones — necesitas darle permiso al navegador.');
+        return;
+      }
+      navigator.serviceWorker.ready.then(function (registro) {
+        var messaging = firebase.messaging();
+        messaging.getToken({ vapidKey: _vapidKeyOE, serviceWorkerRegistration: registro })
+          .then(function (token) {
+            if (!token) { alert('No se pudo generar el token de notificaciones.'); return; }
+            fetch(APPS_SCRIPT + '?action=guardarTokenPush&idUsuario=' + encodeURIComponent(alumnoData.alumno.id) +
+              '&rol=alumno&token=' + encodeURIComponent(token))
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.success) {
+                  btn.textContent = '🔔 Notificaciones activadas';
+                  btn.style.background = '#16a34a';
+                } else {
+                  alert('Error al guardar: ' + (data.error || ''));
+                }
+              });
+          })
+          .catch(function (err) {
+            console.log('Error al obtener token FCM:', err);
+            alert('Error al activar notificaciones: ' + err.message);
+          });
+      });
+    });
+  }
+</script>
+
 <!-- ═══ PWA: instalar app + registrar service worker (version ALUMNOS) ═══ -->
 <script>
 var _deferredPromptOEAlumno = null;
@@ -7525,13 +7737,33 @@ window.addEventListener('appinstalled', function () {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
+    // Si ya habia un service worker controlando esta pestaña antes de
+    // registrar, cualquier cambio de controlador despues de esto es una
+    // ACTUALIZACION de verdad (no la primera instalacion) -- solo en
+    // ese caso mostramos el aviso para recargar.
+    var yaHabiaControlador = !!navigator.serviceWorker.controller;
+
     navigator.serviceWorker.register('service-worker-alumnos.js')
-      .then(function (reg) { console.log('Service worker de alumnos registrado:', reg.scope); })
+      .then(function (reg) { console.log('Service worker de alumnos registrado (v' + APP_VERSION + '):', reg.scope); })
       .catch(function (err) { console.log('No se pudo registrar el service worker:', err); });
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!yaHabiaControlador) { yaHabiaControlador = true; return; }
+      var aviso = document.getElementById('avisoActualizacionOE');
+      if (aviso) aviso.style.display = 'flex';
+    });
   });
 }
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
+<!-- PANTALLA DE TRANSICION: se ve justo antes de abrir la sala de clase (Jitsi no permite poner nuestro logo dentro, asi que esto se muestra justo antes) -->
+<div id="pantallaEntradaClase" style="display:none;position:fixed;inset:0;z-index:999999;background:linear-gradient(135deg,#0f1a3d 0%,#1c2b5e 100%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;">
+  <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="width:180px;height:auto;margin-bottom:28px;">
+  <div id="entradaClaseIcono" style="font-size:38px;margin-bottom:14px;">🔒</div>
+  <div id="entradaClaseTitulo" style="color:#fff;font-size:19px;font-weight:700;margin-bottom:8px;">Entrando a tu sala de clase segura</div>
+  <div id="entradaClaseSub" style="color:#94a3b8;font-size:13px;max-width:320px;">Verificando que tu maestro ya haya iniciado la clase...</div>
+  <div style="color:#64748b;font-size:11px;max-width:300px;margin-top:22px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">💡 Al terminar tu clase, solo cierra esa pestaña para volver aquí a tu panel.</div>
+</div>
 </body>
 </html>
