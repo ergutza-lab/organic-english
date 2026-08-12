@@ -619,7 +619,7 @@
 
 .leccion-link {
   color: #fb923c; font-size: 22px; font-weight: 700;
-  padding: 6px 0; cursor: pointer; transition: color 0.15s, transform 0.15s;
+  padding: 4px 0; cursor: pointer; transition: color 0.15s, transform 0.15s; line-height: 1.15;
 }
 .leccion-link:hover { color: #fdba74; transform: translateX(3px); }
 
@@ -2069,11 +2069,24 @@
     return columnaRangoLecciones(subnivel, 1, 14) + columnaRangoLecciones(subnivel, 15, 28);
   }
 
+  // Saca solo la parte entre comillas del titulo completo -- por ejemplo,
+  // de 'A1.1 · Lesson 1: "Nice to meet you"' extrae 'Nice to meet you'
+  function extraerTituloCorto(tituloCompleto) {
+    if (!tituloCompleto) return '';
+    var m = tituloCompleto.match(/"([^"]+)"/);
+    return m ? m[1] : '';
+  }
+
   function columnaRangoLecciones(subnivel, desde, hasta) {
     var html = '<div style="text-align:center;">';
     for (var i = desde; i <= hasta; i++) {
       var num = i < 10 ? '0' + i : '' + i;
-      html += '<div class="leccion-link" onclick="abrirLeccion(\''+subnivel+'\','+i+')">LESSON ' + num + '</div>';
+      var leccionData = LECCIONES_CONTENIDO[subnivel + '-' + i];
+      var tituloCorto = leccionData ? extraerTituloCorto(leccionData.titulo) : '';
+      html += '<div class="leccion-link" onclick="abrirLeccion(\''+subnivel+'\','+i+')">'
+        + 'LESSON ' + num
+        + (tituloCorto ? '<div style="font-size:10px;font-weight:400;opacity:0.65;margin-top:1px;">' + tituloCorto + '</div>' : '')
+        + '</div>';
     }
     html += '</div>';
     return html;
