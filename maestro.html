@@ -270,10 +270,10 @@
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
           <div style="display:flex;gap:6px;">
             <button id="btnInvitarWhats" onclick="invitarClase()" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">💬 Invitar a la clase</button>
-            <button id="btnEnlaceZoom" onclick="abrirModalZoom(grupoActual.id)" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>
+            <button onclick="abrirModalZoom(grupoActual.id)" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>
           </div>
           <div style="display:flex;gap:6px;">
-           <button id="btnEntrarZoomMaestro" onclick="entrarZoomMaestro()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎓 Ingresar a la clase</button>
+           <button id="btnEntrarZoomMaestro" onclick="entrarZoomMaestro()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🖥️ Entrar a Zoom</button>
             <button onclick="abrirModalGrabacion(grupoActual.id)" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>
           </div>
         </div>
@@ -710,27 +710,8 @@ function renderPatronMaestro(patron) {
           grupoActual.linkWhats = d.linkWhats || '';
           btnWa.textContent    = '💬 Invitar a la clase';
           btnWa.disabled       = false;
-          btnZoomM.textContent = '🎓 Ingresar a la clase';
+          btnZoomM.textContent = '🖥️ Entrar a Zoom';
           btnZoomM.disabled    = false;
-          var btnEnlaceZ = document.getElementById('btnEnlaceZoom');
-          if (btnEnlaceZ) {
-            if (esLinkJitsi(grupoActual.linkZoom)) {
-              // PILOTO: este link ya no se configura a mano -- se genera
-              // solo cada vez que el maestro entra a clase. Se desactiva
-              // para que no se sobrescriba el prefijo JITSI: por accidente.
-              btnEnlaceZ.disabled = true;
-              btnEnlaceZ.style.opacity = '0.4';
-              btnEnlaceZ.style.cursor = 'not-allowed';
-              btnEnlaceZ.title = 'No aplica: este grupo genera su sala automáticamente al entrar a clase.';
-              btnEnlaceZ.textContent = '🔗 No aplica (piloto)';
-            } else {
-              btnEnlaceZ.disabled = false;
-              btnEnlaceZ.style.opacity = '1';
-              btnEnlaceZ.style.cursor = 'pointer';
-              btnEnlaceZ.title = '';
-              btnEnlaceZ.textContent = '🔗 Enlace Zoom';
-            }
-          }
           if (!d.linkWhats) {
             btnWa.style.opacity = '0.5';
           } else {
@@ -1576,13 +1557,9 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
   var grupoGrabActual = null;
 
   function abrirModalZoom(idGrupo) {
+    modalAbierto = true;
     var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
     if (!g) return;
-    if (esLinkJitsi(g.linkZoom)) {
-      mostrarToast('Este grupo usa el piloto de Jitsi -- la sala se genera sola, no se configura a mano.', 'error');
-      return;
-    }
-    modalAbierto = true;
     grupoZoomActual = idGrupo;
     document.getElementById('zoomGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
     document.getElementById('zoomInput').value = g.linkZoom || '';
@@ -1705,42 +1682,9 @@ var OBS_OPCIONES = {
     cerrarModalObs();
   }
 
-function esLinkJitsi(link) {
-  return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
-}
-
 function entrarZoomMaestro() {
     if (!grupoActual || !grupoActual.linkZoom) {
       mostrarToast('No hay enlace Zoom configurado para este grupo','error');
-      return;
-    }
-    if (esLinkJitsi(grupoActual.linkZoom)) {
-      // PILOTO: se genera una sala NUEVA cada vez que el maestro entra --
-      // asi el maestro siempre es el primero (y por lo tanto el anfitrion),
-      // ya que el alumno no puede ver ningun link hasta que esto se genere.
-      var btn = document.getElementById('btnEntrarZoomMaestro');
-      var textoOriginal = btn.textContent;
-      btn.textContent = '⏳ Preparando sala...'; btn.disabled = true;
-      fetch(APPS_SCRIPT + '?action=iniciarClaseJitsi&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          btn.textContent = textoOriginal; btn.disabled = false;
-          if (data.success && data.sala) {
-            var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
-              + '#userInfo.displayName=%22' + encodeURIComponent(maestroData.nombre || 'Maestro') + '%22'
-              + '&config.prejoinPageEnabled=false'
-              + '&config.disableDeepLinking=true';
-            alert('Se va a abrir tu sala de clase.\n\nSi te pide iniciar sesión para ser el anfitrión, usa la cuenta institucional de Google que te compartieron (NO tu cuenta personal).\n\nTus alumnos no necesitan ninguna cuenta, solo tú.');
-            window.open(url, '_blank');
-            mostrarToast('Sala lista. Tus alumnos podrán entrar en unos segundos.','success');
-          } else {
-            mostrarToast('No se pudo preparar la sala: ' + (data.error||'desconocido'), 'error');
-          }
-        })
-        .catch(function () {
-          btn.textContent = textoOriginal; btn.disabled = false;
-          mostrarToast('Error de conexión al preparar la sala.','error');
-        });
       return;
     }
     window.open(grupoActual.linkZoom, '_blank');
@@ -1756,7 +1700,7 @@ function invitarClase() {
       + '👥 Grupo: ' + (grupoActual.id || '') + ' — ' + (grupoActual.nombre || '') + '\n'
       + '📚 Nivel: ' + (grupoActual.nivel || '') + '\n'
       + '⏰ Horario: ' + (grupoActual.horario || '') + '\n\n'
-      + '⚠️ IMPORTANTE: el único acceso a la clase es desde tu plataforma de alumno. Ingresa a tu panel y dale clic al botón azul que dice "🎓 Ingresar a mi clase". No se compartirá ningún otro link.\n\n'
+      + 'Para unirse a la clase, ingresen a su plataforma personal den clic en el botón azul que dice "Unirme a mis clases por Zoom". 🎓\n\n'
       + '¡Los esperamos! 😊\n— ' + maestroNombre;
     navigator.clipboard.writeText(msg).then(function() {
       mostrarToast('✅ Mensaje copiado. Pégalo en el grupo de WhatsApp.','success');
