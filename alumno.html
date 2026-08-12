@@ -693,10 +693,7 @@
 .col-swap { display: block; }
 
 .mi-clase-grid { display: block; }
-#btnZoom { display: none; }
 @media (min-width: 1000px) {
-  #btnZoomMovil { display: none !important; }
-  #btnZoom { display: inline-flex; }
   .layout-shell { display: flex; gap: 14px; align-items: flex-start; max-width: 1500px; margin: 0 auto; }
   .col-swap { flex: 1.85; min-width: 0; }
   .col-persistente { flex: 1.15; min-width: 0; display: flex; flex-direction: column; }
@@ -845,11 +842,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Boton "Ingresar a mi clase" -- solo visible en movil, justo debajo del nav y antes de Mi Grupo. En escritorio se sigue viendo el de la columna persistente de siempre. -->
-    <a id="btnZoomMovil" href="#" onclick="event.preventDefault();document.getElementById('btnZoom').click();" class="zoom-btn btn-brillo" style="background:#2D8CFF;display:flex;margin:0 0 14px;">
-      <div class="zoom-dot"></div>🎓 Ingresar a mi clase
-    </a>
 
     <div class="layout-shell">
      <div class="col-swap">
@@ -1041,7 +1033,7 @@
      <div class="col-persistente">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <a id="btnZoom" href="#" target="_blank" class="zoom-btn btn-brillo" style="background:#2D8CFF;flex:1;">
-          <div class="zoom-dot"></div>🎓 Ingresar a mi clase
+          <div class="zoom-dot"></div>Mi clase por Zoom
         </a>
         <a id="btnGrabacion" href="#" target="_blank" class="btn-brillo" style="display:none;flex:1;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">
           🎥 Ver grabación
@@ -1333,54 +1325,6 @@
   // Para reactivar que el alumno lo haga el mismo, poner en true.
   const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
 
-  // ── PILOTO: sala de clase propia (Jitsi Meet) en vez de Zoom ────────────
-  // Convencion: si el campo "Link de Zoom" de un grupo empieza con
-  // "JITSI:" (por ejemplo "JITSI:oe-grupo-prueba-x7k2"), el alumno entra
-  // a nuestra propia sala en vez de salir a Zoom. El resto del sistema
-  // (grabaciones, etc.) sigue igual, esto solo cambia como se une a la
-  // clase en vivo.
-  function esLinkJitsi(link) {
-    return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
-  }
-  function abrirClaseJitsi(idGrupo, nombreUsuario) {
-    var pantalla = document.getElementById('pantallaEntradaClase');
-    var icono    = document.getElementById('entradaClaseIcono');
-    var titulo   = document.getElementById('entradaClaseTitulo');
-    var sub      = document.getElementById('entradaClaseSub');
-
-    pantalla.style.display = 'flex';
-    icono.textContent  = '🔒';
-    titulo.textContent = 'Entrando a tu sala de clase segura';
-    sub.textContent    = 'Verificando que tu maestro ya haya iniciado la clase...';
-
-    fetch(APPS_SCRIPT + '?action=getEstadoClaseJitsi&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.success && data.disponible && data.sala) {
-          icono.textContent  = '✅';
-          titulo.textContent = '¡Todo listo!';
-          sub.textContent    = 'Organic English · Sala de clase verificada';
-          // NOTA: meet.jit.si limita a 5 minutos las llamadas INCRUSTADAS
-          // dentro de una pagina (iframe/API). Por eso se abre en pestaña
-          // nueva -- sigue sin pedir codigo ni cuenta, el alumno entra
-          // igual desde su panel, pero sin ese limite de tiempo.
-          var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
-            + '#userInfo.displayName=%22' + encodeURIComponent(nombreUsuario || 'Alumno') + '%22'
-            + '&config.prejoinPageEnabled=false'
-            + '&config.disableDeepLinking=true';
-          window.open(url, '_blank');
-          setTimeout(function () { pantalla.style.display = 'none'; }, 900);
-        } else if (data.esperando) {
-          pantalla.style.display = 'none';
-          alert('Tu maestro ya está por iniciar la clase. Espera unos segundos y vuelve a darle clic.');
-        } else {
-          pantalla.style.display = 'none';
-          alert('Tu maestro aún no ha iniciado la clase. Inténtalo de nuevo en unos momentos.');
-        }
-      })
-      .catch(function () { pantalla.style.display = 'none'; alert('No se pudo comprobar el estado de la clase. Revisa tu conexión e intenta de nuevo.'); });
-  }
-
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
   var alumnoData = null;
   var archivoSubida = null;
@@ -1522,21 +1466,7 @@
       // Adults/Teens y va directo a sus 32 misiones.
       if (esKids) prepararPracticaKids();
 
-      var btnZoomEl = document.getElementById('btnZoom');
-      var linkZoomActual = g.linkZoom || '';
-      if (esLinkJitsi(linkZoomActual)) {
-        // PILOTO: este grupo usa nuestra propia sala de clase (Jitsi Meet)
-        // en vez de Zoom -- el alumno nunca ve un codigo ni un link externo,
-        // solo le da clic al mismo boton de siempre y la clase se abre aqui.
-        btnZoomEl.href = '#';
-        btnZoomEl.onclick = function (e) {
-          e.preventDefault();
-          abrirClaseJitsi(g.id, alumnoData.alumno.nombre || 'Alumno');
-        };
-      } else {
-        btnZoomEl.href = linkZoomActual || '#';
-        btnZoomEl.onclick = null;
-      }
+      document.getElementById('btnZoom').href             = g.linkZoom || '#';
       if (g.grabacion) {
         var btnGrab = document.getElementById('btnGrabacion');
         btnGrab.href = g.grabacion;
@@ -6817,7 +6747,7 @@
 
   function abrirZoomDesdeBoard() {
     var btn = document.getElementById('btnZoom');
-    if (btn) btn.click();
+    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
   }
   function abrirGrabacionDesdeBoard() {
     var btn = document.getElementById('btnGrabacion');
@@ -7757,13 +7687,5 @@ if ('serviceWorker' in navigator) {
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
-<!-- PANTALLA DE TRANSICION: se ve justo antes de abrir la sala de clase (Jitsi no permite poner nuestro logo dentro, asi que esto se muestra justo antes) -->
-<div id="pantallaEntradaClase" style="display:none;position:fixed;inset:0;z-index:999999;background:linear-gradient(135deg,#0f1a3d 0%,#1c2b5e 100%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;">
-  <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="width:180px;height:auto;margin-bottom:28px;">
-  <div id="entradaClaseIcono" style="font-size:38px;margin-bottom:14px;">🔒</div>
-  <div id="entradaClaseTitulo" style="color:#fff;font-size:19px;font-weight:700;margin-bottom:8px;">Entrando a tu sala de clase segura</div>
-  <div id="entradaClaseSub" style="color:#94a3b8;font-size:13px;max-width:320px;">Verificando que tu maestro ya haya iniciado la clase...</div>
-  <div style="color:#64748b;font-size:11px;max-width:300px;margin-top:22px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">💡 Al terminar tu clase, solo cierra esa pestaña para volver aquí a tu panel.</div>
-</div>
 </body>
 </html>
