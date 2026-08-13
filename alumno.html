@@ -1012,7 +1012,7 @@
             <div id="workbooksDescarga" style="display:flex;flex-direction:column;gap:16px;"></div>
           </div>
           <div style="flex:1;min-width:260px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-            <div id="leccionesGrid" style="display:flex;gap:40px;flex-wrap:wrap;justify-content:center;"></div>
+            <div id="leccionesGrid" style="width:100%;"></div>
           </div>
         </div>
       </div>
@@ -2066,7 +2066,7 @@
 
   // Muestra las 28 lecciones del subnivel seleccionado en 2 columnas: 1-14 y 15-28
   function columnaLeccionesDoble(subnivel) {
-    return columnaRangoLecciones(subnivel, 1, 14) + columnaRangoLecciones(subnivel, 15, 28);
+    return columnaRangoLecciones(subnivel, 1, 28);
   }
 
   // Saca solo la parte entre comillas del titulo completo -- por ejemplo,
@@ -2077,16 +2077,26 @@
     return m ? m[1] : '';
   }
 
+  // Misma convencion de imagenes que Kids, pero organizada por subnivel:
+  // images/Lecciones/A1.1-1.png ... A1.1-28.png, A1.2-1.png ... A1.2-28.png
+  // (coincide exactamente con las llaves de LECCIONES_CONTENIDO, para que
+  // sea facil saber que imagen corresponde a cada leccion). Si la imagen
+  // de alguna leccion aun no se ha subido, se ve un icono de libro en su
+  // lugar (no rompe nada).
+  var LECCIONES_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Lecciones/';
+
   function columnaRangoLecciones(subnivel, desde, hasta) {
-    var html = '<div style="text-align:center;">';
+    var html = '<div class="misiones-kids-grid">';
     for (var i = desde; i <= hasta; i++) {
       var num = i < 10 ? '0' + i : '' + i;
       var leccionData = LECCIONES_CONTENIDO[subnivel + '-' + i];
       var tituloCorto = leccionData ? extraerTituloCorto(leccionData.titulo) : '';
-      html += '<div class="leccion-link" onclick="abrirLeccion(\''+subnivel+'\','+i+')">'
-        + 'LESSON ' + num
-        + (tituloCorto ? '<div style="font-size:13px;font-weight:500;color:#fde68a;opacity:0.9;margin-top:1px;">' + tituloCorto + '</div>' : '')
-        + '</div>';
+      var imgUrl = LECCIONES_IMG_BASE + subnivel + '-' + i + '.png';
+      html += '<div class="mision-kids-card" onclick="abrirLeccion(\''+subnivel+'\','+i+')">' +
+        '<img src="'+imgUrl+'" alt="Lesson '+num+'" class="mision-kids-img" onerror="this.outerHTML=\'<div class=&quot;mision-kids-img mision-kids-img-vacia&quot;>📖</div>\'">' +
+        '<div class="mision-kids-num">LESSON ' + num + '</div>' +
+        (tituloCorto ? '<div class="mision-kids-titulo">' + tituloCorto + '</div>' : '') +
+      '</div>';
     }
     html += '</div>';
     return html;
