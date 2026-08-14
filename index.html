@@ -601,6 +601,19 @@ section{padding:64px 20px;}
   box-shadow:0 8px 20px rgba(249,115,22,.4);
 }
 .contacto-card:hover .contacto-card-icon svg{stroke:#fff;}
+.comentarios-col{display:flex;flex-direction:column;gap:16px;padding-top:80px;}
+.comentario-card{
+  background:var(--navy-dark);border-radius:16px;padding:16px 18px;
+  border:1.5px solid rgba(255,255,255,.1);
+}
+.comentario-card .estrellas{color:var(--orange);font-size:14px;letter-spacing:2px;margin-bottom:8px;}
+.comentario-card .texto{color:rgba(255,255,255,.85);font-size:13px;line-height:1.6;margin-bottom:10px;}
+.comentario-card .nombre{color:#fff;font-size:12.5px;font-weight:700;}
+@media (max-width:980px){
+  #contacto > div[style*="grid-template-columns"]{display:block !important;}
+  .comentarios-col{flex-direction:row;overflow-x:auto;padding-top:0;margin-bottom:24px;gap:12px;}
+  .comentario-card{min-width:220px;flex-shrink:0;}
+}
 .contacto-card-icon svg{width:34px;height:34px;stroke:var(--orange);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .contacto-card h3{color:#fff;font-size:16px;font-weight:700;margin-bottom:5px}
 .contacto-card p{color:var(--slate-light);font-size:13px;line-height:1.5;margin-bottom:10px}
@@ -1456,6 +1469,10 @@ footer,.confianza-final{scroll-snap-align:none}
 
 <!-- ── CONTACTO ── -->
 <section id="contacto">
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.2fr) minmax(0,1fr);gap:24px;align-items:start;">
+
+  <div id="comentariosColIzq" class="comentarios-col"></div>
+
   <div class="container" style="padding-top:80px;padding-bottom:0">
 
     <!-- Header -->
@@ -1515,6 +1532,10 @@ footer,.confianza-final{scroll-snap-align:none}
       </div>
 
     </div>
+  </div>
+
+  <div id="comentariosColDer" class="comentarios-col"></div>
+
   </div>
 
   <div class="confianza-final">
@@ -1732,5 +1753,43 @@ function closeStaffModal(e){
     <button class="staff-cancel" onclick="document.getElementById('staffModal').classList.remove('open')">Cancelar</button>
   </div>
 </div>
+<script>
+(function () {
+  var APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+  function escHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function tarjetaComentario(c) {
+    var estrellas = '';
+    for (var i = 1; i <= 5; i++) estrellas += (i <= c.calificacion) ? '★' : '☆';
+    return '<div class="comentario-card">'
+      + '<div class="estrellas">' + estrellas + '</div>'
+      + '<div class="texto">' + escHtml(c.comentario || 'Excelente experiencia con Organic English.') + '</div>'
+      + '<div class="nombre">' + escHtml(c.nombre) + '</div>'
+    + '</div>';
+  }
+
+  fetch(APPS_SCRIPT + '?action=getComentariosSeleccionados', { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success || !data.comentarios || !data.comentarios.length) return;
+      var colIzq = document.getElementById('comentariosColIzq');
+      var colDer = document.getElementById('comentariosColDer');
+      if (!colIzq || !colDer) return;
+
+      var mitad = Math.ceil(data.comentarios.length / 2);
+      var izq = data.comentarios.slice(0, mitad);
+      var der = data.comentarios.slice(mitad);
+
+      colIzq.innerHTML = izq.map(tarjetaComentario).join('');
+      colDer.innerHTML = der.map(tarjetaComentario).join('');
+    })
+    .catch(function () { /* si falla, las columnas simplemente se quedan vacias, sin romper la pagina */ });
+})();
+</script>
 </body>
 </html>
