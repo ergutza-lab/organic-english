@@ -545,7 +545,7 @@
   box-shadow: 0 2px 3px rgba(0,0,0,0.5);
 }
 .post-it-amarillo { background: #fef08a; color: #713f12; }
-.post-it-naranja  { background: #f97316; color: #ffffff; }
+.post-it-naranja  { background: #f97316; color: #1e3a8a; }
 .post-it-morado   { background: #e9d5ff; color: #581c87; }
 .post-it-azul     { background: #bfdbfe; color: #1e3a8a; }
 .post-it-lila     { background: #c4b5fd; color: #4c1d95; }
@@ -7116,11 +7116,15 @@
     var card = document.getElementById('postitVolandoCard');
     if (!overlay || !card) { postitReal.style.visibility = 'visible'; return; }
 
-    // Aparece centrado en la pantalla
+    // Aparece centrado en la pantalla, mas grande de lo normal
     var vw = window.innerWidth, vh = window.innerHeight;
+    var anchoGrande = 340, altoGrande = 170;
     card.style.transition = 'none';
-    card.style.left = (vw / 2 - 110) + 'px';
-    card.style.top = (vh / 2 - 55) + 'px';
+    card.style.width = anchoGrande + 'px';
+    card.style.height = altoGrande + 'px';
+    card.style.left = (vw / 2 - anchoGrande / 2) + 'px';
+    card.style.top = (vh / 2 - altoGrande / 2) + 'px';
+    card.style.fontSize = '16px';
     card.style.transform = 'scale(1)';
     card.style.opacity = '1';
     overlay.style.display = 'block';
@@ -7132,6 +7136,7 @@
       card.style.top = destino.top + 'px';
       card.style.width = destino.width + 'px';
       card.style.height = destino.height + 'px';
+      card.style.fontSize = '';
       card.style.transform = 'scale(1)';
 
       setTimeout(function () {
@@ -7163,7 +7168,12 @@
 
     var diasAntiguedad = Math.floor((hoy - fechaBase) / (1000 * 60 * 60 * 24));
 
-    if (diasAntiguedad < 7 || diasAntiguedad > 14) {
+    // Aparece a partir del dia 7 y se mantiene visible 10 dias en total
+    // (dia 7 al dia 16). Si el alumno responde antes, desaparece de
+    // inmediato (eso ya lo maneja el backend al marcar yaRespondio). Si
+    // no responde, se le deja de mostrar automaticamente al cumplirse
+    // esos 10 dias -- no se le sigue insistiendo despues.
+    if (diasAntiguedad < 7 || diasAntiguedad >= 17) {
       if (MODO_DEMO_TODOS_LOS_POSTITS) { mostrarPostitConAnimacion(postit); } else { postit.style.visibility = 'hidden'; }
       return;
     }
