@@ -7052,8 +7052,17 @@
       return;
     }
 
+    // La antiguedad debe contarse desde que el alumno REALMENTE empezo a
+    // tomar clase, no desde que quedo inscrito/pago en el sistema -- puede
+    // haberse inscrito semanas antes de que su grupo arrancara (entonces
+    // cuenta desde el inicio del grupo). Misma correccion que ya se aplico
+    // en verificarEncuestaSatisfaccion.
     var fechaIns = new Date(alumno.fechaInscripcion);
-    var diasAntiguedad = Math.floor((hoy - fechaIns) / (1000 * 60 * 60 * 24));
+    var g = alumnoData && alumnoData.grupo;
+    var fechaInicioGrupo = g && g.fechaInicio ? new Date(g.fechaInicio) : null;
+    var fechaBase = (fechaInicioGrupo && fechaInicioGrupo > fechaIns) ? fechaInicioGrupo : fechaIns;
+
+    var diasAntiguedad = Math.floor((hoy - fechaBase) / (1000 * 60 * 60 * 24));
     var semanasAntiguedad = diasAntiguedad / 7;
 
     alerta.style.visibility = (semanasAntiguedad >= 4) ? 'visible' : 'hidden';
