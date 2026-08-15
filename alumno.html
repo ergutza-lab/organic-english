@@ -545,6 +545,7 @@
   box-shadow: 0 2px 3px rgba(0,0,0,0.5);
 }
 .post-it-amarillo { background: #fef08a; color: #713f12; }
+.post-it-naranja  { background: #f97316; color: #1e3a8a; }
 .post-it-morado   { background: #e9d5ff; color: #581c87; }
 .post-it-azul     { background: #bfdbfe; color: #1e3a8a; }
 .post-it-lila     { background: #c4b5fd; color: #4c1d95; }
@@ -1067,6 +1068,10 @@
             <div id="postitFaltaTexto">—</div>
             <div class="post-it-cta">Dale clic aquí!!</div>
           </div>
+          <div class="post-it post-it-naranja" id="postitEncuesta" style="visibility:hidden;" onclick="abrirEncuestaSatisfaccion()">
+            <div>⭐ ¿Cómo va tu experiencia en Organic English? Cuéntanos con 5 estrellitas.</div>
+            <div class="post-it-cta">Dale clic aquí!!</div>
+          </div>
         </div>
       </div>
 
@@ -1389,6 +1394,7 @@
     document.getElementById('infoNombre').textContent   = a.nombre;
     document.getElementById('infoId').textContent       = a.id;
     verificarAlertaChatClub(a);
+    verificarEncuestaSatisfaccion(a);
     document.getElementById('infoEmail').textContent    = a.email;
     document.getElementById('infoWhatsapp').textContent = a.whatsapp;
     document.getElementById('infoEstatus').textContent  = a.estatus;
@@ -7040,6 +7046,184 @@
     alerta.style.visibility = (semanasAntiguedad >= 4) ? 'visible' : 'hidden';
   }
 
+  // ── ENCUESTA DE SATISFACCION ────────────────────────────────────────
+  // Activa desde el dia 7 hasta el dia 14 despues de la inscripcion del
+  // alumno (fin de su primera semana hasta fin de su segunda). Una vez
+  // que responde, o se le acaba la ventana sin responder, desaparece
+  // para siempre -- no se le vuelve a insistir.
+  var _encuestaCalificacionActual = 0;
+
+  // ── ANIMACION DE ENTRADA ────────────────────────────────────────────
+  // El post-it aparece grande en el centro de la pantalla por un momento,
+  // y luego "vuela" y se encoge hasta su posicion real en el Muro
+  // Personal, donde se queda pegado normalmente. Se ejecuta solo una vez
+  // por post-it por carga de pantalla (para no repetirse si la funcion
+  // que lo revisa se vuelve a llamar).
+  var _postitsYaAnimados = {};
+  function mostrarPostitConAnimacion(postitReal) {
+    if (_postitsYaAnimados[postitReal.id]) {
+      postitReal.style.visibility = 'visible';
+      return;
+    }
+    _postitsYaAnimados[postitReal.id] = true;
+
+    var overlay = document.getElementById('postitVolandoOverlay');
+    var card = document.getElementById('postitVolandoCard');
+    if (!overlay || !card) { postitReal.style.visibility = 'visible'; return; }
+
+    // Aparece centrado en la pantalla, mas grande de lo normal (texto
+    // incluido -- el tamano normal en su lugar final es 18px, asi que
+    // aqui se usa uno claramente mayor para que se note el efecto)
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var anchoGrande = 340, altoGrande = 170;
+    card.style.transition = 'none';
+    card.style.width = anchoGrande + 'px';
+    card.style.height = altoGrande + 'px';
+    card.style.left = (vw / 2 - anchoGrande / 2) + 'px';
+    card.style.top = (vh / 2 - altoGrande / 2) + 'px';
+    card.style.fontSize = '28px';
+    card.style.transform = 'scale(1)';
+    card.style.opacity = '1';
+    overlay.style.display = 'block';
+
+    setTimeout(function () {
+      var destino = postitReal.getBoundingClientRect();
+      var fuenteDestino = window.getComputedStyle(postitReal).fontSize;
+      card.style.transition = 'all 0.7s cubic-bezier(.2,.8,.2,1)';
+      card.style.left = destino.left + 'px';
+      card.style.top = destino.top + 'px';
+      card.style.width = destino.width + 'px';
+      card.style.height = destino.height + 'px';
+      card.style.fontSize = fuenteDestino;
+      card.style.transform = 'scale(1)';
+
+      setTimeout(function () {
+        postitReal.style.visibility = 'visible';
+        overlay.style.display = 'none';
+        card.style.fontSize = '';
+      }, 720);
+    }, 4000);
+  }
+
+  function verificarEncuestaSatisfaccion(alumno) {
+    var postit = document.getElementById('postitEncuesta');
+    if (!postit) return;
+
+    if (!alumno || !alumno.fechaInscripcion) { postit.style.visibility = 'hidden'; return; }
+
+    var hoy = new Date();
+    var fechaIns = new Date(alumno.fechaInscripcion);
+
+    // La cuenta debe empezar cuando el alumno REALMENTE empezo a tomar
+    // clase, no cuando quedo inscrito en el sistema -- puede haberse
+    // inscrito semanas antes de que su grupo arrancara (entonces cuenta
+    // desde el inicio del grupo), o haber entrado por colocacion a un
+    // grupo que ya llevaba tiempo corriendo (entonces cuenta desde su
+    // propia fecha de inscripcion, que es cuando el se sumo). Por eso se
+    // usa la fecha MAS TARDIA entre las dos.
+    var g = alumnoData && alumnoData.grupo;
+    var fechaInicioGrupo = g && g.fechaInicio ? new Date(g.fechaInicio) : null;
+    var fechaBase = (fechaInicioGrupo && fechaInicioGrupo > fechaIns) ? fechaInicioGrupo : fechaIns;
+
+    var diasAntiguedad = Math.floor((hoy - fechaBase) / (1000 * 60 * 60 * 24));
+
+    // ── LANZAMIENTO INICIAL DE LA ENCUESTA ──────────────────────────
+    // Mientras esto este en TRUE: se le muestra a CUALQUIER alumno con
+    // mas de 7 dias de clase, sin importar cuantos dias lleven (para
+    // alcanzar tambien a los que ya llevan semanas, en este primer
+    // lanzamiento). Cuando quieras volver a la regla normal (aparece
+    // dia 7, se mantiene 10 dias y luego desaparece), solo cambia esto
+    // a FALSE -- no hace falta tocar nada mas de este archivo.
+    var LANZAMIENTO_INICIAL_ENCUESTA = true;
+
+    // Aparece a partir del dia 7 y (fuera del lanzamiento inicial) se
+    // mantiene visible 10 dias en total (dia 7 al dia 16). Si el alumno
+    // responde antes, desaparece de inmediato (eso ya lo maneja el
+    // backend al marcar yaRespondio). Si no responde, se le deja de
+    // mostrar automaticamente al cumplirse esos 10 dias -- no se le
+    // sigue insistiendo despues.
+    if (diasAntiguedad < 7 || (!LANZAMIENTO_INICIAL_ENCUESTA && diasAntiguedad >= 17)) {
+      if (MODO_DEMO_TODOS_LOS_POSTITS) { mostrarPostitConAnimacion(postit); } else { postit.style.visibility = 'hidden'; }
+      return;
+    }
+
+    fetch(APPS_SCRIPT + '?action=getEstadoEncuestaSatisfaccion&idAlumno=' + encodeURIComponent(alumno.id), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success && !data.yaRespondio) { mostrarPostitConAnimacion(postit); } else { postit.style.visibility = 'hidden'; }
+      })
+      .catch(function () { postit.style.visibility = 'hidden'; });
+  }
+
+  function abrirEncuestaSatisfaccion() {
+    _encuestaCalificacionActual = 0;
+    document.getElementById('encuestaComentario').value = '';
+    document.getElementById('encuestaAutoriza').checked = true;
+    document.getElementById('encuestaStatus').textContent = '';
+
+    var cont = document.getElementById('encuestaEstrellas');
+    cont.innerHTML = '';
+    for (var i = 1; i <= 5; i++) {
+      var s = document.createElement('span');
+      s.textContent = '☆';
+      s.style.cursor = 'pointer';
+      s.style.color = '#fb923c';
+      s.dataset.val = i;
+      s.onclick = function () {
+        _encuestaCalificacionActual = parseInt(this.dataset.val);
+        var estrellas = cont.children;
+        for (var j = 0; j < 5; j++) estrellas[j].textContent = (j < _encuestaCalificacionActual) ? '★' : '☆';
+      };
+      cont.appendChild(s);
+    }
+
+    document.getElementById('modalEncuestaSatisfaccion').style.display = 'flex';
+  }
+
+  function enviarEncuestaSatisfaccion() {
+    var status = document.getElementById('encuestaStatus');
+    if (!_encuestaCalificacionActual) {
+      status.style.color = '#f87171';
+      status.textContent = 'Selecciona al menos 1 estrella antes de enviar.';
+      return;
+    }
+
+    var a = alumnoData && alumnoData.alumno;
+    var g = alumnoData && alumnoData.grupo;
+    if (!a) return;
+
+    status.style.color = '#94a3b8';
+    status.textContent = 'Enviando...';
+
+    var params = new URLSearchParams({
+      action: 'registrarEncuestaSatisfaccion',
+      idAlumno: a.id,
+      nombre: a.nombre || '',
+      idGrupo: g ? g.id : '',
+      calificacion: _encuestaCalificacionActual,
+      comentario: document.getElementById('encuestaComentario').value.trim(),
+      autoriza: document.getElementById('encuestaAutoriza').checked ? 'Si' : 'No'
+    });
+
+    fetch(APPS_SCRIPT + '?' + params.toString(), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          status.style.color = '#4ade80';
+          status.textContent = '¡Gracias por tu opinión! 🙌';
+          document.getElementById('postitEncuesta').style.visibility = 'hidden';
+          setTimeout(function () { document.getElementById('modalEncuestaSatisfaccion').style.display = 'none'; }, 1400);
+        } else {
+          status.style.color = '#f87171';
+          status.textContent = data.error || 'No se pudo enviar. Intenta de nuevo.';
+        }
+      })
+      .catch(function () {
+        status.style.color = '#f87171';
+        status.textContent = 'Error de conexión. Intenta de nuevo.';
+      });
+  }
+
   function abrirClub() {
     var g=alumnoData.grupo; if(!g) return;
     var fechaInicio=g.fechaInicio.substring(0,10), fechaCorte='2026-04-13';
@@ -7715,5 +7899,32 @@ if ('serviceWorker' in navigator) {
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
+<div id="postitVolandoOverlay" style="display:none;position:fixed;inset:0;z-index:999998;pointer-events:none;">
+  <div id="postitVolandoCard" class="post-it post-it-naranja" style="position:fixed;width:220px;height:110px;box-shadow:0 10px 30px rgba(0,0,0,0.4);transition:all 0.7s cubic-bezier(.2,.8,.2,1);">
+    <div>⭐ ¿Cómo va tu experiencia en Organic English? Cuéntanos con 5 estrellitas.</div>
+  </div>
+</div>
+
+<!-- MODAL: ENCUESTA DE SATISFACCION -->
+<div id="modalEncuestaSatisfaccion" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#1e1e2e;border-radius:16px;padding:24px;width:92%;max-width:420px;border:1px solid rgba(249,115,22,0.3);">
+    <div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:4px;">Nos gustaría saber tu experiencia en tus clases en Organic English</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:18px;">Tu opinión nos ayuda a mejorar</div>
+
+    <div id="encuestaEstrellas" style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;font-size:34px;"></div>
+
+    <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:6px;">Comentario (opcional)</label>
+    <textarea id="encuestaComentario" placeholder="Cuéntanos qué te ha gustado más..." style="width:100%;min-height:70px;resize:none;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;color:#f1f5f9;font-size:13px;outline:none;margin-bottom:16px;font-family:inherit;"></textarea>
+
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:18px;cursor:pointer;">
+      <input type="checkbox" id="encuestaAutoriza" checked style="margin-top:2px;">
+      Autorizo a Organic English a compartir mi comentario en redes sociales y en su página web.
+    </label>
+
+    <button onclick="enviarEncuestaSatisfaccion()" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px;">Enviar mi opinión</button>
+    <button onclick="document.getElementById('modalEncuestaSatisfaccion').style.display='none';" style="width:100%;background:transparent;border:none;color:#64748b;font-size:12px;cursor:pointer;">Ahora no</button>
+    <div id="encuestaStatus" style="text-align:center;font-size:12px;margin-top:8px;"></div>
+  </div>
+</div>
 </body>
 </html>
