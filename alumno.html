@@ -1535,7 +1535,20 @@
     // del Bloque 1.
     if (bloqueAcademico === 2 && bd > 0) bd += 20;
     bloqueActual = bd;
-   if (!bd) return;
+   if (!bd) {
+      // Semanas que no caen en NINGUN bloque de evaluacion (1, 2, 3 o 5) --
+      // antes esto se salia de la funcion sin nunca ocultar el post-it ni
+      // los botones, dejandolos pegados visibles si habian quedado
+      // visibles de una revision anterior. Ahora se ocultan explicitamente
+      // tambien en este caso.
+      var btnMSinBloque = document.getElementById('btnEvaluarMaestro');
+      var btnCSinBloque = document.getElementById('btnEvaluarCE');
+      var postItSinBloque = document.getElementById('postitEvaluar');
+      if (btnMSinBloque) btnMSinBloque.style.display = 'none';
+      if (btnCSinBloque) btnCSinBloque.style.display = 'none';
+      if (postItSinBloque) postItSinBloque.style.visibility = MODO_DEMO_TODOS_LOS_POSTITS ? 'visible' : 'hidden';
+      return;
+    }
 
     var esSemanaDEval = (semana === 4 || semana === 8);
 
@@ -7102,7 +7115,7 @@
         overlay.style.display = 'none';
         card.style.fontSize = '';
       }, 720);
-    }, 4000);
+    }, 6000);
   }
 
   function verificarEncuestaSatisfaccion(alumno) {
