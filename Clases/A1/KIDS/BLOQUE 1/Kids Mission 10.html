@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Growie Kids — Mission 10 — Who Is She?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1c2b5e;
+  --navy-dark:#111c40;
+  --orange:#f97316;
+  --orange-light:#fdba74;
+  --green:#22c55e;
+  --green-dark:#15803d;
+  --cream:#fef3e2;
+  --yellow:#fbbf24;
+  --white:#ffffff;
+  --shadow:0 18px 40px rgba(28,43,94,.35);
+}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--navy-dark);}
+h1,h2,h3,.font-baloo{font-family:'Baloo 2',cursive;}
+
+/* ══════════ ESTRUCTURA DE SLIDES ══════════ */
+.stage{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transform:translateX(40px);
+  transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  background-size:cover;background-position:center;
+}
+.slide.active{
+  opacity:1;visibility:visible;transform:translateX(0);
+  transition:opacity .45s ease, transform .45s ease;
+  z-index:2;
+}
+.slide.prevslide{transform:translateX(-40px)}
+
+/* ── Slide 1: Portada ── */
+.slide-cover{background:none;}
+.cover-blur-bg{
+  position:absolute;inset:0;z-index:0;
+  background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2010/PORTADA.jpg');
+  background-size:cover;background-position:center;
+  filter:blur(28px) brightness(.55) saturate(1.1);
+  transform:scale(1.15);
+}
+.cover-img{
+  position:absolute;inset:0;z-index:1;
+  width:100%;height:100%;object-fit:contain;
+}
+
+.slide-content{align-items:flex-start}
+.slide-content{background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2001/FONDO%20SLIDES%20KIDS.webp');}
+.mission-badge{
+  position:absolute;top:22px;left:22px;z-index:5;
+  background:var(--orange);color:#fff;font-weight:700;font-size:13px;
+  padding:8px 16px;border-radius:100px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:8px;
+}
+.mission-badge .leaf-spin{display:inline-block;animation:spin 3s linear infinite}
+
+.slide-grid{
+  display:grid;grid-template-columns:1fr 1.15fr;align-items:start;gap:36px;
+  max-width:1280px;width:92vw;padding:96px 40px 28px;
+}
+.col-text{display:flex;flex-direction:column;gap:9px;align-items:flex-start;max-height:calc(100vh - 150px);overflow-y:auto;padding-right:6px}
+.slide-emoji{
+  align-self:center;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(56px,8vw,100px);height:clamp(56px,8vw,100px);line-height:1;
+  opacity:0;transform:scale(.3) rotate(-15deg);
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.25));
+  cursor:default;
+}
+.slide.active .slide-emoji{animation:popBounce .6s cubic-bezier(.34,1.56,.64,1) 0s forwards}
+.slide-emoji.settled{
+  opacity:1;transform:scale(1) rotate(0deg);
+  transition:transform .2s ease, filter .2s ease;
+}
+.slide-emoji.settled:hover{
+  transform:scale(1.18) rotate(10deg);
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.35));
+}
+.slide-title{
+  font-size:clamp(24px,3.2vw,38px);font-weight:800;line-height:1.05;color:var(--navy);
+  text-shadow:0 0 14px rgba(255,255,255,.85), 0 2px 0 rgba(0,0,0,.12);
+  background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%);
+  padding:8px 20px;border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.25);
+  opacity:0;transform:translateY(-18px) scale(.9);
+  cursor:default;
+}
+.slide.active .slide-title{animation:popDrop .55s cubic-bezier(.34,1.56,.64,1) .05s forwards}
+.slide-title.settled{
+  opacity:1;transform:translateY(0) scale(1);
+  transition:transform .22s ease, box-shadow .22s ease, filter .22s ease;
+}
+.slide-title.settled:hover{
+  transform:scale(1.06) rotate(-1deg);
+  box-shadow:0 14px 30px rgba(0,0,0,.35), 0 0 0 4px rgba(255,255,255,.5);
+  filter:brightness(1.12) saturate(1.15);
+}
+
+.phrase-col{display:flex;flex-direction:column;gap:7px;width:100%}
+.phrase-card{
+  font-family:'Baloo 2',cursive;font-weight:700;
+  font-size:clamp(15px,1.9vw,21px);color:#fff;
+  padding:9px 18px;border-radius:16px;
+  box-shadow:0 10px 22px rgba(0,0,0,.22);
+  opacity:0;transform:translateX(-40px) scale(.85);
+  width:fit-content;max-width:100%;
+  cursor:pointer;
+}
+.slide.active .phrase-card{animation:popIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.phrase-card.settled{
+  opacity:1;transform:translateX(0) scale(1);
+  transition:transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.phrase-card.settled:hover{
+  transform:scale(1.1) rotate(-2deg);
+  box-shadow:0 16px 32px rgba(0,0,0,.32), 0 0 0 4px rgba(255,255,255,.6);
+  filter:brightness(1.15) saturate(1.2);
+}
+.phrase-card.c0{background:linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%)}
+.phrase-card.c1{background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%)}
+.phrase-card.c2{background:linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)}
+.phrase-card.c3{background:linear-gradient(135deg, var(--yellow) 0%, #d97706 100%);color:var(--navy);text-shadow:none}
+.phrase-card.c4{background:linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)}
+.phrase-card.c5{background:linear-gradient(135deg, #fb7185 0%, #e11d48 100%)}
+
+.col-image{display:flex;align-items:center;justify-content:center;align-self:center}
+.slide-img-wrap{
+  border-radius:28px;overflow:hidden;box-shadow:var(--shadow);
+  border:7px solid #fff;line-height:0;
+  width:min(78vh, 62vh, 100%);aspect-ratio:1/1;max-width:100%;
+  display:flex;align-items:center;justify-content:center;
+  background:#0f1a3d;
+  animation:floatY 4.5s ease-in-out infinite;
+}
+.slide-img-wrap img{display:block;width:100%;height:100%;object-fit:cover;}
+
+@keyframes popIn{
+  0%{opacity:0;transform:translateX(-40px) scale(.85)}
+  60%{opacity:1;transform:translateX(6px) scale(1.04)}
+  100%{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes popBounce{
+  0%{opacity:0;transform:scale(.3) rotate(-15deg)}
+  50%{opacity:1;transform:scale(1.15) rotate(6deg)}
+  75%{transform:scale(.95) rotate(-3deg)}
+  100%{opacity:1;transform:scale(1) rotate(0deg)}
+}
+@keyframes popDrop{
+  0%{opacity:0;transform:translateY(-18px) scale(.9)}
+  60%{opacity:1;transform:translateY(4px) scale(1.03)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes floatY{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-14px)}
+}
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+
+/* ══════════ NAVEGACIÓN ══════════ */
+.nav-controls{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:20;
+  display:flex;align-items:center;gap:14px;
+  background:rgba(17,28,64,.85);backdrop-filter:blur(6px);
+  padding:10px 18px;border-radius:100px;box-shadow:0 10px 26px rgba(0,0,0,.35);
+}
+.nav-btn{
+  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--orange);color:#fff;font-size:18px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s, opacity .15s;
+}
+.nav-btn:hover:not(:disabled){transform:scale(1.1)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.dots{display:flex;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:all .2s;border:none;padding:0}
+.dot.active{background:var(--orange);width:22px;border-radius:6px}
+.dot:hover{background:rgba(255,255,255,.6)}
+.slide-counter{color:#fff;font-size:12px;font-weight:600;min-width:38px;text-align:center}
+
+/* ══════════ PANEL DE NOTAS DEL PROFESOR ══════════ */
+.notes-toggle{
+  position:fixed;top:22px;right:22px;z-index:25;
+  background:var(--navy);color:#fff;border:none;border-radius:100px;
+  padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;
+  font-family:'DM Sans',sans-serif;transition:transform .15s;
+}
+.notes-toggle:hover{transform:scale(1.04)}
+.notes-panel{
+  position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);
+  background:#fff;z-index:30;box-shadow:-16px 0 40px rgba(0,0,0,.35);
+  transform:translateX(100%);transition:transform .3s ease;
+  overflow-y:auto;padding:24px 22px 40px;
+}
+.notes-panel.open{transform:translateX(0)}
+.notes-close{
+  position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;
+  width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--navy);
+}
+.notes-header{
+  font-weight:800;font-size:20px;color:var(--navy);margin:6px 0 2px;padding-right:40px;
+}
+.notes-sub{color:var(--orange);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:18px}
+.notes-block{margin-bottom:16px}
+.notes-label{
+  font-size:11px;font-weight:800;color:#fff;background:var(--navy);
+  display:inline-block;padding:3px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:6px;
+}
+.notes-text{font-size:14px;color:#334155;line-height:1.55;white-space:pre-line}
+.notes-overlay{
+  position:fixed;inset:0;background:rgba(17,28,64,.4);z-index:29;
+  opacity:0;visibility:hidden;transition:opacity .3s;
+}
+.notes-overlay.open{opacity:1;visibility:visible}
+
+/* ══════════ RESPONSIVE ══════════ */
+@media(max-width:900px){
+  .slide-grid{grid-template-columns:1fr;padding:78px 18px 16px;gap:16px;width:94vw}
+  .col-image{order:2}
+  .col-text{order:1;align-items:center;text-align:center}
+  .slide-emoji{font-size:clamp(56px,16vw,90px);height:clamp(56px,16vw,90px)}
+  .slide-title{font-size:22px;padding:8px 20px;text-align:center}
+  .phrase-col{align-items:center}
+  .phrase-card{font-size:16px;padding:10px 18px;width:auto}
+  .slide-img-wrap{max-height:38vh;animation:none}
+  .slide-img-wrap img{max-height:38vh}
+  .mission-badge{font-size:11px;padding:6px 12px;top:14px;left:14px}
+  .notes-toggle{padding:8px 12px;font-size:11px;top:14px;right:14px}
+  .nav-controls{padding:7px 12px;gap:8px}
+  .nav-btn{width:32px;height:32px;font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+
+<button class="notes-toggle" id="notesToggle">🧑‍🏫 <span>Teacher Notes:</span></button>
+
+<div class="nav-controls">
+  <button class="nav-btn" id="prevBtn" aria-label="Anterior">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="nav-btn" id="nextBtn" aria-label="Siguiente">›</button>
+</div>
+<div class="slide-counter" id="counter" style="position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:20;"></div>
+
+<div class="notes-overlay" id="notesOverlay"></div>
+<aside class="notes-panel" id="notesPanel">
+  <button class="notes-close" id="notesClose">✕</button>
+  <div class="notes-header" id="notesTitle"></div>
+  <div class="notes-sub" id="notesStage"></div>
+  <div id="notesBody"></div>
+</aside>
+
+
+
+<script>
+const IMG_BASE = "https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2010/";
+const PORTADA = IMG_BASE + "PORTADA.jpg";
+const slideImg = n => IMG_BASE + "SLIDE%20" + n + ".jpg";
+
+const SLIDES = [
+{
+n:1, cover:true,
+notes:{
+STAGE:"Mission Start / Cover Image",
+TIMING:"5 minutes",
+"WHAT TO DO":"Welcome students warmly using only the cover image. Connect briefly with Mission 9. Remind students that they helped Growie complete the Family Album. Point to the magical portraits that are now floating from the album. Create curiosity by asking students who they think the people are. Do not teach he, she and they formally yet.",
+SAY:"Welcome back, Explorers! · Look at Growie. · Remember the Family Album? · We completed it! · Oh! Look at the pictures! · The pictures are moving! · Who is this? · Growie needs our help again. · We need to identify the people. · Are you ready for Mission 10?",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Listen. · Look at the pictures. · Guess. · Say: I'm ready!",
+"WHAT NOT TO DO":"Do not show extra HTML text on the cover. Do not present a pronoun chart. Do not translate he, she and they immediately. Do not explain grammar. Do not begin Mission 11 family relationships. Do not make the opening feel like a test.",
+FOCUS:"Curiosity and identification of people.",
+"PEDAGOGICAL INTENTION":"Students understand the communicative need before meeting the target language: Growie needs to know who the people in the portraits are.",
+"KEY UPGRADE":"The pronouns are introduced as tools needed to solve a magical portrait mystery rather than as grammar vocabulary.",
+"CRITICAL ERROR":"Do not begin the mission with He means él, she means ella, they means ellos.",
+"PRO TIP":"Point to different portraits and ask Who? while looking curious. Allow students to say names or guesses in any English they already know.",
+"FINAL CHECKLIST":"Students were welcomed. · Mission 9 was connected to Mission 10. · Students noticed the moving portraits. · Students understand Growie needs help identifying people. · No formal grammar explanation was given."
+}
+},
+{
+n:2, title:"Who Is It?", emoji:"👀",
+phrases:["Look!","Who is she?","Who is he?","Who are they?","Let's find out!"],
+notes:{
+STAGE:"Warm-up Game / Activation",
+TIMING:"5 minutes",
+"WHAT TO DO":"Show different portrait images quickly. Point to one female character, one male character and a pair of characters. Model the questions with expressive gestures. Students do not need to answer perfectly yet. The goal is to hear and recognize that different questions are used for different portraits.",
+SAY:"Look, Explorers! · A picture! · Who is she? · Another picture! · Who is he? · Two people! · Who are they? · Look carefully. · Point. · Listen. · Let's find out!",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Point. · Listen. · Repeat the questions. · Use your detective eyes!",
+"WHAT NOT TO DO":"Do not explain why we use is or are. Do not explain singular and plural. Do not ask students to memorize rules. Do not teach family relationship sentences. Do not correct every pronunciation detail.",
+FOCUS:"Auditory and visual recognition of Who is she?, Who is he? and Who are they?",
+"PEDAGOGICAL INTENTION":"Students hear the three target questions while their visual meaning is immediately clear.",
+"KEY UPGRADE":"The warm-up creates a visual identity challenge instead of presenting a pronoun chart.",
+"CRITICAL ERROR":"Do not turn this slide into direct grammar instruction.",
+"PRO TIP":"Use three consistent gestures: point to one female portrait for she; one male portrait for he; open both hands toward two portraits for they.",
+"FINAL CHECKLIST":"Students heard Who is she? · Students heard Who is he? · Students heard Who are they? · Students connected the questions with different portrait situations. · Students remained active."
+}
+},
+{
+n:3, title:"The Magic Portraits", emoji:"🖼️",
+phrases:["Who is she?","She is Mia.","Who is he?","He is Leo.","Who are they?","They are Mia and Leo."],
+notes:{
+STAGE:"Story Time",
+TIMING:"6 minutes",
+"WHAT TO DO":"Tell the story visually. Students listen first. Point clearly to the correct portrait whenever she, he or they is heard. After the first listening, repeat the exchange in short sections and have students echo the key lines. Keep names simple and clear.",
+SAY:"Look! A magic portrait. · Growie asks: Who is she? · She is Mia. · Another portrait appears. · Growie asks: Who is he? · He is Leo. · Now look! Mia and Leo together. · Growie asks: Who are they? · They are Mia and Leo. · The portraits are going back to the album! · Listen again.",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Listen first. · Point to Mia. · Point to Leo. · Point to both. · Repeat the key lines.",
+"WHAT NOT TO DO":"Do not explain subject pronouns. Do not translate line by line. Do not explain is versus are. Do not ask students to read before listening. Do not use He is my brother or She is my sister as the main pattern. Do not make the story long.",
+FOCUS:"Meaning of he, she and they inside simple identification exchanges.",
+"PEDAGOGICAL INTENTION":"Students understand each target form through character identity and visual context.",
+"KEY UPGRADE":"Pronouns become meaningful references to visible characters instead of abstract grammar labels.",
+"CRITICAL ERROR":"Do not skip listening comprehension by immediately asking students to repeat everything.",
+"PRO TIP":"During the second listening, pause before the answer: Who is she? She is... and allow students to complete Mia.",
+"FINAL CHECKLIST":"Students listened before producing. · Students understood who Mia is. · Students understood who Leo is. · Students noticed two people together. · Students heard she, he and they in meaningful context. · Students repeated the key exchanges."
+}
+},
+{
+n:4, title:"Let's Discover!", emoji:"🔍",
+phrases:["One girl → She","One boy → He","Two people → They","Who is she?","Who is he?","Who are they?"],
+notes:{
+STAGE:"Guided Discovery",
+TIMING:"6 minutes",
+"WHAT TO DO":"Show three visual examples. Ask students what changes when they see Mia, Leo or Mia and Leo together. Guide students to discover the pattern by pointing and choosing. Let students answer before confirming. Keep the explanation visual and conversational.",
+SAY:"Look again. · Mia. · One person. · Who is she? · She is Mia. · Leo. · Who is he? · He is Leo. · Now Mia and Leo. · Two people. · Who are they? · They are Mia and Leo. · She... Mia. · He... Leo. · They... Mia and Leo. · Great discovering!",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Point. · Choose. · Say she, he or they. · Repeat the question and answer.",
+"WHAT NOT TO DO":"Do not write grammatical definitions. Do not explain subject pronouns. Do not explain third person. Do not spend time explaining is/are. Do not introduce we, you or it. Do not begin family relationship description.",
+FOCUS:"Functional recognition of she, he and they.",
+"PEDAGOGICAL INTENTION":"Students infer the meaning and use of the three forms through contrasting visual examples.",
+"KEY UPGRADE":"Students discover the pattern instead of receiving a rule first.",
+"CRITICAL ERROR":"Do not introduce additional pronouns just because students now understand three.",
+"PRO TIP":"Cover the written words temporarily and show only the character image. Ask: He, she or they? Students respond rapidly.",
+"FINAL CHECKLIST":"Students connected one female character with she. · Students connected one male character with he. · Students connected two people with they. · Students practiced the three questions. · No formal grammar lecture was given."
+}
+},
+{
+n:5, title:"Portrait Power!", emoji:"✨",
+phrases:["Who is she?","She is Mia.","Who is he?","He is Leo.","Who are they?","They are Mia and Leo."],
+notes:{
+STAGE:"Visual Focus",
+TIMING:"6 minutes",
+"WHAT TO DO":"Use portrait cards to establish the three complete communicative patterns. Model question and answer together. Students repeat. Then change the names or visual characters while maintaining the patterns. Keep the activity rapid and visual.",
+SAY:"Portrait power! · Look at Mia. · Who is she? · She is Mia. · Look at Leo. · Who is he? · He is Leo. · Look at Mia and Leo. · Who are they? · They are Mia and Leo. · New picture! · Look carefully. · He, she or they?",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Listen. · Repeat. · Choose he, she or they. · Ask the question. · Answer with the name.",
+"WHAT NOT TO DO":"Do not explain grammar formulas. Do not focus on written rules. Do not introduce possessive family relationships as the central activity. Do not require students to memorize all character names. Do not remove visual support.",
+FOCUS:"Automatic recognition and production of the three identification chunks.",
+"PEDAGOGICAL INTENTION":"Repeated substitutions allow students to internalize the language pattern without explicit grammatical analysis.",
+"KEY UPGRADE":"The slide functions as a visual communication toolkit rather than a grammar reference page.",
+"CRITICAL ERROR":"Do not reduce the practice to students shouting only he, she or they. They should also hear and practice complete question-answer models.",
+"PRO TIP":"Alternate: Teacher asks → class answers. Class asks → teacher answers. One student asks → another student answers.",
+"FINAL CHECKLIST":"Students practiced Who is she? · Students practiced Who is he? · Students practiced Who are they? · Students produced She is ___. · Students produced He is ___. · Students produced They are ___ and ___. · Visual support remained available."
+}
+},
+{
+n:6, title:"Practice with Growie!", emoji:"🤝",
+phrases:["Who is she?","Who is he?","Who are they?","She is ___.","He is ___.","They are ___ and ___."],
+notes:{
+STAGE:"Group Practice",
+TIMING:"6 minutes",
+"WHAT TO DO":"Lead the entire class through several portrait-identification rounds. Teacher plays Growie first and asks the questions. Students answer together. Then reverse roles: students ask and teacher answers. Finally call on individual students. Ensure everyone participates at least once.",
+SAY:"Now practice with Growie! · Look at the portrait. · Who is she? · Everyone: She is Mia! · New picture. · Who is he? · He is Leo! · Two people! · Who are they? · They are Mia and Leo! · Great! · Now you ask me. · Who is she? · Who is he? · Who are they? · Excellent, Explorers!",
+"INSTRUCTIONS FOR STUDENTS":"Look at the portrait. · Listen to the question. · Answer together. · Then ask the question. · Use the slide. · Everyone participates.",
+"WHAT NOT TO DO":"Do not send students into pair work before group modeling. Do not ask only confident students. Do not remove sentence support. Do not correct every pronunciation detail. Do not teach family relationship descriptions. Do not allow one student to dominate the activity.",
+FOCUS:"Controlled oral identification using he, she and they.",
+"PEDAGOGICAL INTENTION":"Students gain confidence with both sides of the exchange before independent practice.",
+"KEY UPGRADE":"Students alternate between being Growie's questioner and portrait detective.",
+"CRITICAL ERROR":"Do not practice only answers. Students should also practice asking the questions.",
+"PRO TIP":"Assign gestures: one finger = individual portrait; two open fingers = two-person portrait. Students must choose the correct question before seeing the text.",
+"FINAL CHECKLIST":"Students asked Who is she? · Students asked Who is he? · Students asked Who are they? · Students answered with she. · Students answered with he. · Students answered with they. · Every student participated."
+}
+},
+{
+n:7, title:"Your Turn", emoji:"🎤",
+phrases:["Choose a portrait.","Ask: Who is she?","Ask: Who is he?","Ask: Who are they?","Answer with the name.","Change roles!"],
+notes:{
+STAGE:"Free Production",
+TIMING:"8 minutes",
+"WHAT TO DO":"Give pairs or small groups fictional portrait cards. Student A chooses or shows a portrait and asks the appropriate identity question. Student B answers using the visible character name or character card. Then they change roles. Include cards showing single female characters, single male characters and pairs. Students may read the language support on screen.",
+SAY:"Now it's your turn! · Choose a portrait. · Look carefully. · Ask: Who is she? · Who is he? · Or: Who are they? · Your partner answers: She is ___. · He is ___. · They are ___ and ___. · Then change roles. · Use the slide. · Simple is okay.",
+"INSTRUCTIONS FOR STUDENTS":"Choose a portrait. · Ask the correct question. · Answer with the name. · Use he, she or they. · Change roles. · Help your partner.",
+"WHAT NOT TO DO":"Do not demand memorization. Do not remove visual support. Do not constantly interrupt pairs to correct. Do not require students to use real family photographs. Do not require private information. Do not turn the task into Mission 11 by asking for family relationships. Do not pressure shy students to perform without support.",
+FOCUS:"Independent identification exchanges.",
+"PEDAGOGICAL INTENTION":"Students apply the target language to new visual examples and alternate between asking and answering.",
+"KEY UPGRADE":"Students become portrait detectives solving Growie's identity challenge rather than performing a grammar exercise.",
+"CRITICAL ERROR":"Do not allow the activity to become only a pronoun-selection game. Students need short communicative exchanges.",
+"PRO TIP":"Prepare fictional character cards with visible names under the character. This keeps the cognitive focus on choosing the correct question and pronoun rather than remembering names.",
+"FINAL CHECKLIST":"Students selected portraits. · Students asked identity questions. · Students answered using he, she or they. · Students completed several short exchanges. · Students changed roles. · No private information was required."
+}
+},
+{
+n:8, title:"Mission Complete!", emoji:"🏆",
+phrases:["Portraits Identified!","Great job, Explorers!","He · She · They","Magic Leaf #10 recovered!"],
+notes:{
+STAGE:"Feedback / Mission Complete",
+TIMING:"5 minutes",
+"WHAT TO DO":"Give positive feedback before corrections. Mention good target-language examples heard during the activity without naming individual students. Correct no more than one or two common patterns if necessary. Complete the story: all magical portraits have returned to the Family Album and Magic Leaf #10 activates.",
+SAY:"Great job, Explorers! · You identified the magic portraits! · I heard: Who is she? · She is Mia. · I heard: Who is he? · He is Leo. · I heard: Who are they? · They are Mia and Leo. · Great English! · Look! Magic Leaf number ten is glowing! · Magic Leaf #10 recovered! · Mission complete!",
+"INSTRUCTIONS FOR STUDENTS":"Listen. · Repeat one great question and answer. · Celebrate. · Say: Mission complete!",
+"WHAT NOT TO DO":"Do not focus on individual mistakes. Do not embarrass students. Do not introduce new grammar. Do not compare students. Do not begin teaching He is my brother. Do not make feedback feel like a test.",
+FOCUS:"Positive feedback and successful identity communication.",
+"PEDAGOGICAL INTENTION":"Students recognize that they successfully used he, she and they to solve a real communicative problem inside the adventure.",
+"KEY UPGRADE":"The tenth Magic Leaf rewards successful identification and communication, not grammatical perfection.",
+"CRITICAL ERROR":"Do not overcorrect is/are or pronunciation at this stage.",
+"PRO TIP":"If correction is needed, recast a pattern: Let's say: Who are they? They are Mia and Leo. Then have the whole class repeat once.",
+"FINAL CHECKLIST":"Students received positive feedback. · The three target questions were reviewed. · He, she and they were reinforced. · All magical portraits returned to the album. · Magic Leaf #10 was recovered. · No Mission 11 content was formally taught."
+}
+},
+{
+n:9, title:"Magic Leaf", emoji:"🍃",
+phrases:["How do you feel?","I can use he!","I can use she!","I can use they!","I need more practice.","Can you help me?"],
+notes:{
+STAGE:"Reflection",
+TIMING:"4 minutes",
+"WHAT TO DO":"Ask students to reflect on whether they can identify people using he, she and they. Students may answer with fingers, reactions, chat or voice. Normalize needing additional practice. Connect reflection to Magic Leaf #10.",
+SAY:"Growie recovered Magic Leaf number ten! · Now, how do you feel? · Can you use he? · Can you use she? · Can you use they? · Can you ask: Who is she? · Who is he? · Who are they? · Choose your answer. · I can do it. · I need more practice. · Can you help me? · More practice is okay!",
+"INSTRUCTIONS FOR STUDENTS":"Think. · Choose. · Use your fingers, reaction, chat or voice. · Be honest.",
+"WHAT NOT TO DO":"Do not pressure students to choose the most confident option. Do not score their reflection. Do not turn this into another oral test. Do not introduce Mission 11. Do not make students feel bad for needing help.",
+FOCUS:"Confidence and awareness of learning.",
+"PEDAGOGICAL INTENTION":"Students recognize their own level of confidence using the new identity language.",
+"KEY UPGRADE":"Reflection remains connected to Growie's Magic Leaf progress instead of becoming a formal assessment.",
+"CRITICAL ERROR":"Do not judge students based on their chosen reflection response.",
+"PRO TIP":"Use the phrase: Practice makes your English grow!",
+"FINAL CHECKLIST":"Students reflected. · Students considered he. · Students considered she. · Students considered they. · Teacher identified students needing additional support. · Magic Leaf #10 was reinforced."
+}
+},
+{
+n:10, title:"See You Next Mission!", emoji:"👋",
+phrases:["You can identify people in English!","He · She · They","Next Mission: He Is My Brother","Bye, Growie!"],
+notes:{
+STAGE:"Celebration / Closing",
+TIMING:"4 minutes",
+"WHAT TO DO":"Close positively. Repeat the achievement statement once. Celebrate Magic Leaf #10. Preview only the title of Mission 11. Do not teach family relationship sentences yet.",
+SAY:"Great job today! · You helped Growie identify the magic portraits. · You can identify people in English! · He, she and they! · Growie recovered Magic Leaf number ten. · Next Mission: He Is My Brother. · Bye, Growie! · See you next mission!",
+"INSTRUCTIONS FOR STUDENTS":"Celebrate. · Wave. · Say: Bye, Growie! · See you next mission!",
+"WHAT NOT TO DO":"Do not begin practicing He is my brother. Do not teach She is my sister. Do not explain the next mission in detail. Do not add a long grammar summary. Do not correct students at the end. Do not use the word lesson instead of mission.",
+FOCUS:"Achievement, celebration and curricular continuity.",
+"PEDAGOGICAL INTENTION":"Students leave recognizing the communication skill they gained and become curious about the next step in the family sequence.",
+"KEY UPGRADE":"The closing creates a natural bridge from identifying people to describing family relationships without teaching the new objective early.",
+"CRITICAL ERROR":"Do not turn the Mission 11 preview into new instruction.",
+"PRO TIP":"Maintain the same Growie Kids goodbye routine every mission to create predictability and emotional closure.",
+"FINAL CHECKLIST":"Achievement statement was repeated. · He, she and they were reinforced briefly. · Magic Leaf #10 was celebrated. · Students said goodbye. · Mission 11 was previewed only by title. · No new family relationship language was formally taught."
+}
+}
+];
+
+let current = 1;
+const total = SLIDES.length;
+
+function buildSlideEl(s){
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.dataset.n = s.n;
+
+  if (s.cover) {
+    el.classList.add('slide-cover');
+    el.innerHTML = `
+      <div class="cover-blur-bg"></div>
+      <img class="cover-img" src="${PORTADA}" alt="Growie Kids Mission 10">`;
+  } else {
+    el.classList.add('slide-content');
+    const colorClasses = ['c0','c1','c2','c3','c4','c5'];
+    const chips = (s.phrases||[]).map((p,i) => `<div class="phrase-card ${colorClasses[i % colorClasses.length]}" style="animation-delay:${0.15 + i*0.12}s">${p}</div>`).join('');
+    el.innerHTML = `
+      <div class="mission-badge"><span class="leaf-spin">🍃</span> Mission 10 · Slide ${s.n} / ${total}</div>
+      <div class="slide-grid">
+        <div class="col-text">
+          <div class="slide-emoji">${s.emoji}</div>
+          <div class="slide-title">${s.title}</div>
+          <div class="phrase-col">${chips}</div>
+        </div>
+        <div class="col-image">
+          <div class="slide-img-wrap"><img src="${slideImg(s.n)}" alt="${s.title}"></div>
+        </div>
+      </div>`;
+  }
+  return el;
+}
+
+function initStage(){
+  const stage = document.getElementById('stage');
+  SLIDES.forEach(s => stage.appendChild(buildSlideEl(s)));
+
+  const dotsWrap = document.getElementById('dots');
+  SLIDES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'dot';
+    b.setAttribute('aria-label', 'Slide ' + s.n);
+    b.onclick = () => goTo(s.n);
+    dotsWrap.appendChild(b);
+  });
+}
+
+function goTo(n){
+  if (n < 1 || n > total) return;
+  const prev = current;
+  current = n;
+  document.querySelectorAll('.slide').forEach(el => {
+    const en = parseInt(el.dataset.n, 10);
+    const isActive = en === n;
+    el.classList.toggle('active', isActive);
+    if (!isActive) {
+      el.querySelectorAll('.phrase-card, .slide-title, .slide-emoji').forEach(box => {
+        box.classList.remove('settled');
+        box.style.animation = '';
+      });
+    }
+  });
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === n-1));
+  document.getElementById('prevBtn').disabled = n === 1;
+  document.getElementById('nextBtn').disabled = n === total;
+  document.getElementById('counter').textContent = n + ' / ' + total;
+  renderNotes(n);
+}
+
+document.addEventListener('animationend', e => {
+  if (e.target.matches('.phrase-card, .slide-title, .slide-emoji')) {
+    e.target.style.animation = 'none';
+    e.target.classList.add('settled');
+  }
+});
+
+function renderNotes(n){
+  const s = SLIDES.find(x => x.n === n);
+  document.getElementById('notesTitle').textContent = 'Slide ' + n + (s.title ? ' — ' + s.title : '');
+  document.getElementById('notesStage').textContent = s.notes.STAGE + ' · ' + s.notes.TIMING;
+  const order = ["WHAT TO DO","SAY","INSTRUCTIONS FOR STUDENTS","WHAT NOT TO DO","FOCUS","PEDAGOGICAL INTENTION","KEY UPGRADE","CRITICAL ERROR","PRO TIP","FINAL CHECKLIST"];
+  const body = document.getElementById('notesBody');
+  body.innerHTML = order.map(k => `
+    <div class="notes-block">
+      <div class="notes-label">${k}</div>
+      <div class="notes-text">${s.notes[k]}</div>
+    </div>`).join('');
+}
+
+document.getElementById('prevBtn').onclick = () => goTo(current - 1);
+document.getElementById('nextBtn').onclick = () => goTo(current + 1);
+
+const notesPanel = document.getElementById('notesPanel');
+const notesOverlay = document.getElementById('notesOverlay');
+document.getElementById('notesToggle').onclick = () => {
+  notesPanel.classList.add('open');
+  notesOverlay.classList.add('open');
+};
+function closeNotes(){
+  notesPanel.classList.remove('open');
+  notesOverlay.classList.remove('open');
+}
+document.getElementById('notesClose').onclick = closeNotes;
+notesOverlay.onclick = closeNotes;
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+  if (e.key === 'Escape') closeNotes();
+});
+
+initStage();
+goTo(1);
+</script>
+</body>
+</html>

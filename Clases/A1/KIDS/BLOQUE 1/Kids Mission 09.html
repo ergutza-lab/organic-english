@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Growie Kids — Mission 9 — This Is My Family</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1c2b5e;
+  --navy-dark:#111c40;
+  --orange:#f97316;
+  --orange-light:#fdba74;
+  --green:#22c55e;
+  --green-dark:#15803d;
+  --cream:#fef3e2;
+  --yellow:#fbbf24;
+  --white:#ffffff;
+  --shadow:0 18px 40px rgba(28,43,94,.35);
+}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--navy-dark);}
+h1,h2,h3,.font-baloo{font-family:'Baloo 2',cursive;}
+
+/* ══════════ ESTRUCTURA DE SLIDES ══════════ */
+.stage{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transform:translateX(40px);
+  transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  background-size:cover;background-position:center;
+}
+.slide.active{
+  opacity:1;visibility:visible;transform:translateX(0);
+  transition:opacity .45s ease, transform .45s ease;
+  z-index:2;
+}
+.slide.prevslide{transform:translateX(-40px)}
+
+/* ── Slide 1: Portada ── */
+.slide-cover{background:none;}
+.cover-blur-bg{
+  position:absolute;inset:0;z-index:0;
+  background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2009/PORTADA.jpg');
+  background-size:cover;background-position:center;
+  filter:blur(28px) brightness(.55) saturate(1.1);
+  transform:scale(1.15);
+}
+.cover-img{
+  position:absolute;inset:0;z-index:1;
+  width:100%;height:100%;object-fit:contain;
+}
+
+.slide-content{align-items:flex-start}
+.slide-content{background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2001/FONDO%20SLIDES%20KIDS.webp');}
+.mission-badge{
+  position:absolute;top:22px;left:22px;z-index:5;
+  background:var(--orange);color:#fff;font-weight:700;font-size:13px;
+  padding:8px 16px;border-radius:100px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:8px;
+}
+.mission-badge .leaf-spin{display:inline-block;animation:spin 3s linear infinite}
+
+.slide-grid{
+  display:grid;grid-template-columns:1fr 1.15fr;align-items:start;gap:36px;
+  max-width:1280px;width:92vw;padding:96px 40px 28px;
+}
+.col-text{display:flex;flex-direction:column;gap:9px;align-items:flex-start;max-height:calc(100vh - 150px);overflow-y:auto;padding-right:6px}
+.slide-emoji{
+  align-self:center;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(56px,8vw,100px);height:clamp(56px,8vw,100px);line-height:1;
+  opacity:0;transform:scale(.3) rotate(-15deg);
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.25));
+  cursor:default;
+}
+.slide.active .slide-emoji{animation:popBounce .6s cubic-bezier(.34,1.56,.64,1) 0s forwards}
+.slide-emoji.settled{
+  opacity:1;transform:scale(1) rotate(0deg);
+  transition:transform .2s ease, filter .2s ease;
+}
+.slide-emoji.settled:hover{
+  transform:scale(1.18) rotate(10deg);
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.35));
+}
+.slide-title{
+  font-size:clamp(24px,3.2vw,38px);font-weight:800;line-height:1.05;color:var(--navy);
+  text-shadow:0 0 14px rgba(255,255,255,.85), 0 2px 0 rgba(0,0,0,.12);
+  background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%);
+  padding:8px 20px;border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.25);
+  opacity:0;transform:translateY(-18px) scale(.9);
+  cursor:default;
+}
+.slide.active .slide-title{animation:popDrop .55s cubic-bezier(.34,1.56,.64,1) .05s forwards}
+.slide-title.settled{
+  opacity:1;transform:translateY(0) scale(1);
+  transition:transform .22s ease, box-shadow .22s ease, filter .22s ease;
+}
+.slide-title.settled:hover{
+  transform:scale(1.06) rotate(-1deg);
+  box-shadow:0 14px 30px rgba(0,0,0,.35), 0 0 0 4px rgba(255,255,255,.5);
+  filter:brightness(1.12) saturate(1.15);
+}
+
+.phrase-col{display:flex;flex-direction:column;gap:7px;width:100%}
+.phrase-card{
+  font-family:'Baloo 2',cursive;font-weight:700;
+  font-size:clamp(15px,1.9vw,21px);color:#fff;
+  padding:9px 18px;border-radius:16px;
+  box-shadow:0 10px 22px rgba(0,0,0,.22);
+  opacity:0;transform:translateX(-40px) scale(.85);
+  width:fit-content;max-width:100%;
+  cursor:pointer;
+}
+.slide.active .phrase-card{animation:popIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.phrase-card.settled{
+  opacity:1;transform:translateX(0) scale(1);
+  transition:transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.phrase-card.settled:hover{
+  transform:scale(1.1) rotate(-2deg);
+  box-shadow:0 16px 32px rgba(0,0,0,.32), 0 0 0 4px rgba(255,255,255,.6);
+  filter:brightness(1.15) saturate(1.2);
+}
+.phrase-card.c0{background:linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%)}
+.phrase-card.c1{background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%)}
+.phrase-card.c2{background:linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)}
+.phrase-card.c3{background:linear-gradient(135deg, var(--yellow) 0%, #d97706 100%);color:var(--navy);text-shadow:none}
+.phrase-card.c4{background:linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)}
+.phrase-card.c5{background:linear-gradient(135deg, #fb7185 0%, #e11d48 100%)}
+
+.col-image{display:flex;align-items:center;justify-content:center;align-self:center}
+.slide-img-wrap{
+  border-radius:28px;overflow:hidden;box-shadow:var(--shadow);
+  border:7px solid #fff;line-height:0;
+  width:min(78vh, 62vh, 100%);aspect-ratio:1/1;max-width:100%;
+  display:flex;align-items:center;justify-content:center;
+  background:#0f1a3d;
+  animation:floatY 4.5s ease-in-out infinite;
+}
+.slide-img-wrap img{display:block;width:100%;height:100%;object-fit:cover;}
+
+@keyframes popIn{
+  0%{opacity:0;transform:translateX(-40px) scale(.85)}
+  60%{opacity:1;transform:translateX(6px) scale(1.04)}
+  100%{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes popBounce{
+  0%{opacity:0;transform:scale(.3) rotate(-15deg)}
+  50%{opacity:1;transform:scale(1.15) rotate(6deg)}
+  75%{transform:scale(.95) rotate(-3deg)}
+  100%{opacity:1;transform:scale(1) rotate(0deg)}
+}
+@keyframes popDrop{
+  0%{opacity:0;transform:translateY(-18px) scale(.9)}
+  60%{opacity:1;transform:translateY(4px) scale(1.03)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes floatY{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-14px)}
+}
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+
+/* ══════════ NAVEGACIÓN ══════════ */
+.nav-controls{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:20;
+  display:flex;align-items:center;gap:14px;
+  background:rgba(17,28,64,.85);backdrop-filter:blur(6px);
+  padding:10px 18px;border-radius:100px;box-shadow:0 10px 26px rgba(0,0,0,.35);
+}
+.nav-btn{
+  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--orange);color:#fff;font-size:18px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s, opacity .15s;
+}
+.nav-btn:hover:not(:disabled){transform:scale(1.1)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.dots{display:flex;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:all .2s;border:none;padding:0}
+.dot.active{background:var(--orange);width:22px;border-radius:6px}
+.dot:hover{background:rgba(255,255,255,.6)}
+.slide-counter{color:#fff;font-size:12px;font-weight:600;min-width:38px;text-align:center}
+
+/* ══════════ PANEL DE NOTAS DEL PROFESOR ══════════ */
+.notes-toggle{
+  position:fixed;top:22px;right:22px;z-index:25;
+  background:var(--navy);color:#fff;border:none;border-radius:100px;
+  padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;
+  font-family:'DM Sans',sans-serif;transition:transform .15s;
+}
+.notes-toggle:hover{transform:scale(1.04)}
+.notes-panel{
+  position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);
+  background:#fff;z-index:30;box-shadow:-16px 0 40px rgba(0,0,0,.35);
+  transform:translateX(100%);transition:transform .3s ease;
+  overflow-y:auto;padding:24px 22px 40px;
+}
+.notes-panel.open{transform:translateX(0)}
+.notes-close{
+  position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;
+  width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--navy);
+}
+.notes-header{
+  font-weight:800;font-size:20px;color:var(--navy);margin:6px 0 2px;padding-right:40px;
+}
+.notes-sub{color:var(--orange);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:18px}
+.notes-block{margin-bottom:16px}
+.notes-label{
+  font-size:11px;font-weight:800;color:#fff;background:var(--navy);
+  display:inline-block;padding:3px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:6px;
+}
+.notes-text{font-size:14px;color:#334155;line-height:1.55;white-space:pre-line}
+.notes-overlay{
+  position:fixed;inset:0;background:rgba(17,28,64,.4);z-index:29;
+  opacity:0;visibility:hidden;transition:opacity .3s;
+}
+.notes-overlay.open{opacity:1;visibility:visible}
+
+/* ══════════ RESPONSIVE ══════════ */
+@media(max-width:900px){
+  .slide-grid{grid-template-columns:1fr;padding:78px 18px 16px;gap:16px;width:94vw}
+  .col-image{order:2}
+  .col-text{order:1;align-items:center;text-align:center}
+  .slide-emoji{font-size:clamp(56px,16vw,90px);height:clamp(56px,16vw,90px)}
+  .slide-title{font-size:22px;padding:8px 20px;text-align:center}
+  .phrase-col{align-items:center}
+  .phrase-card{font-size:16px;padding:10px 18px;width:auto}
+  .slide-img-wrap{max-height:38vh;animation:none}
+  .slide-img-wrap img{max-height:38vh}
+  .mission-badge{font-size:11px;padding:6px 12px;top:14px;left:14px}
+  .notes-toggle{padding:8px 12px;font-size:11px;top:14px;right:14px}
+  .nav-controls{padding:7px 12px;gap:8px}
+  .nav-btn{width:32px;height:32px;font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+
+<button class="notes-toggle" id="notesToggle">🧑‍🏫 <span>Teacher Notes:</span></button>
+
+<div class="nav-controls">
+  <button class="nav-btn" id="prevBtn" aria-label="Anterior">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="nav-btn" id="nextBtn" aria-label="Siguiente">›</button>
+</div>
+<div class="slide-counter" id="counter" style="position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:20;"></div>
+
+<div class="notes-overlay" id="notesOverlay"></div>
+<aside class="notes-panel" id="notesPanel">
+  <button class="notes-close" id="notesClose">✕</button>
+  <div class="notes-header" id="notesTitle"></div>
+  <div class="notes-sub" id="notesStage"></div>
+  <div id="notesBody"></div>
+</aside>
+
+
+
+<script>
+const IMG_BASE = "https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2009/";
+const PORTADA = IMG_BASE + "PORTADA.jpg";
+const slideImg = n => IMG_BASE + "SLIDE%20" + n + ".jpg";
+
+const SLIDES = [
+  {
+    n:1, cover:true,
+    notes:{
+      STAGE:"Mission Start / Cover Image",
+      TIMING:"5 minutes",
+      "WHAT TO DO":"Welcome students warmly using only the cover image. Do not read slide text because there is no text on the slide. Use the image to create curiosity. Connect briefly with Mission 8: Growie completed the Explorer Profile Book and now has found a magical Family Album. Invite students to guess what the new adventure is about.",
+      SAY:"Welcome back, Explorers! · Look at Growie. · What can you see? · A family! · Look at the magic album. · Growie has a new mission. · Today, we meet family members. · We help Growie complete the Family Album. · Are you ready for Mission 9?",
+      "INSTRUCTIONS FOR STUDENTS":"Look at Growie. · Look at the family picture. · Listen. · Guess. · Say: I'm ready!",
+      "WHAT NOT TO DO":"Do not show additional text on the cover. Do not start with a vocabulary list. Do not explain grammar. Do not teach he, she or they yet. Do not ask students personal questions about their family immediately. Do not make the beginning feel like a test.",
+      FOCUS:"Curiosity, family context and connection with the Growie adventure.",
+      "PEDAGOGICAL INTENTION":"Students enter the new topic through visual storytelling before receiving explicit language support.",
+      "KEY UPGRADE":"The family topic begins as a new Growie adventure rather than an isolated vocabulary lesson.",
+      "CRITICAL ERROR":"Do not turn the cover into a traditional title slide with extra HTML text.",
+      "PRO TIP":"Point to different characters in the family image and allow students to guess silently or say any family words they may already know.",
+      "FINAL CHECKLIST":"Students were welcomed. · Mission 8 was briefly connected to Mission 9. · Students noticed the family context. · Students understand Growie needs their help. · No formal family vocabulary lesson started yet."
+    }
+  },
+  {
+    n:2, title:"Hello, Family Explorers!", emoji:"👋",
+    phrases:["Hello, Explorers!","This is my family.","Mom · Dad","Sister · Brother","Grandma · Grandpa"],
+    notes:{
+      STAGE:"Warm-up Game / Activation",
+      TIMING:"5 minutes",
+      "WHAT TO DO":"Start with the normal greeting routine. Show family members visually and use simple gestures. Students repeat the words with rhythm and movement. Do not demand memorization yet. Introduce “This is my family” as one complete chunk.",
+      SAY:"Hello, Explorers! · Wave and say: Hello! · Look! A family! · This is my family. · Mom. · Dad. · Sister. · Brother. · Grandma. · Grandpa. · Listen. · Point. · Repeat. · Family power!",
+      "INSTRUCTIONS FOR STUDENTS":"Wave. · Look. · Listen. · Point. · Repeat. · Use gestures.",
+      "WHAT NOT TO DO":"Do not explain grammar. Do not ask students to memorize all the words immediately. Do not introduce he, she or they. Do not introduce family adjectives. Do not correct every pronunciation detail.",
+      FOCUS:"Activate attention and create the first sound-image connection for family vocabulary.",
+      "PEDAGOGICAL INTENTION":"Students encounter the new vocabulary through movement, visuals and repetition before using it communicatively.",
+      "KEY UPGRADE":"Vocabulary is introduced as part of the Family Album adventure, not as a static word list.",
+      "CRITICAL ERROR":"Do not begin teaching Mission 10 language such as Who is she?",
+      "PRO TIP":"Use one clear gesture for every family member and repeat the same gesture throughout the mission.",
+      "FINAL CHECKLIST":"Students greeted the teacher. · Students recognized the family context. · Students heard mom, dad, sister, brother, grandma and grandpa. · Students repeated the words. · Students heard This is my family."
+    }
+  },
+  {
+    n:3, title:"Growie's Family Album", emoji:"📖",
+    phrases:["This is my family.","This is my mom.","This is my dad.","This is my sister.","This is my brother."],
+    notes:{
+      STAGE:"Story Time",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Tell the story using the picture and gestures. Students listen first. Do not ask them to read immediately. Point to each family member as the corresponding sentence is spoken. After listening, students repeat the key sentences with you.",
+      SAY:"Growie found a magic Family Album. · Look! This is Mia. · Mia says: This is my family. · This is my mom. · This is my dad. · This is my sister. · This is my brother. · Look! Grandma. · Grandpa. · Growie says: Wow! A family! · Now repeat with me.",
+      "INSTRUCTIONS FOR STUDENTS":"Look. · Listen first. · Point to the family member. · Repeat Mia. · Use the picture.",
+      "WHAT NOT TO DO":"Do not translate sentence by sentence. Do not explain my. Do not explain this is. Do not introduce pronouns. Do not require students to read the dialogue before hearing it. Do not make the story too long.",
+      FOCUS:"Meaning of family vocabulary inside the chunk This is my ___.",
+      "PEDAGOGICAL INTENTION":"Students understand the target structure because the sentence, family member and visual appear together.",
+      "KEY UPGRADE":"Students first hear family language as meaningful communication rather than isolated vocabulary.",
+      "CRITICAL ERROR":"Do not transform Story Time into grammar explanation.",
+      "PRO TIP":"Pause before each family word: This is my... and allow students to complete the word after they have heard the story once.",
+      "FINAL CHECKLIST":"Students listened before reading. · Students understood the family context. · Students heard This is my... several times. · Students connected the family words with the correct characters. · Students repeated key lines."
+    }
+  },
+  {
+    n:4, title:"Let's Discover!", emoji:"🔍",
+    phrases:["Find: Mom","Find: Dad","Find: Sister","Find: Brother","Find: Grandma","Find: Grandpa"],
+    notes:{
+      STAGE:"Guided Discovery",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Return to the family image. Ask students to find each family member. Do not immediately point to the answer. Give students time to look, choose and point. After each answer, model the full chunk: This is my mom, etc.",
+      SAY:"Look at the family. · Find mom. · Point! · Yes! This is my mom. · Find dad. · Yes! This is my dad. · Find sister. · This is my sister. · Find brother. · This is my brother. · Find grandma. · Find grandpa. · Great discovering, Explorers!",
+      "INSTRUCTIONS FOR STUDENTS":"Look. · Find. · Point. · Say the word. · Repeat the sentence.",
+      "WHAT NOT TO DO":"Do not provide every answer immediately. Do not introduce grammar labels. Do not teach he/she/they. Do not add cousins, aunts, uncles or extended family vocabulary yet. Do not overload students.",
+      FOCUS:"Recognition and visual discrimination of the six core family words.",
+      "PEDAGOGICAL INTENTION":"Students actively retrieve the vocabulary instead of only repeating after the teacher.",
+      "KEY UPGRADE":"Guided discovery turns vocabulary recognition into an interactive family search.",
+      "CRITICAL ERROR":"Do not introduce too many additional family members.",
+      "PRO TIP":"Say a family word without pointing. Students race to point to the correct visual.",
+      "FINAL CHECKLIST":"Students identified mom. · Students identified dad. · Students identified sister. · Students identified brother. · Students identified grandma. · Students identified grandpa. · Students repeated This is my ___."
+    }
+  },
+  {
+    n:5, title:"Family Power!", emoji:"✨",
+    phrases:["This is my mom.","This is my dad.","This is my sister.","This is my brother.","This is my grandma.","This is my grandpa."],
+    notes:{
+      STAGE:"Visual Focus",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Use the family visual cards to establish the main language pattern. Point to one image and model the complete sentence. Students repeat. Change the card quickly to create several substitutions without explaining the grammar.",
+      SAY:"Family power! · Look at mom. · This is my mom. · Look at dad. · This is my dad. · Sister: This is my sister. · Brother: This is my brother. · Grandma: This is my grandma. · Grandpa: This is my grandpa. · Great! Same sentence, new family word!",
+      "INSTRUCTIONS FOR STUDENTS":"Look at the picture. · Repeat. · Change the family word. · Say the complete sentence.",
+      "WHAT NOT TO DO":"Do not explain sentence structure formally. Do not ask students to copy grammar rules. Do not introduce He is... or She is... Do not require all students to produce all six sentences alone.",
+      FOCUS:"This is my + family member.",
+      "PEDAGOGICAL INTENTION":"Students notice a stable reusable communication pattern through substitution and visual support.",
+      "KEY UPGRADE":"Students acquire the sentence as a reusable chunk instead of learning a grammatical formula.",
+      "CRITICAL ERROR":"Do not move from This is my... to He/She is my... yet.",
+      "PRO TIP":"Keep This is my... constant and rapidly change only the visual family card. Students complete the sentence.",
+      "FINAL CHECKLIST":"Students recognized all core vocabulary. · Students repeated the target chunk. · Students substituted different family words. · Students can produce at least some examples with support."
+    }
+  },
+  {
+    n:6, title:"Practice with Growie!", emoji:"🤝",
+    phrases:["This is my family.","This is my mom.","This is my dad.","Choose a family card!","Say the sentence!","Everyone participates!"],
+    notes:{
+      STAGE:"Group Practice",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Lead whole-class practice first. Show one family card at a time. Students produce the sentence together. Then call individual students for one supported example each. Use fictional family cards so students are not required to reveal real information.",
+      SAY:"Now practice with Growie! · Look at the card. · Mom! · Everybody: This is my mom. · New card! Dad! · This is my dad. · Sister! · This is my sister. · Brother! · This is my brother. · Great! · Now one Explorer at a time. · Choose a card. · Say the sentence.",
+      "INSTRUCTIONS FOR STUDENTS":"Look. · Choose a family card. · Say: This is my ___. · Listen to your friends. · Everyone participates.",
+      "WHAT NOT TO DO":"Do not send students to independent practice before modeling. Do not ask only confident students. Do not remove visual support. Do not correct every pronunciation mistake. Do not force students to talk about their real family.",
+      FOCUS:"Controlled production of the target family chunk.",
+      "PEDAGOGICAL INTENTION":"Students build confidence by producing the language with full visual and group support before the freer task.",
+      "KEY UPGRADE":"Students actively complete Growie's family-card challenge instead of repeating a vocabulary list.",
+      "CRITICAL ERROR":"Do not skip whole-class practice.",
+      "PRO TIP":"Give every student one different visual card so participation is easy to track.",
+      "FINAL CHECKLIST":"Students practiced as a group. · Students produced This is my ___. · Different family members were used. · Every student participated at least once. · Visual support remained available."
+    }
+  },
+  {
+    n:7, title:"Your Turn", emoji:"🎤",
+    phrases:["Show your family.","This is my ___.","Use a real or pretend family.","Say 2–4 family members.","Can you repeat, please?","Change roles!"],
+    notes:{
+      STAGE:"Free Production",
+      TIMING:"8 minutes",
+      "WHAT TO DO":"Students introduce 2–4 family members using either their own family, a pretend family, a character family or teacher-provided family cards. Model the task first. Students may keep the visual sentence support on screen. If working in pairs, Student A presents first and Student B listens, then they change roles.",
+      SAY:"Now it's your turn! · Show your family card. · Say: This is my ___. · Choose two, three or four family members. · You can use your family or a pretend family. · Simple is okay. · If you need help, say: Can you repeat, please? · Then change roles.",
+      "INSTRUCTIONS FOR STUDENTS":"Choose a family picture. · Introduce 2–4 people. · Say: This is my ___. · Listen to your partner. · Ask for help if necessary. · Change roles.",
+      "WHAT NOT TO DO":"Do not demand memorization. Do not require students to share a real family picture. Do not ask for names, ages or private family details. Do not constantly interrupt to correct. Do not introduce he/she/they. Do not make students produce long descriptions.",
+      FOCUS:"Independent but supported use of family vocabulary.",
+      "PEDAGOGICAL INTENTION":"Students move from recognition and repetition to meaningful personal or fictional communication.",
+      "KEY UPGRADE":"Students choose how personally they want to engage with the topic while still achieving the communication objective.",
+      "CRITICAL ERROR":"Do not make real-family disclosure mandatory.",
+      "PRO TIP":"Prepare fictional family cards for shy students or students who prefer not to talk about their own family.",
+      "FINAL CHECKLIST":"Students introduced at least two family members. · Students used This is my ___. · Students had visual support. · Students could use fictional information. · Students listened to another speaker. · Roles were changed when appropriate."
+    }
+  },
+  {
+    n:8, title:"Mission Complete!", emoji:"🏆",
+    phrases:["Family Album Ready!","Great job, Explorers!","This is my family.","You helped Growie recover Magic Leaf #9!"],
+    notes:{
+      STAGE:"Feedback / Mission Complete",
+      TIMING:"5 minutes",
+      "WHAT TO DO":"Give positive feedback first. Mention examples of successful language you heard without identifying students. If necessary, correct only one or two common patterns as a group. Complete the story by showing that the magical Family Album is ready and the ninth Magic Leaf has been recovered.",
+      SAY:"Great job, Explorers! · You helped Growie complete the Family Album! · I heard: This is my mom. · I heard: This is my brother. · I heard: This is my grandma. · Great family English! · Look! The ninth Magic Leaf is glowing! · Magic Leaf number nine recovered! · Mission complete!",
+      "INSTRUCTIONS FOR STUDENTS":"Listen. · Repeat one great sentence. · Celebrate. · Say: Mission complete!",
+      "WHAT NOT TO DO":"Do not focus on mistakes. Do not name students when correcting. Do not introduce new language. Do not compare students. Do not teach Mission 10 content yet.",
+      FOCUS:"Positive feedback, successful family communication and adventure reward.",
+      "PEDAGOGICAL INTENTION":"Students associate successful English communication with visible progress inside the Growie adventure.",
+      "KEY UPGRADE":"The ninth Magic Leaf rewards successful communication rather than perfect performance.",
+      "CRITICAL ERROR":"Do not make the feedback stage feel like an evaluation.",
+      "PRO TIP":"Correct patterns rather than people. For example: Let's say: This is my brother.",
+      "FINAL CHECKLIST":"Students received positive feedback. · Successful family phrases were repeated. · The Family Album was completed. · Magic Leaf #9 was recovered. · No new content was introduced."
+    }
+  },
+  {
+    n:9, title:"Magic Leaf", emoji:"🍃",
+    phrases:["How do you feel?","I can say family words!","I can say: This is my ___.","I need more practice.","Can you help me?"],
+    notes:{
+      STAGE:"Reflection",
+      TIMING:"4 minutes",
+      "WHAT TO DO":"Ask students to reflect on their confidence. They may answer through voice, fingers, reactions or chat. Normalize needing practice or help. Connect the reflection with the ninth Magic Leaf.",
+      SAY:"Growie recovered another Magic Leaf! · How do you feel? · Can you say family words? · Can you say: This is my ___? · Choose your answer. · I can do it. · I need more practice. · Can you help me? · More practice is okay. · English grows with practice!",
+      "INSTRUCTIONS FOR STUDENTS":"Choose. · Use your fingers, reaction, chat or voice. · Be honest.",
+      "WHAT NOT TO DO":"Do not pressure students to say they can do everything. Do not turn reflection into another test. Do not introduce new language. Do not make needing help feel negative.",
+      FOCUS:"Confidence and awareness of learning.",
+      "PEDAGOGICAL INTENTION":"Students recognize what they can already communicate and what needs more practice.",
+      "KEY UPGRADE":"Reflection remains integrated into Growie's Magic Leaf adventure.",
+      "CRITICAL ERROR":"Do not judge or score students based on their reflection answer.",
+      "PRO TIP":"Say: More practice makes your English grow.",
+      "FINAL CHECKLIST":"Students reflected. · Students selected a confidence level. · Teacher identified who may need additional support. · The ninth Magic Leaf was reinforced as the mission reward."
+    }
+  },
+  {
+    n:10, title:"See You Next Mission!", emoji:"👋",
+    phrases:["You can talk about family members in English!","Next Mission: Who Is She?","Bye, Growie!"],
+    notes:{
+      STAGE:"Celebration / Closing",
+      TIMING:"4 minutes",
+      "WHAT TO DO":"Close positively. Repeat the achievement statement once. Celebrate Magic Leaf #9 and preview only the title of Mission 10. Do not teach its language yet.",
+      SAY:"Great job today! · You helped Growie complete the Family Album. · You can talk about family members in English! · Growie recovered Magic Leaf number nine. · Next Mission: Who Is She? · Bye, Growie! · See you next mission!",
+      "INSTRUCTIONS FOR STUDENTS":"Celebrate. · Wave. · Say: Bye, Growie! · See you next mission!",
+      "WHAT NOT TO DO":"Do not start teaching he, she or they. Do not explain the next mission. Do not correct students at the end. Do not add a long review. Do not use the word lesson instead of mission.",
+      FOCUS:"Achievement, celebration and narrative continuity.",
+      "PEDAGOGICAL INTENTION":"Students leave with a clear sense of success and curiosity about the next Growie adventure.",
+      "KEY UPGRADE":"The closing connects family vocabulary naturally to the next communication step without pre-teaching it.",
+      "CRITICAL ERROR":"Do not teach Who is she? or subject pronouns on this slide.",
+      "PRO TIP":"Maintain the same goodbye ritual across all Growie Kids missions.",
+      "FINAL CHECKLIST":"Achievement statement was repeated. · Magic Leaf #9 was celebrated. · Students said goodbye. · Mission 10 was previewed only by title. · The mission ended positively."
+    }
+  }
+];
+
+let current = 1;
+const total = SLIDES.length;
+
+function buildSlideEl(s){
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.dataset.n = s.n;
+
+  if (s.cover) {
+    el.classList.add('slide-cover');
+    el.innerHTML = `
+      <div class="cover-blur-bg"></div>
+      <img class="cover-img" src="${PORTADA}" alt="Growie Kids Mission 9">`;
+  } else {
+    el.classList.add('slide-content');
+    const colorClasses = ['c0','c1','c2','c3','c4','c5'];
+    const chips = (s.phrases||[]).map((p,i) => `<div class="phrase-card ${colorClasses[i % colorClasses.length]}" style="animation-delay:${0.15 + i*0.12}s">${p}</div>`).join('');
+    el.innerHTML = `
+      <div class="mission-badge"><span class="leaf-spin">🍃</span> Mission 9 · Slide ${s.n} / ${total}</div>
+      <div class="slide-grid">
+        <div class="col-text">
+          <div class="slide-emoji">${s.emoji}</div>
+          <div class="slide-title">${s.title}</div>
+          <div class="phrase-col">${chips}</div>
+        </div>
+        <div class="col-image">
+          <div class="slide-img-wrap"><img src="${slideImg(s.n)}" alt="${s.title}"></div>
+        </div>
+      </div>`;
+  }
+  return el;
+}
+
+function initStage(){
+  const stage = document.getElementById('stage');
+  SLIDES.forEach(s => stage.appendChild(buildSlideEl(s)));
+
+  const dotsWrap = document.getElementById('dots');
+  SLIDES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'dot';
+    b.setAttribute('aria-label', 'Slide ' + s.n);
+    b.onclick = () => goTo(s.n);
+    dotsWrap.appendChild(b);
+  });
+}
+
+function goTo(n){
+  if (n < 1 || n > total) return;
+  const prev = current;
+  current = n;
+  document.querySelectorAll('.slide').forEach(el => {
+    const en = parseInt(el.dataset.n, 10);
+    const isActive = en === n;
+    el.classList.toggle('active', isActive);
+    if (!isActive) {
+      el.querySelectorAll('.phrase-card, .slide-title, .slide-emoji').forEach(box => {
+        box.classList.remove('settled');
+        box.style.animation = '';
+      });
+    }
+  });
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === n-1));
+  document.getElementById('prevBtn').disabled = n === 1;
+  document.getElementById('nextBtn').disabled = n === total;
+  document.getElementById('counter').textContent = n + ' / ' + total;
+  renderNotes(n);
+}
+
+document.addEventListener('animationend', e => {
+  if (e.target.matches('.phrase-card, .slide-title, .slide-emoji')) {
+    e.target.style.animation = 'none';
+    e.target.classList.add('settled');
+  }
+});
+
+function renderNotes(n){
+  const s = SLIDES.find(x => x.n === n);
+  document.getElementById('notesTitle').textContent = 'Slide ' + n + (s.title ? ' — ' + s.title : '');
+  document.getElementById('notesStage').textContent = s.notes.STAGE + ' · ' + s.notes.TIMING;
+  const order = ["WHAT TO DO","SAY","INSTRUCTIONS FOR STUDENTS","WHAT NOT TO DO","FOCUS","PEDAGOGICAL INTENTION","KEY UPGRADE","CRITICAL ERROR","PRO TIP","FINAL CHECKLIST"];
+  const body = document.getElementById('notesBody');
+  body.innerHTML = order.map(k => `
+    <div class="notes-block">
+      <div class="notes-label">${k}</div>
+      <div class="notes-text">${s.notes[k]}</div>
+    </div>`).join('');
+}
+
+document.getElementById('prevBtn').onclick = () => goTo(current - 1);
+document.getElementById('nextBtn').onclick = () => goTo(current + 1);
+
+const notesPanel = document.getElementById('notesPanel');
+const notesOverlay = document.getElementById('notesOverlay');
+document.getElementById('notesToggle').onclick = () => {
+  notesPanel.classList.add('open');
+  notesOverlay.classList.add('open');
+};
+function closeNotes(){
+  notesPanel.classList.remove('open');
+  notesOverlay.classList.remove('open');
+}
+document.getElementById('notesClose').onclick = closeNotes;
+notesOverlay.onclick = closeNotes;
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+  if (e.key === 'Escape') closeNotes();
+});
+
+initStage();
+goTo(1);
+</script>
+</body>
+</html>
