@@ -676,7 +676,7 @@ function seleccionarNivel(nivel,el){
 function renderGruposPorNivel(nivelFiltro){
   const cont=document.getElementById('lista-grupos');
   const grupos=datosPanel?.grupos||[];
-  const filtrados=grupos.filter(g=>g.nivel===nivelFiltro);
+  const filtrados=grupos.filter(g=>g.nivel===nivelFiltro && (g.alumnos||[]).length > 0);
   if(!filtrados.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin grupos en este nivel</h3></div>`;return;}
 
   // FIX: separar becados de alumnos sin pago real
@@ -1089,6 +1089,79 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
   }).join('');
 }
 
+function abrirReportePagosAlumno(idAlumno, nombreAlumno) {
+  fetch(APPS_SCRIPT + '?action=getHistorialPagosAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) { alert('No se pudo generar el reporte: ' + (data.error || 'error desconocido')); return; }
+      generarPDFHistorialPagos(data.alumno, data.pagos);
+    })
+    .catch(function () { alert('Error de conexión al generar el reporte.'); });
+}
+
+function generarPDFHistorialPagos(alumno, pagos) {
+  var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
+  if (!jsPDFLib) { alert('No se pudo cargar el generador de PDF. Intenta de nuevo.'); return; }
+
+  var doc = new jsPDFLib({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+  var y = 18;
+
+  doc.setFontSize(16);
+  doc.setTextColor(28, 43, 94);
+  doc.text('Historial de pagos -- Organic English', 14, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Alumno: ' + (alumno.nombre || '') + '  (' + (alumno.id || '') + ')', 14, y);
+  y += 6;
+  doc.text('Grupo: ' + (alumno.idGrupo || '—') + '   |   Inscrito desde: ' + (alumno.fechaInscripcion || '—'), 14, y);
+  y += 10;
+
+  var colX = { fecha: 14, monto: 48, periodo: 72, estatus: 122, validador: 150, comprobante: 180 };
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('Fecha', colX.fecha, y);
+  doc.text('Monto', colX.monto, y);
+  doc.text('Periodo que cubre', colX.periodo, y);
+  doc.text('Estatus', colX.estatus, y);
+  doc.text('Validó', colX.validador, y);
+  doc.text('Comprobante', colX.comprobante, y);
+  y += 2;
+  doc.setLineWidth(0.3);
+  doc.line(14, y, 270, y);
+  y += 5;
+  doc.setFont(undefined, 'normal');
+
+  if (!pagos.length) {
+    doc.text('Este alumno no tiene ningún pago registrado en el sistema.', 14, y);
+  }
+
+  pagos.forEach(function (p) {
+    if (y > 190) { doc.addPage(); y = 18; }
+    doc.text(p.fecha || '—', colX.fecha, y);
+    doc.text('$' + (p.monto || 0).toFixed(2), colX.monto, y);
+    var periodoTxt = (p.periodoInicio && p.periodoFin) ? (p.periodoInicio + ' al ' + p.periodoFin) : '—';
+    doc.text(periodoTxt, colX.periodo, y);
+    doc.text(p.estatus || '—', colX.estatus, y);
+    doc.text(p.validadoPor || '—', colX.validador, y);
+    if (p.comprobanteUrl) {
+      doc.setTextColor(37, 99, 235);
+      doc.textWithLink('Ver comprobante', colX.comprobante, y, { url: p.comprobanteUrl });
+      doc.setTextColor(0, 0, 0);
+    } else {
+      doc.text('— sin comprobante —', colX.comprobante, y);
+    }
+    y += 7;
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Generado el ' + new Date().toLocaleString('es-MX'), 14, 200);
+
+  doc.save('Historial_Pagos_' + (alumno.id || 'alumno') + '.pdf');
+}
+
 function renderBajas(){
   const cont=document.getElementById('lista-bajas');
   const lista=datosPanel?.alumnos_baja||[];
@@ -1105,7 +1178,7 @@ function renderBajas(){
       <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
         <div class="alerta-icon">🔒</div>
         <div class="alerta-info" style="flex:1;min-width:0;">
-          <div class="alerta-nombre">${a.nombre}</div>
+          <div class="alerta-nombre" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" onclick="abrirReportePagosAlumno('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Ver historial completo de pagos">${a.nombre}</div>
           <div class="alerta-meta">${a.id} · Grupo ${a.grupo}${a.fecha_baja ? ' · Baja: '+a.fecha_baja : ''}${diasTexto ? ' · '+diasTexto : ''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -2252,6 +2325,7 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
 </script>
 
 <!-- ═══ Notificaciones push (Firebase Cloud Messaging) ═══ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
 <script>
