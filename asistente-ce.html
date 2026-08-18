@@ -247,6 +247,20 @@
     .btn-confirm-cancel{padding:11px 18px;background:#fff;color:var(--gris-600);border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .18s}
     .btn-confirm-cancel:hover{background:var(--gris-50)}
 
+    /* MODAL REPORTE DE PAGOS (ver en pantalla + descargar PDF) */
+    .modal-reporte-box{background:#fff;border-radius:var(--r-xl) var(--r-xl) 0 0;padding:22px 20px;width:100%;max-width:760px;max-height:88vh;overflow-y:auto;animation:slideUp .25s ease}
+    @media(min-width:600px){.modal-reporte-box{border-radius:var(--r-xl);animation:fadeIn .2s ease}}
+    .reporte-pagos-tabla{width:100%;border-collapse:collapse;margin-top:4px;font-size:12px}
+    .reporte-pagos-tabla thead tr{background:var(--azul)}
+    .reporte-pagos-tabla thead th{padding:9px 8px;font-size:10px;font-weight:700;color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+    .reporte-pagos-tabla tbody td{padding:8px 8px;border-bottom:1px solid var(--gris-100);color:var(--gris-800);vertical-align:top}
+    .reporte-pagos-tabla tbody tr:nth-child(even){background:var(--gris-50)}
+    .reporte-pagos-tabla a{color:var(--azul);font-weight:700;text-decoration:none}
+    .reporte-pagos-tabla a:hover{text-decoration:underline}
+    .reporte-pagos-vacio{font-size:12px;color:var(--gris-400);padding:14px 0;text-align:center}
+    .reporte-pagos-acciones{display:flex;gap:8px;margin-top:18px}
+    .reporte-pagos-acciones .btn-confirm-ok{background:var(--azul)}
+
     /* MODAL COMPROBANTE */
     .modal-comp-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
     .modal-comp-overlay.open{display:flex}
@@ -436,6 +450,27 @@
     <div class="modal-divider"></div>
     <div class="modal-subtitle">Alumnos del grupo</div>
     <div id="modal-grupo-alumnos"></div>
+  </div>
+</div>
+
+<!-- MODAL REPORTE DE PAGOS DE ALUMNO (ver en pantalla + descargar PDF) -->
+<div class="modal-overlay" id="modal-reporte-pagos" onclick="cerrarModalReportePagosClick(event)">
+  <div class="modal-reporte-box" id="modal-reporte-pagos-box">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-grupo-nombre" id="reporte-pagos-titulo">Historial de pagos</div>
+        <div class="modal-grupo-sub" id="reporte-pagos-sub">—</div>
+      </div>
+      <button class="modal-cerrar" onclick="cerrarModalReportePagos()">✕</button>
+    </div>
+    <div id="reporte-pagos-contenido">
+      <div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div>
+    </div>
+    <div class="reporte-pagos-acciones">
+      <button class="btn-confirm-ok" onclick="descargarReportePagosPDF()">📄 Descargar PDF</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalReportePagos()">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -1089,14 +1124,87 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
   }).join('');
 }
 
+let reportePagosAlumnoActual=null, reportePagosDataActual=[];
+
 function abrirReportePagosAlumno(idAlumno, nombreAlumno) {
+  // Abre el modal de inmediato mostrando el estado de carga
+  document.getElementById('reporte-pagos-titulo').textContent = nombreAlumno || 'Historial de pagos';
+  document.getElementById('reporte-pagos-sub').textContent = idAlumno || '—';
+  document.getElementById('reporte-pagos-contenido').innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div>';
+  document.getElementById('modal-reporte-pagos').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
   fetch(APPS_SCRIPT + '?action=getHistorialPagosAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (!data.success) { alert('No se pudo generar el reporte: ' + (data.error || 'error desconocido')); return; }
-      generarPDFHistorialPagos(data.alumno, data.pagos);
+      if (!data.success) {
+        document.getElementById('reporte-pagos-contenido').innerHTML = '<div class="reporte-pagos-vacio">No se pudo generar el reporte: ' + (data.error || 'error desconocido') + '</div>';
+        return;
+      }
+      mostrarReportePagosAlumno(data.alumno, data.pagos);
     })
-    .catch(function () { alert('Error de conexión al generar el reporte.'); });
+    .catch(function () {
+      document.getElementById('reporte-pagos-contenido').innerHTML = '<div class="reporte-pagos-vacio">Error de conexión al generar el reporte.</div>';
+    });
+}
+
+function mostrarReportePagosAlumno(alumno, pagos) {
+  reportePagosAlumnoActual = alumno;
+  reportePagosDataActual = pagos || [];
+
+  document.getElementById('reporte-pagos-titulo').textContent = alumno.nombre || 'Historial de pagos';
+  document.getElementById('reporte-pagos-sub').textContent =
+    (alumno.id || '') + (alumno.idGrupo ? ' · Grupo ' + alumno.idGrupo : '') + (alumno.fechaInscripcion ? ' · Inscrito desde ' + alumno.fechaInscripcion : '');
+
+  const cont = document.getElementById('reporte-pagos-contenido');
+
+  if (!reportePagosDataActual.length) {
+    cont.innerHTML = '<div class="reporte-pagos-vacio">Este alumno no tiene ningún pago registrado en el sistema.</div>';
+    return;
+  }
+
+  const filas = reportePagosDataActual.map(function (p) {
+    const periodoTxt = (p.periodoInicio && p.periodoFin) ? (p.periodoInicio + ' al ' + p.periodoFin) : '—';
+    const comprobanteTxt = p.comprobanteUrl
+      ? '<a href="' + p.comprobanteUrl + '" target="_blank" rel="noopener">Ver comprobante</a>'
+      : '<span style="color:var(--gris-400)">— sin comprobante —</span>';
+    return `<tr>
+      <td>${p.fecha || '—'}</td>
+      <td>$${(p.monto || 0).toFixed(2)}</td>
+      <td>${periodoTxt}</td>
+      <td>${p.estatus || '—'}</td>
+      <td>${p.validadoPor || '—'}</td>
+      <td>${comprobanteTxt}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <table class="reporte-pagos-tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Monto</th>
+          <th>Periodo que cubre</th>
+          <th>Estatus</th>
+          <th>Validó</th>
+          <th>Comprobante</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>`;
+}
+
+function cerrarModalReportePagos() {
+  document.getElementById('modal-reporte-pagos').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function cerrarModalReportePagosClick(e) {
+  if (e.target === document.getElementById('modal-reporte-pagos')) cerrarModalReportePagos();
+}
+
+function descargarReportePagosPDF() {
+  if (!reportePagosAlumnoActual) { alert('Primero espera a que cargue el historial de pagos.'); return; }
+  generarPDFHistorialPagos(reportePagosAlumnoActual, reportePagosDataActual);
 }
 
 function generarPDFHistorialPagos(alumno, pagos) {
