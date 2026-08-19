@@ -452,9 +452,16 @@
         </div>
         <div class="tabla-wrap">
           <table>
-            <thead><tr><th>#</th><th>Maestro</th><th>Alumnos activos</th><th>Bajas en el periodo</th><th>% de bajas</th><th></th></tr></thead>
-            <tbody id="rankingBajasBody"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+            <thead><tr><th>#</th><th>Maestro</th><th>Grupos</th><th>Alumnos activos</th><th>Bajas en el periodo</th><th>% de bajas</th><th></th></tr></thead>
+            <tbody id="rankingBajasBody"><tr><td colspan="7" class="empty-state">Cargando...</td></tr></tbody>
           </table>
+        </div>
+        <div style="margin-top:1.5rem;padding-top:1.2rem;border-top:1px solid var(--border);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">% de bajas por maestro (visual)</div>
+          <div id="graficoRankingBajas"></div>
+        </div>
+        <div style="font-size:11px;color:var(--subtle);margin-top:14px;">
+          El maestro se atribuye siempre según el ID_MAESTRO actual registrado en GRUPOS (no en INSCRIPCIONES). Si un grupo cambió de maestro después de que un alumno se dio de baja, la baja quedará contada para el maestro que tiene el grupo actualmente.
         </div>
       </div>
     </div>
@@ -714,12 +721,13 @@
 
 <!-- MODAL: Detalle de alumnos dados de baja por maestro -->
 <div id="modalDetalleBajas" class="modal-overlay" onclick="if(event.target===this)cerrarModalDetalleBajas()">
-  <div class="modal-box" style="max-width:560px;">
+  <div class="modal-box" style="max-width:680px;">
     <div id="detalleBajasTitulo" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px;"></div>
     <div id="detalleBajasSub" style="font-size:12px;color:var(--muted);margin-bottom:16px;"></div>
-    <div class="tabla-wrap" style="max-height:420px;overflow-y:auto;">
+    <div id="graficoDetalleBajas" style="margin-bottom:16px;padding:10px;background:var(--bg);border-radius:10px;"></div>
+    <div class="tabla-wrap" style="max-height:360px;overflow-y:auto;">
       <table>
-        <thead><tr><th>Alumno</th><th>Grupo</th><th>Fecha de baja</th></tr></thead>
+        <thead><tr><th>ID Alumno</th><th>Alumno</th><th>Grupo</th><th>Semana del curso al darse de baja</th><th>Fecha de baja</th></tr></thead>
         <tbody id="detalleBajasBody"></tbody>
       </table>
     </div>
@@ -1013,11 +1021,13 @@ function renderRankingBajas(){
   });
 
   // Alumnos activos por maestro, sumando "inscritos" de cada grupo (ya
-  // excluye DEMO, ver getDatosCA). Solo grupos con maestro real.
+  // excluye DEMO, ver getDatosCA).
   var activosPorMaestro={};
+  var gruposPorMaestro={};
   gruposData.forEach(function(g){
     if (!g.idMaestro) return;
     activosPorMaestro[g.idMaestro] = (activosPorMaestro[g.idMaestro]||0) + (Number(g.inscritos)||0);
+    gruposPorMaestro[g.idMaestro] = (gruposPorMaestro[g.idMaestro]||0) + 1;
   });
 
   // Bajas por maestro en el periodo filtrado
@@ -1042,7 +1052,8 @@ function renderRankingBajas(){
     var nombre = grupoBajas ? grupoBajas.nombreMaestro : ((maestrosData.find(function(m){return m.id===idM;})||{}).nombre || idM);
     var denom = activos + numBajas;
     var pct = denom>0 ? (numBajas/denom*100) : 0;
-    return { idMaestro:idM, nombre:nombre, activos:activos, numBajas:numBajas, pct:pct, alumnos: grupoBajas ? grupoBajas.alumnos : [] };
+    var alumnos = grupoBajas ? grupoBajas.alumnos : [];
+    return { idMaestro:idM, nombre:nombre, activos:activos, numGrupos:gruposPorMaestro[idM]||0, numBajas:numBajas, pct:pct, alumnos:alumnos };
   }).filter(function(f){ return f.idMaestro && f.idMaestro!=='—' && f.idMaestro!=='S-01'; });
 
   if (orden==='pct') filas.sort(function(a,b){ return b.pct-a.pct || b.numBajas-a.numBajas; });
@@ -1058,7 +1069,7 @@ function renderRankingBajas(){
   document.getElementById('bajaStatPromedio').textContent = promedio.toFixed(1);
 
   var body=document.getElementById('rankingBajasBody');
-  if (!filas.length) { body.innerHTML='<tr><td colspan="6" class="empty-state">Sin datos para este periodo.</td></tr>'; return; }
+  if (!filas.length) { body.innerHTML='<tr><td colspan="7" class="empty-state">Sin datos para este periodo.</td></tr>'; return; }
 
   body.innerHTML = filas.map(function(f, i){
     var colorPct = f.pct>=15 ? '#f87171' : (f.pct>=8 ? '#facc15' : '#4ade80');
@@ -1066,6 +1077,7 @@ function renderRankingBajas(){
     return '<tr>'+
       '<td>'+(i+1)+'</td>'+
       '<td style="color:var(--text);font-weight:600;">'+f.nombre+' <span style="color:var(--muted);font-weight:400;">('+f.idMaestro+')</span></td>'+
+      '<td>'+f.numGrupos+'</td>'+
       '<td>'+f.activos+'</td>'+
       '<td>'+f.numBajas+'</td>'+
       '<td style="color:'+colorPct+';font-weight:700;">'+f.pct.toFixed(1)+'%</td>'+
@@ -1075,27 +1087,101 @@ function renderRankingBajas(){
 
   // Guardar referencia para el modal de detalle
   window._rankingBajasFilas = filas;
+
+  // Grafico: barras horizontales de % de bajas por maestro (top 12, solo
+  // quienes tienen al menos 1 baja en el periodo, en el orden ya aplicado)
+  renderGraficoRankingBajas(filas.filter(function(f){return f.numBajas>0;}).slice(0,12));
+}
+
+// Grafico de barras horizontales en SVG puro (sin librerias externas) --
+// % de bajas por maestro, para ver de un vistazo quien esta fuera de rango.
+function renderGraficoRankingBajas(filas){
+  var cont=document.getElementById('graficoRankingBajas');
+  if (!cont) return;
+  if (!filas.length){ cont.innerHTML='<div class="empty-state" style="padding:1.5rem;">Sin bajas para graficar en este periodo.</div>'; return; }
+  var maxPct = Math.max.apply(null, filas.map(function(f){return f.pct;}).concat([1]));
+  var filaAltura=30, alto=filas.length*filaAltura+10;
+  var barrasHTML = filas.map(function(f,i){
+    var y=i*filaAltura+6;
+    var anchoDisponible=560;
+    var anchoBarra = Math.max(2, (f.pct/maxPct)*anchoDisponible);
+    var color = f.pct>=15 ? '#f87171' : (f.pct>=8 ? '#facc15' : '#4ade80');
+    var nombreCorto = f.nombre.length>22 ? f.nombre.substring(0,20)+'…' : f.nombre;
+    return '<g>'+
+      '<text x="0" y="'+(y+13)+'" font-size="11" fill="#94a3b8">'+nombreCorto+'</text>'+
+      '<rect x="180" y="'+y+'" width="'+anchoBarra+'" height="18" rx="4" fill="'+color+'" style="cursor:pointer;" onclick="abrirDetalleBajas(\''+f.idMaestro+'\')"><title>'+f.nombre+': '+f.pct.toFixed(1)+'% ('+f.numBajas+' bajas)</title></rect>'+
+      '<text x="'+(180+anchoBarra+8)+'" y="'+(y+13)+'" font-size="11" fill="#e2e8f0" font-weight="700">'+f.pct.toFixed(1)+'%</text>'+
+    '</g>';
+  }).join('');
+  cont.innerHTML = '<svg viewBox="0 0 780 '+alto+'" style="width:100%;height:'+alto+'px;">'+barrasHTML+'</svg>';
 }
 
 function abrirDetalleBajas(idMaestro){
   var fila = (window._rankingBajasFilas||[]).find(function(f){ return f.idMaestro===idMaestro; });
   if (!fila) return;
   document.getElementById('detalleBajasTitulo').textContent = 'Bajas de ' + fila.nombre;
-  document.getElementById('detalleBajasSub').textContent = fila.numBajas + ' alumno' + (fila.numBajas!==1?'s':'') + ' dado' + (fila.numBajas!==1?'s':'') + ' de baja en el periodo seleccionado.';
-  var body = document.getElementById('detalleBajasBody');
+  document.getElementById('detalleBajasSub').textContent = fila.numBajas + ' alumno' + (fila.numBajas!==1?'s':'') + ' dado' + (fila.numBajas!==1?'s':'') + ' de baja en el periodo seleccionado · ' + fila.numGrupos + ' grupo' + (fila.numGrupos!==1?'s':'') + ' actualmente asignado' + (fila.numGrupos!==1?'s':'') + '.';
+
+  var mapaGrupos={};
+  gruposData.forEach(function(g){ mapaGrupos[g.id]=g; });
+
   var alumnosOrdenados = fila.alumnos.slice().sort(function(a,b){
     var da = a.fechaBaja ? new Date(a.fechaBaja) : new Date(0);
     var db = b.fechaBaja ? new Date(b.fechaBaja) : new Date(0);
     return db-da;
   });
+
+  // Distribucion de "semana del curso" en que se dieron de baja, para el
+  // mini-grafico de este maestro (usa fechaInicio del grupo vs fechaBaja
+  // del alumno -- no la fecha de hoy).
+  var semanasCount={};
+
+  var body = document.getElementById('detalleBajasBody');
   body.innerHTML = alumnosOrdenados.map(function(a){
     var fechaTxt = a.fechaBaja ? new Date(a.fechaBaja).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    var g = mapaGrupos[a.idGrupo];
+    var semanaTxt = '—';
+    if (g && g.fechaInicio && g.fechaInicio!=='Sin fecha' && a.fechaBaja) {
+      var partes = g.fechaInicio.split('/'); // dd/MM/yyyy
+      var inicio = new Date(partes[2], partes[1]-1, partes[0]);
+      var baja = new Date(a.fechaBaja);
+      var diffDias = Math.floor((baja-inicio)/(1000*60*60*24));
+      if (!isNaN(diffDias)) {
+        var semana = Math.max(1, Math.min(16, Math.ceil((diffDias+1)/7)));
+        var bloque = semana<=8 ? 1 : 2;
+        semanaTxt = 'Semana '+semana+' · Bloque '+bloque;
+        semanasCount[semana]=(semanasCount[semana]||0)+1;
+      }
+    }
     return '<tr>'+
+      '<td style="color:var(--muted);font-size:11px;">'+(a.id||'—')+'</td>'+
       '<td style="color:var(--text);">'+(a.nombre||a.id)+'</td>'+
       '<td>'+(a.nombreGrupo||a.idGrupo||'—')+'</td>'+
+      '<td>'+semanaTxt+'</td>'+
       '<td>'+fechaTxt+'</td>'+
     '</tr>';
   }).join('');
+
+  // Mini grafico: bajas por semana del curso (1-16) para este maestro
+  var chartCont = document.getElementById('graficoDetalleBajas');
+  var semanasConDatos = Object.keys(semanasCount).map(Number);
+  if (!semanasConDatos.length) {
+    chartCont.innerHTML = '<div style="font-size:11px;color:var(--subtle);">Sin suficiente información de fechas para graficar por semana del curso.</div>';
+  } else {
+    var maxCount = Math.max.apply(null, semanasConDatos.map(function(s){return semanasCount[s];}));
+    var barritas='';
+    for (var s=1; s<=16; s++){
+      var c = semanasCount[s]||0;
+      var alturaBarra = c>0 ? Math.max(4, (c/maxCount)*60) : 2;
+      barritas += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">'+
+        '<div style="font-size:9px;color:#94a3b8;">'+(c>0?c:'')+'</div>'+
+        '<div style="width:70%;height:'+alturaBarra+'px;background:'+(c>0?'#f97316':'rgba(255,255,255,0.06)')+';border-radius:3px 3px 0 0;" title="Semana '+s+': '+c+' baja(s)"></div>'+
+        '<div style="font-size:8px;color:var(--subtle);">'+s+'</div>'+
+      '</div>';
+    }
+    chartCont.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Bajas por semana del curso (1–16):</div><div style="display:flex;align-items:flex-end;gap:2px;height:80px;">'+barritas+'</div>';
+  }
+
   document.getElementById('modalDetalleBajas').classList.add('visible');
 }
 function cerrarModalDetalleBajas(){ document.getElementById('modalDetalleBajas').classList.remove('visible'); }
