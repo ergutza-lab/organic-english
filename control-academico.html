@@ -256,6 +256,9 @@
       <button class="tab" onclick="switchTab('reporte')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reporte calificaciones
       </button>
+      <button class="tab" onclick="switchTab('bajas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Bajas por maestro
+      </button>
       <button class="tab" onclick="switchTab('material')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Material de clases
       </button>
@@ -411,6 +414,46 @@
               </tr>
             </thead>
             <tbody id="reporteBody"><tr><td colspan="12" class="empty-state">Selecciona un grupo</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: BAJAS POR MAESTRO -->
+    <div id="tab-bajas" class="tab-content">
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card orange"><div class="stat-num" id="bajaStatTotal">—</div><div class="stat-label">Bajas en el periodo</div></div>
+        <div class="stat-card" style="border-color:rgba(59,130,246,0.4);"><div class="stat-num" id="bajaStatMaestros" style="color:#60a5fa;">—</div><div class="stat-label">Maestros con al menos 1 baja</div></div>
+        <div class="stat-card" style="border-color:rgba(34,197,94,0.4);"><div class="stat-num" id="bajaStatPromedio" style="color:#4ade80;">—</div><div class="stat-label">Bajas promedio por maestro</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Ranking de bajas por maestro</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+          Compara el % de bajas de cada maestro (no solo el número absoluto) para tener una señal más justa. Esto es un punto de partida para investigar, no una conclusión: un % alto también puede deberse al horario, nivel o tipo de grupo — revisa el detalle de cada baja antes de evaluar al maestro.
+        </p>
+        <div class="asist-filtros">
+          <label>Periodo:</label>
+          <select id="bajaPeriodo" onchange="renderRankingBajas()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+            <option value="30">Últimos 30 días</option>
+            <option value="90" selected>Últimos 90 días</option>
+            <option value="180">Últimos 6 meses</option>
+            <option value="0">Todo el historial</option>
+          </select>
+          <label style="margin-left:8px;">Ordenar por:</label>
+          <select id="bajaOrden" onchange="renderRankingBajas()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+            <option value="pct">% de bajas (mayor a menor)</option>
+            <option value="num">Número de bajas (mayor a menor)</option>
+            <option value="nombre">Nombre del maestro</option>
+          </select>
+          <button class="btn-cargar" onclick="cargarRankingBajas(true)" style="margin-left:auto;">↻ Actualizar</button>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Maestro</th><th>Alumnos activos</th><th>Bajas en el periodo</th><th>% de bajas</th><th></th></tr></thead>
+            <tbody id="rankingBajasBody"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -669,6 +712,23 @@
   </div>
 </div>
 
+<!-- MODAL: Detalle de alumnos dados de baja por maestro -->
+<div id="modalDetalleBajas" class="modal-overlay" onclick="if(event.target===this)cerrarModalDetalleBajas()">
+  <div class="modal-box" style="max-width:560px;">
+    <div id="detalleBajasTitulo" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px;"></div>
+    <div id="detalleBajasSub" style="font-size:12px;color:var(--muted);margin-bottom:16px;"></div>
+    <div class="tabla-wrap" style="max-height:420px;overflow-y:auto;">
+      <table>
+        <thead><tr><th>Alumno</th><th>Grupo</th><th>Fecha de baja</th></tr></thead>
+        <tbody id="detalleBajasBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-modal-cancel" onclick="cerrarModalDetalleBajas()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- NAV LATERAL: Evaluaciones de Colocación -->
 <div id="evalColocacionOverlay" class="evalcoloc-overlay" onclick="if(event.target===this)cerrarEvalColocacionNav()"></div>
 <div id="evalColocacionNav" class="evalcoloc-nav">
@@ -724,6 +784,7 @@ function callASWithResponse(params, callback){
 function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
+var bajasData=null, bajasCargando=false;
 var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
 
 // ── TABULADOR ──
@@ -914,6 +975,133 @@ function renderMaestrosBurbujas(){
   }).join('');
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  RANKING DE BAJAS POR MAESTRO
+//  Usa action=getAlumnosBajaDirector (ya existe en el backend, sin
+//  necesidad de tocar el .gs) + gruposData (ya cargado por getDatosCA)
+//  para calcular alumnos activos por maestro como denominador del %.
+// ══════════════════════════════════════════════════════════════════
+function cargarRankingBajas(forzar){
+  if (bajasCargando) return;
+  if (bajasData && !forzar) { renderRankingBajas(); return; }
+  bajasCargando=true;
+  document.getElementById('rankingBajasBody').innerHTML='<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  fetch(APPS_SCRIPT+'?action=getAlumnosBajaDirector',{redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      bajasCargando=false;
+      if (!data.success) { document.getElementById('rankingBajasBody').innerHTML='<tr><td colspan="6" class="empty-state">No se pudo cargar la información.</td></tr>'; return; }
+      bajasData=data.alumnos||[];
+      renderRankingBajas();
+    })
+    .catch(function(){
+      bajasCargando=false;
+      document.getElementById('rankingBajasBody').innerHTML='<tr><td colspan="6" class="empty-state">Error de conexión.</td></tr>';
+    });
+}
+
+function renderRankingBajas(){
+  if (!bajasData) return;
+  var dias=parseInt(document.getElementById('bajaPeriodo').value,10);
+  var orden=document.getElementById('bajaOrden').value;
+  var limite = dias>0 ? new Date(Date.now()-dias*24*60*60*1000) : null;
+
+  var bajasFiltradas = bajasData.filter(function(a){
+    if (!limite) return true;
+    if (!a.fechaBaja) return false;
+    return new Date(a.fechaBaja) >= limite;
+  });
+
+  // Alumnos activos por maestro, sumando "inscritos" de cada grupo (ya
+  // excluye DEMO, ver getDatosCA). Solo grupos con maestro real.
+  var activosPorMaestro={};
+  gruposData.forEach(function(g){
+    if (!g.idMaestro) return;
+    activosPorMaestro[g.idMaestro] = (activosPorMaestro[g.idMaestro]||0) + (Number(g.inscritos)||0);
+  });
+
+  // Bajas por maestro en el periodo filtrado
+  var bajasPorMaestro={};
+  bajasFiltradas.forEach(function(a){
+    var idM = a.idMaestro || '—';
+    if (!bajasPorMaestro[idM]) bajasPorMaestro[idM]={ idMaestro:idM, nombreMaestro:a.nombreMaestro||'Sin maestro asignado', alumnos:[] };
+    bajasPorMaestro[idM].alumnos.push(a);
+  });
+
+  // Unir con TODOS los maestros que tienen alumnos activos, aunque tengan 0
+  // bajas en el periodo -- para que el ranking no solo muestre a quien ya
+  // tiene bajas, sino tambien confirme quien esta en 0%.
+  var idsTodos = {};
+  Object.keys(activosPorMaestro).forEach(function(id){ idsTodos[id]=true; });
+  Object.keys(bajasPorMaestro).forEach(function(id){ idsTodos[id]=true; });
+
+  var filas = Object.keys(idsTodos).map(function(idM){
+    var activos = activosPorMaestro[idM] || 0;
+    var grupoBajas = bajasPorMaestro[idM];
+    var numBajas = grupoBajas ? grupoBajas.alumnos.length : 0;
+    var nombre = grupoBajas ? grupoBajas.nombreMaestro : ((maestrosData.find(function(m){return m.id===idM;})||{}).nombre || idM);
+    var denom = activos + numBajas;
+    var pct = denom>0 ? (numBajas/denom*100) : 0;
+    return { idMaestro:idM, nombre:nombre, activos:activos, numBajas:numBajas, pct:pct, alumnos: grupoBajas ? grupoBajas.alumnos : [] };
+  }).filter(function(f){ return f.idMaestro && f.idMaestro!=='—' && f.idMaestro!=='S-01'; });
+
+  if (orden==='pct') filas.sort(function(a,b){ return b.pct-a.pct || b.numBajas-a.numBajas; });
+  else if (orden==='num') filas.sort(function(a,b){ return b.numBajas-a.numBajas || b.pct-a.pct; });
+  else filas.sort(function(a,b){ return String(a.nombre).localeCompare(String(b.nombre)); });
+
+  // Stats generales
+  var totalBajas = bajasFiltradas.length;
+  var maestrosConBaja = filas.filter(function(f){ return f.numBajas>0; }).length;
+  var promedio = maestrosConBaja>0 ? (totalBajas/maestrosConBaja) : 0;
+  document.getElementById('bajaStatTotal').textContent = totalBajas;
+  document.getElementById('bajaStatMaestros').textContent = maestrosConBaja;
+  document.getElementById('bajaStatPromedio').textContent = promedio.toFixed(1);
+
+  var body=document.getElementById('rankingBajasBody');
+  if (!filas.length) { body.innerHTML='<tr><td colspan="6" class="empty-state">Sin datos para este periodo.</td></tr>'; return; }
+
+  body.innerHTML = filas.map(function(f, i){
+    var colorPct = f.pct>=15 ? '#f87171' : (f.pct>=8 ? '#facc15' : '#4ade80');
+    var verBtn = f.numBajas>0 ? '<button class="btn-sm" onclick="abrirDetalleBajas(\''+f.idMaestro+'\')">Ver detalle</button>' : '<span style="color:var(--subtle);font-size:11px;">—</span>';
+    return '<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td style="color:var(--text);font-weight:600;">'+f.nombre+' <span style="color:var(--muted);font-weight:400;">('+f.idMaestro+')</span></td>'+
+      '<td>'+f.activos+'</td>'+
+      '<td>'+f.numBajas+'</td>'+
+      '<td style="color:'+colorPct+';font-weight:700;">'+f.pct.toFixed(1)+'%</td>'+
+      '<td>'+verBtn+'</td>'+
+    '</tr>';
+  }).join('');
+
+  // Guardar referencia para el modal de detalle
+  window._rankingBajasFilas = filas;
+}
+
+function abrirDetalleBajas(idMaestro){
+  var fila = (window._rankingBajasFilas||[]).find(function(f){ return f.idMaestro===idMaestro; });
+  if (!fila) return;
+  document.getElementById('detalleBajasTitulo').textContent = 'Bajas de ' + fila.nombre;
+  document.getElementById('detalleBajasSub').textContent = fila.numBajas + ' alumno' + (fila.numBajas!==1?'s':'') + ' dado' + (fila.numBajas!==1?'s':'') + ' de baja en el periodo seleccionado.';
+  var body = document.getElementById('detalleBajasBody');
+  var alumnosOrdenados = fila.alumnos.slice().sort(function(a,b){
+    var da = a.fechaBaja ? new Date(a.fechaBaja) : new Date(0);
+    var db = b.fechaBaja ? new Date(b.fechaBaja) : new Date(0);
+    return db-da;
+  });
+  body.innerHTML = alumnosOrdenados.map(function(a){
+    var fechaTxt = a.fechaBaja ? new Date(a.fechaBaja).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    return '<tr>'+
+      '<td style="color:var(--text);">'+(a.nombre||a.id)+'</td>'+
+      '<td>'+(a.nombreGrupo||a.idGrupo||'—')+'</td>'+
+      '<td>'+fechaTxt+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('modalDetalleBajas').classList.add('visible');
+}
+function cerrarModalDetalleBajas(){ document.getElementById('modalDetalleBajas').classList.remove('visible'); }
+
+
+
 // Abre maestro.html en una pestana nueva, con el id y clave del maestro en
 // la URL -- maestro.html ya sabe leer esos parametros y entrar
 // automaticamente sin pedir que se escriban a mano (ver autoLoginDesdeURL
@@ -1018,7 +1206,7 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         var mini=r.challenges&&r.challenges.some(function(c){return c.tipo==='Mini'&&c.aprobado;});
         var grand=r.challenges&&r.challenges.some(function(c){return(c.tipo==='Grand'||c.tipo==='Gran')&&c.aprobado;});
         html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">'+
-          '<td style="padding:8px;"><div style="font-size:12px;font-weight:600;color:var(--text);">'+r.alumno.nombre+'</div><div style="font-size:10px;color:var(--muted);">'+r.alumno.id+'</div><div style="font-size:10px;color:var(--muted);">'+(r.alumno.email||'—')+'</div></td>'+
+          '<td style="padding:8px;"><div style="font-size:12px;font-weight:600;color:var(--text);">'+r.alumno.nombre+'</div><div style="font-size:10px;color:var(--muted);">'+r.alumno.id+'</div></td>'+
           '<td style="padding:8px;text-align:center;"><span style="font-size:14px;font-weight:700;color:'+gc+';">'+pc+'%</span></td>'+
           '<td style="padding:8px;text-align:center;color:'+(r.asistencia>=80?'#4ade80':r.asistencia>=75?'#facc15':'#f87171')+';">'+r.asistencia+'%</td>'+
           '<td style="padding:8px;text-align:center;color:#ef4444;">'+gp(1)+'%</td>'+
@@ -1441,12 +1629,13 @@ function confirmarBaja(){
 
 // ── TABS ──
 function switchTab(nombre){
-  var nombres=['maestros','asistencia','semana','evaluacion','reporte','material','altaPersonal'];
+  var nombres=['maestros','asistencia','semana','evaluacion','reporte','bajas','material','altaPersonal'];
   document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',nombres[i]===nombre);});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
   document.getElementById('tab-'+nombre).classList.add('active');
   if (nombre==='material') cargarNivelesMaterial();
   if (nombre==='altaPersonal') actualizarPreviewAlta();
+  if (nombre==='bajas') cargarRankingBajas(false);
 }
 
 // ── ALTA DE PERSONAL (Maestro / Colocador) ──────────────────────────
@@ -2152,7 +2341,6 @@ function verDetalleEvalColocacion(idx) {
     '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Evaluado el ' + fecha + (ev.nombreColocador ? ' por ' + ev.nombreColocador : '') + '</div>' +
     (filas ? '<table class="tabla-resumen-niveles"><thead><tr><th>Nivel</th><th>🔵</th><th>🟢</th><th>🟡</th><th>🔴</th></tr></thead><tbody>' + filas + '</tbody></table>' : '') +
     '<div class="eval-detalle-row"><span class="edr-label">ID Alumno</span><span class="edr-value">' + (ev.idAlumno || '—') + '</span></div>' +
-    '<div class="eval-detalle-row"><span class="edr-label">Correo de acceso</span><span class="edr-value">' + (ev.correoLogin || '—') + '</span></div>' +
     '<div class="eval-detalle-row"><span class="edr-label">Edad</span><span class="edr-value">' + (ev.edad || '—') + '</span></div>' +
     '<div class="eval-detalle-row"><span class="edr-label">WhatsApp</span><span class="edr-value">' + (ev.whatsapp || '—') + '</span></div>' +
     '<div class="eval-detalle-row"><span class="edr-label">Correo</span><span class="edr-value">' + (ev.correo || '—') + '</span></div>' +
