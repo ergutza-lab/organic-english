@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Growie Kids — Mission 15 — Open Your Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1c2b5e;
+  --navy-dark:#111c40;
+  --orange:#f97316;
+  --orange-light:#fdba74;
+  --green:#22c55e;
+  --green-dark:#15803d;
+  --cream:#fef3e2;
+  --yellow:#fbbf24;
+  --white:#ffffff;
+  --shadow:0 18px 40px rgba(28,43,94,.35);
+}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--navy-dark);}
+h1,h2,h3,.font-baloo{font-family:'Baloo 2',cursive;}
+
+/* ══════════ ESTRUCTURA DE SLIDES ══════════ */
+.stage{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transform:translateX(40px);
+  transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  background-size:cover;background-position:center;
+}
+.slide.active{
+  opacity:1;visibility:visible;transform:translateX(0);
+  transition:opacity .45s ease, transform .45s ease;
+  z-index:2;
+}
+.slide.prevslide{transform:translateX(-40px)}
+
+/* ── Slide 1: Portada ── */
+.slide-cover{background:none;}
+.cover-blur-bg{
+  position:absolute;inset:0;z-index:0;
+  background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2012/PORTADA.jpg');
+  background-size:cover;background-position:center;
+  filter:blur(28px) brightness(.55) saturate(1.1);
+  transform:scale(1.15);
+}
+.cover-img{
+  position:absolute;inset:0;z-index:1;
+  width:100%;height:100%;object-fit:contain;
+}
+
+.slide-content{align-items:flex-start}
+.slide-content{background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2001/FONDO%20SLIDES%20KIDS.webp');}
+.mission-badge{
+  position:absolute;top:22px;left:22px;z-index:5;
+  background:var(--orange);color:#fff;font-weight:700;font-size:13px;
+  padding:8px 16px;border-radius:100px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:8px;
+}
+.mission-badge .leaf-spin{display:inline-block;animation:spin 3s linear infinite}
+
+.slide-grid{
+  display:grid;grid-template-columns:1fr 1.15fr;align-items:start;gap:36px;
+  max-width:1280px;width:92vw;padding:96px 40px 28px;
+}
+.col-text{display:flex;flex-direction:column;gap:9px;align-items:flex-start;max-height:calc(100vh - 150px);overflow-y:auto;padding-right:6px}
+.slide-emoji{
+  align-self:center;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(56px,8vw,100px);height:clamp(56px,8vw,100px);line-height:1;
+  opacity:0;transform:scale(.3) rotate(-15deg);
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.25));
+  cursor:default;
+}
+.slide.active .slide-emoji{animation:popBounce .6s cubic-bezier(.34,1.56,.64,1) 0s forwards}
+.slide-emoji.settled{
+  opacity:1;transform:scale(1) rotate(0deg);
+  transition:transform .2s ease, filter .2s ease;
+}
+.slide-emoji.settled:hover{
+  transform:scale(1.18) rotate(10deg);
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.35));
+}
+.slide-title{
+  font-size:clamp(24px,3.2vw,38px);font-weight:800;line-height:1.05;color:var(--navy);
+  text-shadow:0 0 14px rgba(255,255,255,.85), 0 2px 0 rgba(0,0,0,.12);
+  background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%);
+  padding:8px 20px;border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.25);
+  opacity:0;transform:translateY(-18px) scale(.9);
+  cursor:default;
+}
+.slide.active .slide-title{animation:popDrop .55s cubic-bezier(.34,1.56,.64,1) .05s forwards}
+.slide-title.settled{
+  opacity:1;transform:translateY(0) scale(1);
+  transition:transform .22s ease, box-shadow .22s ease, filter .22s ease;
+}
+.slide-title.settled:hover{
+  transform:scale(1.06) rotate(-1deg);
+  box-shadow:0 14px 30px rgba(0,0,0,.35), 0 0 0 4px rgba(255,255,255,.5);
+  filter:brightness(1.12) saturate(1.15);
+}
+
+.phrase-col{display:flex;flex-direction:column;gap:7px;width:100%}
+.phrase-card{
+  font-family:'Baloo 2',cursive;font-weight:700;
+  font-size:clamp(15px,1.9vw,21px);color:#fff;
+  padding:9px 18px;border-radius:16px;
+  box-shadow:0 10px 22px rgba(0,0,0,.22);
+  opacity:0;transform:translateX(-40px) scale(.85);
+  width:fit-content;max-width:100%;
+  cursor:pointer;
+}
+.slide.active .phrase-card{animation:popIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.phrase-card.settled{
+  opacity:1;transform:translateX(0) scale(1);
+  transition:transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.phrase-card.settled:hover{
+  transform:scale(1.1) rotate(-2deg);
+  box-shadow:0 16px 32px rgba(0,0,0,.32), 0 0 0 4px rgba(255,255,255,.6);
+  filter:brightness(1.15) saturate(1.2);
+}
+.phrase-card.c0{background:linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%)}
+.phrase-card.c1{background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%)}
+.phrase-card.c2{background:linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)}
+.phrase-card.c3{background:linear-gradient(135deg, var(--yellow) 0%, #d97706 100%);color:var(--navy);text-shadow:none}
+.phrase-card.c4{background:linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)}
+.phrase-card.c5{background:linear-gradient(135deg, #fb7185 0%, #e11d48 100%)}
+
+.col-image{display:flex;align-items:center;justify-content:center;align-self:center}
+.slide-img-wrap{
+  border-radius:28px;overflow:hidden;box-shadow:var(--shadow);
+  border:7px solid #fff;line-height:0;
+  width:min(78vh, 62vh, 100%);aspect-ratio:1/1;max-width:100%;
+  display:flex;align-items:center;justify-content:center;
+  background:#0f1a3d;
+  animation:floatY 4.5s ease-in-out infinite;
+}
+.slide-img-wrap img{display:block;width:100%;height:100%;object-fit:cover;}
+
+@keyframes popIn{
+  0%{opacity:0;transform:translateX(-40px) scale(.85)}
+  60%{opacity:1;transform:translateX(6px) scale(1.04)}
+  100%{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes popBounce{
+  0%{opacity:0;transform:scale(.3) rotate(-15deg)}
+  50%{opacity:1;transform:scale(1.15) rotate(6deg)}
+  75%{transform:scale(.95) rotate(-3deg)}
+  100%{opacity:1;transform:scale(1) rotate(0deg)}
+}
+@keyframes popDrop{
+  0%{opacity:0;transform:translateY(-18px) scale(.9)}
+  60%{opacity:1;transform:translateY(4px) scale(1.03)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes floatY{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-14px)}
+}
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+
+/* ══════════ NAVEGACIÓN ══════════ */
+.nav-controls{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:20;
+  display:flex;align-items:center;gap:14px;
+  background:rgba(17,28,64,.85);backdrop-filter:blur(6px);
+  padding:10px 18px;border-radius:100px;box-shadow:0 10px 26px rgba(0,0,0,.35);
+}
+.nav-btn{
+  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--orange);color:#fff;font-size:18px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s, opacity .15s;
+}
+.nav-btn:hover:not(:disabled){transform:scale(1.1)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.dots{display:flex;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:all .2s;border:none;padding:0}
+.dot.active{background:var(--orange);width:22px;border-radius:6px}
+.dot:hover{background:rgba(255,255,255,.6)}
+.slide-counter{color:#fff;font-size:12px;font-weight:600;min-width:38px;text-align:center}
+
+/* ══════════ PANEL DE NOTAS DEL PROFESOR ══════════ */
+.notes-toggle{
+  position:fixed;top:22px;right:22px;z-index:25;
+  background:var(--navy);color:#fff;border:none;border-radius:100px;
+  padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;
+  font-family:'DM Sans',sans-serif;transition:transform .15s;
+}
+.notes-toggle:hover{transform:scale(1.04)}
+.notes-panel{
+  position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);
+  background:#fff;z-index:30;box-shadow:-16px 0 40px rgba(0,0,0,.35);
+  transform:translateX(100%);transition:transform .3s ease;
+  overflow-y:auto;padding:24px 22px 40px;
+}
+.notes-panel.open{transform:translateX(0)}
+.notes-close{
+  position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;
+  width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--navy);
+}
+.notes-header{
+  font-weight:800;font-size:20px;color:var(--navy);margin:6px 0 2px;padding-right:40px;
+}
+.notes-sub{color:var(--orange);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:18px}
+.notes-block{margin-bottom:16px}
+.notes-label{
+  font-size:11px;font-weight:800;color:#fff;background:var(--navy);
+  display:inline-block;padding:3px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:6px;
+}
+.notes-text{font-size:14px;color:#334155;line-height:1.55;white-space:pre-line}
+.notes-overlay{
+  position:fixed;inset:0;background:rgba(17,28,64,.4);z-index:29;
+  opacity:0;visibility:hidden;transition:opacity .3s;
+}
+.notes-overlay.open{opacity:1;visibility:visible}
+
+/* ══════════ RESPONSIVE ══════════ */
+@media(max-width:900px){
+  .slide-grid{grid-template-columns:1fr;padding:78px 18px 16px;gap:16px;width:94vw}
+  .col-image{order:2}
+  .col-text{order:1;align-items:center;text-align:center}
+  .slide-emoji{font-size:clamp(56px,16vw,90px);height:clamp(56px,16vw,90px)}
+  .slide-title{font-size:22px;padding:8px 20px;text-align:center}
+  .phrase-col{align-items:center}
+  .phrase-card{font-size:16px;padding:10px 18px;width:auto}
+  .slide-img-wrap{max-height:38vh;animation:none}
+  .slide-img-wrap img{max-height:38vh}
+  .mission-badge{font-size:11px;padding:6px 12px;top:14px;left:14px}
+  .notes-toggle{padding:8px 12px;font-size:11px;top:14px;right:14px}
+  .nav-controls{padding:7px 12px;gap:8px}
+  .nav-btn{width:32px;height:32px;font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+
+<button class="notes-toggle" id="notesToggle">🧑‍🏫 <span>Teacher Notes:</span></button>
+
+<div class="nav-controls">
+  <button class="nav-btn" id="prevBtn" aria-label="Anterior">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="nav-btn" id="nextBtn" aria-label="Siguiente">›</button>
+</div>
+<div class="slide-counter" id="counter" style="position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:20;"></div>
+
+<div class="notes-overlay" id="notesOverlay"></div>
+<aside class="notes-panel" id="notesPanel">
+  <button class="notes-close" id="notesClose">✕</button>
+  <div class="notes-header" id="notesTitle"></div>
+  <div class="notes-sub" id="notesStage"></div>
+  <div id="notesBody"></div>
+</aside>
+
+
+
+<script>
+const IMG_BASE = "https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2015/";
+const PORTADA = IMG_BASE + "PORTADA.jpg";
+const slideImg = n => IMG_BASE + "SLIDE%20" + n + ".jpg";
+
+const SLIDES = [
+{
+n:1, cover:true,
+notes:{
+STAGE:"Mission Start / Cover Image",
+TIMING:"5 minutes",
+"WHAT TO DO":"Welcome students using only the cover image. Briefly connect to Mission 14: the Explorer Bags are ready. Point to the glowing book and action symbols. Create curiosity by physically opening your hands like a book. Say Open your book once while modeling the action, but do not formally teach the complete instruction set yet. Invite students to copy the action.",
+SAY:"Welcome back, Explorers! · Look at the Explorer Treehouse! · Our Explorer Bags are ready! · But look! · A magic book! · It's glowing! · Look at the symbols! · What is Growie doing? · Open your book! · Like this! · Great! · Growie has a new training mission. · Can we help Growie? · Are you ready for Mission 15?",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Listen. · Copy one action. · Get ready to move. · Say: I'm ready!",
+"WHAT NOT TO DO":"Do not place visible HTML text over the cover. Do not list all instructions immediately. Do not explain imperatives. Do not translate each action. Do not introduce Mission 16 help phrases. Do not make students remain passive.",
+FOCUS:"Curiosity, physical response and transition into classroom-action language.",
+"PEDAGOGICAL INTENTION":"Students experience the new language physically before studying or producing it.",
+"KEY UPGRADE":"Mission 15 begins with movement rather than a vocabulary presentation.",
+"CRITICAL ERROR":"Do not make the opening a traditional classroom-command lecture.",
+"PRO TIP":"Perform the first action yourself before saying anything about grammar or meaning.",
+"FINAL CHECKLIST":"Students were welcomed. · Mission 14 was connected. · Students noticed the glowing training book. · Students copied at least one physical action. · Students understand a new action mission is beginning. · No grammar explanation was given."
+}
+},
+{
+n:2, title:"Move with Growie!", emoji:"⚡",
+phrases:["Open your book.","Close your book.","Read, please.","Listen, please.","Repeat, please.","Raise your hand."],
+notes:{
+STAGE:"Warm-up Game / TPR Activation",
+TIMING:"5 minutes",
+"WHAT TO DO":"Model each action physically. First round: say the instruction and perform it while students copy. Second round: say the instruction without modeling and students perform it. Keep the rhythm energetic but controlled. Use a real or imaginary book if necessary.",
+SAY:"Explorers, move with Growie! · Watch me first. · Open your book. · Close your book. · Read, please. · Listen, please. · Repeat, please. · Raise your hand. · Great! · Again! · Now I say it. · You do it!",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Listen. · Copy the action. · Second round: listen and move. · Everyone participates.",
+"WHAT NOT TO DO":"Do not explain grammar. Do not translate every phrase. Do not require a real book; imaginary actions are acceptable. Do not correct pronunciation during the first movement round. Do not add complex commands. Do not allow unsafe movement.",
+FOCUS:"Action, listening comprehension and first exposure to the six core instructions.",
+"PEDAGOGICAL INTENTION":"Students connect spoken classroom English directly with physical meaning.",
+"KEY UPGRADE":"Students understand instructions through their bodies before being asked to produce them orally.",
+"CRITICAL ERROR":"Do not make students only read the cards. They must perform the actions.",
+"PRO TIP":"Use two rounds: Round 1 = teacher models. Round 2 = teacher says only.",
+"FINAL CHECKLIST":"Students opened an imaginary or real book. · Students closed it. · Students demonstrated read. · Students demonstrated listen. · Students responded to repeat. · Students raised a hand. · Everyone participated physically."
+}
+},
+{
+n:3, title:"The Explorer Training Screen", emoji:"🧭",
+phrases:["Open your book.","Okay!","Close your book.","Okay!","Listen, please.","Read, please.","Raise your hand."],
+notes:{
+STAGE:"Story Time",
+TIMING:"6 minutes",
+"WHAT TO DO":"Tell the story using actions. Students listen first and watch Growie's training sequence. Perform each action while narrating. Do not ask students to repeat every sentence during the first telling. After the story, ask simple comprehension/action questions. Then repeat the sequence and let students copy Growie.",
+SAY:"Look! The Explorer Training Screen is on! · The screen says: Open your book. · Growie opens the book. · Growie says: Okay! · Green light! · Next: Close your book. · Growie closes it. · Listen, please. · Growie listens. · Read, please. · Growie reads. · Raise your hand. · Growie raises his hand. · Great! The training lights are turning green! · Listen again.",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Listen first. · Watch Growie. · After the story, copy Growie's actions.",
+"WHAT NOT TO DO":"Do not translate the whole story line by line. Do not explain command structure. Do not require oral repetition during the first telling. Do not introduce Can you repeat, please? Do not make the story text-heavy.",
+FOCUS:"Understanding classroom instructions in a meaningful action sequence.",
+"PEDAGOGICAL INTENTION":"Students encounter the target language as communication that causes an immediate physical response.",
+"KEY UPGRADE":"The instructions become part of an Explorer Training System instead of an isolated vocabulary exercise.",
+"CRITICAL ERROR":"Do not make Story Time a reading activity.",
+"PRO TIP":"Use a sound effect such as Ding! after every correctly completed action to reinforce meaning.",
+"FINAL CHECKLIST":"Students listened before speaking. · Students understood that instructions cause actions. · Students identified open and close. · Students recognized listen, read and raise your hand. · Students copied Growie's sequence."
+}
+},
+{
+n:4, title:"Let's Discover!", emoji:"🔍",
+phrases:["OPEN → Open your book.","CLOSE → Close your book.","READ → Read, please.","LISTEN → Listen, please.","REPEAT → Repeat, please.","RAISE → Raise your hand."],
+notes:{
+STAGE:"Guided Discovery",
+TIMING:"6 minutes",
+"WHAT TO DO":"Show the six action visuals. Do not immediately read every answer. Demonstrate or show an action and ask students which instruction matches. Students first choose or point, then say the complete instruction with you. Keep the focus on meaning, not grammatical structure.",
+SAY:"Look carefully. · Growie's book is closed. · What action? · Open! · Open your book. · Now the book is open. · What action? · Close! · Close your book. · Look at Growie. · He's reading. · Read, please. · Look at the ear. · Listen, please. · Repeat! · Repeat, please. · Hand up! · Raise your hand. · Great discovering, Explorers!",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Think. · Point to the action. · Choose the instruction. · Say the complete phrase.",
+"WHAT NOT TO DO":"Do not explain imperative grammar. Do not give all answers immediately. Do not add too many new commands. Do not introduce help requests. Do not require spelling or writing of the verbs.",
+FOCUS:"Action-instruction matching and complete chunk recognition.",
+"PEDAGOGICAL INTENTION":"Students actively infer instruction meaning from visual action rather than receiving translation.",
+"KEY UPGRADE":"Students move from copying actions to consciously identifying the language that produces each action.",
+"CRITICAL ERROR":"Do not let the slide become a verb-definition chart.",
+"PRO TIP":"Perform one action silently. Students must choose the correct complete instruction.",
+"FINAL CHECKLIST":"Students matched open with Open your book. · Students matched close with Close your book. · Students matched read with Read, please. · Students matched listen with Listen, please. · Students matched repeat with Repeat, please. · Students matched raised hand with Raise your hand. · No grammar lecture was given."
+}
+},
+{
+n:5, title:"Action Power!", emoji:"✨",
+phrases:["Open your book.","Close your book.","Read, please.","Listen, please.","Repeat, please.","Raise your hand.","Okay!"],
+notes:{
+STAGE:"Visual Focus",
+TIMING:"6 minutes",
+"WHAT TO DO":"Use quick instruction rounds. First, show an action card and students say the instruction. Then reverse the process: say an instruction and students select or perform the action. Finally, let the class give one instruction to you and perform it dramatically.",
+SAY:"Action Power! · Look at the card. · What instruction? · Open your book! · Great! · New card. · Close your book! · Now no picture. · Listen: Raise your hand. · Do it! · Read, please. · Do it! · Great! · Now YOU are the teacher. · Give me an instruction!",
+"INSTRUCTIONS FOR STUDENTS":"Look. · Say the instruction. · Listen. · Do the action. · Then give the teacher one instruction.",
+"WHAT NOT TO DO":"Do not explain grammar formulas. Do not keep the teacher in the leader role for the entire slide. Do not require perfect pronunciation. Do not introduce Mission 16 help phrases. Do not make students memorize the full list before participating.",
+FOCUS:"Fast comprehension plus transition from following to giving instructions.",
+"PEDAGOGICAL INTENTION":"Students gain control of the language by alternating receptive and productive roles.",
+"KEY UPGRADE":"Students stop being only instruction followers and begin becoming instruction leaders.",
+"CRITICAL ERROR":"Do not practice comprehension only. Production must begin here.",
+"PRO TIP":"Deliberately perform one action incorrectly after a student's instruction. Let students laugh and correct you by repeating the command.",
+"FINAL CHECKLIST":"Students recognized instructions from images. · Students performed instructions from audio. · Students orally produced several instructions. · Students gave at least one instruction to the teacher or class. · Visual support remained available."
+}
+},
+{
+n:6, title:"Growie Says!", emoji:"🤝",
+phrases:["Growie says:","Open your book!","Close your book!","Listen, please!","Read, please!","Raise your hand!","Everyone participates!"],
+notes:{
+STAGE:"Group Practice / TPR Game",
+TIMING:"6 minutes",
+"WHAT TO DO":"Play a simplified Growie Says game. Initially, every instruction should be performed; do not add a Simon Says elimination rule that could distract or exclude students. Teacher or Growie gives instructions and the entire class performs them. After several rounds, assign individual students to be Growie and give one instruction each.",
+SAY:"Now we play Growie Says! · When Growie gives an instruction, everybody moves. · No one is out. · Ready? · Open your book! · Close your book! · Listen, please! · Raise your hand! · Read, please! · Great! · Now YOU are Growie. · Give us one instruction. · Everyone participates!",
+"INSTRUCTIONS FOR STUDENTS":"Listen. · Do the action. · When it is your turn, give one instruction. · Everyone moves. · Nobody is eliminated.",
+"WHAT NOT TO DO":"Do not eliminate students from the game. Do not ask only confident children to lead. Do not make the pace so fast that slower processors cannot participate. Do not remove visual support too early. Do not correct every pronunciation error. Do not introduce help phrases.",
+FOCUS:"Whole-class comprehension and controlled oral leadership.",
+"PEDAGOGICAL INTENTION":"Students build automatic understanding and confidence through repeated, low-risk action-response cycles.",
+"KEY UPGRADE":"The learner becomes the instruction giver, not only the person following the teacher.",
+"CRITICAL ERROR":"Do not turn Growie Says into a competitive elimination activity.",
+"PRO TIP":"Begin slowly and increase speed only when most students respond comfortably.",
+"FINAL CHECKLIST":"Students followed multiple instructions. · Every student moved. · Students practiced action comprehension. · Different students gave instructions. · No student was eliminated. · The class is ready for independent interaction."
+}
+},
+{
+n:7, title:"Your Turn", emoji:"🎤",
+phrases:["Be the Explorer Leader!","Give 3 instructions.","Your partner listens.","Your partner does the actions.","Then change roles!","Use the slide."],
+notes:{
+STAGE:"Free Production",
+TIMING:"8 minutes",
+"WHAT TO DO":"Students work in pairs or assigned turns. Student A becomes the Explorer Leader and chooses three instructions from the slide. Student B listens and performs each action. Then they change roles. Students may use an imaginary book and imaginary writing if physical materials are unavailable. Keep all instruction cards visible.",
+SAY:"Now it's your turn! · You are the Explorer Leader. · Choose three instructions. · Your partner listens. · Your partner does the actions. · Then change roles. · Use the slide. · Reading is okay. · Simple is okay.",
+"INSTRUCTIONS FOR STUDENTS":"Choose three instructions. · Say them one at a time. · Partner: listen and do. · Then change roles. · Help your partner.",
+"WHAT NOT TO DO":"Do not demand memorization. Do not remove the support slide. Do not require students to have a book or notebook. Do not use unsafe physical commands. Do not interrupt constantly for pronunciation correction. Do not introduce Can you repeat, please? as new target language. Do not allow only one partner to lead.",
+FOCUS:"Independent production and comprehension of classroom instructions.",
+"PEDAGOGICAL INTENTION":"Students use classroom English for a real communicative purpose: making another person perform an understood action.",
+"KEY UPGRADE":"Students take ownership of classroom language by becoming the Explorer Leader.",
+"CRITICAL ERROR":"Do not make Free Production a memory test.",
+"PRO TIP":"Give students permission to point to the phrase while reading it. Communication is more important than memorization.",
+"FINAL CHECKLIST":"Students became Explorer Leaders. · Students gave at least three instructions. · Partners performed the actions. · Students listened carefully. · Roles changed. · Visual support remained available. · No physical materials were required."
+}
+},
+{
+n:8, title:"Mission Complete!", emoji:"🏆",
+phrases:["Explorer Training Complete!","Open your book.","Listen, please.","Raise your hand.","Great job, Explorers!","Magic Leaf #15 recovered!"],
+notes:{
+STAGE:"Feedback / Mission Complete",
+TIMING:"5 minutes",
+"WHAT TO DO":"Give positive feedback first. Mention successful instructions and responses heard during Free Production without identifying individual errors. Correct only one or two communication patterns if necessary. Complete the narrative: the Explorer Training System activates and Magic Leaf #15 appears.",
+SAY:"Great job, Explorers! · You completed the Explorer Training! · I heard: Open your book. · I heard: Close your book. · I heard: Listen, please. · I heard: Raise your hand. · And I saw great actions! · Look! The Explorer Classroom is glowing! · Magic Leaf number fifteen is glowing! · Magic Leaf #15 recovered! · Mission complete!",
+"INSTRUCTIONS FOR STUDENTS":"Listen. · Repeat one great instruction. · Celebrate. · Say: Mission complete!",
+"WHAT NOT TO DO":"Do not focus on individual mistakes. Do not introduce new instructions. Do not explain imperatives. Do not teach Mission 16 help phrases. Do not compare student speed. Do not turn feedback into a test.",
+FOCUS:"Positive feedback and successful classroom instruction use.",
+"PEDAGOGICAL INTENTION":"Students recognize that they can now understand and produce useful classroom English.",
+"KEY UPGRADE":"Magic Leaf #15 rewards successful action-based communication rather than memorization.",
+"CRITICAL ERROR":"Do not use Mission Complete to add more commands.",
+"PRO TIP":"If a student produced Open book, recast: Great! Open your book. Have the class repeat once and continue celebrating.",
+"FINAL CHECKLIST":"Students received positive feedback. · Open your book was reinforced. · Other core instructions were reinforced. · Explorer Training was completed. · Magic Leaf #15 was recovered. · Mission 16 content was not formally taught."
+}
+},
+{
+n:9, title:"Magic Leaf", emoji:"🍃",
+phrases:["How do you feel?","I can follow instructions!","I can give an instruction!","Open your book.","I need more practice.","Can you help me?"],
+notes:{
+STAGE:"Reflection",
+TIMING:"4 minutes",
+"WHAT TO DO":"Ask students to reflect on two different skills: Can I follow an instruction? Can I give an instruction? Students may answer using fingers, reactions, chat or voice. Normalize needing practice. Connect the reflection to Magic Leaf #15.",
+SAY:"Growie recovered Magic Leaf number fifteen! · How do you feel? · Can you follow: Open your book? · Can you follow: Raise your hand? · Can YOU give an instruction? · Choose your answer. · I can do it. · I need more practice. · Can you help me? · More practice is okay! · English grows with practice!",
+"INSTRUCTIONS FOR STUDENTS":"Think. · Choose. · Use your fingers, reaction, chat or voice. · Be honest.",
+"WHAT NOT TO DO":"Do not pressure students to choose the strongest option. Do not score their reflection. Do not turn this into another full TPR test. Do not introduce Mission 16 phrases. Do not make needing help feel negative.",
+FOCUS:"Confidence with both receptive and productive classroom instructions.",
+"PEDAGOGICAL INTENTION":"Students recognize whether they can understand classroom English and use it themselves.",
+"KEY UPGRADE":"Reflection differentiates following instructions from giving instructions.",
+"CRITICAL ERROR":"Do not judge a student's competence solely by physical response speed.",
+"PRO TIP":"Use one optional quick check: Teacher gives one instruction. Students perform it. Then one volunteer gives the teacher an instruction.",
+"FINAL CHECKLIST":"Students reflected. · Students considered whether they can follow instructions. · Students considered whether they can give instructions. · Teacher identified students needing support. · Magic Leaf #15 was reinforced."
+}
+},
+{
+n:10, title:"See You Next Mission!", emoji:"👋",
+phrases:["You can use classroom instructions in English!","Open your book.","Raise your hand.","Next Mission: Can You Repeat, Please?","Bye, Growie!"],
+notes:{
+STAGE:"Celebration / Closing",
+TIMING:"4 minutes",
+"WHAT TO DO":"Close positively. Repeat the achievement statement once. Celebrate Magic Leaf #15. Explain briefly that the Explorer Classroom is ready. Preview only the title of Mission 16: Can You Repeat, Please? Do not teach or practice the help phrase yet.",
+SAY:"Great job today! · You helped Growie complete the Explorer Training. · You can use classroom instructions in English! · Open your book. · Raise your hand. · Growie recovered Magic Leaf number fifteen. · The Explorer Classroom is ready! · Next Mission: Can You Repeat, Please? · Bye, Growie! · See you next mission!",
+"INSTRUCTIONS FOR STUDENTS":"Celebrate. · Wave. · Say: Bye, Growie! · See you next mission!",
+"WHAT NOT TO DO":"Do not explain Can you repeat, please? Do not practice One more time, please. Do not teach I don't understand. Do not explain the next mission in detail. Do not add a long command review. Do not correct students at the end. Do not use the word lesson instead of mission.",
+FOCUS:"Achievement, celebration and curricular continuity.",
+"PEDAGOGICAL INTENTION":"Students leave knowing they can function more independently in an English class and are curious about the next communication need: what to do when they need help.",
+"KEY UPGRADE":"The transition moves naturally from receiving instructions to handling a communication problem without pre-teaching the solution.",
+"CRITICAL ERROR":"Do not begin Mission 16 during the closing.",
+"PRO TIP":"A subtle visual teaser may show Growie looking confused at the Training Screen with a small repeat-arrow symbol, but do not display or teach the help phrase.",
+"FINAL CHECKLIST":"Achievement statement was repeated. · Magic Leaf #15 was celebrated. · Students said goodbye. · Mission 16 was previewed only by title. · Help-request language was not formally taught."
+}
+}
+];
+
+let current = 1;
+const total = SLIDES.length;
+
+function buildSlideEl(s){
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.dataset.n = s.n;
+
+  if (s.cover) {
+    el.classList.add('slide-cover');
+    el.innerHTML = `
+      <div class="cover-blur-bg"></div>
+      <img class="cover-img" src="${PORTADA}" alt="Growie Kids Mission 15">`;
+  } else {
+    el.classList.add('slide-content');
+    const colorClasses = ['c0','c1','c2','c3','c4','c5'];
+    const chips = (s.phrases||[]).map((p,i) => `<div class="phrase-card ${colorClasses[i % colorClasses.length]}" style="animation-delay:${0.15 + i*0.12}s">${p}</div>`).join('');
+    el.innerHTML = `
+      <div class="mission-badge"><span class="leaf-spin">🍃</span> Mission 15 · Slide ${s.n} / ${total}</div>
+      <div class="slide-grid">
+        <div class="col-text">
+          <div class="slide-emoji">${s.emoji}</div>
+          <div class="slide-title">${s.title}</div>
+          <div class="phrase-col">${chips}</div>
+        </div>
+        <div class="col-image">
+          <div class="slide-img-wrap"><img src="${slideImg(s.n)}" alt="${s.title}"></div>
+        </div>
+      </div>`;
+  }
+  return el;
+}
+
+function initStage(){
+  const stage = document.getElementById('stage');
+  SLIDES.forEach(s => stage.appendChild(buildSlideEl(s)));
+
+  const dotsWrap = document.getElementById('dots');
+  SLIDES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'dot';
+    b.setAttribute('aria-label', 'Slide ' + s.n);
+    b.onclick = () => goTo(s.n);
+    dotsWrap.appendChild(b);
+  });
+}
+
+function goTo(n){
+  if (n < 1 || n > total) return;
+  const prev = current;
+  current = n;
+  document.querySelectorAll('.slide').forEach(el => {
+    const en = parseInt(el.dataset.n, 10);
+    const isActive = en === n;
+    el.classList.toggle('active', isActive);
+    if (!isActive) {
+      el.querySelectorAll('.phrase-card, .slide-title, .slide-emoji').forEach(box => {
+        box.classList.remove('settled');
+        box.style.animation = '';
+      });
+    }
+  });
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === n-1));
+  document.getElementById('prevBtn').disabled = n === 1;
+  document.getElementById('nextBtn').disabled = n === total;
+  document.getElementById('counter').textContent = n + ' / ' + total;
+  renderNotes(n);
+}
+
+document.addEventListener('animationend', e => {
+  if (e.target.matches('.phrase-card, .slide-title, .slide-emoji')) {
+    e.target.style.animation = 'none';
+    e.target.classList.add('settled');
+  }
+});
+
+function renderNotes(n){
+  const s = SLIDES.find(x => x.n === n);
+  document.getElementById('notesTitle').textContent = 'Slide ' + n + (s.title ? ' — ' + s.title : '');
+  document.getElementById('notesStage').textContent = s.notes.STAGE + ' · ' + s.notes.TIMING;
+  const order = ["WHAT TO DO","SAY","INSTRUCTIONS FOR STUDENTS","WHAT NOT TO DO","FOCUS","PEDAGOGICAL INTENTION","KEY UPGRADE","CRITICAL ERROR","PRO TIP","FINAL CHECKLIST"];
+  const body = document.getElementById('notesBody');
+  body.innerHTML = order.map(k => `
+    <div class="notes-block">
+      <div class="notes-label">${k}</div>
+      <div class="notes-text">${s.notes[k]}</div>
+    </div>`).join('');
+}
+
+document.getElementById('prevBtn').onclick = () => goTo(current - 1);
+document.getElementById('nextBtn').onclick = () => goTo(current + 1);
+
+const notesPanel = document.getElementById('notesPanel');
+const notesOverlay = document.getElementById('notesOverlay');
+document.getElementById('notesToggle').onclick = () => {
+  notesPanel.classList.add('open');
+  notesOverlay.classList.add('open');
+};
+function closeNotes(){
+  notesPanel.classList.remove('open');
+  notesOverlay.classList.remove('open');
+}
+document.getElementById('notesClose').onclick = closeNotes;
+notesOverlay.onclick = closeNotes;
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+  if (e.key === 'Escape') closeNotes();
+});
+
+initStage();
+goTo(1);
+</script>
+</body>
+</html>
