@@ -444,7 +444,7 @@
           </select>
           <label style="margin-left:8px;">Ordenar por:</label>
           <select id="bajaOrden" onchange="renderRankingBajas()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
-            <option value="pct">% de bajas (mayor a menor)</option>
+            <option value="pct">% ajustado (mayor a menor)</option>
             <option value="num">Número de bajas (mayor a menor)</option>
             <option value="nombre">Nombre del maestro</option>
           </select>
@@ -452,16 +452,17 @@
         </div>
         <div class="tabla-wrap">
           <table>
-            <thead><tr><th>#</th><th>Maestro</th><th>Grupos</th><th>Alumnos activos</th><th>Bajas en el periodo</th><th>% de bajas</th><th></th></tr></thead>
-            <tbody id="rankingBajasBody"><tr><td colspan="7" class="empty-state">Cargando...</td></tr></tbody>
+            <thead><tr><th>#</th><th>Maestro</th><th>Grupos</th><th>Alumnos activos</th><th>Bajas en el periodo</th><th>% real</th><th>% ajustado ⓘ</th><th>Confianza</th><th></th></tr></thead>
+            <tbody id="rankingBajasBody"><tr><td colspan="9" class="empty-state">Cargando...</td></tr></tbody>
           </table>
         </div>
         <div style="margin-top:1.5rem;padding-top:1.2rem;border-top:1px solid var(--border);">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">% de bajas por maestro (visual)</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">% ajustado por maestro (visual)</div>
           <div id="graficoRankingBajas"></div>
         </div>
-        <div style="font-size:11px;color:var(--subtle);margin-top:14px;">
-          El maestro se atribuye siempre según el ID_MAESTRO actual registrado en GRUPOS (no en INSCRIPCIONES). Si un grupo cambió de maestro después de que un alumno se dio de baja, la baja quedará contada para el maestro que tiene el grupo actualmente.
+        <div style="font-size:11px;color:var(--subtle);margin-top:14px;line-height:1.6;">
+          El maestro se atribuye siempre según el ID_MAESTRO actual registrado en GRUPOS (no en INSCRIPCIONES). Si un grupo cambió de maestro después de que un alumno se dio de baja, la baja quedará contada para el maestro que tiene el grupo actualmente.<br>
+          <strong style="color:#94a3b8;">% real</strong> = bajas ÷ (alumnos activos + bajas). <strong style="color:#94a3b8;">% ajustado</strong> corrige ese número según qué tan grande es la muestra de cada maestro: si un maestro tiene pocos alumnos, su % se acerca más al promedio general del CU; si tiene muchos, su % ajustado queda casi igual al real. Esto evita que un maestro con 1 grupo y 4 bajas de 10 (40%) se vea igual de "grave" que uno con 10 grupos y 40 bajas de 100 (también 40%, pero con una muestra 10 veces más confiable). <strong style="color:#94a3b8;">Confianza</strong> = Baja (menos de 10 alumnos en la muestra), Media (10–24), Alta (25+). Usa el % ajustado y la confianza juntos para comparar maestros de forma justa — no solo el % real.
         </div>
       </div>
     </div>
@@ -727,7 +728,7 @@
     <div id="graficoDetalleBajas" style="margin-bottom:16px;padding:10px;background:var(--bg);border-radius:10px;"></div>
     <div class="tabla-wrap" style="max-height:360px;overflow-y:auto;">
       <table>
-        <thead><tr><th>ID Alumno</th><th>Alumno</th><th>Grupo</th><th>Semana del curso al darse de baja</th><th>Fecha de baja</th></tr></thead>
+        <thead><tr><th>ID Alumno</th><th>Alumno</th><th>ID Grupo</th><th>Grupo</th><th>Semana del curso al darse de baja</th><th>Fecha de baja</th></tr></thead>
         <tbody id="detalleBajasBody"></tbody>
       </table>
     </div>
@@ -1053,11 +1054,31 @@ function renderRankingBajas(){
     var denom = activos + numBajas;
     var pct = denom>0 ? (numBajas/denom*100) : 0;
     var alumnos = grupoBajas ? grupoBajas.alumnos : [];
-    return { idMaestro:idM, nombre:nombre, activos:activos, numGrupos:gruposPorMaestro[idM]||0, numBajas:numBajas, pct:pct, alumnos:alumnos };
+    return { idMaestro:idM, nombre:nombre, activos:activos, numGrupos:gruposPorMaestro[idM]||0, numBajas:numBajas, denom:denom, pct:pct, alumnos:alumnos };
   }).filter(function(f){ return f.idMaestro && f.idMaestro!=='—' && f.idMaestro!=='S-01'; });
 
-  if (orden==='pct') filas.sort(function(a,b){ return b.pct-a.pct || b.numBajas-a.numBajas; });
-  else if (orden==='num') filas.sort(function(a,b){ return b.numBajas-a.numBajas || b.pct-a.pct; });
+  // ── Ajuste por tamaño de muestra (justo para todos los maestros) ──────
+  // Un maestro con 1 grupo y 4/10 bajas (40%) NO es comparable en confianza
+  // a un maestro con 10 grupos y 40/100 bajas (tambien 40%, pero con una
+  // muestra 10 veces mas grande). Para no penalizar/premiar injustamente a
+  // quien tiene pocos alumnos, se calcula un "% ajustado" que jala el dato
+  // de cada maestro hacia el promedio general del CU, con mas fuerza cuanto
+  // mas chica sea su muestra (tecnica de suavizado bayesiano / shrinkage,
+  // el mismo principio que usa IMDb para no dejar que una pelicula con 3
+  // votos le gane a una con 10,000). C = tamano de muestra "de referencia"
+  // (equivalente a un grupo completo); mientras mas alumnos tenga el
+  // maestro, menos se mueve su % ajustado respecto al % real.
+  var totalBajasGlobal = filas.reduce(function(s,f){return s+f.numBajas;},0);
+  var totalDenomGlobal = filas.reduce(function(s,f){return s+f.denom;},0);
+  var promedioGlobalPct = totalDenomGlobal>0 ? (totalBajasGlobal/totalDenomGlobal*100) : 0;
+  var C = 15; // "peso" del promedio general, equivalente a ~15 alumnos de referencia
+  filas.forEach(function(f){
+    f.pctAjustado = ((f.numBajas + C*(promedioGlobalPct/100)) / (f.denom + C)) * 100;
+    f.confianza = f.denom>=25 ? 'Alta' : (f.denom>=10 ? 'Media' : 'Baja');
+  });
+
+  if (orden==='pct') filas.sort(function(a,b){ return b.pctAjustado-a.pctAjustado || b.numBajas-a.numBajas; });
+  else if (orden==='num') filas.sort(function(a,b){ return b.numBajas-a.numBajas || b.pctAjustado-a.pctAjustado; });
   else filas.sort(function(a,b){ return String(a.nombre).localeCompare(String(b.nombre)); });
 
   // Stats generales
@@ -1069,10 +1090,11 @@ function renderRankingBajas(){
   document.getElementById('bajaStatPromedio').textContent = promedio.toFixed(1);
 
   var body=document.getElementById('rankingBajasBody');
-  if (!filas.length) { body.innerHTML='<tr><td colspan="7" class="empty-state">Sin datos para este periodo.</td></tr>'; return; }
+  if (!filas.length) { body.innerHTML='<tr><td colspan="9" class="empty-state">Sin datos para este periodo.</td></tr>'; return; }
 
   body.innerHTML = filas.map(function(f, i){
-    var colorPct = f.pct>=15 ? '#f87171' : (f.pct>=8 ? '#facc15' : '#4ade80');
+    var colorPct = f.pctAjustado>=15 ? '#f87171' : (f.pctAjustado>=8 ? '#facc15' : '#4ade80');
+    var colorConf = f.confianza==='Alta' ? '#4ade80' : (f.confianza==='Media' ? '#facc15' : '#94a3b8');
     var verBtn = f.numBajas>0 ? '<button class="btn-sm" onclick="abrirDetalleBajas(\''+f.idMaestro+'\')">Ver detalle</button>' : '<span style="color:var(--subtle);font-size:11px;">—</span>';
     return '<tr>'+
       '<td>'+(i+1)+'</td>'+
@@ -1080,7 +1102,9 @@ function renderRankingBajas(){
       '<td>'+f.numGrupos+'</td>'+
       '<td>'+f.activos+'</td>'+
       '<td>'+f.numBajas+'</td>'+
-      '<td style="color:'+colorPct+';font-weight:700;">'+f.pct.toFixed(1)+'%</td>'+
+      '<td style="color:var(--muted);">'+f.pct.toFixed(1)+'%</td>'+
+      '<td style="color:'+colorPct+';font-weight:700;">'+f.pctAjustado.toFixed(1)+'%</td>'+
+      '<td style="color:'+colorConf+';font-size:11px;font-weight:700;">'+f.confianza+' <span style="color:var(--subtle);font-weight:400;">('+f.denom+')</span></td>'+
       '<td>'+verBtn+'</td>'+
     '</tr>';
   }).join('');
@@ -1088,7 +1112,7 @@ function renderRankingBajas(){
   // Guardar referencia para el modal de detalle
   window._rankingBajasFilas = filas;
 
-  // Grafico: barras horizontales de % de bajas por maestro (top 12, solo
+  // Grafico: barras horizontales de % ajustado por maestro (top 12, solo
   // quienes tienen al menos 1 baja en el periodo, en el orden ya aplicado)
   renderGraficoRankingBajas(filas.filter(function(f){return f.numBajas>0;}).slice(0,12));
 }
@@ -1099,18 +1123,18 @@ function renderGraficoRankingBajas(filas){
   var cont=document.getElementById('graficoRankingBajas');
   if (!cont) return;
   if (!filas.length){ cont.innerHTML='<div class="empty-state" style="padding:1.5rem;">Sin bajas para graficar en este periodo.</div>'; return; }
-  var maxPct = Math.max.apply(null, filas.map(function(f){return f.pct;}).concat([1]));
+  var maxPct = Math.max.apply(null, filas.map(function(f){return f.pctAjustado;}).concat([1]));
   var filaAltura=30, alto=filas.length*filaAltura+10;
   var barrasHTML = filas.map(function(f,i){
     var y=i*filaAltura+6;
     var anchoDisponible=560;
-    var anchoBarra = Math.max(2, (f.pct/maxPct)*anchoDisponible);
-    var color = f.pct>=15 ? '#f87171' : (f.pct>=8 ? '#facc15' : '#4ade80');
+    var anchoBarra = Math.max(2, (f.pctAjustado/maxPct)*anchoDisponible);
+    var color = f.pctAjustado>=15 ? '#f87171' : (f.pctAjustado>=8 ? '#facc15' : '#4ade80');
     var nombreCorto = f.nombre.length>22 ? f.nombre.substring(0,20)+'…' : f.nombre;
     return '<g>'+
       '<text x="0" y="'+(y+13)+'" font-size="11" fill="#94a3b8">'+nombreCorto+'</text>'+
-      '<rect x="180" y="'+y+'" width="'+anchoBarra+'" height="18" rx="4" fill="'+color+'" style="cursor:pointer;" onclick="abrirDetalleBajas(\''+f.idMaestro+'\')"><title>'+f.nombre+': '+f.pct.toFixed(1)+'% ('+f.numBajas+' bajas)</title></rect>'+
-      '<text x="'+(180+anchoBarra+8)+'" y="'+(y+13)+'" font-size="11" fill="#e2e8f0" font-weight="700">'+f.pct.toFixed(1)+'%</text>'+
+      '<rect x="180" y="'+y+'" width="'+anchoBarra+'" height="18" rx="4" fill="'+color+'" style="cursor:pointer;" onclick="abrirDetalleBajas(\''+f.idMaestro+'\')"><title>'+f.nombre+': '+f.pctAjustado.toFixed(1)+'% ajustado ('+f.pct.toFixed(1)+'% real · '+f.numBajas+' bajas · confianza '+f.confianza+')</title></rect>'+
+      '<text x="'+(180+anchoBarra+8)+'" y="'+(y+13)+'" font-size="11" fill="#e2e8f0" font-weight="700">'+f.pctAjustado.toFixed(1)+'%</text>'+
     '</g>';
   }).join('');
   cont.innerHTML = '<svg viewBox="0 0 780 '+alto+'" style="width:100%;height:'+alto+'px;">'+barrasHTML+'</svg>';
@@ -1156,7 +1180,8 @@ function abrirDetalleBajas(idMaestro){
     return '<tr>'+
       '<td style="color:var(--muted);font-size:11px;">'+(a.id||'—')+'</td>'+
       '<td style="color:var(--text);">'+(a.nombre||a.id)+'</td>'+
-      '<td>'+(a.nombreGrupo||a.idGrupo||'—')+'</td>'+
+      '<td style="color:var(--muted);font-size:11px;">'+(a.idGrupo||'—')+'</td>'+
+      '<td>'+(a.nombreGrupo||'—')+'</td>'+
       '<td>'+semanaTxt+'</td>'+
       '<td>'+fechaTxt+'</td>'+
     '</tr>';
