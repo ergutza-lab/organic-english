@@ -450,6 +450,13 @@
           </select>
           <button class="btn-cargar" onclick="cargarRankingBajas(true)" style="margin-left:auto;">↻ Actualizar</button>
         </div>
+        <div id="avisoBajasSinAtribuir" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px 16px;margin-bottom:10px;font-size:12px;color:#fca5a5;">
+          ⚠️ <span class="aviso-count">0</span> baja(s) en este periodo no se pudieron atribuir a ningún maestro (el grupo ya no existe en GRUPOS y tampoco había maestro capturado en INSCRIPCIONES, o el dato capturado no es un maestro válido). No están incluidas en el ranking de arriba.
+          <button class="btn-sm" style="margin-left:8px;" onclick="verBajasSinAtribuir()">Ver estas bajas</button>
+        </div>
+        <div id="avisoAntiguedadGrupos" style="display:none;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#93c5fd;">
+          ℹ️ <span class="aviso-grupos-count">0</span> grupo(s) con menos de 2 semanas de antigüedad quedaron fuera del cálculo (sus alumnos activos no cuentan), y <span class="aviso-bajas-count">0</span> baja(s) de esos grupos tampoco se contaron — es muy pronto para que sus datos sean representativos del desempeño del maestro.
+        </div>
         <div class="tabla-wrap">
           <table>
             <thead><tr><th>#</th><th>Maestro</th><th>Grupos</th><th>Alumnos activos</th><th>Bajas en el periodo</th><th>% real</th><th>% ajustado ⓘ</th><th>Confianza</th><th></th></tr></thead>
@@ -461,8 +468,9 @@
           <div id="graficoRankingBajas"></div>
         </div>
         <div style="font-size:11px;color:var(--subtle);margin-top:14px;line-height:1.6;">
-          El maestro se atribuye siempre según el ID_MAESTRO actual registrado en GRUPOS (no en INSCRIPCIONES). Si un grupo cambió de maestro después de que un alumno se dio de baja, la baja quedará contada para el maestro que tiene el grupo actualmente.<br>
-          <strong style="color:#94a3b8;">% real</strong> = bajas ÷ (alumnos activos + bajas). <strong style="color:#94a3b8;">% ajustado</strong> corrige ese número según qué tan grande es la muestra de cada maestro: si un maestro tiene pocos alumnos, su % se acerca más al promedio general del CU; si tiene muchos, su % ajustado queda casi igual al real. Esto evita que un maestro con 1 grupo y 4 bajas de 10 (40%) se vea igual de "grave" que uno con 10 grupos y 40 bajas de 100 (también 40%, pero con una muestra 10 veces más confiable). <strong style="color:#94a3b8;">Confianza</strong> = Baja (menos de 10 alumnos en la muestra), Media (10–24), Alta (25+). Usa el % ajustado y la confianza juntos para comparar maestros de forma justa — no solo el % real.
+          El maestro se atribuye siempre según el ID_MAESTRO actual registrado en GRUPOS (no en INSCRIPCIONES) — <strong style="color:#94a3b8;">excepto</strong> cuando el grupo ya no existe como fila en GRUPOS (se borró manualmente en el Sheet): en ese caso se usa, como último recurso, el maestro que quedó capturado en INSCRIPCIONES al momento de la baja, para no perder la atribución al maestro original. Esos casos se marcan con ⚠️ junto al maestro — conviene verificarlos a mano en "Ver detalle". (Si un grupo cambió de maestro después de una baja pero la fila sigue existiendo en GRUPOS, la baja se cuenta para el maestro que tiene el grupo actualmente.)<br>
+          <strong style="color:#94a3b8;">% real</strong> = bajas ÷ (alumnos activos + bajas). <strong style="color:#94a3b8;">% ajustado</strong> corrige ese número según qué tan grande es la muestra de cada maestro: si un maestro tiene pocos alumnos, su % se acerca más al promedio general del CU; si tiene muchos, su % ajustado queda casi igual al real. Esto evita que un maestro con 1 grupo y 4 bajas de 10 (40%) se vea igual de "grave" que uno con 10 grupos y 40 bajas de 100 (también 40%, pero con una muestra 10 veces más confiable). <strong style="color:#94a3b8;">Confianza</strong> = Baja (menos de 10 alumnos en la muestra), Media (10–24), Alta (25+). Usa el % ajustado y la confianza juntos para comparar maestros de forma justa — no solo el % real.<br>
+          Un grupo necesita al menos <strong style="color:#94a3b8;">2 semanas de antigüedad</strong> (desde su fecha de inicio) para que sus alumnos y bajas cuenten en este ranking — un grupo recién creado no ha tenido tiempo de dar una señal confiable sobre el desempeño del maestro.
         </div>
       </div>
     </div>
@@ -1009,6 +1017,30 @@ function cargarRankingBajas(forzar){
     });
 }
 
+// IDs/textos que NO son un maestro real -- para que no se cuelen en el
+// ranking cuando alguien escribe "Sin Asignar" (o variantes) directamente
+// en la columna ID_MAESTRO de GRUPOS en vez de dejarla vacia.
+var MAESTRO_PLACEHOLDERS = ['', '—', 's-01', 'sin asignar', 'sin asig', 'sin asig.', 'sin maestro', 'sin maestro asignado', 'pendiente', 'n/a', 'na'];
+function esIdMaestroValido(id){
+  if (!id) return false;
+  var norm = String(id).trim().toLowerCase();
+  return MAESTRO_PLACEHOLDERS.indexOf(norm)===-1;
+}
+
+// Un grupo debe tener al menos 2 semanas (14 dias) de antiguedad desde su
+// fecha de inicio para que sus datos cuenten en el ranking de bajas -- un
+// grupo recien creado no ha tenido tiempo de generar una senal valida
+// (ni de alumnos activos ni de bajas).
+var ANTIGUEDAD_MINIMA_DIAS = 14;
+function antiguedadGrupoDias(fechaInicioStr){
+  if (!fechaInicioStr || fechaInicioStr==='Sin fecha') return null;
+  var partes = fechaInicioStr.split('/'); // dd/MM/yyyy
+  if (partes.length!==3) return null;
+  var inicio = new Date(partes[2], partes[1]-1, partes[0]);
+  if (isNaN(inicio.getTime())) return null;
+  return Math.floor((Date.now()-inicio.getTime())/(1000*60*60*24));
+}
+
 function renderRankingBajas(){
   if (!bajasData) return;
   var dias=parseInt(document.getElementById('bajaPeriodo').value,10);
@@ -1021,21 +1053,37 @@ function renderRankingBajas(){
     return new Date(a.fechaBaja) >= limite;
   });
 
+  // Grupos con antiguedad valida (14+ dias) -- solo estos cuentan para el
+  // ranking, tanto en alumnos activos como en bajas.
+  var gruposValidos={}, gruposNuevosExcluidos=0;
+  gruposData.forEach(function(g){
+    var edad = antiguedadGrupoDias(g.fechaInicio);
+    var valido = edad===null ? true : edad>=ANTIGUEDAD_MINIMA_DIAS; // sin fecha conocida: no penalizar, se deja pasar
+    gruposValidos[g.id]=valido;
+    if (edad!==null && edad<ANTIGUEDAD_MINIMA_DIAS) gruposNuevosExcluidos++;
+  });
+
   // Alumnos activos por maestro, sumando "inscritos" de cada grupo (ya
-  // excluye DEMO, ver getDatosCA).
+  // excluye DEMO, ver getDatosCA). Se ignoran maestros placeholder y
+  // grupos que aun no cumplen la antiguedad minima.
   var activosPorMaestro={};
   var gruposPorMaestro={};
   gruposData.forEach(function(g){
-    if (!g.idMaestro) return;
+    if (!esIdMaestroValido(g.idMaestro)) return;
+    if (!gruposValidos[g.id]) return;
     activosPorMaestro[g.idMaestro] = (activosPorMaestro[g.idMaestro]||0) + (Number(g.inscritos)||0);
     gruposPorMaestro[g.idMaestro] = (gruposPorMaestro[g.idMaestro]||0) + 1;
   });
 
-  // Bajas por maestro en el periodo filtrado
+  // Bajas por maestro en el periodo filtrado -- se excluyen maestros
+  // placeholder y bajas de grupos que aun no cumplen la antiguedad minima.
+  var bajasExcluidasPorAntiguedad=0;
   var bajasPorMaestro={};
   bajasFiltradas.forEach(function(a){
-    var idM = a.idMaestro || '—';
-    if (!bajasPorMaestro[idM]) bajasPorMaestro[idM]={ idMaestro:idM, nombreMaestro:a.nombreMaestro||'Sin maestro asignado', alumnos:[] };
+    if (!esIdMaestroValido(a.idMaestro)) return;
+    if (gruposValidos.hasOwnProperty(a.idGrupo) && !gruposValidos[a.idGrupo]) { bajasExcluidasPorAntiguedad++; return; }
+    var idM = a.idMaestro;
+    if (!bajasPorMaestro[idM]) bajasPorMaestro[idM]={ idMaestro:idM, nombreMaestro:a.nombreMaestro||idM, alumnos:[] };
     bajasPorMaestro[idM].alumnos.push(a);
   });
 
@@ -1054,8 +1102,9 @@ function renderRankingBajas(){
     var denom = activos + numBajas;
     var pct = denom>0 ? (numBajas/denom*100) : 0;
     var alumnos = grupoBajas ? grupoBajas.alumnos : [];
-    return { idMaestro:idM, nombre:nombre, activos:activos, numGrupos:gruposPorMaestro[idM]||0, numBajas:numBajas, denom:denom, pct:pct, alumnos:alumnos };
-  }).filter(function(f){ return f.idMaestro && f.idMaestro!=='—' && f.idMaestro!=='S-01'; });
+    var numInferidos = alumnos.filter(function(a){ return a.maestroInferido; }).length;
+    return { idMaestro:idM, nombre:nombre, activos:activos, numGrupos:gruposPorMaestro[idM]||0, numBajas:numBajas, denom:denom, pct:pct, alumnos:alumnos, numInferidos:numInferidos };
+  }).filter(function(f){ return esIdMaestroValido(f.idMaestro); });
 
   // ── Ajuste por tamaño de muestra (justo para todos los maestros) ──────
   // Un maestro con 1 grupo y 4/10 bajas (40%) NO es comparable en confianza
@@ -1089,6 +1138,31 @@ function renderRankingBajas(){
   document.getElementById('bajaStatMaestros').textContent = maestrosConBaja;
   document.getElementById('bajaStatPromedio').textContent = promedio.toFixed(1);
 
+  // Bajas que no se pudieron atribuir a NINGUN maestro -- ni GRUPOS (grupo
+  // borrado del Sheet) ni INSCRIPCIONES (tampoco tenia nada capturado), o
+  // el valor capturado es un placeholder tipo "Sin Asignar". No se pierden
+  // en silencio: se muestran aparte para que Coordinacion las revise a mano.
+  var sinAtribuir = bajasFiltradas.filter(function(a){ return !esIdMaestroValido(a.idMaestro); });
+  var avisoSinAtribuir = document.getElementById('avisoBajasSinAtribuir');
+  if (sinAtribuir.length>0) {
+    avisoSinAtribuir.style.display='block';
+    avisoSinAtribuir.querySelector('.aviso-count').textContent = sinAtribuir.length;
+    window._bajasSinAtribuir = sinAtribuir;
+  } else {
+    avisoSinAtribuir.style.display='none';
+  }
+
+  // Aviso informativo: cuantos grupos/bajas se excluyeron del ranking por
+  // no cumplir la antiguedad minima de 2 semanas.
+  var avisoAntiguedad = document.getElementById('avisoAntiguedadGrupos');
+  if (gruposNuevosExcluidos>0 || bajasExcluidasPorAntiguedad>0) {
+    avisoAntiguedad.style.display='block';
+    avisoAntiguedad.querySelector('.aviso-grupos-count').textContent = gruposNuevosExcluidos;
+    avisoAntiguedad.querySelector('.aviso-bajas-count').textContent = bajasExcluidasPorAntiguedad;
+  } else {
+    avisoAntiguedad.style.display='none';
+  }
+
   var body=document.getElementById('rankingBajasBody');
   if (!filas.length) { body.innerHTML='<tr><td colspan="9" class="empty-state">Sin datos para este periodo.</td></tr>'; return; }
 
@@ -1096,9 +1170,10 @@ function renderRankingBajas(){
     var colorPct = f.pctAjustado>=15 ? '#f87171' : (f.pctAjustado>=8 ? '#facc15' : '#4ade80');
     var colorConf = f.confianza==='Alta' ? '#4ade80' : (f.confianza==='Media' ? '#facc15' : '#94a3b8');
     var verBtn = f.numBajas>0 ? '<button class="btn-sm" onclick="abrirDetalleBajas(\''+f.idMaestro+'\')">Ver detalle</button>' : '<span style="color:var(--subtle);font-size:11px;">—</span>';
+    var warnInferido = f.numInferidos>0 ? ' <span title="'+f.numInferidos+' baja(s) de un grupo que ya no existe en GRUPOS -- maestro inferido de INSCRIPCIONES, verificar" style="color:#facc15;cursor:help;">⚠️</span>' : '';
     return '<tr>'+
       '<td>'+(i+1)+'</td>'+
-      '<td style="color:var(--text);font-weight:600;">'+f.nombre+' <span style="color:var(--muted);font-weight:400;">('+f.idMaestro+')</span></td>'+
+      '<td style="color:var(--text);font-weight:600;">'+f.nombre+' <span style="color:var(--muted);font-weight:400;">('+f.idMaestro+')</span>'+warnInferido+'</td>'+
       '<td>'+f.numGrupos+'</td>'+
       '<td>'+f.activos+'</td>'+
       '<td>'+f.numBajas+'</td>'+
@@ -1177,11 +1252,12 @@ function abrirDetalleBajas(idMaestro){
         semanasCount[semana]=(semanasCount[semana]||0)+1;
       }
     }
+    var warnFila = a.maestroInferido ? ' <span title="El grupo de este alumno ya no existe en GRUPOS. El maestro se infirió de INSCRIPCIONES -- verificar." style="color:#facc15;cursor:help;">⚠️</span>' : '';
     return '<tr>'+
       '<td style="color:var(--muted);font-size:11px;">'+(a.id||'—')+'</td>'+
-      '<td style="color:var(--text);">'+(a.nombre||a.id)+'</td>'+
+      '<td style="color:var(--text);">'+(a.nombre||a.id)+warnFila+'</td>'+
       '<td style="color:var(--muted);font-size:11px;">'+(a.idGrupo||'—')+'</td>'+
-      '<td>'+(a.nombreGrupo||'—')+'</td>'+
+      '<td>'+(a.nombreGrupo||(a.grupoExiste===false?'(grupo eliminado)':'—'))+'</td>'+
       '<td>'+semanaTxt+'</td>'+
       '<td>'+fechaTxt+'</td>'+
     '</tr>';
@@ -1210,6 +1286,31 @@ function abrirDetalleBajas(idMaestro){
   document.getElementById('modalDetalleBajas').classList.add('visible');
 }
 function cerrarModalDetalleBajas(){ document.getElementById('modalDetalleBajas').classList.remove('visible'); }
+
+function verBajasSinAtribuir(){
+  var lista = window._bajasSinAtribuir || [];
+  document.getElementById('detalleBajasTitulo').textContent = 'Bajas sin maestro identificable';
+  document.getElementById('detalleBajasSub').textContent = lista.length + ' alumno' + (lista.length!==1?'s':'') + ' — revisar el ID_GRUPO en GRUPOS/INSCRIPCIONES manualmente.';
+  document.getElementById('graficoDetalleBajas').innerHTML = '<div style="font-size:11px;color:var(--subtle);">Sin gráfico para este listado — son casos para revisión manual, no un maestro en específico.</div>';
+  var ordenadas = lista.slice().sort(function(a,b){
+    var da = a.fechaBaja ? new Date(a.fechaBaja) : new Date(0);
+    var db = b.fechaBaja ? new Date(b.fechaBaja) : new Date(0);
+    return db-da;
+  });
+  document.getElementById('detalleBajasBody').innerHTML = ordenadas.map(function(a){
+    var fechaTxt = a.fechaBaja ? new Date(a.fechaBaja).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    return '<tr>'+
+      '<td style="color:var(--muted);font-size:11px;">'+(a.id||'—')+'</td>'+
+      '<td style="color:var(--text);">'+(a.nombre||a.id)+'</td>'+
+      '<td style="color:var(--muted);font-size:11px;">'+(a.idGrupo||'—')+'</td>'+
+      '<td>'+(a.nombreGrupo||'(grupo no encontrado)')+'</td>'+
+      '<td>—</td>'+
+      '<td>'+fechaTxt+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('modalDetalleBajas').classList.add('visible');
+}
+
 
 
 
