@@ -429,7 +429,25 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     // en el navegador segun el nivel del grupo que se tenga abierto.
     fetch(APPS_SCRIPT+'?action=getMaterialClasesMaestro&idMaestro='+encodeURIComponent(maestroData.id))
       .then(r=>r.json())
-      .then(function(data){ materialData = (data.success && data.material) ? data.material : []; })
+      .then(function(data){
+        materialData = (data.success && data.material) ? data.material : [];
+        // Parche temporal: hay 5 filas en la hoja de Coordinacion Academica
+        // (Bloque 1 A1.1 LESSON-001 a 005) que apuntan a clases que aun no
+        // existen y dan error 404 al abrirlas. Mientras se borran esas filas
+        // desde el origen (Google Sheet que alimenta getMaterialClasesMaestro),
+        // las ocultamos aqui para que el maestro no se tope con el error.
+        var LECCIONES_INEXISTENTES = ['LESSON-001','LESSON-002','LESSON-003','LESSON-004','LESSON-005'];
+        materialData = materialData.filter(function(m){
+          var link = String(m.link || '').toUpperCase();
+          var desc = String(m.descripcion || '').toUpperCase();
+          var esBloque1A1 = link.indexOf('/A1/BLOQUE%201/') !== -1 || desc.indexOf('BLOQUE 1') !== -1;
+          if (!esBloque1A1) return true;
+          var esLeccionFantasma = LECCIONES_INEXISTENTES.some(function(codigo){
+            return link.indexOf(codigo) !== -1 || desc.indexOf(codigo) !== -1;
+          });
+          return !esLeccionFantasma;
+        });
+      })
       .catch(function(){ materialData = []; });
   }
 
@@ -584,7 +602,7 @@ function renderMiMaterialGlobal() {
   }
   cont.innerHTML = materialData.map(function(m){
     return '<a href="'+m.link+'" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:inherit;">'+
-      '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:var(--gris2);margin-top:2px;">'+m.nivel+'</div></div>'+
+      '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:'+colorPorGrupo(m.nivel)+';font-weight:700;margin-top:2px;">'+m.nivel+'</div></div>'+
       '<div style="font-size:12px;font-weight:700;color:#f97316;white-space:nowrap;">▶️ Ver clase</div>'+
     '</a>';
   }).join('');
@@ -791,6 +809,19 @@ function actualizarEstadoFecha(fechaStr) {
     return (m ? m[1] : texto).trim().toUpperCase();
   }
 
+  // Color del nombre del grupo segun su categoria (Adult/Teens/Kids/Kids Jr),
+  // usado en las tarjetas de Material para identificar de un vistazo a
+  // que tipo de grupo pertenece cada clase. Ojo: "KIDS JR" se revisa ANTES
+  // que "KIDS" a secas, porque el texto "KIDS JR" tambien contiene "KIDS".
+  function colorPorGrupo(texto) {
+    var t = String(texto || '').toUpperCase();
+    if (t.indexOf('KIDS JR') !== -1 || t.indexOf('KIDS-JR') !== -1 || t.indexOf('KIDSJR') !== -1 || /\bJR\b/.test(t)) return '#d8b4fe'; // morado claro
+    if (t.indexOf('TEEN') !== -1 || t.indexOf('ADOLESCENTE') !== -1) return '#facc15'; // amarillo
+    if (t.indexOf('KIDS') !== -1 || t.indexOf('NIÑO') !== -1 || t.indexOf('NINO') !== -1) return '#4ade80'; // verde
+    if (t.indexOf('ADULT') !== -1) return '#ffffff'; // blanco
+    return 'var(--gris2)'; // sin categoria detectada -> color neutro de siempre
+  }
+
   function renderMaterial() {
     var cont = document.getElementById('listaMaterial');
     if (!grupoActual) { cont.innerHTML = '<div class="loading">Selecciona un grupo primero.</div>'; return; }
@@ -824,7 +855,7 @@ function actualizarEstadoFecha(fechaStr) {
     }
     cont.innerHTML = visibles.map(function(m){
       return '<a href="'+m.link+'" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:inherit;">'+
-        '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:var(--gris2);margin-top:2px;">'+m.nivel+'</div></div>'+
+        '<div><div style="font-size:13px;font-weight:600;">'+m.descripcion+'</div><div style="font-size:11px;color:'+colorPorGrupo(m.nivel)+';font-weight:700;margin-top:2px;">'+m.nivel+'</div></div>'+
         '<div style="font-size:12px;font-weight:700;color:#f97316;white-space:nowrap;">▶️ Ver clase</div>'+
       '</a>';
     }).join('');
