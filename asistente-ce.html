@@ -565,19 +565,6 @@
   </div>
 </div>
 
-<!-- MODAL CANCELAR GRUPO (solo grupos vacios) -->
-<div class="modal-confirm-overlay" id="modal-cancelar-grupo">
-  <div class="modal-confirm-box" style="text-align:left;">
-    <div class="modal-confirm-titulo">🚫 Cancelar grupo</div>
-    <div class="modal-confirm-sub" id="cancelar-grupo-nombre" style="margin-bottom:14px;">—</div>
-    <p style="font-size:12px;color:var(--gris-500);margin-bottom:12px;">Este grupo está vacío. Al cancelarlo, su estado cambiará a <strong>Cancelado</strong> y dejará de aparecer como grupo disponible para inscripciones o cambios de grupo. Esta acción no se puede deshacer desde aquí.</p>
-    <div id="cancelar-grupo-status" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;"></div>
-    <div class="modal-confirm-acciones">
-      <button class="btn-confirm-ok" id="btn-confirmar-cancelar-grupo" style="background:#ef4444" onclick="ejecutarCancelarGrupo()">Cancelar grupo</button>
-      <button class="btn-confirm-cancel" onclick="cerrarModalCancelarGrupo()">Volver</button>
-    </div>
-  </div>
-</div>
 
 <!-- MODAL: Avisos tras solicitar examen de colocacion (recolocacion) -->
 <div class="modal-confirm-overlay" id="modal-aviso-colocacion">
@@ -834,10 +821,6 @@ function abrirModalGrupo(idx){
             <button onclick="copiarZoom('${g.linkZoom}')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">Copiar link</button>
           </div>`
         : `<div style="margin-top:4px;font-size:11px;color:#fca5a5;font-weight:600;">Sin link Zoom asignado</div>`
-      }
-      ${!alumnos.length
-        ? `<button onclick="abrirModalCancelarGrupo('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}')" style="margin-top:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">🚫 Cancelar grupo</button>`
-        : ''
       }
     </div>
     <button class="modal-cerrar" onclick="cerrarModalGrupo()">✕</button>`;
@@ -1799,63 +1782,6 @@ function ejecutarDarBaja() {
     })
     .catch(() => {
       btn.disabled = false; btn.textContent = 'Dar de baja';
-      status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
-      status.textContent = '❌ Error de conexión.';
-    });
-}
-
-var cancelarGrupoActivoId = null;
-
-function abrirModalCancelarGrupo(idGrupo, nombreGrupo) {
-  // Verificación extra en el cliente: solo permitir si el grupo sigue vacío
-  const g = (datosPanel?.grupos||[]).find(x=>x.id===idGrupo);
-  if (g && (g.alumnos||[]).length) {
-    mostrarToast('Este grupo ya no está vacío, no se puede cancelar.', 'error');
-    return;
-  }
-  cancelarGrupoActivoId = idGrupo;
-  document.getElementById('cancelar-grupo-nombre').innerHTML = `<strong>${idGrupo}</strong> — ${nombreGrupo||''}`;
-  document.getElementById('cancelar-grupo-status').style.display = 'none';
-  var btn = document.getElementById('btn-confirmar-cancelar-grupo');
-  btn.disabled = false; btn.textContent = 'Cancelar grupo';
-  document.getElementById('modal-cancelar-grupo').classList.add('open');
-}
-
-function cerrarModalCancelarGrupo() {
-  document.getElementById('modal-cancelar-grupo').classList.remove('open');
-  cancelarGrupoActivoId = null;
-}
-
-function ejecutarCancelarGrupo() {
-  if (!cancelarGrupoActivoId) return;
-  var status = document.getElementById('cancelar-grupo-status');
-  var btn = document.getElementById('btn-confirmar-cancelar-grupo');
-  btn.disabled = true; btn.textContent = 'Procesando…';
-  status.style.display = 'none';
-
-  fetch(`${APPS_SCRIPT}?action=cancelarGrupo&idGrupo=${encodeURIComponent(cancelarGrupoActivoId)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        mostrarToast('✅ Grupo cancelado correctamente.', 'success');
-        cargarDatos();
-        cerrarModalCancelarGrupo();
-        cerrarModalGrupo();
-        if (data.linkWA) {
-          setTimeout(function () {
-            if (confirm('Grupo cancelado. ¿Quieres avisar a Control Académico' + (data.caNombre ? ' (' + data.caNombre + ')' : '') + ' por WhatsApp?')) {
-              window.open(data.linkWA, '_blank');
-            }
-          }, 300);
-        }
-      } else {
-        btn.disabled = false; btn.textContent = 'Cancelar grupo';
-        status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
-        status.textContent = '❌ ' + (data.error || 'Error al cancelar el grupo.');
-      }
-    })
-    .catch(() => {
-      btn.disabled = false; btn.textContent = 'Cancelar grupo';
       status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
       status.textContent = '❌ Error de conexión.';
     });
