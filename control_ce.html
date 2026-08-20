@@ -733,6 +733,20 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   </div>
 </div>
 
+<!-- MODAL: CANCELAR GRUPO (solo grupos vacios) -->
+<div class="modal-overlay" id="modal-cancelar-grupo">
+  <div class="modal">
+    <div class="modal-titulo">🚫 Cancelar grupo</div>
+    <div class="modal-sub" id="modal-cancelar-grupo-sub">Grupo: —</div>
+    <p style="font-size:.85rem;color:var(--gris);margin:.5rem 0 0">Este grupo está vacío. Al cancelarlo, su estado cambiará a <strong>Cancelado</strong> y dejará de aparecer como opción disponible para inscripciones o cambios de grupo.</p>
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-cancelar-grupo')">Volver</button>
+      <button class="btn btn-rojo" onclick="ejecutarCancelarGrupo()">Cancelar grupo</button>
+    </div>
+    <div class="modal-msg" id="modal-cancelar-grupo-msg"></div>
+  </div>
+</div>
+
 <!-- MODAL: EVALUAR ASISTENTE CE -->
 <div class="modal-overlay" id="modal-evaluar">
   <div class="modal" style="max-width:480px">
@@ -776,7 +790,7 @@ var estado = {
   idCE:'', nombreCE:'',
   grupos:[], asistentes:[], sinAsistente:[],
   todosAlumnos:[], alertasFusion:[],
-  grupoEnModal:'', alumnoEnModal:'',
+  grupoEnModal:'', alumnoEnModal:'', grupoCancelarEnModal:'',
   asisEvalEnModal:'',
   evalActitud:0, evalServicio:0,
   evaluaciones:{}
@@ -1709,6 +1723,40 @@ function confirmarCambioGrupo() {
   });
 }
 
+// ── MODAL CANCELAR GRUPO (solo grupos vacios) ──
+function confirmarCancelarGrupo() {
+  var idGrupo = estado.grupoCancelarEnModal;
+  if (!idGrupo) return;
+  document.getElementById('modal-cancelar-grupo-sub').textContent = 'Grupo: ' + idGrupo;
+  var msgEl = document.getElementById('modal-cancelar-grupo-msg');
+  msgEl.className = 'modal-msg'; msgEl.textContent = '';
+  document.getElementById('modal-cancelar-grupo').classList.add('abierto');
+}
+function ejecutarCancelarGrupo() {
+  var idGrupo = estado.grupoCancelarEnModal;
+  var msgEl = document.getElementById('modal-cancelar-grupo-msg');
+  if (!idGrupo) { msgEl.textContent='No se encontró el grupo.'; msgEl.className='modal-msg error'; return; }
+  api({ action:'cancelarGrupo', idGrupo:idGrupo, idCE:estado.idCE }).then(function(res) {
+    if (res.ok) {
+      msgEl.textContent = 'Grupo cancelado correctamente.'; msgEl.className = 'modal-msg ok';
+      setTimeout(function(){
+        cerrarModal('modal-cancelar-grupo');
+        cerrarModal('modal-alumnos-grupo');
+        cargarDatos();
+        if (res.linkWA) {
+          if (confirm('¿Quieres avisar a Control Académico' + (res.caNombre ? ' (' + res.caNombre + ')' : '') + ' por WhatsApp?')) {
+            window.open(res.linkWA, '_blank');
+          }
+        }
+      }, 1200);
+    } else {
+      msgEl.textContent = res.error || 'Error al cancelar el grupo.'; msgEl.className = 'modal-msg error';
+    }
+  }).catch(function() {
+    msgEl.textContent = 'Error de conexión.'; msgEl.className = 'modal-msg error';
+  });
+}
+
 // ── HELPERS ──
 function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
   var mensaje='Hola, te informo que el grupo '+idGrupo+' tiene '+inscritos+' alumno(s) activo(s) y sera fusionado. Por favor gestiona el cambio de: '+listaAlumnos;
@@ -1936,6 +1984,8 @@ function abrirModalAlumnosGrupo(idGrupo) {
   var grupo = estado.grupos.find(function(g){ return g.id === idGrupo; });
   if (!grupo) return;
 
+  estado.grupoCancelarEnModal = idGrupo;
+
   var alumnos = estado.todosAlumnos.filter(function(a){ return a.idGrupo === idGrupo; });
 
   // Header del modal
@@ -1995,10 +2045,14 @@ function abrirModalAlumnosGrupo(idGrupo) {
   }
 
   document.getElementById('modal-alumnos-grupo').classList.add('abierto');
+
+  // El botón de cancelar grupo solo se muestra si el grupo está vacío
+  var btnCancelar = document.getElementById('btn-cancelar-grupo-modal');
+  btnCancelar.style.display = alumnos.length ? 'none' : 'inline-flex';
 }
 
 function cerrarSesion() {
-  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:'',fichaAlumnoEnModal:''};
+  estado={idCE:'',nombreCE:'',grupos:[],asistentes:[],sinAsistente:[],todosAlumnos:[],alertasFusion:[],grupoEnModal:'',alumnoEnModal:'',grupoCancelarEnModal:'',asisEvalEnModal:'',evalActitud:0,evalServicio:0,evaluaciones:{},alumnoEstatusEnModal:'',estatusSeleccionado:'',whatsappAlumnoEnModal:'',emailAlumnoEnModal:'',fichaAlumnoEnModal:''};
   document.getElementById('login-id').value=''; document.getElementById('login-clave').value='';
   document.getElementById('pantalla-panel').style.display='none'; document.getElementById('pantalla-login').style.display='flex';
 }
@@ -2139,8 +2193,9 @@ function confirmarCambioEstatus() {
         <tbody id="modal-grupo-alumnos"></tbody>
       </table>
     </div>
-    <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;justify-content:flex-end">
-      <button class="btn btn-outline" onclick="cerrarModal('modal-alumnos-grupo')">Cerrar</button>
+    <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;justify-content:space-between;align-items:center">
+      <button class="btn btn-rojo" id="btn-cancelar-grupo-modal" onclick="confirmarCancelarGrupo()" style="display:none">🚫 Cancelar grupo</button>
+      <button class="btn btn-outline" onclick="cerrarModal('modal-alumnos-grupo')" style="margin-left:auto">Cerrar</button>
     </div>
   </div>
 </div>
