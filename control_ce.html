@@ -586,7 +586,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <div id="sec-alertas" class="seccion">
       <div class="card">
         <div class="card-header"><div><div class="card-titulo">Grupos candidatos a fusión</div><div class="card-sub">Grupos activos (ya iniciados) con menos de 5 alumnos inscritos</div></div></div>
-        <div class="fusion-info"><span class="fi-icono">ℹ️</span><div><strong>¿Cómo funciona la fusión?</strong>Avisa al asistente CE responsable del grupo para que gestione el cambio de cada alumno. Cuando el grupo llegue a 0 alumnos, haz clic en <strong>"Notificar al Coord. IT"</strong> para que se dé de baja el grupo.</div></div>
+        <div class="fusion-info"><span class="fi-icono">ℹ️</span><div><strong>¿Cómo funciona la fusión?</strong>Avisa al asistente CE responsable del grupo para que gestione el cambio de cada alumno. Cuando el grupo llegue a 0 alumnos, ábrelo y haz clic en <strong>"Cancelar grupo"</strong> — tú mismo, como Coordinador de Control Escolar, das de baja el grupo directamente en el sistema.</div></div>
         <div class="tabla-wrap">
           <table>
             <thead><tr><th>Grupo</th><th>Nivel</th><th>Nombre</th><th>Horario</th><th>Inicio</th><th>Inscritos</th><th>Asistente CE</th><th>Acciones</th></tr></thead>
@@ -600,6 +600,15 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <table>
             <thead><tr><th>Grupo</th><th>Nivel</th><th>Nombre</th><th>Horario</th><th>Inicio</th><th>Maestro</th><th>Asistente CE</th><th>Acción</th></tr></thead>
             <tbody id="tbody-cancelables"><tr><td colspan="8" class="cargando">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><div class="card-titulo">Grupos cancelados</div><div class="card-sub">Historial de grupos que ya cambiaron a estado "Cancelado" — dejaron de estar disponibles</div></div></div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Grupo</th><th>Nivel</th><th>Nombre</th><th>Horario</th><th>Inicio</th><th>Maestro</th><th>Asistente CE</th></tr></thead>
+            <tbody id="tbody-cancelados"><tr><td colspan="7" class="cargando">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -961,7 +970,10 @@ function renderResumen() {
 
 // ── RENDER GRUPOS ──
 function renderGrupos(filtro) {
-  var lista = estado.grupos;
+  // Los grupos Cancelado ya no se muestran aquí -- tienen su propia sección
+  // en la pestaña Alertas ("Grupos cancelados") para no mezclarse con los
+  // grupos activos.
+  var lista = estado.grupos.filter(function(g){ return g.estado !== 'Cancelado'; });
   if (filtro) {
     var f = filtro.toLowerCase();
     lista = lista.filter(function(g) {
@@ -982,8 +994,8 @@ function renderGrupos(filtro) {
     var chipAsi = g.idAsistente
       ? '<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>'
       : '<span class="chip chip-naranja">Sin asignar</span>';
-    var btnWA = inscritos===0
-      ? ' <button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+escJs(g.id)+'\')">Notificar al Coord. IT</button>'
+    var btnCancelar = inscritos===0
+      ? ' <button class="btn btn-rojo btn-sm" onclick="event.stopPropagation();abrirCancelarGrupoDesdeTabla(\''+escJs(g.id)+'\')">🚫 Cancelar grupo</button>'
       : '';
     var colorNombre = nombreColor(g.nombre);
     return '<tr style="cursor:pointer" onclick="abrirModalAlumnosGrupo(\''+escJs(g.id)+'\')" title="Ver alumnos del grupo">'+
@@ -995,7 +1007,7 @@ function renderGrupos(filtro) {
       '<td><strong>'+esc(g.inscritos)+'</strong> / '+esc(g.cupoMax)+'</td>'+
       '<td>'+chipEstado+'</td>'+
       '<td>'+chipAsi+'</td>'+
-      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnWA+'</td>'+
+      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnCancelar+'</td>'+
     '</tr>';
   }).join('');
 }
@@ -1296,7 +1308,26 @@ function renderAlertas() {
         '<td>'+esc(g.horario)+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
         '<td><span class="chip chip-gris">'+esc(g.idMaestro||'—')+'</span></td>'+
         '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
-        '<td><button class="btn btn-sm" style="background:#25D366;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer" onclick="abrirWhatsCoordIT(\''+escJs(g.id)+'\')">Notificar al Coord. IT</button></td>'+
+        '<td><button class="btn btn-rojo btn-sm" onclick="abrirCancelarGrupoDesdeTabla(\''+escJs(g.id)+'\')">🚫 Cancelar grupo</button></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  // Cancelados -- historial informativo, ya no aparecen en Mis Grupos
+  var tbodyCd = document.getElementById('tbody-cancelados');
+  var cancelados = estado.grupos.filter(function(g){return g.estado==='Cancelado';});
+  if (!cancelados.length) {
+    tbodyCd.innerHTML='<tr><td colspan="7" class="vacio">Sin grupos cancelados</td></tr>';
+  } else {
+    tbodyCd.innerHTML = cancelados.map(function(g) {
+      var colorNombre = nombreColor(g.nombre);
+      return '<tr>'+
+        '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
+        '<td>'+esc(g.nivel)+'</td>'+
+        '<td><span style="'+colorNombre+'">'+esc(g.nombre)+'</span></td>'+
+        '<td>'+esc(g.horario)+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
+        '<td><span class="chip chip-gris">'+esc(g.idMaestro||'—')+'</span></td>'+
+        '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
       '</tr>';
     }).join('');
   }
@@ -1757,6 +1788,13 @@ function ejecutarCancelarGrupo() {
   });
 }
 
+// Dispara el mismo flujo de cancelación pero desde una fila de tabla
+// (Mis Grupos / Alertas), sin necesidad de abrir primero el modal de detalle.
+function abrirCancelarGrupoDesdeTabla(idGrupo) {
+  estado.grupoCancelarEnModal = idGrupo;
+  confirmarCancelarGrupo();
+}
+
 // ── HELPERS ──
 function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
   var mensaje='Hola, te informo que el grupo '+idGrupo+' tiene '+inscritos+' alumno(s) activo(s) y sera fusionado. Por favor gestiona el cambio de: '+listaAlumnos;
@@ -1965,18 +2003,6 @@ function limpiarFormAsistente() {
   ['na-nombre','na-whatsapp','na-email','na-clave','na-nomina','na-banco','na-info-bancaria','na-foto'].forEach(function(id){document.getElementById(id).value='';});
 }
 
-function abrirWhatsCoordIT(idGrupo) {
-  var btn=event.target, originalText=btn.textContent;
-  btn.textContent='Cargando...'; btn.disabled=true;
-  fetch(APPS_SCRIPT_URL+'?action=getCoordITWhats').then(function(r){return r.json();}).then(function(data) {
-    btn.textContent=originalText; btn.disabled=false;
-    if (data.whatsapp) {
-      var phone=data.whatsapp.replace(/\D/g,'');
-      var mensaje='Hola '+data.nombre+', el grupo '+idGrupo+' ha llegado a 0 alumnos. Por favor dar de baja el grupo en el sistema.';
-      window.open('https://wa.me/'+cleanWA(phone)+'?text='+encodeURIComponent(mensaje),'_blank');
-    } else { alert('No se encontró WhatsApp del Coordinador IT'); }
-  }).catch(function(err){ btn.textContent=originalText; btn.disabled=false; alert('Error: '+err.message); });
-}
 
 
 // ── MODAL ALUMNOS DEL GRUPO ──────────────────────────────────────────
