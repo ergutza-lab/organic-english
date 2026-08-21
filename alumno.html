@@ -6761,10 +6761,20 @@
     inputs.forEach(function (input) {
       // data-correcta puede traer varias opciones validas separadas por "|"
       // (ej. cuando cualquier palabra del recuadro encaja gramaticalmente).
+      // IMPORTANTE: se normalizan TODAS las variantes de apostrofe (el recto
+      // ' que se usa al escribir el codigo, y los curvos ' y ' que iOS/iPadOS
+      // insertan automaticamente al escribir en el teclado) a un solo
+      // caracter antes de comparar -- si no, "What's" (con apostrofe curvo,
+      // como lo escribe el iPad) nunca coincidia con "what's" (con apostrofe
+      // recto, como esta guardado en el codigo), aunque el alumno hubiera
+      // contestado perfectamente bien.
+      function normalizarApostrofes(s) {
+        return s.replace(/[\u2018\u2019\u02BC\u00B4`]/g, "'");
+      }
       var opciones = (input.dataset.correcta || '').split('|').map(function (s) {
-        return s.trim().toLowerCase().replace(/[.!?]/g, '');
+        return normalizarApostrofes(s.trim().toLowerCase().replace(/[.!?]/g, ''));
       });
-      var valor = input.value.trim().toLowerCase().replace(/[.!?]/g, '');
+      var valor = normalizarApostrofes(input.value.trim().toLowerCase().replace(/[.!?]/g, ''));
       var icono = document.getElementById('resultado-' + leccionKey + '-' + tipo + '-' + input.dataset.idx);
       if (!icono) return;
       if (valor && opciones.indexOf(valor) !== -1) {
