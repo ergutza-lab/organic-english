@@ -1076,16 +1076,21 @@ function renderAlertas(){
   cont.innerHTML=listaFiltrada.map(a=>{
     const fechaLimite = a.fecha_limite || '';
     const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    // El recordatorio siempre debe reflejar el periodo de la SEMANA QUE ENTRA (próximo Lunes a Jueves),
-    // sin importar qué día de la semana se esté enviando el mensaje.
+    // El recordatorio debe reflejar la semana de clases que está pendiente de pago:
+    // si se envía de Lunes a Jueves, esa semana YA está en curso y es la que se
+    // muestra (Lunes de HOY a Jueves de HOY). Solo si se envía Viernes/Sábado/
+    // Domingo (la semana de clases ya terminó) se salta a la semana siguiente.
     var hoy = new Date();
     var dow = hoy.getDay()===0 ? 7 : hoy.getDay(); // Lunes=1 ... Domingo=7
-    var diasHastaProximoLunes = 8 - dow; // si hoy es Lunes(1) -> 7 días; si es Domingo(7) -> 1 día
-    var proximoLunes = new Date(hoy);
-    proximoLunes.setDate(hoy.getDate() + diasHastaProximoLunes);
-    var proximoJueves = new Date(proximoLunes);
-    proximoJueves.setDate(proximoLunes.getDate() + 3);
-    var periodoTexto = proximoLunes.getDate()+' al '+proximoJueves.getDate()+' de '+meses[proximoJueves.getMonth()];
+    var lunesSemana = new Date(hoy);
+    if (dow <= 4) {
+      lunesSemana.setDate(hoy.getDate() - (dow - 1)); // retrocede al Lunes de esta semana
+    } else {
+      lunesSemana.setDate(hoy.getDate() + (8 - dow)); // avanza al Lunes de la próxima semana
+    }
+    var juevesSemana = new Date(lunesSemana);
+    juevesSemana.setDate(lunesSemana.getDate() + 3);
+    var periodoTexto = lunesSemana.getDate()+' al '+juevesSemana.getDate()+' de '+meses[juevesSemana.getMonth()];
     const fechaLimitePago = a.fecha_limite_pago || '';
     const msg = encodeURIComponent(`Hola, ${a.nombre} 😊
 
