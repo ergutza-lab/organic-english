@@ -416,7 +416,13 @@ var _linksVideo = {1:{},2:{}};
         console.log('DATOS MAESTRO:', JSON.stringify(data));
         if (data.success) {
           panelData=data;
-          renderGrupos(data.grupos);
+          // Ocultar grupos cancelados: al maestro ya no le sirve verlos en
+          // su lista ni poder abrirlos por accidente desde otras vistas.
+          panelData.grupos = (panelData.grupos || []).filter(function(g){
+            var estado = String(g.estado || g.Estado || g.status || '').trim().toLowerCase();
+            return estado !== 'cancelado';
+          });
+          renderGrupos(panelData.grupos);
           cargarJustificantesFalta();
          if (data.fotoMaestro) {
 setTimeout(function(){
