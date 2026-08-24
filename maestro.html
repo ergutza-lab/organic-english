@@ -339,7 +339,11 @@
           <div class="bloque-btn active" id="tipoBtn1" onclick="selTipoChallenge('Mini')">🌤 Mini Challenge (sem 4)</div>
           <div class="bloque-btn"        id="tipoBtn2" onclick="selTipoChallenge('Gran')">🌟 Grand Challenge (sem 8)</div>
         </div>
-        <p style="color:var(--gris);font-size:13px;margin-bottom:16px;">Escribe el feedback personalizado para cada alumno y marca si completó el challenge.</p>
+        <div class="bloque-sel" id="selectorBloqueChallenge" style="margin-top:8px;">
+          <div class="bloque-btn active" id="bloqueChBtn1" onclick="selBloqueChallenge(1)">📘 Bloque 1</div>
+          <div class="bloque-btn"        id="bloqueChBtn2" onclick="selBloqueChallenge(2)">📗 Bloque 2</div>
+        </div>
+        <p style="color:var(--gris);font-size:13px;margin:12px 0 16px 0;">Escribe el feedback personalizado para cada alumno y marca si completó el challenge. Elige arriba de qué bloque estás calificando.</p>
         <div id="listaChallenges"></div>
         </div>
 
@@ -362,7 +366,7 @@
   var panelData   = null;
   var grupoActual = null;
   var bloqueActualChallenge = 1;
-var _linksVideo = {};
+var _linksVideo = {1:{},2:{}};
   var modalAbierto = false;
   var fechasRegistradas = [];
   var clasesPorFechaActual = {}; // fecha -> [numeros de clase ya registrados] (para grupos sabatinos)
@@ -793,10 +797,16 @@ function actualizarEstadoFecha(fechaStr) {
     if (tab==='Mapa')      { grupoActual._mapaData=null; cargarMapas(); }
     if (tab==='Challenge') {
       var bw = calcularBloqueySemana();
-      fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque='+bw.bloque, {redirect:'follow'})
-        .then(function(r){return r.json();})
-        .then(function(d){ _linksVideo = d.links || {}; renderChallenge(); })
-        .catch(function(){ renderChallenge(); });
+      bloqueChallengeSel = bw.bloque; // por defecto, el bloque en el que va el grupo hoy
+      document.getElementById('bloqueChBtn1').classList.toggle('active', bloqueChallengeSel===1);
+      document.getElementById('bloqueChBtn2').classList.toggle('active', bloqueChallengeSel===2);
+      Promise.all([
+        fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=1', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
+        fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=2', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};})
+      ]).then(function(res){
+        _linksVideo = { 1: res[0].links||{}, 2: res[1].links||{} };
+        renderChallenge();
+      });
     }
     if (tab==='Material')  renderMaterial();
   }
@@ -1346,15 +1356,28 @@ function renderMapas(resultados) {
       +'<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
       +'</svg>';
 
-    var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
-    var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
-    var miniNoAprobo  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado===false; });
-    var grandNoAprobo = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado===false; });
+    var bloqueActual = r.bloque || 1;
+    // Solo cuenta como "aprobado/pendiente" del bloque ACTUAL -- asi el
+    // area principal de Mini/Grand Challenge queda lista/vacia otra vez
+    // cuando el grupo pasa a Bloque 2, sin perder el historial del
+    // Bloque 1 (se muestra aparte, en chico, junto a la joya).
+    var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado; });
+    var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===bloqueActual && c.aprobado; });
+    var miniNoAprobo  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado===false; });
+    var grandNoAprobo = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===bloqueActual && c.aprobado===false; });
+
+    // Historial del Bloque 1 (solo tiene sentido mostrarlo si el grupo ya
+    // esta en Bloque 2 -- si sigue en Bloque 1, "actual" y "B1" son lo mismo).
+    var tieneMiniB1  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===1 && c.aprobado; });
+    var tieneGrandB1 = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===1 && c.aprobado; });
+    var miniNoAproboB1  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===1 && c.aprobado===false; });
+    var grandNoAproboB1 = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===1 && c.aprobado===false; });
     
-    function medalSVG(lit, noAprobo){
+    function medalSVG(lit, noAprobo, w, h){
+      w = w||38; h = h||52;
       var rc=lit?'#facc15':'#334155',mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
       var gl=lit?'filter:drop-shadow(0 0 5px #facc15);':noAprobo?'filter:drop-shadow(0 0 5px #ef4444);':'';
-      return '<svg width="38" height="52" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+      return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
         +'<rect x="17" y="2" width="10" height="22" rx="2" fill="'+rc+'"/>'
         +'<rect x="12" y="0" width="20" height="5" rx="2" fill="'+mc+'"/>'
         +'<circle cx="22" cy="44" r="16" fill="'+mc+'"/>'
@@ -1364,10 +1387,11 @@ function renderMapas(resultados) {
         +'</svg>';
     }
 
-    function trophySVG(lit, noAprobo){
+    function trophySVG(lit, noAprobo, w, h){
+      w = w||42; h = h||52;
       var cc=lit?'#fbbf24':'#334155',cd=lit?'#d97706':'#1e293b',sc=lit?'#fff':'#475569';
       var gl=lit?'filter:drop-shadow(0 0 6px #fbbf24);':noAprobo?'filter:drop-shadow(0 0 6px #ef4444);':'';
-      return '<svg width="42" height="52" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
+      return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="'+gl+'">'
         +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
         +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="'+cc+'" stroke-width="5" stroke-linecap="round"/>'
         +'<path d="M12,8 L38,8 Q38,36 25,42 Q12,36 12,8 Z" fill="'+cc+'"/>'
@@ -1398,6 +1422,15 @@ function renderMapas(resultados) {
           +'<div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+r.estado+'</div>'
           +'<div style="font-size:11px;color:'+r.estadoColor+';">'+gemaLabel+'</div>'
         +'</div>'
+        +(bloqueActual===2
+          ? '<div style="margin-left:auto;display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">'
+            +'<div style="font-size:8px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Bloque 1</div>'
+            +'<div style="display:flex;gap:2px;" title="Mini Challenge B1: '+(tieneMiniB1?'Aprobado':miniNoAproboB1?'No aprobó':'Pendiente')+' · Grand Challenge B1: '+(tieneGrandB1?'Aprobado':grandNoAproboB1?'No aprobó':'Pendiente')+'">'
+              +medalSVG(tieneMiniB1, miniNoAproboB1, 20, 27)
+              +trophySVG(tieneGrandB1, grandNoAproboB1, 22, 27)
+            +'</div>'
+          +'</div>'
+          : '')
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
         +'<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;text-align:center;">'
@@ -1418,23 +1451,23 @@ function renderMapas(resultados) {
       +'<div style="display:flex;gap:8px;margin-bottom:10px;">'
         +'<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>'
-          +'<div style="font-size:9px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;">Mini Challenge</div>'
+          +'<div style="font-size:9px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;">Mini Challenge · B'+bloqueActual+'</div>'
          +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#1e293b')+'">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
-          +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Mini';})&&r.challenges.find(function(c){return c.tipo==='Mini';}).feedback
+          +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;})&&r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback
             ?'<div style="margin-top:6px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px;text-align:left;">'
               +'<div style="font-size:8px;font-weight:700;color:#facc15;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
-              +'<div style="font-size:10px;color:#cbd5e1;line-height:1.4;">'+r.challenges.find(function(c){return c.tipo==='Mini';}).feedback+'</div>'
+              +'<div style="font-size:10px;color:#cbd5e1;line-height:1.4;">'+r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
               +'</div>'
             :'')
         +'</div>'
         +'<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneGrand?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>'
-          +'<div style="font-size:9px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;">Grand Challenge</div>'
+          +'<div style="font-size:9px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;">Grand Challenge · B'+bloqueActual+'</div>'
          +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#1e293b')+'">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
-          +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';})&&r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';}).feedback
+          +(r.challenges&&r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;})&&r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback
             ?'<div style="margin-top:6px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px;text-align:left;">'
               +'<div style="font-size:8px;font-weight:700;color:#f97316;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
-              +'<div style="font-size:10px;color:#cbd5e1;line-height:1.4;">'+r.challenges.find(function(c){return c.tipo==='Gran'||c.tipo==='Grand';}).feedback+'</div>'
+              +'<div style="font-size:10px;color:#cbd5e1;line-height:1.4;">'+r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
               +'</div>'
             :'')
         +'</div>'
@@ -1456,11 +1489,19 @@ function renderMapas(resultados) {
 
  // ── MASTER CHALLENGE ───────────────────────────────────────────────
   var tipoChallenge = 'Mini';
+  var bloqueChallengeSel = 1; // que bloque se esta calificando ahora mismo en la pestaña Challenges
 
   function selTipoChallenge(tipo) {
     tipoChallenge = tipo;
     document.getElementById('tipoBtn1').classList.toggle('active', tipo === 'Mini');
     document.getElementById('tipoBtn2').classList.toggle('active', tipo === 'Gran');
+  }
+
+  function selBloqueChallenge(bloque) {
+    bloqueChallengeSel = bloque;
+    document.getElementById('bloqueChBtn1').classList.toggle('active', bloque === 1);
+    document.getElementById('bloqueChBtn2').classList.toggle('active', bloque === 2);
+    renderChallenge(); // solo cambia que bloque se va a guardar; los links de ambos bloques ya estan cargados
   }
 
   function renderChallenge() {
@@ -1480,16 +1521,22 @@ function renderMapas(resultados) {
 '</div>'+
         '<textarea class="challenge-feedback" id="fb-'+a.id+'" placeholder="Escribe sus logros, avances y áreas de oportunidad..."></textarea>'+
 (function(){
-  var lv = _linksVideo[a.id] || {};
-  var linkMini  = lv.mini  || '';
-  var linkGrand = lv.grand || '';
+  var lv1 = _linksVideo[1] && _linksVideo[1][a.id] || {};
+  var lv2 = _linksVideo[2] && _linksVideo[2][a.id] || {};
+  var linkMini1  = lv1.mini  || '';
+  var linkGrand1 = lv1.grand || '';
+  var linkMini2  = lv2.mini  || '';
+  var linkGrand2 = lv2.grand || '';
   var html = '<div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;">';
-  if (linkMini)  html += '<a href="'+linkMini+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Mini Challenge</a>';
-  if (linkGrand) html += '<a href="'+linkGrand+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Grand Challenge</a>';
-  if (!linkMini && !linkGrand) html += '<span style="font-size:11px;color:#475569;">Sin video subido</span>';
+  if (linkMini1)  html += '<a href="'+linkMini1+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Mini Challenge · Bloque 1</a>';
+  if (linkMini2)  html += '<a href="'+linkMini2+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Mini Challenge · Bloque 2</a>';
+  if (linkGrand1) html += '<a href="'+linkGrand1+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Grand Challenge · Bloque 1</a>';
+  if (linkGrand2) html += '<a href="'+linkGrand2+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">&#9654; Ver Grand Challenge · Bloque 2</a>';
+  if (!linkMini1 && !linkMini2 && !linkGrand1 && !linkGrand2) html += '<span style="font-size:11px;color:#475569;">Sin video subido</span>';
   html += '</div>';
   return html;
 })()+
+       '<div style="font-size:10px;font-weight:700;color:'+(bloqueChallengeSel===1?'#93c5fd':'#86efac')+';text-transform:uppercase;margin:2px 0 8px 0;">Calificando · Bloque '+bloqueChallengeSel+'</div>'+
        '<div class="challenge-aprobado">'+
           '<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Aprobó</div>'+
           '<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 No Aprobó</div>'+
@@ -1502,7 +1549,6 @@ function renderMapas(resultados) {
 
 function guardarChallengeAlumno(idAlumno) {
   var fecha = new Date().toISOString().split('T')[0];
-  var bw    = calcularBloqueySemana();
   var aprobado = document.getElementById('apr-si-'+idAlumno).classList.contains('sel-si');
   var noRealizo = document.getElementById('apr-nr-'+idAlumno).classList.contains('sel-nr');
   var data = [{
@@ -1512,12 +1558,12 @@ function guardarChallengeAlumno(idAlumno) {
     noRealizo: noRealizo
   }];
   fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+
-    '&bloque='+bw.bloque+'&fecha='+fecha+
+    '&bloque='+bloqueChallengeSel+'&fecha='+fecha+
     '&tipo='+encodeURIComponent(tipoChallenge)+
     '&alumnos='+encodeURIComponent(JSON.stringify(data)), {redirect:'follow'})
     .then(r=>r.json())
     .then(d=>{
-      if (d.success) mostrarToast('Challenge guardado para '+idAlumno,'success');
+      if (d.success) mostrarToast('Challenge guardado para '+idAlumno+' (Bloque '+bloqueChallengeSel+')','success');
       else mostrarToast('Error: '+d.error,'error');
     })
     .catch(()=>mostrarToast('Error de conexión','error'));
@@ -1532,19 +1578,18 @@ document.getElementById('apr-nr-'+idAlumno).className='apr-btn'+(estado==='nr'?'
   function guardarChallenge() {
     var alumnos = grupoActual.alumnos||[];
     var fecha   = new Date().toISOString().split('T')[0];
-    var bw      = calcularBloqueySemana();
     var data    = alumnos.map(function(a){
      var aprobado = document.getElementById('apr-si-'+a.id).classList.contains('sel-si');
 var noRealizo = document.getElementById('apr-nr-'+a.id).classList.contains('sel-nr');
 return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprobado:aprobado, noRealizo:noRealizo};
     });
     fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+
-      '&bloque='+bw.bloque+'&fecha='+fecha+
+      '&bloque='+bloqueChallengeSel+'&fecha='+fecha+
       '&tipo='+encodeURIComponent(tipoChallenge)+
       '&alumnos='+encodeURIComponent(JSON.stringify(data)))
       .then(r=>r.json())
       .then(d=>{
-        if (d.success) mostrarToast(tipoChallenge+' Challenge guardado','success');
+        if (d.success) mostrarToast(tipoChallenge+' Challenge guardado (Bloque '+bloqueChallengeSel+')','success');
         else mostrarToast('Error: '+d.error,'error');
       })
       .catch(()=>mostrarToast('Error de conexión','error'));
