@@ -1474,13 +1474,17 @@ async function ejecutarCambioGrupo(){
   document.getElementById('modal-confirm-cambio').classList.remove('open');
   const btn=document.getElementById('btn-confirmar-cambio');
   btn.textContent='Procesando…';btn.disabled=true;
+  // Se capturan ANTES de disparar el reset del selector (seleccionarAlumnoCambio
+  // limpia alumnoSeleccionadoCambio/grupoSeleccionadoCambio y oculta la caja de éxito).
+  const alumnoParaNotificar=alumnoSeleccionadoCambio;
+  const grupoDestinoParaNotificar=grupoSeleccionadoCambio;
   try{
     const resp=await fetch(`${APPS_SCRIPT}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`);
     const data=await resp.json();
     if(data.status==='ok'){
       mostrarToast('Cambio de grupo realizado correctamente','success');
-      mostrarBotonNotificarCambio(alumnoSeleccionadoCambio, grupoSeleccionadoCambio);
       document.getElementById('select-alumno-cambio').value='';seleccionarAlumnoCambio();await cargarDatos();
+      mostrarBotonNotificarCambio(alumnoParaNotificar, grupoDestinoParaNotificar);
     }
     else mostrarToast(data.mensaje||'Error al realizar el cambio.','error');
   }catch(e){mostrarToast('Error de conexión.','error');}
