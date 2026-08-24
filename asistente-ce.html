@@ -436,6 +436,11 @@
         </div>
         <button type="button" id="btn-compartir-cambio-wa" onclick="compartirGruposCambioWhatsApp()" disabled style="width:100%;margin-bottom:10px;background:#25D366;color:#fff;border:none;border-radius:var(--r-md);padding:11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">📱 Compartir grupos por WhatsApp</button>
         <button class="btn-confirmar" id="btn-confirmar-cambio" onclick="confirmarCambioGrupo()" disabled>Confirmar Cambio</button>
+
+        <div id="cambio-exito-box" style="display:none;margin-top:14px;padding:12px 14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--r-md);">
+          <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px;">✅ Cambio realizado — avisa al alumno de su nuevo grupo</div>
+          <a id="btn-notificar-cambio-wa" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#25D366;color:#fff;border:none;border-radius:var(--r-md);padding:11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-sizing:border-box;">📱 Notificar al alumno por WhatsApp</a>
+        </div>
       </div>
     </div>
   </div>
@@ -1316,6 +1321,7 @@ function seleccionarAlumnoCambio(){
   const opt=select.options[select.selectedIndex];
   const id=select.value;
   const infoBox=document.getElementById('alumno-cambio-info');
+  document.getElementById('cambio-exito-box').style.display='none';
   if(!id){infoBox.style.display='none';document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';document.getElementById('btn-confirmar-cambio').disabled=true;alumnoSeleccionadoCambio=null;gruposCompartirCambio=[];actualizarBtnCompartirCambio();return;}
   const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel,nombreGrupo=opt.dataset.nombre,whatsapp=opt.dataset.whatsapp;
   alumnoSeleccionadoCambio={id,nombre:opt.text.split('—')[2]?.trim()||opt.text,grupo_actual:grupoActual,nivel,nombreGrupo,whatsapp};
@@ -1471,10 +1477,30 @@ async function ejecutarCambioGrupo(){
   try{
     const resp=await fetch(`${APPS_SCRIPT}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`);
     const data=await resp.json();
-    if(data.status==='ok'){mostrarToast('Cambio de grupo realizado correctamente','success');document.getElementById('select-alumno-cambio').value='';seleccionarAlumnoCambio();await cargarDatos();}
+    if(data.status==='ok'){
+      mostrarToast('Cambio de grupo realizado correctamente','success');
+      mostrarBotonNotificarCambio(alumnoSeleccionadoCambio, grupoSeleccionadoCambio);
+      document.getElementById('select-alumno-cambio').value='';seleccionarAlumnoCambio();await cargarDatos();
+    }
     else mostrarToast(data.mensaje||'Error al realizar el cambio.','error');
   }catch(e){mostrarToast('Error de conexión.','error');}
   finally{btn.textContent='Confirmar Cambio';btn.disabled=false;}
+}
+
+function mostrarBotonNotificarCambio(alumno, idGrupoDestino){
+  const box=document.getElementById('cambio-exito-box');
+  const enlace=document.getElementById('btn-notificar-cambio-wa');
+  if(!alumno?.whatsapp){ box.style.display='none'; return; }
+
+  const grupoDestino=(datosPanel?.todos_grupos||[]).find(g=>g.id===idGrupoDestino);
+  const horario=grupoDestino?.horario||'—';
+  const nombreAsistente=asistente?.nombre||'';
+  const whatsAsistente=asistente?.whatsapp||'';
+
+  const mensaje=`Hola ${alumno.nombre}👋🏻\nTe informamos que tu solicitud de cambio de grupo se ha realizado exitosamente ✅\n\nLa información de tu nuevo grupo es:\nId_Grupo: ${idGrupoDestino}\nHorario: ${horario}\n\nAsistente de Control Escolar:\n${nombreAsistente}\n${whatsAsistente}\n\nCualquier duda favor de contactar a tu ACE🙏🏻`;
+
+  enlace.href=`https://wa.me/${cleanWA(alumno.whatsapp)}?text=${encodeURIComponent(mensaje)}`;
+  box.style.display='block';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
