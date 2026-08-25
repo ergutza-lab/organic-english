@@ -407,13 +407,13 @@
           <table class="reporte-tabla">
             <thead>
               <tr>
-                <th>ID</th><th>Alumno</th><th>Asistencia</th>
+                <th>ID</th><th>Correo</th><th>Alumno</th><th>Asistencia</th>
                 <th>🔴</th><th>🟡</th><th>🟢</th><th>🔵</th>
                 <th>Verde+Azul</th><th>Mini ⭐</th><th>Grand 🏆</th>
                 <th>% Global</th><th>Estado</th>
               </tr>
             </thead>
-            <tbody id="reporteBody"><tr><td colspan="12" class="empty-state">Selecciona un grupo</td></tr></tbody>
+            <tbody id="reporteBody"><tr><td colspan="13" class="empty-state">Selecciona un grupo</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1418,7 +1418,7 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         var mini=r.challenges&&r.challenges.some(function(c){return c.tipo==='Mini'&&c.aprobado;});
         var grand=r.challenges&&r.challenges.some(function(c){return(c.tipo==='Grand'||c.tipo==='Gran')&&c.aprobado;});
         html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">'+
-          '<td style="padding:8px;"><div style="font-size:12px;font-weight:600;color:var(--text);">'+r.alumno.nombre+'</div><div style="font-size:10px;color:var(--muted);">'+r.alumno.id+'</div></td>'+
+          '<td style="padding:8px;"><div style="font-size:12px;font-weight:600;color:var(--text);">'+r.alumno.nombre+'</div><div style="font-size:10px;color:var(--muted);">'+r.alumno.id+(r.alumno.email?' · '+r.alumno.email:'')+'</div></td>'+
           '<td style="padding:8px;text-align:center;"><span style="font-size:14px;font-weight:700;color:'+gc+';">'+pc+'%</span></td>'+
           '<td style="padding:8px;text-align:center;color:'+(r.asistencia>=80?'#4ade80':r.asistencia>=75?'#facc15':'#f87171')+';">'+r.asistencia+'%</td>'+
           '<td style="padding:8px;text-align:center;color:#ef4444;">'+gp(1)+'%</td>'+
@@ -1741,13 +1741,13 @@ function cargarReporteGrupo(){
   var idGrupo=document.getElementById('reporteGrupoSelect').value;
   if(!idGrupo) return;
   var tbody=document.getElementById('reporteBody');
-  tbody.innerHTML='<tr><td colspan="12" class="empty-state">Cargando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="13" class="empty-state">Cargando...</td></tr>';
 
   fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
     .then(r=>r.json())
     .then(data=>{
       if(!data.success||!data.resultados||!data.resultados.length){
-        tbody.innerHTML='<tr><td colspan="12" class="empty-state">Sin registros para este grupo.</td></tr>';return;
+        tbody.innerHTML='<tr><td colspan="13" class="empty-state">Sin registros para este grupo.</td></tr>';return;
       }
       // Ordenar por % Global de mayor a menor
       data.resultados.sort(function(a,b){ return (b.porcentajeGlobal||0)-(a.porcentajeGlobal||0); });
@@ -1760,6 +1760,7 @@ function cargarReporteGrupo(){
         var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
         return '<tr>'+
           '<td>'+r.alumno.id+'</td>'+
+          '<td style="font-size:11px;color:var(--muted);">'+(r.alumno.email||'—')+'</td>'+
           '<td style="font-weight:600;color:#60a5fa;cursor:pointer;text-decoration:underline dotted;" onclick="abrirHistorialAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+String(r.alumno.nombre).replace(/'/g,"\\'")+'\')" title="Ver historial completo">'+r.alumno.nombre+'</td>'+
           '<td style="color:'+(r.asistencia>=80?'#4ade80':r.asistencia>=75?'#facc15':'#f87171')+';">'+r.asistencia+'%</td>'+
           '<td style="color:#ef4444;">'+gp(1)+'%</td>'+
@@ -1774,7 +1775,7 @@ function cargarReporteGrupo(){
         '</tr>';
       }).join('');
     })
-    .catch(function(){tbody.innerHTML='<tr><td colspan="12" class="empty-state">Error al cargar.</td></tr>';});
+    .catch(function(){tbody.innerHTML='<tr><td colspan="13" class="empty-state">Error al cargar.</td></tr>';});
 }
 
 function enviarReportePorCorreo(){
@@ -1815,7 +1816,7 @@ function enviarReportePorCorreo(){
 function exportarReporte(){
   var idGrupo=document.getElementById('reporteGrupoSelect').value;
   if(!idGrupo){alert('Selecciona un grupo primero.');return;}
-  var rows=[['ID','Alumno','Asistencia','Rojo','Amarillo','Verde','Azul','Verde+Azul','Mini','Grand','% Global','Estado']];
+  var rows=[['ID','Correo','Alumno','Asistencia','Rojo','Amarillo','Verde','Azul','Verde+Azul','Mini','Grand','% Global','Estado']];
   var tbody=document.getElementById('reporteBody');
   var trs=tbody.querySelectorAll('tr');
   trs.forEach(function(tr){
