@@ -35,6 +35,15 @@
     background-position: center;
     background-attachment: fixed;
   }
+  /* Fondo especial para alumnos de grupos Kids/Kids Jr, aplicado sobre
+     el <body> solo despues del login (mostrarPanel), para no afectar la
+     pantalla de login antes de saber a que grupo pertenece el alumno. */
+  body.kids-panel-fondo {
+    background-image: linear-gradient(rgba(15,23,42,0.35), rgba(15,23,42,0.55)), url('https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FONDO%20KIDS.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
   .screen { display: none; }
   .screen.active { display: block; }
 
@@ -545,7 +554,7 @@
   box-shadow: 0 2px 3px rgba(0,0,0,0.5);
 }
 .post-it-amarillo { background: #fef08a; color: #713f12; }
-.post-it-naranja  { background: #f97316; color: #1e3a8a; }
+.post-it-naranja  { background: #f97316; color: #ffffff; }
 .post-it-morado   { background: #e9d5ff; color: #581c87; }
 .post-it-azul     { background: #bfdbfe; color: #1e3a8a; }
 .post-it-lila     { background: #c4b5fd; color: #4c1d95; }
@@ -620,7 +629,7 @@
 
 .leccion-link {
   color: #fb923c; font-size: 22px; font-weight: 700;
-  padding: 6px 0; cursor: pointer; transition: color 0.15s, transform 0.15s;
+  padding: 4px 0; cursor: pointer; transition: color 0.15s, transform 0.15s; line-height: 1.15;
 }
 .leccion-link:hover { color: #fdba74; transform: translateX(3px); }
 
@@ -638,6 +647,8 @@
 }
 .mision-kids-card:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 12px 24px rgba(0,0,0,0.4); border-color: #f97316; }
 .mision-kids-img { width: 100%; aspect-ratio: 1.4/1; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 8px; }
+.leccion-img-wrap { width: 100%; aspect-ratio: 1.4/1; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+.leccion-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.18); }
 .mision-kids-img-vacia { display: flex; align-items: center; justify-content: center; font-size: 32px; background: rgba(249,115,22,0.12); }
 .mision-kids-num { font-family: 'Luckiest Guy', cursive; font-size: 12px; color: #16a34a; letter-spacing: 0.5px; }
 .mision-kids-titulo { font-size: 11px; color: #1e293b; font-weight: 600; margin-top: 2px; line-height: 1.25; }
@@ -694,10 +705,7 @@
 .col-swap { display: block; }
 
 .mi-clase-grid { display: block; }
-#btnZoom { display: none; }
 @media (min-width: 1000px) {
-  #btnZoomMovil { display: none !important; }
-  #btnZoom { display: inline-flex; }
   .layout-shell { display: flex; gap: 14px; align-items: flex-start; max-width: 1500px; margin: 0 auto; }
   .col-swap { flex: 1.85; min-width: 0; }
   .col-persistente { flex: 1.15; min-width: 0; display: flex; flex-direction: column; }
@@ -827,9 +835,10 @@
          Personal, en la columna 3). -->
     <div class="info-alumno-bar">
       <div class="info-alumno-left">
-        <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="OE" class="logo-header" style="width:220px;height:auto;flex-shrink:0;">
+        <img id="logoHeaderPanel" src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="OE" class="logo-header" style="width:220px;height:auto;flex-shrink:0;">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+            <img id="growieMascotHeader" src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/growie.jpeg" alt="Growie" style="display:none;width:36px;height:36px;border-radius:100px;object-fit:cover;border:2px solid #86efac;flex-shrink:0;">
             <div class="info-alumno-nombre" id="infoNombre" style="margin-bottom:0;">—</div>
             <span class="info-dato-label">Estatus</span><span class="badge-estatus" id="infoEstatus">—</span>
             <span id="seccionActualBadge" style="margin-left:auto;font-size:11px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;padding:5px 10px;border-radius:100px;white-space:nowrap;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;">Mi clase</span>
@@ -846,11 +855,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Boton "Ingresar a mi clase" -- solo visible en movil, justo debajo del nav y antes de Mi Grupo. En escritorio se sigue viendo el de la columna persistente de siempre. -->
-    <a id="btnZoomMovil" href="#" onclick="event.preventDefault();document.getElementById('btnZoom').click();" class="zoom-btn btn-brillo" style="background:#2D8CFF;display:flex;margin:0 0 14px;">
-      <div class="zoom-dot"></div>🎓 Ingresar a mi clase
-    </a>
 
     <div class="layout-shell">
      <div class="col-swap">
@@ -1021,7 +1025,7 @@
             <div id="workbooksDescarga" style="display:flex;flex-direction:column;gap:16px;"></div>
           </div>
           <div style="flex:1;min-width:260px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-            <div id="leccionesGrid" style="display:flex;gap:40px;flex-wrap:wrap;justify-content:center;"></div>
+            <div id="leccionesGrid" style="width:100%;max-height:62vh;overflow-y:auto;padding-right:4px;"></div>
           </div>
         </div>
       </div>
@@ -1042,7 +1046,7 @@
      <div class="col-persistente">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <a id="btnZoom" href="#" target="_blank" class="zoom-btn btn-brillo" style="background:#2D8CFF;flex:1;">
-          <div class="zoom-dot"></div>🎓 Ingresar a mi clase
+          <div class="zoom-dot"></div>Mi clase por Zoom
         </a>
         <a id="btnGrabacion" href="#" target="_blank" class="btn-brillo" style="display:none;flex:1;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">
           🎥 Ver grabación
@@ -1295,14 +1299,14 @@
       <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Proyectos finales (20% de tu calificación)</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:12px;text-align:center;">
-          <div style="font-size:18px;">⭐</div>
-          <div style="font-size:12px;font-weight:700;color:#fbbf24;">Mini Challenge</div>
+          <div style="font-size:18px;" id="iconMiniChallengeInfo">⭐</div>
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;" id="lblMiniChallengeInfo">Mini Challenge</div>
           <div style="font-size:10px;color:#94a3b8;">Semana 4 del bloque</div>
           <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-top:4px;">5%</div>
         </div>
         <div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px;text-align:center;">
-          <div style="font-size:18px;">🏆</div>
-          <div style="font-size:12px;font-weight:700;color:#f97316;">Grand Challenge</div>
+          <div style="font-size:18px;" id="iconGrandChallengeInfo">🏆</div>
+          <div style="font-size:12px;font-weight:700;color:#f97316;" id="lblGrandChallengeInfo">Grand Challenge</div>
           <div style="font-size:10px;color:#94a3b8;">Semana 8 del bloque</div>
           <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-top:4px;">15%</div>
         </div>
@@ -1338,54 +1342,6 @@
   // Para reactivar que el alumno lo haga el mismo, poner en true.
   const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
 
-  // ── PILOTO: sala de clase propia (Jitsi Meet) en vez de Zoom ────────────
-  // Convencion: si el campo "Link de Zoom" de un grupo empieza con
-  // "JITSI:" (por ejemplo "JITSI:oe-grupo-prueba-x7k2"), el alumno entra
-  // a nuestra propia sala en vez de salir a Zoom. El resto del sistema
-  // (grabaciones, etc.) sigue igual, esto solo cambia como se une a la
-  // clase en vivo.
-  function esLinkJitsi(link) {
-    return (link || '').trim().toUpperCase().indexOf('JITSI:') === 0;
-  }
-  function abrirClaseJitsi(idGrupo, nombreUsuario) {
-    var pantalla = document.getElementById('pantallaEntradaClase');
-    var icono    = document.getElementById('entradaClaseIcono');
-    var titulo   = document.getElementById('entradaClaseTitulo');
-    var sub      = document.getElementById('entradaClaseSub');
-
-    pantalla.style.display = 'flex';
-    icono.textContent  = '🔒';
-    titulo.textContent = 'Entrando a tu sala de clase segura';
-    sub.textContent    = 'Verificando que tu maestro ya haya iniciado la clase...';
-
-    fetch(APPS_SCRIPT + '?action=getEstadoClaseJitsi&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.success && data.disponible && data.sala) {
-          icono.textContent  = '✅';
-          titulo.textContent = '¡Todo listo!';
-          sub.textContent    = 'Organic English · Sala de clase verificada';
-          // NOTA: meet.jit.si limita a 5 minutos las llamadas INCRUSTADAS
-          // dentro de una pagina (iframe/API). Por eso se abre en pestaña
-          // nueva -- sigue sin pedir codigo ni cuenta, el alumno entra
-          // igual desde su panel, pero sin ese limite de tiempo.
-          var url = 'https://meet.jit.si/' + encodeURIComponent(data.sala)
-            + '#userInfo.displayName=%22' + encodeURIComponent(nombreUsuario || 'Alumno') + '%22'
-            + '&config.prejoinPageEnabled=false'
-            + '&config.disableDeepLinking=true';
-          window.open(url, '_blank');
-          setTimeout(function () { pantalla.style.display = 'none'; }, 900);
-        } else if (data.esperando) {
-          pantalla.style.display = 'none';
-          alert('Tu maestro ya está por iniciar la clase. Espera unos segundos y vuelve a darle clic.');
-        } else {
-          pantalla.style.display = 'none';
-          alert('Tu maestro aún no ha iniciado la clase. Inténtalo de nuevo en unos momentos.');
-        }
-      })
-      .catch(function () { pantalla.style.display = 'none'; alert('No se pudo comprobar el estado de la clase. Revisa tu conexión e intenta de nuevo.'); });
-  }
-
   function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
   var alumnoData = null;
   var archivoSubida = null;
@@ -1397,7 +1353,14 @@
   // ── INFORMACIÓN BANCARIA ─────────────────────────────────────────
   function abrirInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='flex'; }
   function cerrarInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='none'; }
-  function abrirInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='flex'; }
+  function abrirInfoEvaluacion() {
+    var esKids = !!(alumnoData && alumnoData._esKids);
+    document.getElementById('lblMiniChallengeInfo').textContent  = esKids ? 'Mini Adventure'  : 'Mini Challenge';
+    document.getElementById('lblGrandChallengeInfo').textContent = esKids ? 'Final Adventure' : 'Grand Challenge';
+    document.getElementById('iconMiniChallengeInfo').textContent  = esKids ? '🌿' : '⭐';
+    document.getElementById('iconGrandChallengeInfo').textContent = esKids ? '🌟' : '🏆';
+    document.getElementById('modalInfoEvaluacion').style.display='flex';
+  }
   function cerrarInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='none'; }
 
   // ── LOGIN ────────────────────────────────────────────────────────
@@ -1456,6 +1419,20 @@
     var esGrupoPersonalizado = g && g.tipoHorario === 'personalizado';
     var esKids = !!(g && esNombreGrupoKids(g.nombre));
     alumnoData._esKids = esKids;
+
+    // Vestimenta especial para Kids/Kids Jr: fondo Growie, logo Growie en
+    // vez del logo institucional, y la mascota Growie junto al nombre.
+    document.body.classList.toggle('kids-panel-fondo', esKids);
+    var logoHeader = document.getElementById('logoHeaderPanel');
+    if (logoHeader) {
+      logoHeader.src = esKids
+        ? 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/growie2.webp'
+        : 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png';
+      logoHeader.style.width = esKids ? '90px' : '220px';
+    }
+    var growieMascot = document.getElementById('growieMascotHeader');
+    if (growieMascot) growieMascot.style.display = esKids ? 'inline-block' : 'none';
+
     var esBecado = a && a.estatus === 'Becado';
     alumnoData._esBecado = esBecado;
 
@@ -1528,21 +1505,7 @@
       // Adults/Teens y va directo a sus 32 misiones.
       if (esKids) prepararPracticaKids();
 
-      var btnZoomEl = document.getElementById('btnZoom');
-      var linkZoomActual = g.linkZoom || '';
-      if (esLinkJitsi(linkZoomActual)) {
-        // PILOTO: este grupo usa nuestra propia sala de clase (Jitsi Meet)
-        // en vez de Zoom -- el alumno nunca ve un codigo ni un link externo,
-        // solo le da clic al mismo boton de siempre y la clase se abre aqui.
-        btnZoomEl.href = '#';
-        btnZoomEl.onclick = function (e) {
-          e.preventDefault();
-          abrirClaseJitsi(g.id, alumnoData.alumno.nombre || 'Alumno');
-        };
-      } else {
-        btnZoomEl.href = linkZoomActual || '#';
-        btnZoomEl.onclick = null;
-      }
+      document.getElementById('btnZoom').href             = g.linkZoom || '#';
       if (g.grabacion) {
         var btnGrab = document.getElementById('btnGrabacion');
         btnGrab.href = g.grabacion;
@@ -1603,7 +1566,20 @@
     // del Bloque 1.
     if (bloqueAcademico === 2 && bd > 0) bd += 20;
     bloqueActual = bd;
-   if (!bd) return;
+   if (!bd) {
+      // Semanas que no caen en NINGUN bloque de evaluacion (1, 2, 3 o 5) --
+      // antes esto se salia de la funcion sin nunca ocultar el post-it ni
+      // los botones, dejandolos pegados visibles si habian quedado
+      // visibles de una revision anterior. Ahora se ocultan explicitamente
+      // tambien en este caso.
+      var btnMSinBloque = document.getElementById('btnEvaluarMaestro');
+      var btnCSinBloque = document.getElementById('btnEvaluarCE');
+      var postItSinBloque = document.getElementById('postitEvaluar');
+      if (btnMSinBloque) btnMSinBloque.style.display = 'none';
+      if (btnCSinBloque) btnCSinBloque.style.display = 'none';
+      if (postItSinBloque) postItSinBloque.style.visibility = MODO_DEMO_TODOS_LOS_POSTITS ? 'visible' : 'hidden';
+      return;
+    }
 
     var esSemanaDEval = (semana === 4 || semana === 8);
 
@@ -1758,18 +1734,18 @@
     }
 
     document.getElementById(modalId).innerHTML =
-        '<div style="background:#1e1e2e;border:2px solid #ef4444;border-radius:16px;width:92%;max-width:420px;padding:24px;box-shadow:0 0 40px rgba(239,68,68,0.3);">' +
+        '<div style="background:#1e1e2e;border:2px solid rgba(96,165,250,0.4);border-radius:16px;width:92%;max-width:420px;padding:24px;box-shadow:0 0 40px rgba(96,165,250,0.15);">' +
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">' +
-            '<span style="font-size:28px;">🚨</span>' +
-            '<h3 style="color:#f87171;margin:0;font-size:17px;font-weight:800;">Pago pendiente</h3>' +
+            '<span style="font-size:28px;">🔔</span>' +
+            '<h3 style="color:#93c5fd;margin:0;font-size:17px;font-weight:800;">Recordatorio de pago</h3>' +
           '</div>' +
-          '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:16px;">' +
-            '<p style="color:#fca5a5;font-size:13px;line-height:1.7;margin:0;">' +
-              'Tu colegiatura de esta semana <strong style="color:#f87171;">aún no se ha reflejado</strong> en el sistema.' +
+          '<div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.25);border-radius:10px;padding:14px;margin-bottom:16px;">' +
+            '<p style="color:#cbd5e1;font-size:13px;line-height:1.7;margin:0;">' +
+              'No olvides que a partir del jueves y hasta el sábado puedes realizar el pago de tu colegiatura correspondiente a la siguiente semana. 📚💳' +
               '<br><br>' +
-              'Tu fecha límite de pago es el <strong style="color:#fbbf24;">' + fechaTexto + '</strong>.' +
+              'Una vez realizado, sube tu comprobante a tu panel de alumno para poder validarlo. ✅' +
               '<br><br>' +
-              'Si ya realizaste tu pago pero no ha sido reflejado, comunícate de inmediato con tu asistente de control escolar.' +
+              '¡Gracias por tu puntualidad! 🙌' +
             '</p>' +
           '</div>' +
           '<a href="' + waLink + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#4ade80;border-radius:10px;padding:12px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:12px;">' +
@@ -2142,14 +2118,37 @@
 
   // Muestra las 28 lecciones del subnivel seleccionado en 2 columnas: 1-14 y 15-28
   function columnaLeccionesDoble(subnivel) {
-    return columnaRangoLecciones(subnivel, 1, 14) + columnaRangoLecciones(subnivel, 15, 28);
+    return columnaRangoLecciones(subnivel, 1, 28);
   }
 
+  // Saca solo la parte entre comillas del titulo completo -- por ejemplo,
+  // de 'A1.1 · Lesson 1: "Nice to meet you"' extrae 'Nice to meet you'
+  function extraerTituloCorto(tituloCompleto) {
+    if (!tituloCompleto) return '';
+    var m = tituloCompleto.match(/"([^"]+)"/);
+    return m ? m[1] : '';
+  }
+
+  // Misma convencion de imagenes que Kids, pero organizada por subnivel:
+  // images/Lecciones/A1.1-1.png ... A1.1-28.png, A1.2-1.png ... A1.2-28.png
+  // (coincide exactamente con las llaves de LECCIONES_CONTENIDO, para que
+  // sea facil saber que imagen corresponde a cada leccion). Si la imagen
+  // de alguna leccion aun no se ha subido, se ve un icono de libro en su
+  // lugar (no rompe nada).
+  var LECCIONES_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/ADULTS/';
+
   function columnaRangoLecciones(subnivel, desde, hasta) {
-    var html = '<div style="text-align:center;">';
+    var html = '<div class="misiones-kids-grid">';
     for (var i = desde; i <= hasta; i++) {
       var num = i < 10 ? '0' + i : '' + i;
-      html += '<div class="leccion-link" onclick="abrirLeccion(\''+subnivel+'\','+i+')">LESSON ' + num + '</div>';
+      var leccionData = LECCIONES_CONTENIDO[subnivel + '-' + i];
+      var tituloCorto = leccionData ? extraerTituloCorto(leccionData.titulo) : '';
+      var imgUrl = LECCIONES_IMG_BASE + encodeURIComponent(subnivel + ' ' + num + '.jpeg');
+      html += '<div class="mision-kids-card" onclick="abrirLeccion(\''+subnivel+'\','+i+')">' +
+        '<div class="leccion-img-wrap"><img src="'+imgUrl+'" alt="Lesson '+num+'" onerror="this.outerHTML=\'<div class=&quot;mision-kids-img-vacia&quot; style=&quot;width:100%;height:100%;&quot;>📖</div>\'"></div>' +
+        '<div class="mision-kids-num">LESSON ' + num + '</div>' +
+        (tituloCorto ? '<div class="mision-kids-titulo">' + tituloCorto + '</div>' : '') +
+      '</div>';
     }
     html += '</div>';
     return html;
@@ -6793,10 +6792,20 @@
     inputs.forEach(function (input) {
       // data-correcta puede traer varias opciones validas separadas por "|"
       // (ej. cuando cualquier palabra del recuadro encaja gramaticalmente).
+      // IMPORTANTE: se normalizan TODAS las variantes de apostrofe (el recto
+      // ' que se usa al escribir el codigo, y los curvos ' y ' que iOS/iPadOS
+      // insertan automaticamente al escribir en el teclado) a un solo
+      // caracter antes de comparar -- si no, "What's" (con apostrofe curvo,
+      // como lo escribe el iPad) nunca coincidia con "what's" (con apostrofe
+      // recto, como esta guardado en el codigo), aunque el alumno hubiera
+      // contestado perfectamente bien.
+      function normalizarApostrofes(s) {
+        return s.replace(/[\u2018\u2019\u02BC\u00B4`]/g, "'");
+      }
       var opciones = (input.dataset.correcta || '').split('|').map(function (s) {
-        return s.trim().toLowerCase().replace(/[.!?]/g, '');
+        return normalizarApostrofes(s.trim().toLowerCase().replace(/[.!?]/g, ''));
       });
-      var valor = input.value.trim().toLowerCase().replace(/[.!?]/g, '');
+      var valor = normalizarApostrofes(input.value.trim().toLowerCase().replace(/[.!?]/g, ''));
       var icono = document.getElementById('resultado-' + leccionKey + '-' + tipo + '-' + input.dataset.idx);
       if (!icono) return;
       if (valor && opciones.indexOf(valor) !== -1) {
@@ -6823,7 +6832,7 @@
 
   function abrirZoomDesdeBoard() {
     var btn = document.getElementById('btnZoom');
-    if (btn) btn.click();
+    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
   }
   function abrirGrabacionDesdeBoard() {
     var btn = document.getElementById('btnGrabacion');
@@ -6839,7 +6848,7 @@
   // Personal sin importar su condicion real (semana, dia, antiguedad, etc).
   // Cuando ya no se necesite, cambiar a "false" y cada post-it vuelve a
   // aparecer solo cuando de verdad aplica.
-  var MODO_DEMO_TODOS_LOS_POSTITS = true;
+  var MODO_DEMO_TODOS_LOS_POSTITS = false;
 
   function calcularProximaClase(tipoHorario) {
     var diasValidos = (tipoHorario === 'sabado') ? [6] : [1, 2, 3, 4]; // Lun-Jue
@@ -6859,14 +6868,19 @@
     // y muestran/ocultan en cargarDatosAlumno con g.linkZoom / g.grabacion.
 
     // Mini/Grand Challenge -- solo en su semana de presentacion (4 u 8).
+    // En grupos Kids/Kids Jr el texto usa la tematica de Growie World.
     var sem = alumnoData._semana || 1;
     var semEnBloque = sem > 8 ? sem - 8 : sem;
     var postitChal = document.getElementById('postitChallenge');
     if (semEnBloque === 4) {
-      document.getElementById('postitChallengeTexto').textContent = 'Recuerda que esta semana tendrás tu Mini Challenge. Mucho éxito!!';
+      document.getElementById('postitChallengeTexto').textContent = alumnoData._esKids
+        ? 'Recuerda que esta semana tendrás tu Mini Adventure. Mucho éxito, Explorer!! 🌿'
+        : 'Recuerda que esta semana tendrás tu Mini Challenge. Mucho éxito!!';
       postitChal.style.visibility = 'visible';
     } else if (semEnBloque === 8) {
-      document.getElementById('postitChallengeTexto').textContent = 'Recuerda que esta semana tendrás tu Grand Challenge. Mucho éxito!!';
+      document.getElementById('postitChallengeTexto').textContent = alumnoData._esKids
+        ? 'Recuerda que esta semana tendrás tu Final Adventure. Mucho éxito, Explorer!! 🌟'
+        : 'Recuerda que esta semana tendrás tu Grand Challenge. Mucho éxito!!';
       postitChal.style.visibility = 'visible';
     } else {
       postitChal.style.visibility = MODO_DEMO_TODOS_LOS_POSTITS ? 'visible' : 'hidden';
@@ -6895,7 +6909,7 @@
         txtPago.textContent = 'Se acerca tu fecha de pago el ' + formatFechaCorta(p.periodoFin) + '. No olvides subir tu comprobante!!';
         postitPago.classList.add('post-it-brillo');
       } else {
-        txtPago.textContent = 'Tu pago fue validado. Cubre del ' + formatFechaCorta(p.fecha) + ' al ' + formatFechaCorta(p.periodoFin) + '.';
+        txtPago.textContent = 'Tu pago fue validado. Cubre del ' + formatFechaCorta(p.periodoInicio || p.fecha) + ' al ' + formatFechaCorta(p.periodoFin) + '.';
         postitPago.classList.remove('post-it-brillo');
       }
     } else {
@@ -6916,7 +6930,7 @@
       return;
     }
     if(!p){div.innerHTML='<div class="califs-empty"><div class="califs-text">Sin pagos registrados</div></div>';return;}
-    var pct=Math.min(100,Math.max(0,Math.round((Date.now()-new Date(p.fecha).getTime())/(new Date(p.periodoFin).getTime()-new Date(p.fecha).getTime())*100)));
+    var _iniVig=new Date(p.periodoInicio||p.fecha).getTime();var pct=Math.min(100,Math.max(0,Math.round((Date.now()-_iniVig)/(new Date(p.periodoFin).getTime()-_iniVig)*100)));
     var semanasP = Math.floor((Number(p.monto)||0) / 100);
     if (semanasP < 1) semanasP = 1;
     var tipoTexto = semanasP === 1 ? 'Colegiatura semanal' : semanasP + ' semanas cubiertas';
@@ -7084,8 +7098,17 @@
       return;
     }
 
+    // La antiguedad debe contarse desde que el alumno REALMENTE empezo a
+    // tomar clase, no desde que quedo inscrito/pago en el sistema -- puede
+    // haberse inscrito semanas antes de que su grupo arrancara (entonces
+    // cuenta desde el inicio del grupo). Misma correccion que ya se aplico
+    // en verificarEncuestaSatisfaccion.
     var fechaIns = new Date(alumno.fechaInscripcion);
-    var diasAntiguedad = Math.floor((hoy - fechaIns) / (1000 * 60 * 60 * 24));
+    var g = alumnoData && alumnoData.grupo;
+    var fechaInicioGrupo = g && g.fechaInicio ? new Date(g.fechaInicio) : null;
+    var fechaBase = (fechaInicioGrupo && fechaInicioGrupo > fechaIns) ? fechaInicioGrupo : fechaIns;
+
+    var diasAntiguedad = Math.floor((hoy - fechaBase) / (1000 * 60 * 60 * 24));
     var semanasAntiguedad = diasAntiguedad / 7;
 
     alerta.style.visibility = (semanasAntiguedad >= 4) ? 'visible' : 'hidden';
@@ -7147,7 +7170,7 @@
         overlay.style.display = 'none';
         card.style.fontSize = '';
       }, 720);
-    }, 4000);
+    }, 5000);
   }
 
   function verificarEncuestaSatisfaccion(alumno) {
@@ -7172,12 +7195,22 @@
 
     var diasAntiguedad = Math.floor((hoy - fechaBase) / (1000 * 60 * 60 * 24));
 
-    // Aparece a partir del dia 7 y se mantiene visible 10 dias en total
-    // (dia 7 al dia 16). Si el alumno responde antes, desaparece de
-    // inmediato (eso ya lo maneja el backend al marcar yaRespondio). Si
-    // no responde, se le deja de mostrar automaticamente al cumplirse
-    // esos 10 dias -- no se le sigue insistiendo despues.
-    if (diasAntiguedad < 7 || diasAntiguedad >= 17) {
+    // ── LANZAMIENTO INICIAL DE LA ENCUESTA ──────────────────────────
+    // Mientras esto este en TRUE: se le muestra a CUALQUIER alumno con
+    // mas de 7 dias de clase, sin importar cuantos dias lleven (para
+    // alcanzar tambien a los que ya llevan semanas, en este primer
+    // lanzamiento). Cuando quieras volver a la regla normal (aparece
+    // dia 7, se mantiene 10 dias y luego desaparece), solo cambia esto
+    // a FALSE -- no hace falta tocar nada mas de este archivo.
+    var LANZAMIENTO_INICIAL_ENCUESTA = true;
+
+    // Aparece a partir del dia 7 y (fuera del lanzamiento inicial) se
+    // mantiene visible 10 dias en total (dia 7 al dia 16). Si el alumno
+    // responde antes, desaparece de inmediato (eso ya lo maneja el
+    // backend al marcar yaRespondio). Si no responde, se le deja de
+    // mostrar automaticamente al cumplirse esos 10 dias -- no se le
+    // sigue insistiendo despues.
+    if (diasAntiguedad < 7 || (!LANZAMIENTO_INICIAL_ENCUESTA && diasAntiguedad >= 17)) {
       if (MODO_DEMO_TODOS_LOS_POSTITS) { mostrarPostitConAnimacion(postit); } else { postit.style.visibility = 'hidden'; }
       return;
     }
@@ -7423,6 +7456,14 @@ function renderEvaluacionAlumno(d) {
   }
 
   /* ── Challenges ── */
+  // Para grupos Kids/Kids Jr, el maestro y el backend siguen usando
+  // internamente los mismos tipos 'Mini'/'Grand' (no se toca la logica de
+  // datos), pero al alumno se le muestra con la tematica de Growie World:
+  // Mini Challenge -> Mini Adventure, Grand Challenge -> Final Adventure.
+  var esKids = !!(alumnoData && alumnoData._esKids);
+  var labelMini  = esKids ? 'Mini Adventure'  : 'Mini Challenge';
+  var labelGrand = esKids ? 'Final Adventure' : 'Grand Challenge';
+
   var tieneMini  = d.challenges && d.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
   var tieneGrand = d.challenges && d.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
 
@@ -7474,7 +7515,7 @@ function renderEvaluacionAlumno(d) {
   var miniBorder = tieneMini ? '1px solid rgba(251,191,36,0.45)' : miniNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
   html += '<div style="flex:1;background:'+miniBg+';border:'+miniBorder+';border-radius:12px;padding:8px 8px;text-align:center;">';
   html += '<div style="display:flex;justify-content:center;margin-bottom:2px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>';
-  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Mini Challenge</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">'+labelMini+'</div>';
   html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 4</div>';
   html += '<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':miniNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
   if(fbMini){
@@ -7496,7 +7537,7 @@ function renderEvaluacionAlumno(d) {
   var grandBorder = tieneGrand ? '1px solid rgba(251,191,36,0.45)' : grandNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
   html += '<div style="flex:1;background:'+grandBg+';border:'+grandBorder+';border-radius:12px;padding:8px 8px;text-align:center;">';
   html += '<div style="display:flex;justify-content:center;margin-bottom:2px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>';
-  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">Grand Challenge</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">'+labelGrand+'</div>';
   html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 8</div>';
   html += '<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':grandNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
   if(fbGrand){
@@ -7504,10 +7545,9 @@ function renderEvaluacionAlumno(d) {
     html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
     html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbGrand+'</div></div>';
   }
-  // Botón subir video Grand Challenge
-  if (!tieneGrand) {
-    html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Grand\')">📹 Subir mi video</button>';
-  }
+  // Grand Challenge no requiere subir video -- se hace en vivo dentro de
+  // la clase, por eso no tiene boton de "Subir mi video" (a diferencia de
+  // Mini Challenge, que si lo requiere).
   var urlGrand = grandCh && grandCh.urlVideo ? grandCh.urlVideo : '';
   html += '<a id="linkVideoGrand" class="link-video-subido" href="'+urlGrand+'" target="_blank" style="display:'+(urlGrand?'block':'none')+'">▶ Ver mi video subido</a>';
   html += '</div>';
@@ -7570,6 +7610,13 @@ function renderEvaluacionAlumno(d) {
     document.getElementById('inputId').value='';document.getElementById('inputEmail').value='';
     document.getElementById('screenPanel').classList.remove('active');document.getElementById('screenLogin').classList.add('active');
     document.getElementById('modalPago').classList.remove('visible');document.getElementById('modalCambioGrupo').classList.remove('visible');
+    // Limpia la vestimenta Kids para que no se quede pegada si otro
+    // alumno (Adults/Teens) entra despues en el mismo dispositivo.
+    document.body.classList.remove('kids-panel-fondo');
+    var logoHeader = document.getElementById('logoHeaderPanel');
+    if (logoHeader) { logoHeader.src = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png'; logoHeader.style.width = '220px'; }
+    var growieMascot = document.getElementById('growieMascotHeader');
+    if (growieMascot) growieMascot.style.display = 'none';
   }
   document.addEventListener('DOMContentLoaded',function(){document.getElementById('inputEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});});
 </script>
@@ -7579,6 +7626,7 @@ function renderEvaluacionAlumno(d) {
     <div style="font-size:36px;text-align:center;margin-bottom:6px;" id="modalVideoIcono">🎬</div>
     <div class="modal-video-titulo" id="modalVideoTitulo">Subir Video</div>
     <div class="modal-video-sub" id="modalVideoSub">Mini Challenge</div>
+    <div id="modalVideoNotaGrabacion" style="display:none;font-size:11.5px;color:#94a3b8;text-align:center;margin:-14px 0 18px;line-height:1.5;">💡 Puedes ver la clase grabada en tu panel para conocer el tema antes de grabar tu video.</div>
     <div class="modal-video-drop" id="videoDropZone" onclick="document.getElementById('videoFileInput').click()">
       <div class="modal-video-drop-icon">📹</div>
       <div class="modal-video-drop-text">Arrastra tu video aquí o <strong>haz clic para seleccionar</strong><br><span style="font-size:11px;color:#475569;">MP4, MOV, AVI · Máx. 500 MB</span></div>
@@ -7612,17 +7660,20 @@ function abrirModalVideo(tipo, fechaFalta) {
   document.getElementById('btnEnviarVideo').disabled = true;
 
   if (tipo === 'Mini') {
-    document.getElementById('modalVideoIcono').textContent = '🎖️';
-    document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Mini Challenge';
+    document.getElementById('modalVideoIcono').textContent = alumnoData && alumnoData._esKids ? '🌿' : '🎖️';
+    document.getElementById('modalVideoTitulo').textContent = 'Subir Video · ' + (alumnoData && alumnoData._esKids ? 'Mini Adventure' : 'Mini Challenge');
     document.getElementById('modalVideoSub').textContent = 'Semana 4 · Tu video de presentación';
+    document.getElementById('modalVideoNotaGrabacion').style.display = 'none';
   } else if (tipo === 'Grand') {
-    document.getElementById('modalVideoIcono').textContent = '🏆';
-    document.getElementById('modalVideoTitulo').textContent = 'Subir Video · Grand Challenge';
+    document.getElementById('modalVideoIcono').textContent = alumnoData && alumnoData._esKids ? '🌟' : '🏆';
+    document.getElementById('modalVideoTitulo').textContent = 'Subir Video · ' + (alumnoData && alumnoData._esKids ? 'Final Adventure' : 'Grand Challenge');
     document.getElementById('modalVideoSub').textContent = 'Semana 8 · Tu proyecto final';
+    document.getElementById('modalVideoNotaGrabacion').style.display = 'none';
   } else {
     document.getElementById('modalVideoIcono').textContent = '🩹';
     document.getElementById('modalVideoTitulo').textContent = 'Justificar falta · Fuerza mayor';
-    document.getElementById('modalVideoSub').textContent = 'Video de 1 minuto sobre el tema que viste ese día — ' + formatFechaCorta(fechaFalta);
+    document.getElementById('modalVideoSub').textContent = 'Video de 1 minuto sobre el tema tratado en la clase — ' + formatFechaCorta(fechaFalta);
+    document.getElementById('modalVideoNotaGrabacion').style.display = 'block';
   }
   document.getElementById('modalVideoChallenge').classList.add('visible');
 }
@@ -7931,15 +7982,6 @@ if ('serviceWorker' in navigator) {
 </script>
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 
-<!-- PANTALLA DE TRANSICION: se ve justo antes de abrir la sala de clase (Jitsi no permite poner nuestro logo dentro, asi que esto se muestra justo antes) -->
-<div id="pantallaEntradaClase" style="display:none;position:fixed;inset:0;z-index:999999;background:linear-gradient(135deg,#0f1a3d 0%,#1c2b5e 100%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;">
-  <img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English" style="width:180px;height:auto;margin-bottom:28px;">
-  <div id="entradaClaseIcono" style="font-size:38px;margin-bottom:14px;">🔒</div>
-  <div id="entradaClaseTitulo" style="color:#fff;font-size:19px;font-weight:700;margin-bottom:8px;">Entrando a tu sala de clase segura</div>
-  <div id="entradaClaseSub" style="color:#94a3b8;font-size:13px;max-width:320px;">Verificando que tu maestro ya haya iniciado la clase...</div>
-  <div style="color:#64748b;font-size:11px;max-width:300px;margin-top:22px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">💡 Al terminar tu clase, solo cierra esa pestaña para volver aquí a tu panel.</div>
-</div>
-<!-- ANIMACION DE ENTRADA: el post-it de la encuesta aparece grande en el centro y luego "vuela" hasta su lugar real en el Muro Personal -->
 <div id="postitVolandoOverlay" style="display:none;position:fixed;inset:0;z-index:999998;pointer-events:none;">
   <div id="postitVolandoCard" class="post-it post-it-naranja" style="position:fixed;width:220px;height:110px;box-shadow:0 10px 30px rgba(0,0,0,0.4);transition:all 0.7s cubic-bezier(.2,.8,.2,1);">
     <div>⭐ ¿Cómo va tu experiencia en Organic English? Cuéntanos con 5 estrellitas.</div>
