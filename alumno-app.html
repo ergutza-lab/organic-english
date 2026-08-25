@@ -70,6 +70,27 @@
   body.kids-panel-fondo #tab-datos .col-1 .card:nth-of-type(2) .grupo-val,
   body.kids-panel-fondo #tab-datos .col-1 .card:nth-of-type(2) .persona-nombre { color:#3a2a00; }
   body.kids-panel-fondo #tab-datos .col-1 .card:nth-of-type(3) #observacionesMaestro div { color:rgba(255,255,255,0.9) !important; }
+  /* Boton "Como me evaluan" iba naranja sobre naranja (invisible) -- en
+     Kids se invierte a blanco solido con texto naranja para que resalte. */
+  body.kids-panel-fondo #tab-datos .col-2 .card .btn-pill-naranja {
+    background: #fff !important;
+    color: #c2410c !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+  }
+  /* Boton "Solicitar cambio de grupo" se perdia sobre el azul claro de
+     la tarjeta Mi Grupo -- se pasa a blanco solido con texto azul oscuro. */
+  body.kids-panel-fondo #tab-datos .col-1 .card:nth-of-type(1) .btn-cambiar-grupo {
+    background: #fff !important;
+    border-color: #fff !important;
+    color: #0c4a6e !important;
+  }
+  /* Avatar "M" (sin foto) en la tarjeta amarilla de Mi maestro: el
+     circulo naranja por defecto casi se perdia contra el fondo amarillo. */
+  body.kids-panel-fondo #tab-datos .col-1 .card:nth-of-type(2) .persona-avatar-fallback {
+    background: #1e3a6e !important;
+    color: #fff !important;
+    border: 2px solid #fff;
+  }
   .screen { display: none; }
   .screen.active { display: block; }
 
@@ -929,10 +950,10 @@
 
       <div class="col-2">
       <div class="card">
-        <div class="card-header" style="justify-content: space-between;flex-wrap:nowrap;">
-          <div style="display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden;">
+        <div class="card-header" style="justify-content: space-between;flex-wrap:wrap;row-gap:6px;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
             <div class="card-icon icon-califs" style="background:var(--color-nivel-suave);flex-shrink:0;">📊</div>
-            <span class="card-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Evaluación</span>
+            <span class="card-title" style="white-space:nowrap;">Evaluación</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             <div id="gemaInline" style="display:flex;align-items:center;gap:4px;"></div>
@@ -7379,6 +7400,18 @@
 
 function renderEvaluacionAlumno(d) {
   var html = '';
+  // Tema Kids: la tarjeta de Evaluacion es naranja solido (no navy oscuro),
+  // asi que los textos/cajas grises translucidas pensados para fondo oscuro
+  // se vuelven ilegibles ahi. Estos tokens se usan en toda la funcion para
+  // que cada pieza tenga suficiente contraste sobre el naranja.
+  var kidsTheme   = !!(alumnoData && alumnoData._esKids);
+  var kLabel      = kidsTheme ? 'rgba(255,255,255,0.85)' : '#64748b';
+  var kSub        = kidsTheme ? 'rgba(255,255,255,0.75)' : '#475569';
+  var kStatBoxBg  = kidsTheme ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.03)';
+  var kIdleBoxBg  = kidsTheme ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.03)';
+  var kIdleBorder = kidsTheme ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.07)';
+  var kIdleTitle  = kidsTheme ? '#fff' : '#334155';
+  var kIdlePend   = kidsTheme ? 'rgba(255,255,255,0.7)' : '#1e293b';
 
   /* ── GEM ──
      Si el alumno ya esta en Bloque 2, la gema muestra el PROMEDIO del
@@ -7440,12 +7473,12 @@ function renderEvaluacionAlumno(d) {
 
   /* ── Stats ── */
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
-  html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:7px;text-align:center;">';
+  html += '<div style="background:'+kStatBoxBg+';border-radius:10px;padding:7px;text-align:center;">';
   html += '<div style="font-size:16px;font-weight:700;'+(d.asistencia>=80?'color:#22c55e':d.asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+d.asistencia+'%</div>';
-  html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Asistencia</div></div>';
-  html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:7px;text-align:center;">';
+  html += '<div style="font-size:10px;color:'+kLabel+';text-transform:uppercase;">Asistencia</div></div>';
+  html += '<div style="background:'+kStatBoxBg+';border-radius:10px;padding:7px;text-align:center;">';
   html += '<div style="font-size:16px;font-weight:700;'+(d.positivos>=70?'color:#22c55e':d.positivos>=60?'color:#facc15':'color:#ef4444')+'">'+d.positivos+'%</div>';
-  html += '<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div></div>';
+  html += '<div style="font-size:10px;color:'+kLabel+';text-transform:uppercase;">Verde+Azul</div></div>';
   html += '</div>';
 
   html += '<div id="faltasJustificables"></div>';
@@ -7453,12 +7486,12 @@ function renderEvaluacionAlumno(d) {
   /* ── Colores ── */
   var total = d.totalClases || 1;
   var gp = function(c){ return total>0?Math.round((d.colores[c]/total)*100):0; };
-  html += '<div style="margin-bottom:8px;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:4px;">Colores obtenidos</div>';
+  html += '<div style="margin-bottom:8px;"><div style="font-size:10px;color:'+kLabel+';text-transform:uppercase;margin-bottom:4px;">Colores obtenidos</div>';
   html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
-  html += '<div style="background:rgba(239,68,68,0.15);border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🔴</div><div style="font-size:12px;font-weight:700;color:#ef4444">'+gp(1)+'%</div></div>';
-  html += '<div style="background:rgba(250,204,21,0.15);border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🟡</div><div style="font-size:12px;font-weight:700;color:#facc15">'+gp(2)+'%</div></div>';
-  html += '<div style="background:rgba(34,197,94,0.15);border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🟢</div><div style="font-size:12px;font-weight:700;color:#22c55e">'+gp(3)+'%</div></div>';
-  html += '<div style="background:rgba(59,130,246,0.15);border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+gp(4)+'%</div></div>';
+  html += '<div style="background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(239,68,68,0.15)')+';border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🔴</div><div style="font-size:12px;font-weight:700;color:'+(kidsTheme?'#dc2626':'#ef4444')+'">'+gp(1)+'%</div></div>';
+  html += '<div style="background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(250,204,21,0.15)')+';border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🟡</div><div style="font-size:12px;font-weight:700;color:'+(kidsTheme?'#a16207':'#facc15')+'">'+gp(2)+'%</div></div>';
+  html += '<div style="background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(34,197,94,0.15)')+';border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🟢</div><div style="font-size:12px;font-weight:700;color:#16a34a">'+gp(3)+'%</div></div>';
+  html += '<div style="background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(59,130,246,0.15)')+';border-radius:8px;padding:5px;text-align:center;"><div style="font-size:12px;">🔵</div><div style="font-size:12px;font-weight:700;color:#2563eb">'+gp(4)+'%</div></div>';
   html += '</div></div>';
 
   /* ── Últimas 3 observaciones del maestro -- ahora en su propia tarjeta ── */
@@ -7486,9 +7519,8 @@ function renderEvaluacionAlumno(d) {
   // internamente los mismos tipos 'Mini'/'Grand' (no se toca la logica de
   // datos), pero al alumno se le muestra con la tematica de Growie World:
   // Mini Challenge -> Mini Adventure, Grand Challenge -> Final Adventure.
-  var esKids = !!(alumnoData && alumnoData._esKids);
-  var labelMini  = esKids ? 'Mini Adventure'  : 'Mini Challenge';
-  var labelGrand = esKids ? 'Final Adventure' : 'Grand Challenge';
+  var labelMini  = kidsTheme ? 'Mini Adventure'  : 'Mini Challenge';
+  var labelGrand = kidsTheme ? 'Final Adventure' : 'Grand Challenge';
 
   var tieneMini  = d.challenges && d.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
   var tieneGrand = d.challenges && d.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
@@ -7537,17 +7569,17 @@ function renderEvaluacionAlumno(d) {
 
   var miniExiste = miniCh !== undefined;
   var miniNoAprobo = miniExiste && !tieneMini;
-  var miniBg = tieneMini ? 'rgba(251,191,36,0.12)' : miniNoAprobo ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)';
-  var miniBorder = tieneMini ? '1px solid rgba(251,191,36,0.45)' : miniNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
+  var miniBg = tieneMini ? (kidsTheme?'rgba(251,191,36,0.35)':'rgba(251,191,36,0.12)') : miniNoAprobo ? (kidsTheme?'rgba(239,68,68,0.35)':'rgba(239,68,68,0.12)') : kIdleBoxBg;
+  var miniBorder = tieneMini ? '1px solid rgba(251,191,36,0.6)' : miniNoAprobo ? '1px solid rgba(239,68,68,0.6)' : kIdleBorder;
   html += '<div style="flex:1;background:'+miniBg+';border:'+miniBorder+';border-radius:12px;padding:8px 8px;text-align:center;">';
   html += '<div style="display:flex;justify-content:center;margin-bottom:2px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>';
-  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">'+labelMini+'</div>';
-  html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 4</div>';
-  html += '<div style="font-size:9px;color:'+(tieneMini?'#94a3b8':miniNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':kIdleTitle)+';text-transform:uppercase;letter-spacing:0.5px;">'+labelMini+'</div>';
+  html += '<div style="font-size:9px;color:'+kSub+';margin-top:2px;">Actividad en la Semana 4</div>';
+  html += '<div style="font-size:9px;color:'+(tieneMini?(kidsTheme?'#fff':'#94a3b8'):miniNoAprobo?'#f87171':kIdlePend)+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
   if(fbMini){
-    html += '<div style="margin-top:4px;background:rgba(255,255,255,0.05);border-radius:8px;padding:5px 8px;text-align:left;overflow:visible;">';
-    html += '<div style="font-size:9px;font-weight:700;color:#facc15;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
-    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbMini+'</div></div>';
+    html += '<div style="margin-top:4px;background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.05)')+';border-radius:8px;padding:5px 8px;text-align:left;overflow:visible;">';
+    html += '<div style="font-size:9px;font-weight:700;color:'+(kidsTheme?'#a16207':'#facc15')+';margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:'+(kidsTheme?'#1e293b':'#cbd5e1')+';line-height:1.5;">'+fbMini+'</div></div>';
   }
   // Botón subir video Mini Challenge
   if (!tieneMini) {
@@ -7559,17 +7591,17 @@ function renderEvaluacionAlumno(d) {
 
   var grandExiste = grandCh !== undefined;
   var grandNoAprobo = grandExiste && !tieneGrand;
-  var grandBg = tieneGrand ? 'rgba(251,191,36,0.12)' : grandNoAprobo ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)';
-  var grandBorder = tieneGrand ? '1px solid rgba(251,191,36,0.45)' : grandNoAprobo ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.07)';
+  var grandBg = tieneGrand ? (kidsTheme?'rgba(251,191,36,0.35)':'rgba(251,191,36,0.12)') : grandNoAprobo ? (kidsTheme?'rgba(239,68,68,0.35)':'rgba(239,68,68,0.12)') : kIdleBoxBg;
+  var grandBorder = tieneGrand ? '1px solid rgba(251,191,36,0.6)' : grandNoAprobo ? '1px solid rgba(239,68,68,0.6)' : kIdleBorder;
   html += '<div style="flex:1;background:'+grandBg+';border:'+grandBorder+';border-radius:12px;padding:8px 8px;text-align:center;">';
   html += '<div style="display:flex;justify-content:center;margin-bottom:2px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>';
-  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#334155')+';text-transform:uppercase;letter-spacing:0.5px;">'+labelGrand+'</div>';
-  html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Actividad en la Semana 8</div>';
-  html += '<div style="font-size:9px;color:'+(tieneGrand?'#94a3b8':grandNoAprobo?'#f87171':'#1e293b')+';margin-top:2px;">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':kIdleTitle)+';text-transform:uppercase;letter-spacing:0.5px;">'+labelGrand+'</div>';
+  html += '<div style="font-size:9px;color:'+kSub+';margin-top:2px;">Actividad en la Semana 8</div>';
+  html += '<div style="font-size:9px;color:'+(tieneGrand?(kidsTheme?'#fff':'#94a3b8'):grandNoAprobo?'#f87171':kIdlePend)+';margin-top:2px;">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
   if(fbGrand){
-    html += '<div style="margin-top:4px;background:rgba(255,255,255,0.05);border-radius:8px;padding:5px 8px;text-align:left;overflow:visible;">';
-    html += '<div style="font-size:9px;font-weight:700;color:#f97316;margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
-    html += '<div style="font-size:11px;color:#cbd5e1;line-height:1.5;">'+fbGrand+'</div></div>';
+    html += '<div style="margin-top:4px;background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.05)')+';border-radius:8px;padding:5px 8px;text-align:left;overflow:visible;">';
+    html += '<div style="font-size:9px;font-weight:700;color:'+(kidsTheme?'#c2410c':'#f97316')+';margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
+    html += '<div style="font-size:11px;color:'+(kidsTheme?'#1e293b':'#cbd5e1')+';line-height:1.5;">'+fbGrand+'</div></div>';
   }
   // Grand Challenge no requiere subir video -- se hace en vivo dentro de
   // la clase, por eso no tiene boton de "Subir mi video" (a diferencia de
@@ -7579,7 +7611,7 @@ function renderEvaluacionAlumno(d) {
   html += '</div>';
 
   html += '</div>';
-  html += '<div style="font-size:10px;color:#475569;text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
+  html += '<div style="font-size:10px;color:'+kSub+';text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
 
   document.getElementById('evaluacionAlumno').innerHTML = html;
 }
