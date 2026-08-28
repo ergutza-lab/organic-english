@@ -1480,29 +1480,34 @@ async function ejecutarCambioGrupo(){
   document.getElementById('modal-confirm-cambio').classList.remove('open');
   const btn=document.getElementById('btn-confirmar-cambio');
   btn.textContent='Procesando…';btn.disabled=true;
-  // Se capturan ANTES de disparar el reset del selector (seleccionarAlumnoCambio
-  // limpia alumnoSeleccionadoCambio/grupoSeleccionadoCambio y oculta la caja de éxito).
+  // Se capturan ANTES de disparar el reset del selector Y antes de refrescar
+  // datosPanel (cargarDatos): si el grupo destino se llena justo con esta
+  // inscripción, su estatus pasa de "DISPONIBLE" a "LLENO" y desaparece de
+  // todos_grupos (que solo lista grupos DISPONIBLE/EN CURSO) -- así que hay
+  // que guardar su horario/asistente ANTES de que eso pase, o el mensaje
+  // se queda sin esos datos.
   const alumnoParaNotificar=alumnoSeleccionadoCambio;
   const grupoDestinoParaNotificar=grupoSeleccionadoCambio;
+  const grupoDestinoInfoParaNotificar=(datosPanel?.todos_grupos||[]).find(g=>g.id===grupoSeleccionadoCambio)||null;
   try{
     const resp=await fetch(`${APPS_SCRIPT}?action=cambiarGrupo&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&grupoDestino=${encodeURIComponent(grupoSeleccionadoCambio)}&idAsistente=${encodeURIComponent(asistente.id)}`);
     const data=await resp.json();
     if(data.status==='ok'){
       mostrarToast('Cambio de grupo realizado correctamente','success');
       document.getElementById('select-alumno-cambio').value='';seleccionarAlumnoCambio();await cargarDatos();
-      mostrarBotonNotificarCambio(alumnoParaNotificar, grupoDestinoParaNotificar);
+      mostrarBotonNotificarCambio(alumnoParaNotificar, grupoDestinoParaNotificar, grupoDestinoInfoParaNotificar);
     }
     else mostrarToast(data.mensaje||'Error al realizar el cambio.','error');
   }catch(e){mostrarToast('Error de conexión.','error');}
   finally{btn.textContent='Confirmar Cambio';btn.disabled=false;}
 }
 
-function mostrarBotonNotificarCambio(alumno, idGrupoDestino){
+function mostrarBotonNotificarCambio(alumno, idGrupoDestino, grupoDestinoInfo){
   const box=document.getElementById('cambio-exito-box');
   const enlace=document.getElementById('btn-notificar-cambio-wa');
   if(!alumno?.whatsapp){ box.style.display='none'; return; }
 
-  const grupoDestino=(datosPanel?.todos_grupos||[]).find(g=>g.id===idGrupoDestino);
+  const grupoDestino=grupoDestinoInfo||(datosPanel?.todos_grupos||[]).find(g=>g.id===idGrupoDestino);
   const horario=grupoDestino?.horario||'—';
   // El mensaje debe mostrar al asistente YA ASIGNADO al grupo nuevo, no al
   // asistente que está haciendo el cambio (pueden ser personas distintas).
