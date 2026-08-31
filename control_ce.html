@@ -997,6 +997,7 @@ function renderGrupos(filtro) {
     var btnCancelar = inscritos===0
       ? ' <button class="btn btn-rojo btn-sm" onclick="event.stopPropagation();abrirCancelarGrupoDesdeTabla(\''+escJs(g.id)+'\')">🚫 Cancelar grupo</button>'
       : '';
+    var btnMover = ' <button class="btn btn-naranja btn-sm" onclick="event.stopPropagation();abrirModalMoverGrupoDesdeTabla(\''+escJs(g.id)+'\')">📅 Mover fecha</button>';
     var colorNombre = nombreColor(g.nombre);
     return '<tr style="cursor:pointer" onclick="abrirModalAlumnosGrupo(\''+escJs(g.id)+'\')" title="Ver alumnos del grupo">'+
       '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
@@ -1007,7 +1008,7 @@ function renderGrupos(filtro) {
       '<td><strong>'+esc(g.inscritos)+'</strong> / '+esc(g.cupoMax)+'</td>'+
       '<td>'+chipEstado+'</td>'+
       '<td>'+chipAsi+'</td>'+
-      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnCancelar+'</td>'+
+      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnMover+btnCancelar+'</td>'+
     '</tr>';
   }).join('');
 }
@@ -1308,7 +1309,7 @@ function renderAlertas() {
         '<td>'+esc(g.horario)+'</td><td style="font-size:.8rem">'+formatFecha(g.fechaInicio)+'</td>'+
         '<td><span class="chip chip-gris">'+esc(g.idMaestro||'—')+'</span></td>'+
         '<td>'+(g.idAsistente?'<span class="chip chip-azul">'+esc(g.idAsistente)+'</span>':'<span class="chip chip-gris">—</span>')+'</td>'+
-        '<td><button class="btn btn-rojo btn-sm" onclick="abrirCancelarGrupoDesdeTabla(\''+escJs(g.id)+'\')">🚫 Cancelar grupo</button></td>'+
+        '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-rojo btn-sm" onclick="abrirCancelarGrupoDesdeTabla(\''+escJs(g.id)+'\')">🚫 Cancelar grupo</button> <button class="btn btn-naranja btn-sm" onclick="abrirModalMoverGrupoDesdeTabla(\''+escJs(g.id)+'\')">📅 Mover fecha</button></td>'+
       '</tr>';
     }).join('');
   }
@@ -1795,6 +1796,82 @@ function abrirCancelarGrupoDesdeTabla(idGrupo) {
   confirmarCancelarGrupo();
 }
 
+function abrirModalMoverGrupoDesdeTabla(idGrupo) {
+  estado.grupoCancelarEnModal = idGrupo;
+  abrirModalMoverGrupo();
+}
+
+// ── MOVER GRUPO DE FECHA ──
+function abrirModalMoverGrupo() {
+  var idGrupo = estado.grupoCancelarEnModal;
+  if (!idGrupo) return;
+  document.getElementById('modal-mover-grupo-sub').textContent = 'Grupo: ' + idGrupo;
+  document.getElementById('mover-grupo-nueva-fecha').value = '';
+  document.getElementById('mover-grupo-preview').style.display = 'none';
+  var msgEl = document.getElementById('modal-mover-grupo-msg');
+  msgEl.className = 'modal-msg'; msgEl.textContent = '';
+  document.getElementById('btn-confirmar-mover-grupo').disabled = true;
+  document.getElementById('modal-mover-grupo').classList.add('abierto');
+}
+
+function previsualizarMoverGrupo() {
+  var idGrupo = estado.grupoCancelarEnModal;
+  var nuevaFecha = document.getElementById('mover-grupo-nueva-fecha').value;
+  var msgEl = document.getElementById('modal-mover-grupo-msg');
+  var btnConfirmar = document.getElementById('btn-confirmar-mover-grupo');
+  msgEl.className = 'modal-msg'; msgEl.textContent = '';
+  btnConfirmar.disabled = true;
+  document.getElementById('mover-grupo-preview').style.display = 'none';
+  if (!idGrupo || !nuevaFecha) return;
+
+  msgEl.textContent = 'Calculando…'; msgEl.className = 'modal-msg';
+  api({ action: 'previsualizarMoverGrupoCE', idGrupoOrigen: idGrupo, nuevaFechaInicio: nuevaFecha }).then(function(res) {
+    msgEl.textContent = ''; msgEl.className = 'modal-msg';
+    if (!res.success) { msgEl.textContent = res.error || 'Error al calcular el movimiento.'; msgEl.className = 'modal-msg error'; return; }
+
+    document.getElementById('mg-id-actual').textContent = res.idOriginal;
+    document.getElementById('mg-id-nuevo').textContent = res.idNuevo;
+    var dias = res.deltaDias;
+    document.getElementById('mg-delta-dias').textContent = dias === 0 ? 'No cambia' : (dias > 0 ? '+' + dias + ' días (adelante)' : dias + ' días (atrás)');
+    document.getElementById('mg-total-alumnos').textContent = res.totalAlumnos;
+    var listaEl = document.getElementById('mg-lista-alumnos');
+    listaEl.innerHTML = (res.alumnos || []).length
+      ? 'Alumnos: ' + res.alumnos.map(function(a){ return esc(a.idAlumno) + ' — ' + esc(a.nombre); }).join(', ')
+      : '';
+    document.getElementById('mover-grupo-preview').style.display = 'block';
+    btnConfirmar.disabled = false;
+  }).catch(function() {
+    msgEl.textContent = 'Error de conexión.'; msgEl.className = 'modal-msg error';
+  });
+}
+
+function ejecutarMoverGrupo() {
+  var idGrupo = estado.grupoCancelarEnModal;
+  var nuevaFecha = document.getElementById('mover-grupo-nueva-fecha').value;
+  var msgEl = document.getElementById('modal-mover-grupo-msg');
+  var btnConfirmar = document.getElementById('btn-confirmar-mover-grupo');
+  if (!idGrupo || !nuevaFecha) return;
+
+  btnConfirmar.disabled = true; btnConfirmar.textContent = 'Moviendo…';
+  api({ action: 'moverGrupoCE', idGrupoOrigen: idGrupo, nuevaFechaInicio: nuevaFecha, idCE: estado.idCE }).then(function(res) {
+    if (res.success) {
+      msgEl.textContent = 'Grupo movido: ' + res.idOriginal + ' → ' + res.idNuevo + ' (' + res.alumnosActualizados + ' alumno(s), ' + res.pagosActualizados + ' pago(s) actualizados).';
+      msgEl.className = 'modal-msg ok';
+      setTimeout(function() {
+        cerrarModal('modal-mover-grupo');
+        cerrarModal('modal-alumnos-grupo');
+        cargarDatos();
+      }, 1800);
+    } else {
+      msgEl.textContent = res.error || 'Error al mover el grupo.'; msgEl.className = 'modal-msg error';
+      btnConfirmar.disabled = false; btnConfirmar.textContent = 'Confirmar movimiento';
+    }
+  }).catch(function() {
+    msgEl.textContent = 'Error de conexión.'; msgEl.className = 'modal-msg error';
+    btnConfirmar.disabled = false; btnConfirmar.textContent = 'Confirmar movimiento';
+  });
+}
+
 // ── HELPERS ──
 function avisarFusionWhats(idGrupo, whatsapp, inscritos, listaAlumnos) {
   var mensaje='Hola, te informo que el grupo '+idGrupo+' tiene '+inscritos+' alumno(s) activo(s) y sera fusionado. Por favor gestiona el cambio de: '+listaAlumnos;
@@ -2219,10 +2296,39 @@ function confirmarCambioEstatus() {
         <tbody id="modal-grupo-alumnos"></tbody>
       </table>
     </div>
-    <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;justify-content:space-between;align-items:center">
+    <div style="padding:.85rem 1.25rem;border-top:1.5px solid var(--borde);display:flex;gap:.5rem;align-items:center">
       <button class="btn btn-rojo" id="btn-cancelar-grupo-modal" onclick="confirmarCancelarGrupo()" style="display:none">🚫 Cancelar grupo</button>
+      <button class="btn btn-naranja" id="btn-mover-grupo-modal" onclick="abrirModalMoverGrupo()">📅 Mover fecha</button>
       <button class="btn btn-outline" onclick="cerrarModal('modal-alumnos-grupo')" style="margin-left:auto">Cerrar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: MOVER GRUPO DE FECHA -->
+<div class="modal-overlay" id="modal-mover-grupo">
+  <div class="modal">
+    <div class="modal-titulo">📅 Mover grupo de fecha</div>
+    <div class="modal-sub" id="modal-mover-grupo-sub">Grupo: —</div>
+
+    <div class="modal-campo">
+      <label>Nueva fecha de inicio</label>
+      <input type="date" id="mover-grupo-nueva-fecha" onchange="previsualizarMoverGrupo()">
+    </div>
+
+    <div id="mover-grupo-preview" style="display:none;margin-top:12px;padding:12px 14px;background:var(--gris-cl);border-radius:10px;font-size:.84rem;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gris)">ID actual</span><strong id="mg-id-actual">—</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gris)">ID nuevo</span><strong id="mg-id-nuevo" style="color:var(--naranja)">—</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gris)">Se recorre</span><strong id="mg-delta-dias">—</strong></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--gris)">Alumnos afectados</span><strong id="mg-total-alumnos">—</strong></div>
+      <div id="mg-lista-alumnos" style="margin-top:8px;font-size:.78rem;color:var(--gris);max-height:120px;overflow-y:auto;"></div>
+      <p style="font-size:.76rem;color:var(--gris);margin:10px 0 0;">A cada alumno de este grupo se le recorrerá también la vigencia de todos sus pagos (inicio y fin) exactamente los mismos días, para conservar cuántas semanas ya tenían pagadas.</p>
+    </div>
+
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-mover-grupo')">Cancelar</button>
+      <button class="btn btn-naranja" id="btn-confirmar-mover-grupo" onclick="ejecutarMoverGrupo()" disabled>Confirmar movimiento</button>
+    </div>
+    <div class="modal-msg" id="modal-mover-grupo-msg"></div>
   </div>
 </div>
 
