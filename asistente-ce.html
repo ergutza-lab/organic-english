@@ -429,6 +429,7 @@
         <div class="alumno-info-box" id="alumno-cambio-info">
           <strong id="cambio-alumno-nombre"></strong>
           <span id="cambio-alumno-grupo"></span>
+          <button type="button" id="btn-abrir-sin-costo" onclick="abrirModalSinCosto()" style="margin-top:10px;width:100%;background:#fff7ed;color:#c2410c;border:1.5px solid #fdba74;border-radius:var(--r-md);padding:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">🎁 Otorgar periodo sin costo (fusión de grupo)</button>
         </div>
         <label>Grupos disponibles del mismo nivel y curso</label>
         <div class="grupos-grid" id="grupos-disponibles-cambio">
@@ -442,6 +443,29 @@
           <a id="btn-notificar-cambio-wa" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#25D366;color:#fff;border:none;border-radius:var(--r-md);padding:11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-sizing:border-box;">📱 Notificar al alumno por WhatsApp</a>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL OTORGAR PERIODO SIN COSTO -->
+<div class="modal-comp-overlay" id="modal-sin-costo">
+  <div class="modal-comp-box">
+    <div class="modal-comp-header">
+      <h3 class="modal-comp-titulo">🎁 Periodo sin costo</h3>
+      <button class="modal-cerrar" onclick="cerrarModalSinCosto()">✕</button>
+    </div>
+    <div class="modal-alumno-data" id="sin-costo-alumno-info"></div>
+    <p style="font-size:12px;color:var(--gris-500);padding:0 4px;margin:4px 0 12px;">Úsalo cuando el alumno acepta un cambio a un grupo más nuevo por fusión — el periodo de repaso que ese cambio le genera no se le cobra. Esto registra un pago de $0 ya validado, cubriendo exactamente las semanas que elijas.</p>
+    <div class="cal-cobertura">
+      <span class="cal-cobertura-label">¿Qué semana(s) cubre el periodo sin costo?</span>
+      <div id="cal-sin-costo"></div>
+    </div>
+    <div class="monto-field">
+      <label>Motivo (opcional)</label>
+      <input type="text" id="input-motivo-sin-costo" placeholder="Ej. Fusión con grupo K04" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-validar" style="flex:1;background:#f97316" onclick="confirmarSinCosto()">🎁 Otorgar periodo sin costo</button>
     </div>
   </div>
 </div>
@@ -1637,6 +1661,50 @@ function cerrarModalComp(){
   document.getElementById('modal-comprobante').classList.remove('open');
   document.body.style.overflow='';
   pagoActivoId=null;pagoActivoFecha=null;pagoActivoFila=null;
+}
+
+// ── PERIODO SIN COSTO (fusión de grupo) ──
+function abrirModalSinCosto(){
+  if(!alumnoSeleccionadoCambio){mostrarToast('Selecciona un alumno primero','error');return;}
+  document.getElementById('sin-costo-alumno-info').innerHTML=`
+    <div class="row"><span>Alumno</span><span>${alumnoSeleccionadoCambio.nombre} (${alumnoSeleccionadoCambio.id})</span></div>
+    <div class="row"><span>Grupo actual</span><span>${alumnoSeleccionadoCambio.grupo_actual||'—'}</span></div>`;
+  document.getElementById('input-motivo-sin-costo').value='';
+  document.getElementById('modal-sin-costo').classList.add('open');
+  calInit('cal-sin-costo');
+  document.body.style.overflow='hidden';
+}
+
+function cerrarModalSinCosto(){
+  document.getElementById('modal-sin-costo').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+async function confirmarSinCosto(){
+  if(!alumnoSeleccionadoCambio)return;
+  const cal=calendarios['cal-sin-costo'];
+  if(!cal||!cal.inicio||!cal.fin){
+    mostrarToast('Selecciona la semana (o semanas) que cubre este periodo sin costo','error');
+    return;
+  }
+  const motivo=document.getElementById('input-motivo-sin-costo').value.trim();
+  try{
+    let url=`${APPS_SCRIPT}?action=otorgarPeriodoSinCostoCE&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&idAsistente=${encodeURIComponent(asistente.id)}`;
+    url+=`&coberturaInicio=${encodeURIComponent(cal.inicio.toISOString())}`;
+    url+=`&coberturaFin=${encodeURIComponent(cal.fin.toISOString())}`;
+    if(motivo) url+=`&motivo=${encodeURIComponent(motivo)}`;
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.success){
+      mostrarToast('🎁 Periodo sin costo otorgado correctamente','success');
+      cerrarModalSinCosto();
+      await cargarDatos();
+    } else {
+      mostrarToast(data.error||'Error al otorgar el periodo sin costo','error');
+    }
+  }catch(e){
+    mostrarToast('Error de conexión','error');
+  }
 }
 
 async function validarDesdeModal(){
