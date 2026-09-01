@@ -73,6 +73,8 @@
   .ma-fila-nombre { font-size:13px; color:#f1f5f9; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ma-fila-editar { font-size:12px; font-weight:700; color:#fb923c; cursor:pointer; flex-shrink:0; text-decoration:none; }
   .ma-fila-editar:hover { text-decoration:underline; }
+  .ma-fila-reenviar { font-size:12px; font-weight:700; color:#60a5fa; cursor:pointer; flex-shrink:0; text-decoration:none; }
+  .ma-fila-reenviar:hover { text-decoration:underline; }
   .btn-nueva-inscripcion { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
   .btn-mis-alumnos { background:#1e2a4a; color:#f1f5f9; border:1px solid rgba(255,255,255,0.12); }
   .btn-nueva-inscripcion:hover, .btn-mis-alumnos:hover { opacity:0.9; }
@@ -2063,6 +2065,7 @@ function abrirModalMisAlumnos() {
         return '<div class="ma-fila">' +
           '<span class="ma-fila-id">' + a.idAlumno + '</span>' +
           '<span class="ma-fila-nombre">' + a.nombre + '</span>' +
+          '<a class="ma-fila-reenviar" id="ma-reenviar-' + a.idAlumno + '" onclick="reenviarCorreoDesdeMisAlumnos(\'' + a.idAlumno + '\')">✉️ Reenviar correo</a>' +
           '<a class="ma-fila-editar" onclick="abrirModalEditarAlumno(' + idx + ')">Editar</a>' +
         '</div>';
       }).join('') + '</div>';
@@ -2072,6 +2075,33 @@ function abrirModalMisAlumnos() {
 
 function cerrarModalMisAlumnos() {
   document.getElementById('modalMisAlumnos').classList.remove('active');
+}
+
+function reenviarCorreoDesdeMisAlumnos(idAlumno) {
+  var link = document.getElementById('ma-reenviar-' + idAlumno);
+  if (!link) return;
+  var textoOriginal = link.textContent;
+  link.textContent = 'Enviando...';
+  link.style.pointerEvents = 'none';
+  link.style.opacity = '0.6';
+
+  fetch(APPS_SCRIPT + '?action=reenviarCorreoBienvenida&idAlumno=' + encodeURIComponent(idAlumno))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      link.style.pointerEvents = ''; link.style.opacity = '';
+      if (data.success) {
+        link.textContent = '✅ Enviado';
+        setTimeout(function () { link.textContent = textoOriginal; }, 3000);
+      } else {
+        link.textContent = textoOriginal;
+        alert('No se pudo reenviar: ' + (data.error || 'Intenta de nuevo.'));
+      }
+    })
+    .catch(function () {
+      link.textContent = textoOriginal;
+      link.style.pointerEvents = ''; link.style.opacity = '';
+      alert('Error de conexión.');
+    });
 }
 
 var eaIdxActual = null;
