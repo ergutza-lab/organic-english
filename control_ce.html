@@ -845,6 +845,16 @@ function nombreColor(nombre) {
   return (nombre||'').toLowerCase().includes('adolescente') ? 'color:#f97316;font-weight:700;' : '';
 }
 
+// Color de fondo suave para la fila completa segun el tipo de grupo, para
+// distinguirlos de un vistazo en la tabla -- TEENS y TEENS-SAT en amarillo,
+// KIDS en verde. ADULTS y los demas tipos se quedan sin color (fondo normal).
+function colorFilaPorTipoGrupo(nombre) {
+  var n = (nombre || '').toUpperCase().trim();
+  if (n === 'TEENS' || n === 'TEENS-SAT') return 'background:#fefce8;';
+  if (n === 'KIDS') return 'background:#f0fdf4;';
+  return '';
+}
+
 function formatFecha(str) {
   if (!str) return '—';
   var d = new Date(str);
@@ -999,7 +1009,8 @@ function renderGrupos(filtro) {
       : '';
     var btnMover = ' <button class="btn btn-naranja btn-sm" onclick="event.stopPropagation();abrirModalMoverGrupoDesdeTabla(\''+escJs(g.id)+'\')">📅 Mover fecha</button>';
     var colorNombre = nombreColor(g.nombre);
-    return '<tr style="cursor:pointer" onclick="abrirModalAlumnosGrupo(\''+escJs(g.id)+'\')" title="Ver alumnos del grupo">'+
+    var colorFila = colorFilaPorTipoGrupo(g.nombre);
+    return '<tr style="cursor:pointer;'+colorFila+'" onclick="abrirModalAlumnosGrupo(\''+escJs(g.id)+'\')" title="Ver alumnos del grupo">'+
       '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">'+esc(g.id)+'</strong></td>'+
       '<td>'+esc(g.nivel)+'</td>'+
       '<td><span style="'+colorNombre+'">'+esc(g.nombre)+'</span></td>'+
