@@ -1352,15 +1352,16 @@ function entrarComoMaestro(idMaestro, clave){
 }
 
 // ── MODAL DETALLE MAESTRO ──
-// "A1-Bloque 2" -> "A1.2" (Bloque 1 = .1, Bloque 2 = .2). Si el nivel no
-// trae el patron "-Bloque N" (ej. niveles sin bloques, o Personalizado),
-// se regresa tal cual viene, sin inventar nada.
+// "NIVEL A1-Bloque 2" -> "A1.2" (Bloque 1 = .1, Bloque 2 = .2). Se extrae
+// solo el codigo base del nivel (letras+numero, ej. "A1", "B2") sin
+// importar el prefijo "NIVEL " ni el sufijo "-Bloque N" que traiga el
+// texto crudo de la hoja, y se le pega el bloque actual ya calculado.
 function formatNivelBloque_(nivelRaw, bloqueActual){
   var nivel = String(nivelRaw||'').trim();
-  var m = nivel.match(/^([A-Za-z0-9]+)\s*-?\s*Bloque\s*(\d+)/i);
-  if(m) return m[1].toUpperCase()+'.'+m[2];
-  if(bloqueActual===1||bloqueActual===2) return nivel+'.'+bloqueActual;
-  return nivel;
+  var m = nivel.match(/([A-Za-z]+\d+)/);
+  var base = m ? m[1].toUpperCase() : nivel;
+  if(bloqueActual===1||bloqueActual===2) return base+'.'+bloqueActual;
+  return base;
 }
 // Mismo criterio que ya se usa en maestro.html/alumno-app.html para saber
 // si un grupo es Kids/Kids Jr (para mostrar "MISSION" en vez de "LESSON").
