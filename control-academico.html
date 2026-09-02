@@ -1352,6 +1352,23 @@ function entrarComoMaestro(idMaestro, clave){
 }
 
 // ── MODAL DETALLE MAESTRO ──
+// "A1-Bloque 2" -> "A1.2" (Bloque 1 = .1, Bloque 2 = .2). Si el nivel no
+// trae el patron "-Bloque N" (ej. niveles sin bloques, o Personalizado),
+// se regresa tal cual viene, sin inventar nada.
+function formatNivelBloque_(nivelRaw, bloqueActual){
+  var nivel = String(nivelRaw||'').trim();
+  var m = nivel.match(/^([A-Za-z0-9]+)\s*-?\s*Bloque\s*(\d+)/i);
+  if(m) return m[1].toUpperCase()+'.'+m[2];
+  if(bloqueActual===1||bloqueActual===2) return nivel+'.'+bloqueActual;
+  return nivel;
+}
+// Mismo criterio que ya se usa en maestro.html/alumno-app.html para saber
+// si un grupo es Kids/Kids Jr (para mostrar "MISSION" en vez de "LESSON").
+function esNombreGrupoKidsCA(nombre){
+  var n = String(nombre||'').trim().toUpperCase();
+  return n==='KIDS' || n==='KIDS JR';
+}
+
 function abrirModalMaestro(idMaestro){
   var m=maestrosData.find(x=>x.id===idMaestro);
   if(!m) return;
@@ -1384,13 +1401,15 @@ function abrirModalMaestro(idMaestro){
       var btnZoomWA = g.zoom
         ? '<button onclick="event.stopPropagation();compartirZoomWA(\''+g.id+'\')" title="Compartir link de Zoom por WhatsApp" style="font-size:11px;color:#4ade80;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer;white-space:nowrap;">📲 Zoom</button>'
         : '';
-      // "En que clase va" -- LESSON actual + nivel-Bloque, si el grupo sigue
-      // el programa normal (no aplica a grupos Personalizado, que no traen
-      // estos datos calculados desde el backend).
+      // "En que clase va" -- Nivel.Bloque + LESSON (o MISSION para Kids) +
+      // numero de leccion, ej. "A1.1 LESSON 23" / "A1.1 MISSION 19". No
+      // aplica a grupos Personalizado, que no traen estos datos calculados.
       var badgeLeccion = '';
       if (g.leccionActual != null && g.bloqueActual != null) {
         var leccionPad = String(g.leccionActual).length < 2 ? '0'+g.leccionActual : String(g.leccionActual);
-        badgeLeccion = '<span style="display:inline-block;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:8px;white-space:nowrap;vertical-align:middle;">LESSON '+leccionPad+' · '+(g.nivel||'')+'</span>';
+        var nivelFmt = formatNivelBloque_(g.nivel, g.bloqueActual);
+        var tipoLeccion = esNombreGrupoKidsCA(g.nombre) ? 'MISSION' : 'LESSON';
+        badgeLeccion = '<span style="display:inline-block;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:8px;white-space:nowrap;vertical-align:middle;">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
       }
       return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;" onclick="verEvalGrupo(\''+g.id+'\',\''+g.nombre+'\')">'+
         '<div><div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel)+badgeLeccion+'</div><div style="font-size:11px;color:var(--muted);">'+g.horario+'</div></div>'+
