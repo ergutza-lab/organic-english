@@ -162,6 +162,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .st-box{background:#fff;border-radius:16px;padding:22px;max-width:380px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
 .st-box h2{font-size:16px;font-weight:800;color:#1c2b5e;margin-bottom:3px}
 .st-sub{font-size:12px;color:#64748b;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+.st-info{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 12px}
+.st-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap}
+.st-badge.inicio{background:#f1f5f9;color:#475569}
+.st-badge.avance{background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.25)}
 .st-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border-radius:8px;margin-bottom:4px}
 .st-num{width:20px;height:20px;border-radius:50%;background:#1c2b5e;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .st-aid{font-size:11px;font-weight:700;color:#f97316;min-width:56px}
@@ -260,6 +264,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
   <div class="st-box">
     <h2 id="stTitulo"></h2>
     <div class="st-sub" id="stSub"></div>
+    <div class="st-info" id="stInfo"></div>
     <div id="stLista"></div>
     <button class="st-close" onclick="cerrarAlumnos()">Cerrar</button>
   </div>
@@ -267,8 +272,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 
 <script>
 const SHEET_ID = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
+const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 var semanaOffset = 0;
-var grupos = [], maestros = {}, alumnos = {}, byTeacher = {}, allTeachers = [];
+var grupos = [], maestros = {}, alumnos = {}, byTeacher = {}, allTeachers = [], avanceMap = {};
 
 /* ── HELPERS ── */
 function parseGS(c){ return (!c||c.v===null||c.v===undefined)?null:(typeof c.v==='object'&&c.v.$t?c.v.$t:c.v); }
@@ -329,6 +335,18 @@ function getWeek(off){
   var thu=new Date(mon); thu.setDate(mon.getDate()+3);
   return {mon:mon,thu:thu};
 }
+// Mismo criterio que usa control-academico.html: "NIVEL A1-Bloque 2" -> "A1.2"
+function formatNivelBloque(nivelRaw, bloqueActual){
+  var nivel=String(nivelRaw||'').trim();
+  var m=nivel.match(/([A-Za-z]+\d+)/);
+  var base=m?m[1].toUpperCase():nivel;
+  if(bloqueActual===1||bloqueActual===2) return base+'.'+bloqueActual;
+  return base;
+}
+function esNombreGrupoKids(nombre){
+  var n=String(nombre||'').trim().toUpperCase();
+  return n==='KIDS'||n==='KIDS JR';
+}
 
 /* ── CARGA DE DATOS ── */
 async function cargarMaestros(){
@@ -357,8 +375,20 @@ async function cargarAlumnos(){
   }catch(e){}
 }
 
+async function cargarAvance(){
+  try{
+    var r=await fetch(APPS_SCRIPT+'?action=getDatosCA',{redirect:'follow'});
+    var j=await r.json();
+    if(j.status==='ok'){
+      (j.grupos||[]).forEach(function(g){
+        if(g.id) avanceMap[g.id]={leccionActual:g.leccionActual,bloqueActual:g.bloqueActual};
+      });
+    }
+  }catch(e){}
+}
+
 async function cargarGrupos(){
-  await Promise.all([cargarMaestros(),cargarAlumnos()]);
+  await Promise.all([cargarMaestros(),cargarAlumnos(),cargarAvance()]);
   try{
     var r=await fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json&sheet=GRUPOS&t='+Date.now());
     var t=await r.text(); var j=JSON.parse(t.substring(47,t.length-2));
@@ -676,8 +706,24 @@ function renderMovil(activos, horas, activosSabado, activosClub){
 /* ── MODAL ALUMNOS ── */
 function verAlumnos(idGrupo, nombre){
   var lista=alumnos[idGrupo]||[];
+  var g=grupos.find(function(x){return x.id===idGrupo;});
   document.getElementById('stTitulo').textContent=nombre||idGrupo;
   document.getElementById('stSub').textContent=idGrupo+' · '+lista.length+' alumno'+(lista.length!==1?'s':'');
+
+  var infoHtml='';
+  if(g){
+    var fi=parseFecha(g.fechaInicio);
+    if(fi) infoHtml+='<span class="st-badge inicio">📅 Inicio: '+fmtFecha(fi)+'</span>';
+    var av=avanceMap[idGrupo];
+    if(av && av.leccionActual!=null && av.bloqueActual!=null){
+      var leccionPad=String(av.leccionActual).length<2?'0'+av.leccionActual:String(av.leccionActual);
+      var nivelFmt=formatNivelBloque(g.nivel,av.bloqueActual);
+      var tipoLeccion=esNombreGrupoKids(g.nombre)?'MISSION':'LESSON';
+      infoHtml+='<span class="st-badge avance">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
+    }
+  }
+  document.getElementById('stInfo').innerHTML=infoHtml;
+
   var html=lista.length?'':'<div class="st-empty">Sin alumnos registrados</div>';
   lista.forEach(function(a,i){
     html+='<div class="st-item">'+
