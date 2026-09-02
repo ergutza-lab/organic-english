@@ -589,6 +589,10 @@
       <div id="modalMaestroId" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
     </div>
     <div id="modalMaestroDatos" style="font-size:13px;color:#94a3b8;line-height:2;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button onclick="abrirDetalleSemanalMaestro()" style="flex:1;background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.35);border-radius:8px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer;">📅 Detalle semanal</button>
+      <button onclick="abrirHistoricoGruposMaestro()" style="flex:1;background:rgba(148,163,184,0.12);color:#cbd5e1;border:1px solid rgba(148,163,184,0.35);border-radius:8px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer;">🗂️ Histórico</button>
+    </div>
     <div id="modalMaestroGrupos" style="margin-top:14px;"></div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="cerrarModalMaestro()">Cerrar</button>
@@ -713,6 +717,30 @@
   </div>
 </div>
 
+<!-- MODAL: Detalle semanal de un maestro (dia por dia, con coberturas) -->
+<div id="modalDetalleSemanal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-title">📅 Detalle semanal · <span id="modalDetalleSemanalNombre"></span></div>
+    <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px 0;">Semana actual. Marca la casilla para registrar la clase como impartida, o edita/borra un registro capturado por error (incluyendo coberturas).</p>
+    <div id="modalDetalleSemanalBody" style="max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="document.getElementById('modalDetalleSemanal').classList.remove('visible')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Historico de grupos de un maestro (incluye cancelados) -->
+<div id="modalHistoricoGrupos" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-title">🗂️ Histórico de grupos · <span id="modalHistoricoGruposNombre"></span></div>
+    <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px 0;">Todos los grupos que ha tenido asignados este maestro desde su inicio, incluyendo los ya cancelados.</p>
+    <div id="modalHistoricoGruposBody" style="max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="document.getElementById('modalHistoricoGrupos').classList.remove('visible')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Baja maestro -->
 <div id="modalBaja" class="modal-overlay" onclick="if(event.target===this)cerrarModalBaja()">
   <div class="modal-box">
@@ -802,7 +830,7 @@ function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)
 
 var caData=null, maestrosData=[], asistenciaRows=[], maestroBajaId=null;
 var bajasData=null, bajasCargando=false;
-var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
+var mapaEval={}, mapaAcum={}, evalStars={}, maestroWaActual='', maestroModalActualId='', gruposData=[], fechasRegistradas=[], bloqueosData=[], disponibilidadData=[];
 
 // ── TABULADOR ──
 var NIVELES=[
@@ -1328,6 +1356,7 @@ function abrirModalMaestro(idMaestro){
   var m=maestrosData.find(x=>x.id===idMaestro);
   if(!m) return;
   maestroWaActual=m.whatsapp||'';
+  maestroModalActualId=idMaestro;
   var fotoHtml=m.foto?'<img src="'+m.foto+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid rgba(249,115,22,0.5);" onerror="this.outerHTML=\'<div style=&quot;width:80px;height:80px;border-radius:50%;background:rgba(249,115,22,0.15);border:3px solid rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#f97316;margin:0 auto;&quot;>'+m.nombre[0]+'</div>\'" />':'<div style="width:80px;height:80px;border-radius:50%;background:rgba(249,115,22,0.15);border:3px solid rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#f97316;margin:0 auto;">'+(m.nombre[0]||'M')+'</div>';
   document.getElementById('modalMaestroFoto').innerHTML=fotoHtml;
   document.getElementById('modalMaestroNombre').textContent=m.nombre;
@@ -1344,8 +1373,10 @@ function abrirModalMaestro(idMaestro){
     '</div>'+
     '<button onclick="entrarComoMaestro(\''+m.id+'\',\''+(m.clave||'')+'\')" style="margin-top:12px;width:100%;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">🔓 Entrar como este maestro</button>';
 
-  // Grupos asignados con clic para ver evaluaciones
-  var misGrupos=gruposData.filter(function(g){return g.idMaestro===idMaestro;});
+  // Grupos asignados con clic para ver evaluaciones -- se excluyen los
+  // grupos Cancelados: ya no tiene caso mostrarselos al coordinador aqui
+  // (para eso esta el boton "Histórico", que si los incluye).
+  var misGrupos=gruposData.filter(function(g){return g.idMaestro===idMaestro && String(g.estado||'').toUpperCase()!=='CANCELADO';});
   var gruposHtml='';
   if(misGrupos.length){
     gruposHtml='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Grupos asignados</div>';
@@ -1372,6 +1403,112 @@ function abrirModalMaestro(idMaestro){
 }
 function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.remove('visible');}
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
+
+// ── DETALLE SEMANAL DE UN MAESTRO (dia por dia, con coberturas) ──
+function abrirDetalleSemanalMaestro(){
+  var idMaestro = maestroModalActualId;
+  var m = maestrosData.find(x=>x.id===idMaestro);
+  document.getElementById('modalDetalleSemanalNombre').textContent = m ? m.nombre : idMaestro;
+  var body = document.getElementById('modalDetalleSemanalBody');
+  body.innerHTML = '<div class="empty-state">Cargando...</div>';
+  document.getElementById('modalDetalleSemanal').classList.add('visible');
+  cargarDetalleSemanalMaestro(idMaestro);
+}
+
+function cargarDetalleSemanalMaestro(idMaestro){
+  var body = document.getElementById('modalDetalleSemanalBody');
+  fetch(APPS_SCRIPT+'?action=getDetalleSemanalMaestro&idMaestro='+encodeURIComponent(idMaestro),{redirect:'follow'})
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.success){ body.innerHTML='<div class="empty-state">Error: '+(data.error||'no se pudo cargar')+'</div>'; return; }
+      if(!data.dias || !data.dias.length){ body.innerHTML='<div class="empty-state">Este maestro no tiene grupos activos.</div>'; return; }
+
+      body.innerHTML = data.dias.map(function(dia){
+        var filasClases = (dia.clases||[]).map(function(c){
+          var chkId = 'chkDia_'+dia.fecha+'_'+c.idGrupo;
+          var cantId = 'cantDia_'+dia.fecha+'_'+c.idGrupo;
+          return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'+
+            '<input type="checkbox" id="'+chkId+'" '+(c.dioClase?'checked':'')+' style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">'+
+            '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--text);">'+c.idGrupo+' · '+(c.nombre||'')+'</div><div style="font-size:10px;color:var(--muted);">'+(c.horario||'')+(c.registrado?'':' · sin registrar todavía')+'</div></div>'+
+            '<input type="number" id="'+cantId+'" value="'+c.cantidad+'" min="0" step="1" style="width:48px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px;font-size:12px;text-align:center;" title="Cantidad de clases">'+
+            '<button onclick="guardarAsistenciaDia(\''+idMaestro+'\',\''+c.idGrupo+'\',\''+dia.fecha+'\','+(c.fila||'null')+',\''+chkId+'\',\''+cantId+'\')" style="font-size:11px;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.35);border-radius:6px;padding:4px 8px;cursor:pointer;font-weight:700;white-space:nowrap;">Guardar</button>'+
+          '</div>';
+        }).join('');
+
+        var filasCobertura = (dia.coberturas||[]).map(function(cb){
+          return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);background:rgba(249,115,22,0.06);">'+
+            '<span style="font-size:15px;flex-shrink:0;">🔁</span>'+
+            '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:#fb923c;">Cobertura · '+cb.idGrupo+'</div><div style="font-size:10px;color:var(--muted);">Monto: $'+(cb.montoCobertura||0)+' MXN</div></div>'+
+            '<button onclick="if(confirm(\'¿Eliminar este registro de cobertura?\'))eliminarAsistenciaFila('+cb.fila+',\''+idMaestro+'\')" style="font-size:11px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.35);border-radius:6px;padding:4px 8px;cursor:pointer;font-weight:700;white-space:nowrap;">🗑️ Eliminar</button>'+
+          '</div>';
+        }).join('');
+
+        if(!filasClases && !filasCobertura) return '';
+
+        return '<div style="margin-bottom:14px;">'+
+          '<div style="font-size:12px;font-weight:700;color:'+(dia.esHoy?'#f97316':'var(--text)')+';text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">'+dia.nombre+' · '+dia.fecha+(dia.esHoy?' (hoy)':'')+'</div>'+
+          filasClases+filasCobertura+
+        '</div>';
+      }).join('') || '<div class="empty-state">Sin clases programadas esta semana.</div>';
+    })
+    .catch(()=>{ body.innerHTML='<div class="empty-state">Error de conexión.</div>'; });
+}
+
+function guardarAsistenciaDia(idMaestro, idGrupo, fecha, fila, chkId, cantId){
+  var dioClase = document.getElementById(chkId).checked;
+  var cantidad = document.getElementById(cantId).value || 1;
+  var params = new URLSearchParams({
+    action: 'actualizarAsistenciaMaestro',
+    idMaestro: idMaestro, idGrupo: idGrupo, fecha: fecha,
+    dioClase: dioClase, cantidad: cantidad,
+    idCoordinador: caData.id
+  });
+  if (fila) params.set('fila', fila);
+  fetch(APPS_SCRIPT+'?'+params.toString(),{redirect:'follow'})
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.success){ mostrarToast('Asistencia actualizada','success'); cargarDetalleSemanalMaestro(idMaestro); cargarDatos(); }
+      else mostrarToast('Error: '+(data.error||''),'error');
+    })
+    .catch(()=>mostrarToast('Error de conexión','error'));
+}
+
+function eliminarAsistenciaFila(fila, idMaestro){
+  fetch(APPS_SCRIPT+'?action=eliminarAsistenciaMaestro&fila='+fila+'&idCoordinador='+encodeURIComponent(caData.id),{redirect:'follow'})
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.success){ mostrarToast('Registro eliminado','success'); cargarDetalleSemanalMaestro(idMaestro); cargarDatos(); }
+      else mostrarToast('Error: '+(data.error||''),'error');
+    })
+    .catch(()=>mostrarToast('Error de conexión','error'));
+}
+
+// ── HISTÓRICO DE GRUPOS DE UN MAESTRO (incluye cancelados) ──
+function abrirHistoricoGruposMaestro(){
+  var idMaestro = maestroModalActualId;
+  var m = maestrosData.find(x=>x.id===idMaestro);
+  document.getElementById('modalHistoricoGruposNombre').textContent = m ? m.nombre : idMaestro;
+  var body = document.getElementById('modalHistoricoGruposBody');
+  body.innerHTML = '<div class="empty-state">Cargando...</div>';
+  document.getElementById('modalHistoricoGrupos').classList.add('visible');
+
+  fetch(APPS_SCRIPT+'?action=getHistoricoGruposMaestro&idMaestro='+encodeURIComponent(idMaestro),{redirect:'follow'})
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.success || !data.grupos || !data.grupos.length){ body.innerHTML='<div class="empty-state">Sin grupos registrados.</div>'; return; }
+      body.innerHTML = data.grupos.map(function(g){
+        var esCancelado = String(g.estado||'').toUpperCase()==='CANCELADO';
+        var badge = esCancelado
+          ? '<span style="font-size:10px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:100px;padding:2px 8px;">Cancelado</span>'
+          : '<span style="font-size:10px;font-weight:700;color:#4ade80;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:100px;padding:2px 8px;">Activo</span>';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;'+(esCancelado?'opacity:0.6;':'')+'">'+
+          '<div><div style="font-size:13px;font-weight:600;color:var(--text);">'+g.id+' · '+(g.nombre||g.nivel||'')+'</div><div style="font-size:11px;color:var(--muted);">'+(g.horario||'')+' · Inicio: '+g.fechaInicio+'</div></div>'+
+          badge+
+        '</div>';
+      }).join('');
+    })
+    .catch(()=>{ body.innerHTML='<div class="empty-state">Error de conexión.</div>'; });
+}
 
 // ── COMPARTIR LINK DE ZOOM DE UN GRUPO POR WHATSAPP ──
 function compartirZoomWA(idGrupo){
