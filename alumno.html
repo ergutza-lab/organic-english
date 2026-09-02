@@ -1860,15 +1860,31 @@
     document.getElementById(modalId).style.display = 'flex';
   }
 
+   // Misma tabla de tarifas que ya usa el backend (diasDeVigencia en
+   // CORE.GS) -- se repite aqui porque el frontend no tiene acceso directo
+   // a esa funcion, pero debe coincidir exactamente para que el saldo/falta
+   // se calculen bien segun el tipo de inscripcion de cada alumno.
+   function tarifaSemanalPorTipo(tipo) {
+     var t = (tipo || '').toString().trim().toUpperCase();
+     if (t === 'NORMAL') return 140;
+     if (t === 'KIDS') return 150;
+     return 100; // PROMO y cualquier otro tipo
+   }
+
    function mostrarModalPago(p, dias) {
     var fechaFin = formatFechaCorta(p.periodoFin);
     var tv = dias<=0 ? 'Tu pago vencio el '+fechaFin : dias===1 ? 'Tu pago vence manana · '+fechaFin : 'Tu pago vence en '+dias+' dias · '+fechaFin;
     document.getElementById('modalPagoVigencia').textContent = tv;
  
-    // Calcular saldo y cuanto falta para la siguiente semana
+    // Calcular saldo y cuanto falta para la siguiente semana, usando la
+    // tarifa que de verdad le corresponde a este alumno segun su tipo de
+    // inscripcion (NORMAL=$140, KIDS=$150, PROMO/otros=$100) -- antes
+    // siempre se usaba $100 fijo, lo cual hacia ver un "saldo a favor"
+    // incorrecto a los alumnos de tipo NORMAL que pagan $140.
+    var tarifaSemanal = tarifaSemanalPorTipo(alumnoData && alumnoData.alumno && alumnoData.alumno.tipoInscripcion);
     var monto = Number(p.monto) || 0;
-    var saldo = monto % 100;
-    var falta = saldo > 0 ? (100 - saldo) : 0;
+    var saldo = monto % tarifaSemanal;
+    var falta = saldo > 0 ? (tarifaSemanal - saldo) : 0;
  
     var saldoHtml = '';
     if (saldo > 0) {
@@ -1885,7 +1901,7 @@
     }
  
     document.getElementById('modalPagoSubtitulo').innerHTML =
-      'Tu <strong>colegiatura semanal esta por vencer</strong>. Sube tu comprobante de $100 MXN.' +
+      'Tu <strong>colegiatura semanal esta por vencer</strong>. Sube tu comprobante de $' + tarifaSemanal + ' MXN.' +
       (saldo > 0 ? ' Tienes <strong style="color:#4ade80;">$'+saldo+' de saldo</strong> a favor.' : '');
  
     // Insertar bloque de saldo antes del upload-zone
