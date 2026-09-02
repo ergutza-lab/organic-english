@@ -1007,11 +1007,36 @@
     renderGrupos(filtrados);
   }
 
-  function calcUnidad(fechaInicio) {
-    var diff = Math.floor((new Date() - new Date(fechaInicio)) / 86400000);
-    if (diff < 0) return '<span style="color:var(--blue);font-size:13px;font-weight:500">Por iniciar</span>';
-    var u = Math.floor(diff/28)+1, s = Math.floor(diff/7)+1;
-    return '<span style="color:var(--orange-lt);font-size:13px;font-weight:500">Unidad '+u+' · Sem '+s+'</span>';
+  function calcUnidad(g) {
+    if (g.fechaInicio && new Date() < new Date(g.fechaInicio)) {
+      return '<span style="color:var(--blue);font-size:13px;font-weight:500">Por iniciar</span>';
+    }
+    if (g.leccionActual == null || g.bloqueActual == null) {
+      return '<span class="td-gray">—</span>';
+    }
+    var leccionPad = String(g.leccionActual).length < 2 ? '0'+g.leccionActual : String(g.leccionActual);
+    var nivelFmt = formatNivelBloque_(g.nivel, g.bloqueActual);
+    var tipoLeccion = esNombreGrupoKidsCA(g.nombre) ? 'MISSION' : 'LESSON';
+    return '<span style="color:var(--orange-lt);font-size:13px;font-weight:500">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
+  }
+
+  // "NIVEL A1-Bloque 2" -> "A1.2" (Bloque 1 = .1, Bloque 2 = .2). Se
+  // extrae solo el codigo base del nivel (letras+numero, ej. "A1", "B2")
+  // sin importar el prefijo "NIVEL " ni el sufijo "-Bloque N" del texto
+  // crudo de la hoja. Misma logica que ya usa Control Academico, para
+  // que ambas pantallas muestren exactamente el mismo dato.
+  function formatNivelBloque_(nivelRaw, bloqueActual){
+    var nivel = String(nivelRaw||'').trim();
+    var m = nivel.match(/([A-Za-z]+\d+)/);
+    var base = m ? m[1].toUpperCase() : nivel;
+    if(bloqueActual===1||bloqueActual===2) return base+'.'+bloqueActual;
+    return base;
+  }
+  // Mismo criterio que ya se usa en Control Academico/maestro.html/
+  // alumno-app.html para saber si un grupo es Kids/Kids Jr.
+  function esNombreGrupoKidsCA(nombre){
+    var n = String(nombre||'').trim().toUpperCase();
+    return n==='KIDS' || n==='KIDS JR';
   }
 
   function renderGrupos(grupos) {
@@ -1059,7 +1084,7 @@
         '<td class="td-gray" style="font-size:11px;">'+( g.fechaInicio ? (function(s){ var d=new Date(s); return isNaN(d.getTime()) ? s : d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); })(g.fechaInicio) : '—' )+'</td>' +
         '<td>'+inscritosCell+'</td>' +
         '<td>'+chipE+'</td>' +
-        '<td>'+calcUnidad(g.fechaInicio)+'</td>' +
+        '<td>'+calcUnidad(g)+'</td>' +
         '<td style="font-size:13px">'+(g.maestro||'<span class="td-gray">—</span>')+'</td>' +
         '<td style="font-size:13px">'+(g.asistente||'<span class="td-gray">—</span>')+'</td>' +
         '</tr>';
