@@ -1728,8 +1728,17 @@
   function irAEvaluar() {
     var btnM = document.getElementById('btnEvaluarMaestro');
     var btnC = document.getElementById('btnEvaluarCE');
-    var objetivo = (btnM && !btnM.disabled) ? btnM : btnC;
-    if (objetivo) objetivo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var evaluarMaestro = (btnM && !btnM.disabled);
+    var objetivo = evaluarMaestro ? btnM : btnC;
+    if (!objetivo) return;
+    // btnEvaluarMaestro vive en la pestaña "datos" y btnEvaluarCE vive en
+    // la pestaña "pagos" -- pero el post-it que dispara esta funcion esta
+    // en la pestaña "practica". Sin cambiar de pestaña primero, el boton
+    // objetivo quedaba oculto (display:none via .tab-content sin .active)
+    // y scrollIntoView no hacia nada visible -- por eso el clic parecia no
+    // tener ningun efecto.
+    cambiarTabApp(evaluarMaestro ? 'datos' : 'pagos');
+    setTimeout(function () { objetivo.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
   }
 
   function calificar(concepto, valor) {
