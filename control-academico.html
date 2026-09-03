@@ -721,8 +721,12 @@
 <div id="modalDetalleSemanal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('visible')">
   <div class="modal-box" style="max-width:640px;">
     <div class="modal-title">📅 Detalle semanal · <span id="modalDetalleSemanalNombre"></span></div>
-    <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px 0;">Semana actual. Marca la casilla para registrar la clase como impartida, o edita/borra un registro capturado por error (incluyendo coberturas).</p>
-    <div id="modalDetalleSemanalBody" style="max-height:60vh;overflow-y:auto;"></div>
+    <p style="font-size:12px;color:var(--muted);margin:-8px 0 10px 0;">Marca la casilla para registrar la clase como impartida, o edita/borra un registro capturado por error (incluyendo coberturas). Se muestran ambas semanas del periodo de pago catorcenal.</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button id="tabSemanaActual" onclick="cambiarTabSemana(0)" style="flex:1;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.4);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Semana actual</button>
+      <button id="tabSemanaAnterior" onclick="cambiarTabSemana(-1)" style="flex:1;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Semana anterior</button>
+    </div>
+    <div id="modalDetalleSemanalBody" style="max-height:55vh;overflow-y:auto;"></div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="document.getElementById('modalDetalleSemanal').classList.remove('visible')">Cerrar</button>
     </div>
@@ -1425,6 +1429,8 @@ function cerrarModalMaestro(){document.getElementById('modalMaestro').classList.
 function abrirWaMaestro(){if(maestroWaActual) window.open('https://wa.me/'+cleanWA(maestroWaActual),'_blank');}
 
 // ── DETALLE SEMANAL DE UN MAESTRO (dia por dia, con coberturas) ──
+var detalleSemanalOffsetActual = 0; // 0 = semana actual, -1 = semana anterior
+
 function abrirDetalleSemanalMaestro(){
   var idMaestro = maestroModalActualId;
   var m = maestrosData.find(x=>x.id===idMaestro);
@@ -1432,12 +1438,29 @@ function abrirDetalleSemanalMaestro(){
   var body = document.getElementById('modalDetalleSemanalBody');
   body.innerHTML = '<div class="empty-state">Cargando...</div>';
   document.getElementById('modalDetalleSemanal').classList.add('visible');
+  detalleSemanalOffsetActual = 0;
+  actualizarEstiloTabsSemana();
   cargarDetalleSemanalMaestro(idMaestro);
+}
+
+function cambiarTabSemana(offset){
+  detalleSemanalOffsetActual = offset;
+  actualizarEstiloTabsSemana();
+  var body = document.getElementById('modalDetalleSemanalBody');
+  body.innerHTML = '<div class="empty-state">Cargando...</div>';
+  cargarDetalleSemanalMaestro(maestroModalActualId);
+}
+
+function actualizarEstiloTabsSemana(){
+  var activo = 'background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.4);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;';
+  var inactivo = 'background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;';
+  document.getElementById('tabSemanaActual').style.cssText = (detalleSemanalOffsetActual===0 ? activo : inactivo);
+  document.getElementById('tabSemanaAnterior').style.cssText = (detalleSemanalOffsetActual===-1 ? activo : inactivo);
 }
 
 function cargarDetalleSemanalMaestro(idMaestro){
   var body = document.getElementById('modalDetalleSemanalBody');
-  fetch(APPS_SCRIPT+'?action=getDetalleSemanalMaestro&idMaestro='+encodeURIComponent(idMaestro),{redirect:'follow'})
+  fetch(APPS_SCRIPT+'?action=getDetalleSemanalMaestro&idMaestro='+encodeURIComponent(idMaestro)+'&offsetSemanas='+detalleSemanalOffsetActual,{redirect:'follow'})
     .then(r=>r.json())
     .then(data=>{
       if(!data.success){ body.innerHTML='<div class="empty-state">Error: '+(data.error||'no se pudo cargar')+'</div>'; return; }
