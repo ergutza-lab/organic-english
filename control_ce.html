@@ -140,6 +140,10 @@ body {
 .tabla-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 thead th { background: var(--gris-cl); padding: .65rem 1rem; text-align: left; font-size: .75rem; font-weight: 700; color: var(--gris); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; position: sticky; top: 0; z-index: 2; border-bottom: 1.5px solid var(--borde); }
+th.th-ordenable { cursor: pointer; user-select: none; transition: color .15s; }
+th.th-ordenable:hover { color: var(--azul); }
+th.th-ordenable.orden-activo { color: var(--azul); }
+.orden-flecha { display: inline-block; margin-left: 4px; font-size: .7rem; opacity: .7; }
 tbody tr { border-bottom: 1px solid var(--borde); transition: background .15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--gris-cl); }
@@ -404,8 +408,15 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <table>
             <thead>
               <tr>
-                <th>Grupo</th><th>Nivel</th><th>Nombre</th><th>Horario</th><th>Inicio</th>
-                <th>Inscritos</th><th>Estado</th><th>Asistente CE</th><th>Acciones</th>
+                <th class="th-ordenable" onclick="ordenarGrupos('id')" data-campo="id">Grupo<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('nivel')" data-campo="nivel">Nivel<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('nombre')" data-campo="nombre">Nombre<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('horario')" data-campo="horario">Horario<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('fechaInicio')" data-campo="fechaInicio">Inicio<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('inscritos')" data-campo="inscritos">Inscritos<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('estado')" data-campo="estado">Estado<span class="orden-flecha"></span></th>
+                <th class="th-ordenable" onclick="ordenarGrupos('idAsistente')" data-campo="idAsistente">Asistente CE<span class="orden-flecha"></span></th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="tbody-grupos">
@@ -979,7 +990,75 @@ function renderResumen() {
 }
 
 // ── RENDER GRUPOS ──
+// ── ORDENAMIENTO DE LA TABLA DE GRUPOS ──
+// Estado del ordenamiento actual: que columna y en que direccion. Empieza
+// sin ningun orden aplicado (el orden natural que ya trae del backend).
+var ordenGruposCampo = null;
+var ordenGruposAsc = true;
+var ultimoFiltroGrupos = '';
+
+function ordenarGrupos(campo) {
+  if (ordenGruposCampo === campo) {
+    ordenGruposAsc = !ordenGruposAsc; // mismo encabezado -> invierte direccion
+  } else {
+    ordenGruposCampo = campo;
+    ordenGruposAsc = true; // encabezado nuevo -> empieza ascendente
+  }
+  renderGrupos(ultimoFiltroGrupos);
+}
+
+function actualizarFlechasOrdenGrupos() {
+  document.querySelectorAll('.th-ordenable').forEach(function(th) {
+    var flecha = th.querySelector('.orden-flecha');
+    var esActivo = th.getAttribute('data-campo') === ordenGruposCampo;
+    th.classList.toggle('orden-activo', esActivo);
+    if (flecha) flecha.textContent = esActivo ? (ordenGruposAsc ? '▲' : '▼') : '';
+  });
+}
+
+// Compara dos grupos segun el campo y direccion de orden actuales. Cada
+// tipo de dato se compara de la forma que tiene sentido para el usuario:
+// texto alfabeticamente (sin distinguir mayusculas/acentos raros), numeros
+// numericamente (nunca como texto, o "10" quedaria antes que "2"), y
+// fechas por su valor real de calendario (no por como se ve el texto).
+function compararGrupos(a, b, campo) {
+  var va, vb;
+  if (campo === 'inscritos') {
+    va = Number(a.inscritos) || 0;
+    vb = Number(b.inscritos) || 0;
+    return va - vb;
+  }
+  if (campo === 'estado') {
+    // El "estado" es una categoria derivada directamente de cuantos
+    // inscritos tiene el grupo (ver renderGrupos) -- se ordena por ese
+    // mismo criterio para que el orden visual coincida con el que ve el
+    // usuario en la columna Estado.
+    va = Number(a.inscritos) || 0;
+    vb = Number(b.inscritos) || 0;
+    return va - vb;
+  }
+  if (campo === 'fechaInicio') {
+    va = a.fechaInicio ? new Date(a.fechaInicio).getTime() : 0;
+    vb = b.fechaInicio ? new Date(b.fechaInicio).getTime() : 0;
+    if (isNaN(va)) va = 0;
+    if (isNaN(vb)) vb = 0;
+    return va - vb;
+  }
+  // Texto: id, nivel, nombre, horario, idAsistente. Los grupos "Sin
+  // asignar" (idAsistente vacio) se mandan siempre al final sin importar
+  // la direccion, para que no aparezcan intercalados de forma confusa.
+  va = (a[campo] || '').toString().toLowerCase();
+  vb = (b[campo] || '').toString().toLowerCase();
+  if (campo === 'idAsistente') {
+    if (!va && vb) return 1;
+    if (va && !vb) return -1;
+    if (!va && !vb) return 0;
+  }
+  return va.localeCompare(vb, 'es', { numeric: true, sensitivity: 'base' });
+}
+
 function renderGrupos(filtro) {
+  ultimoFiltroGrupos = filtro || '';
   // Los grupos Cancelado ya no se muestran aquí -- tienen su propia sección
   // en la pestaña Alertas ("Grupos cancelados") para no mezclarse con los
   // grupos activos.
@@ -991,6 +1070,13 @@ function renderGrupos(filtro) {
              g.horario.toLowerCase().includes(f) || g.nivel.toLowerCase().includes(f);
     });
   }
+  if (ordenGruposCampo) {
+    lista = lista.slice().sort(function(a, b) {
+      var cmp = compararGrupos(a, b, ordenGruposCampo);
+      return ordenGruposAsc ? cmp : -cmp;
+    });
+  }
+  actualizarFlechasOrdenGrupos();
   var tbody = document.getElementById('tbody-grupos');
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="9" class="vacio">Sin resultados</td></tr>'; return; }
   tbody.innerHTML = lista.map(function(g) {
