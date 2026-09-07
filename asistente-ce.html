@@ -1380,9 +1380,20 @@ function seleccionarAlumnoCambio(){
   // (misma fecha_inicio) y los de nomenclatura mayor (fecha_inicio posterior)
   // son opciones válidas aunque ya hayan iniciado. Solo se descartan los
   // grupos de nomenclatura anterior a la del alumno.
+  // Se compara solo el NIVEL BASE (ej. "A1"), ignorando el "-Bloque 1/2" --
+  // asi, un alumno que ya esta en Bloque 2 (coloquialmente "A1.2") SI puede
+  // moverse a un grupo que todavia esta en Bloque 1 ("A1.1") del MISMO
+  // nivel base, como cuando se fusionan grupos. Antes se exigia coincidir
+  // el nivel completo (incluyendo el bloque), lo cual bloqueaba por
+  // completo estos cambios por fusion.
+  function nivelBase_(nivelCompleto) {
+    return String(nivelCompleto || '').replace(/-Bloque\s*\d+/i, '').trim();
+  }
+  const nivelBaseActual = nivelBase_(nivel);
+
   const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>{
     if (g.id===grupoActual) return false;
-    if (nivel && g.nivel!==nivel) return false;
+    if (nivelBaseActual && nivelBase_(g.nivel)!==nivelBaseActual) return false;
     if (nombreGrupo && g.nombre!==nombreGrupo) return false;
     const fechaGrupoObj=parseFechaInicio(g.fecha_inicio);
     if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj) return false; // nomenclatura anterior -> fuera
