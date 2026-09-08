@@ -7029,11 +7029,20 @@
       postitPago.onclick = null;
       postitPago.style.cursor = 'default';
     } else if (p && p.periodoFin) {
-      var diasParaVencer = Math.ceil((new Date(p.periodoFin).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      var fechaVenceObj = new Date(p.periodoFin);
+      // Los grupos sabatinos siempre vencen en SABADO (dia 6); los grupos
+      // entre semana siempre vencen en JUEVES -- no hace falta ningun
+      // campo nuevo del backend, el dia de la semana del vencimiento ya
+      // nos dice cual es cual. Para sabatinos el aviso debe encenderse
+      // desde el MARTES (4 dias antes del sabado), no desde el lunes (3
+      // dias antes) como en los grupos entre semana.
+      var esSabatino     = fechaVenceObj.getDay() === 6;
+      var umbralAviso    = esSabatino ? 4 : 3;
+      var diasParaVencer = Math.ceil((fechaVenceObj.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       if (diasParaVencer < 0) {
         txtPago.textContent = 'Tu pago venció. No olvides subir tu comprobante para seguir con tus clases.';
         postitPago.classList.add('post-it-brillo');
-      } else if (diasParaVencer <= 3) {
+      } else if (diasParaVencer <= umbralAviso) {
         txtPago.textContent = 'Se acerca tu fecha de pago el ' + formatFechaCorta(p.periodoFin) + '. No olvides subir tu comprobante!!';
         postitPago.classList.add('post-it-brillo');
       } else {
