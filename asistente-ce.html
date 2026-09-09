@@ -1569,8 +1569,8 @@ var calendarios = {};
 function calLunesDe(d){var x=new Date(d);x.setHours(0,0,0,0);var dia=x.getDay();x.setDate(x.getDate()-(dia===0?6:dia-1));return x;}
 function calJuevesDe(lunes){var j=new Date(lunes);j.setDate(j.getDate()+3);return j;}
 
-function calInit(containerId){
-  calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0 };
+function calInit(containerId, esSabatino){
+  calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0, sabatino: !!esSabatino };
   calRender(containerId);
 }
 
@@ -1583,6 +1583,26 @@ function calMes(containerId, delta){
 function calClickDia(containerId, timestamp){
   var st = calendarios[containerId];
   var d = new Date(timestamp);
+
+  if (st.sabatino) {
+    // Modo sabatino: cada clic es un sabado completo (no se redondea a
+    // lunes-jueves). Un solo clic selecciona ESE sabado; un segundo clic
+    // extiende el rango hasta ese otro sabado (sabado a sabado, nunca
+    // dias sueltos entre semana).
+    var dSab = new Date(d); dSab.setHours(0, 0, 0, 0);
+    if (st.paso === 0 || st.paso === 2) {
+      st.inicio = dSab;
+      st.fin = dSab;
+      st.paso = 1;
+    } else {
+      if (dSab < st.inicio) { st.fin = st.inicio; st.inicio = dSab; }
+      else { st.fin = dSab; }
+      st.paso = 2;
+    }
+    calRender(containerId);
+    return;
+  }
+
   var lunes = calLunesDe(d);
   var jueves = calJuevesDe(lunes);
 
@@ -1630,7 +1650,7 @@ function calRender(containerId){
     d.setDate(inicioGrid.getDate()+i);
     var esOtroMes = d.getMonth() !== mes.getMonth();
     var diaSemana = d.getDay();
-    var esClaseDia = diaSemana>=1 && diaSemana<=4; // lunes a jueves
+    var esClaseDia = st.sabatino ? (diaSemana===6) : (diaSemana>=1 && diaSemana<=4); // sabado, o lunes a jueves
     var enRango = esClaseDia && st.inicio && st.fin && d >= st.inicio && d <= st.fin;
     var cls = 'cal-day'+(esOtroMes?' cal-otro-mes':'')+(esClaseDia?' cal-clase':' cal-no-clase')+(enRango?' cal-selected':'');
     var clickAttr = esClaseDia ? ' onclick="calClickDia(\''+containerId+'\','+d.getTime()+')"' : '';
@@ -2081,13 +2101,14 @@ var validarCEAlumnoId = null;
 
 function abrirModalValidarCE(idAlumno) {
   var nombre = idAlumno;
+  var esSabatinoAlumno = false;
   if (datosPanel && datosPanel.sin_pago) {
     var found = (datosPanel.sin_pago||[]).find(function(a){ return a.id === idAlumno; });
-    if (found) nombre = found.nombre;
+    if (found) { nombre = found.nombre; esSabatinoAlumno = !!found.esSabatino; }
   }
   if (nombre === idAlumno && datosPanel && datosPanel.alumnos_baja) {
     var foundBaja = (datosPanel.alumnos_baja||[]).find(function(a){ return a.id === idAlumno; });
-    if (foundBaja) nombre = foundBaja.nombre;
+    if (foundBaja) { nombre = foundBaja.nombre; esSabatinoAlumno = !!foundBaja.esSabatino; }
   }
   validarCEAlumnoId = idAlumno;
   document.getElementById('validar-ce-alumno-info').innerHTML =
@@ -2106,7 +2127,9 @@ function abrirModalValidarCE(idAlumno) {
   var modal = document.getElementById('modal-validar-ce');
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
-  calInit('cal-ce');
+  calInit('cal-ce', esSabatinoAlumno);
+  var etiquetaCobertura = document.getElementById('validar-ce-cobertura-label');
+  if (etiquetaCobertura) etiquetaCobertura.textContent = esSabatinoAlumno ? '¿Qué sábado(s) cubre este pago?' : '¿Qué semana(s) cubre este pago?';
 }
 function cerrarModalValidarCE() {
   document.getElementById('modal-validar-ce').style.display = 'none';
@@ -2395,7 +2418,7 @@ function generarReportePDF(idGrupo) {
     </div>
     <!-- Cobertura -->
     <div class="cal-cobertura cal-dark">
-      <span class="cal-cobertura-label">¿Qué semana(s) cubre este pago?</span>
+      <span class="cal-cobertura-label" id="validar-ce-cobertura-label">¿Qué semana(s) cubre este pago?</span>
       <div id="cal-ce"></div>
     </div>
     <!-- Comentario -->
