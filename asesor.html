@@ -73,6 +73,8 @@
   .ma-fila-nombre { font-size:13px; color:#f1f5f9; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ma-fila-editar { font-size:12px; font-weight:700; color:#fb923c; cursor:pointer; flex-shrink:0; text-decoration:none; }
   .ma-fila-editar:hover { text-decoration:underline; }
+  .ma-fila-reenviar { font-size:12px; font-weight:700; color:#60a5fa; cursor:pointer; flex-shrink:0; text-decoration:none; }
+  .ma-fila-reenviar:hover { text-decoration:underline; }
   .btn-nueva-inscripcion { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
   .btn-mis-alumnos { background:#1e2a4a; color:#f1f5f9; border:1px solid rgba(255,255,255,0.12); }
   .btn-nueva-inscripcion:hover, .btn-mis-alumnos:hover { opacity:0.9; }
@@ -633,20 +635,36 @@
 
  function cleanWA(phone) {
   var n = (phone || '').toString().replace(/\D/g, '');
-  if (n.length === 10) n = '521' + n;                                     // MX sin código de país (compatibilidad con lo capturado antes)
-  else if (n.length === 12 && n.startsWith('52')) n = '521' + n.slice(2);  // MX con 52 pero sin el "1" extra que pide WhatsApp
-  else if (n.length === 13 && n.startsWith('521')) {}                     // MX ya completo, se deja igual
-  else if (n.length === 11 && n.startsWith('1')) {}                       // EU/Canadá ya completo (+1 y 10 dígitos), se deja igual
-  else if (n.length === 12 && n.startsWith('57')) {}                      // Colombia ya completo (+57 y 10 dígitos), se deja igual
-  else if (n.length >= 11 && n.length <= 15) {}                           // cualquier otro país: se asume que ya trae su código de país completo, no se toca
-  else n = '521' + n.slice(-10);                                         // número corto/con basura sin código reconocible: fallback legado a MX
+  if (n.length === 10) {
+    // 10 digitos sin nada mas -- se asume Mexico (el caso mas comun con
+    // mucha diferencia) y se le agrega el prefijo que WhatsApp exige.
+    return '521' + n;
+  }
+  if (n.startsWith('52') && n.length === 12) {
+    // Mexico con codigo de pais pero sin el "1" extra que WhatsApp pide
+    // especificamente para numeros mexicanos -- se inserta.
+    return '521' + n.slice(2);
+  }
+  if (n.startsWith('521') && n.length === 13) {
+    // Mexico ya en el formato exacto que WhatsApp necesita.
+    return n;
+  }
+  // Cualquier otro numero -- de otro pais, con su propio codigo de pais
+  // (ej. 1 para EE.UU./Canada, 34 para España, etc.) -- se respeta tal
+  // cual, SIN forzarle el prefijo de Mexico. Antes, cualquier numero que
+  // no encajara en los 3 casos de arriba caia aqui y se le pegaba "521" +
+  // sus ultimos 10 digitos, lo cual arruinaba por completo un numero
+  // extranjero legitimo (ej. un numero de EE.UU. terminaba con un
+  // prefijo mexicano invalido, y WhatsApp no encontraba ese numero).
   return n;
 }
 
 // El colocador/asesor elige el país al capturar el número, y esta función
 // arma el número completo para WhatsApp según ese país -- así "9286005413"
 // capturado como Estados Unidos se vuelve "19286005413" y NO "5219286005413"
-// (que es lo que pasaba antes, porque cleanWA suponía que TODO era México).
+// (que era el problema real: al asesor le tocaba acordarse de teclear el
+// código de país a mano y no siempre pasaba). Con el selector ya no hace
+// falta que nadie se acuerde de nada.
 function construirNumeroWA(numeroCrudo, pais, ladaLibre) {
   var n = (numeroCrudo || '').toString().replace(/\D/g, '');
   if (!n) return '';
@@ -2150,6 +2168,7 @@ function abrirModalMisAlumnos() {
         return '<div class="ma-fila">' +
           '<span class="ma-fila-id">' + a.idAlumno + '</span>' +
           '<span class="ma-fila-nombre">' + a.nombre + '</span>' +
+          '<a class="ma-fila-reenviar" id="ma-reenviar-' + a.idAlumno + '" onclick="reenviarCorreoDesdeMisAlumnos(\'' + a.idAlumno + '\')">✉️ Reenviar correo</a>' +
           '<a class="ma-fila-editar" onclick="abrirModalEditarAlumno(' + idx + ')">Editar</a>' +
         '</div>';
       }).join('') + '</div>';
@@ -2159,6 +2178,33 @@ function abrirModalMisAlumnos() {
 
 function cerrarModalMisAlumnos() {
   document.getElementById('modalMisAlumnos').classList.remove('active');
+}
+
+function reenviarCorreoDesdeMisAlumnos(idAlumno) {
+  var link = document.getElementById('ma-reenviar-' + idAlumno);
+  if (!link) return;
+  var textoOriginal = link.textContent;
+  link.textContent = 'Enviando...';
+  link.style.pointerEvents = 'none';
+  link.style.opacity = '0.6';
+
+  fetch(APPS_SCRIPT + '?action=reenviarCorreoBienvenida&idAlumno=' + encodeURIComponent(idAlumno))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      link.style.pointerEvents = ''; link.style.opacity = '';
+      if (data.success) {
+        link.textContent = '✅ Enviado';
+        setTimeout(function () { link.textContent = textoOriginal; }, 3000);
+      } else {
+        link.textContent = textoOriginal;
+        alert('No se pudo reenviar: ' + (data.error || 'Intenta de nuevo.'));
+      }
+    })
+    .catch(function () {
+      link.textContent = textoOriginal;
+      link.style.pointerEvents = ''; link.style.opacity = '';
+      alert('Error de conexión.');
+    });
 }
 
 var eaIdxActual = null;
