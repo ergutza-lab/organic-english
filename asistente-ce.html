@@ -1341,9 +1341,9 @@ function renderBajas(){
 function renderCambios(){
   const select=document.getElementById('select-alumno-cambio');
   const alumnos=[];
-  (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel}));});
+  (datosPanel?.grupos||[]).forEach(g=>{(g.alumnos||[]).forEach(a=>alumnos.push({...a,grupo_actual:g.id,grupo_nombre:g.nombre,nivel:g.nivel,esSabatino:g.esSabatino}));});
   alumnos.sort((a,b)=>a.id.localeCompare(b.id));
-  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}" data-nombre="${a.grupo_nombre||''}" data-whatsapp="${a.whatsapp||''}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
+  select.innerHTML='<option value="">— Elige un alumno —</option>'+alumnos.map(a=>`<option value="${a.id}" data-grupo="${a.grupo_actual}" data-nivel="${a.nivel}" data-nombre="${a.grupo_nombre||''}" data-whatsapp="${a.whatsapp||''}" data-essabatino="${a.esSabatino?'1':'0'}">${a.id} — ${a.grupo_actual} — ${a.nombre}</option>`).join('');
 }
 
 function seleccionarAlumnoCambio(){
@@ -1353,8 +1353,8 @@ function seleccionarAlumnoCambio(){
   const infoBox=document.getElementById('alumno-cambio-info');
   document.getElementById('cambio-exito-box').style.display='none';
   if(!id){infoBox.style.display='none';document.getElementById('grupos-disponibles-cambio').innerHTML='<p style="font-size:12px;color:var(--gris-400);">Selecciona un alumno primero.</p>';document.getElementById('btn-confirmar-cambio').disabled=true;alumnoSeleccionadoCambio=null;gruposCompartirCambio=[];actualizarBtnCompartirCambio();return;}
-  const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel,nombreGrupo=opt.dataset.nombre,whatsapp=opt.dataset.whatsapp;
-  alumnoSeleccionadoCambio={id,nombre:opt.text.split('—')[2]?.trim()||opt.text,grupo_actual:grupoActual,nivel,nombreGrupo,whatsapp};
+  const grupoActual=opt.dataset.grupo,nivel=opt.dataset.nivel,nombreGrupo=opt.dataset.nombre,whatsapp=opt.dataset.whatsapp,esSabatinoCambio=opt.dataset.essabatino==='1';
+  alumnoSeleccionadoCambio={id,nombre:opt.text.split('—')[2]?.trim()||opt.text,grupo_actual:grupoActual,nivel,nombreGrupo,whatsapp,esSabatino:esSabatinoCambio};
   grupoSeleccionadoCambio=null;
   document.getElementById('btn-confirmar-cambio').disabled=true;
   document.getElementById('cambio-alumno-nombre').textContent=alumnoSeleccionadoCambio.nombre;
@@ -1702,7 +1702,7 @@ function abrirModalSinCosto(){
     <div class="row"><span>Grupo actual</span><span>${alumnoSeleccionadoCambio.grupo_actual||'—'}</span></div>`;
   document.getElementById('input-motivo-sin-costo').value='';
   document.getElementById('modal-sin-costo').classList.add('open');
-  calInit('cal-sin-costo');
+  calInit('cal-sin-costo', !!alumnoSeleccionadoCambio.esSabatino);
   document.body.style.overflow='hidden';
 }
 
