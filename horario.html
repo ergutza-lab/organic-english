@@ -363,25 +363,16 @@ async function cargarMaestros(){
 async function cargarAlumnos(){
   try{
     var r=await fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json&sheet=INSCRIPCIONES&t='+Date.now());
-    var t=await r.text();
-    console.log('[DEBUG cargarAlumnos] respuesta cruda (primeros 200 chars):', t.substring(0,200));
-    var j=JSON.parse(t.substring(47,t.length-2));
-    console.log('[DEBUG cargarAlumnos] filas recibidas de INSCRIPCIONES:', j.table.rows.length);
-    var idsVistos=[], rechazadosPorEstado=0, rechazadosPorFaltantes=0;
+    var t=await r.text(); var j=JSON.parse(t.substring(47,t.length-2));
     j.table.rows.forEach(function(row){
       var idG=parseGS(row.c[4])||'', idA=parseGS(row.c[0])||'';
       var nom=parseGS(row.c[2])||'', est=parseGS(row.c[6])||'';
-      if(!idG||!nom){ rechazadosPorFaltantes++; return; }
-      if(est==='Cancelado'||est==='Baja'){ rechazadosPorEstado++; return; }
-      if(!alumnos[idG]) alumnos[idG]=[];
-      alumnos[idG].push({id:idA,nombre:nom});
-      if(idsVistos.indexOf(idG)===-1) idsVistos.push(idG);
+      if(idG&&nom&&est!=='Cancelado'&&est!=='Baja'){
+        if(!alumnos[idG]) alumnos[idG]=[];
+        alumnos[idG].push({id:idA,nombre:nom});
+      }
     });
-    console.log('[DEBUG cargarAlumnos] IDs de grupo encontrados en INSCRIPCIONES:', idsVistos);
-    console.log('[DEBUG cargarAlumnos] rechazados por faltar idG/nom:', rechazadosPorFaltantes, '| rechazados por estado Cancelado/Baja:', rechazadosPorEstado);
-  }catch(e){
-    console.error('[DEBUG cargarAlumnos] ERROR al cargar INSCRIPCIONES:', e);
-  }
+  }catch(e){}
 }
 
 async function cargarAvance(){
@@ -415,8 +406,6 @@ async function cargarGrupos(){
     }).filter(function(g){
       return g.id && String(g.estado).toUpperCase()!=='CANCELADO' && String(g.demo).toUpperCase()!=='DEMO';
     });
-    console.log('[DEBUG cargarGrupos] IDs de grupo en GRUPOS:', grupos.map(function(g){return g.id;}));
-    console.log('[DEBUG cargarGrupos] IDs de grupo con alumnos cargados:', Object.keys(alumnos));
     renderizar();
   }catch(e){
     // IMPORTANTE: nunca sobrescribir el contenido de #area con innerHTML --
