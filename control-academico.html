@@ -1672,22 +1672,13 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var challenges=data.challenges||[];
       var maestro=data.maestro||'—';
 
-      // Ubicar cada challenge en Bloque 1 o Bloque 2 de forma ORDINAL (por
-      // fecha, dentro de su mismo tipo) en vez de buscar coincidencia exacta
-      // con una fecha del historial diario. La fecha de un challenge no
-      // siempre coincide con un renglón de clase registrado, y eso hacía que
-      // challenges realmente aprobados (ej. el Grand Challenge del Bloque 1)
-      // no se detectaran. Cada nivel trae 1 Mini + 1 Grand por bloque, así
-      // que el 1er challenge de cada tipo (por fecha) es del Bloque 1 y el
-      // 2do es del Bloque 2.
-      function ordenarPorBloque(filtroTipo){
-        var lista=challenges.filter(filtroTipo).slice().sort(function(a,b){
-          return new Date(a.fecha||0) - new Date(b.fecha||0);
-        });
-        return {1:lista[0]||null, 2:(lista.length>1?lista[1]:lista[0])||null};
-      }
-      var miniPorBloque=ordenarPorBloque(function(c){return c.tipo==='Mini';});
-      var grandPorBloque=ordenarPorBloque(function(c){return c.tipo==='Grand'||c.tipo==='Gran';});
+      // Cada challenge ya trae su propio campo "bloque" (igual que en
+      // maestro.html: r.challenges.some(c => (c.bloque||1)===bloqueActual)),
+      // así que se usa tal cual en vez de adivinar por fecha. Se prefieren
+      // los challenges de getMapaGrupo (resumenGlobal.challenges, ya
+      // confirmados con este campo) y se cae a los de este historial solo
+      // si por alguna razón no llegó resumenGlobal.
+      var challengesConBloque=(resumenGlobal&&resumenGlobal.challenges)||challenges;
 
       function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
@@ -1695,14 +1686,15 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         var colores={1:0,2:0,3:0,4:0};
         rows.forEach(function(h){ if(h.asistencia && h.color) colores[h.color]=(colores[h.color]||0)+1; });
         var presentes=rows.filter(function(h){return h.asistencia;}).length;
-        var mini=miniPorBloque[n], grand=grandPorBloque[n];
+        var mini=challengesConBloque.some(function(c){return c.tipo==='Mini' && (c.bloque||1)===n && c.aprobado;});
+        var grand=challengesConBloque.some(function(c){return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===n && c.aprobado;});
         return {
           tot:tot,
           pct:function(c){return tot>0?Math.round((colores[c]/tot)*100):0;},
           asistPct:tot>0?Math.round((presentes/tot)*100):0,
           positivosPct:tot>0?Math.round(((colores[3]+colores[4])/tot)*100):0,
-          mini: !!(mini&&mini.aprobado),
-          grand: !!(grand&&grand.aprobado)
+          mini:mini,
+          grand:grand
         };
       }
       var b1=datosBloque(1), b2=datosBloque(2);
@@ -1723,52 +1715,98 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       }
       var nivelDisplay=formatNivelDisplay_(grupo.nivel||nombreGrupoActualSeguro(idGrupo));
 
-      var colorHex={1:'#dc2626',2:'#ca8a04',3:'#16a34a',4:'#2563eb'};
-      var colorNombre={1:'Rojo',2:'Amarillo',3:'Verde',4:'Azul'};
+      var colorHex={1:'#ef4444',2:'#f5b400',3:'#22c55e',4:'#2563eb'};
 
-      function medallaHtml(aprobado,emoji,label){
-        return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;width:90px;">'+
-          '<div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;background:'+(aprobado?'#fef9c3':'#f8fafc')+';border:2px solid '+(aprobado?'#eab308':'#cbd5e1')+';">'+(aprobado?emoji:'—')+'</div>'+
-          '<div style="font-size:10px;font-weight:700;color:'+(aprobado?'#a16207':'#94a3b8')+';text-align:center;line-height:1.3;">'+label+(aprobado?' ✓':'')+'</div>'+
+      // ── Íconos REALES tomados tal cual de maestro.html (gemaSVG /
+      // medalSVG / trophySVG), para que la joya y las medallas se vean
+      // idénticas a las del panel del maestro. Solo se dibuja la versión
+      // "lograda" (dorada): al ser un documento oficial, si el alumno no
+      // presentó o no aprobó un challenge, sencillamente no se hace
+      // referencia a él — no se usa la silueta fantasma/gris del panel.
+      function gemaColorTier_(pc){
+        if(pc>=90) return '#06b6d4';
+        if(pc>=80) return '#22c55e';
+        if(pc>=70) return '#facc15';
+        if(pc>=60) return '#f97316';
+        return '#ef4444';
+      }
+      function gemaSVGReporte_(porcentaje, idUnico){
+        var gemaColor=gemaColorTier_(porcentaje);
+        return '<svg width="74" height="84" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
+          +'<defs><linearGradient id="gF'+idUnico+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/></linearGradient></defs>'
+          +'<polygon points="30,4 44,18 30,14 16,18" fill="url(#gF'+idUnico+')" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+          +'<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+          +'<polygon points="30,4 44,18 52,18 42,4" fill="'+gemaColor+'" opacity="0.85" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+          +'<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="'+gemaColor+'" opacity="0.6" stroke="'+gemaColor+'" stroke-width="0.4"/>'
+          +'<polygon points="8,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+          +'<polygon points="52,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+          +'<polygon points="8,22 16,20 30,63" fill="url(#gF'+idUnico+')" opacity="0.3"/>'
+          +'<polygon points="52,22 44,20 30,63" fill="url(#gF'+idUnico+')" opacity="0.2"/>'
+          +'<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
+          +'<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
+          +'</svg>';
+      }
+      function medalSVGReporte_(w,h){
+        w=w||40; h=h||55;
+        return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 5px #facc15);">'
+          +'<rect x="17" y="2" width="10" height="22" rx="2" fill="#facc15"/>'
+          +'<rect x="12" y="0" width="20" height="5" rx="2" fill="#fde047"/>'
+          +'<circle cx="22" cy="44" r="16" fill="#fde047"/>'
+          +'<circle cx="22" cy="44" r="14" fill="#ca8a04"/>'
+          +'<circle cx="22" cy="44" r="11" fill="none" stroke="#fde047" stroke-width="2" opacity="0.7"/>'
+          +'<polygon points="22,34 24.4,40.6 31.5,40.6 25.8,44.9 28,51.5 22,47.2 16,51.5 18.2,44.9 12.5,40.6 19.6,40.6" fill="#fff" opacity="0.9"/>'
+          +'</svg>';
+      }
+      function trophySVGReporte_(w,h){
+        w=w||44; h=h||55;
+        return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 6px #fbbf24);">'
+          +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>'
+          +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>'
+          +'<path d="M12,8 L38,8 Q38,36 25,42 Q12,36 12,8 Z" fill="#fbbf24"/>'
+          +'<rect x="10" y="6" width="30" height="5" rx="2" fill="#d97706"/>'
+          +'<rect x="21" y="42" width="8" height="8" fill="#fbbf24"/>'
+          +'<rect x="13" y="50" width="24" height="6" rx="3" fill="#fbbf24"/>'
+          +'<polygon points="25,14 26.5,18.5 31.5,18.5 27.5,21.2 29,25.7 25,23 21,25.7 22.5,21.2 18.5,18.5 23.5,18.5" fill="#fff" opacity="0.85"/>'
+          +'</svg>';
+      }
+
+      function medallaHtml(aprobado, tipo){
+        if(!aprobado) return '';
+        var icono=tipo==='mini'?medalSVGReporte_():trophySVGReporte_();
+        var label=tipo==='mini'?'Mini Challenge':'Grand Challenge';
+        return '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:92px;">'+
+          icono+
+          '<div style="font-size:10px;font-weight:700;color:'+(tipo==='mini'?'#ca8a04':'#d97706')+';text-align:center;line-height:1.3;">'+label+'</div>'+
         '</div>';
       }
 
       function bloqueColHtml(titulo, sub, b){
         var colorRows=[1,2,3,4].map(function(c){
-          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">'+
-            '<span style="width:11px;height:11px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;"></span>'+
-            '<span style="font-size:10px;color:#64748b;width:52px;flex-shrink:0;">'+colorNombre[c]+'</span>'+
-            '<div style="flex:1;background:#eef2f7;border-radius:6px;height:9px;overflow:hidden;"><div style="width:'+b.pct(c)+'%;height:100%;background:'+colorHex[c]+';"></div></div>'+
-            '<span style="font-size:11px;font-weight:700;color:#475569;width:30px;text-align:right;">'+b.pct(c)+'%</span>'+
+          return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">'+
+            '<span style="width:12px;height:12px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;box-shadow:0 0 0 3px '+colorHex[c]+'22;"></span>'+
+            '<div style="flex:1;background:#eef1f6;border-radius:20px;height:13px;overflow:hidden;"><div style="width:'+b.pct(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
+            '<span style="font-size:11px;font-weight:700;color:#64748b;width:32px;text-align:right;">'+b.pct(c)+'%</span>'+
           '</div>';
         }).join('');
         var pctColor=b.positivosPct>=80?'#16a34a':b.positivosPct>=60?'#ca8a04':'#dc2626';
-        return '<div style="flex:1;min-width:220px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">'+
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'+
-            '<div><div style="font-size:13px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
-            '<div style="font-size:10px;color:#94a3b8;">'+sub+' · '+b.tot+' clases · Asist. '+b.asistPct+'%</div></div>'+
-            '<div style="text-align:center;flex-shrink:0;">'+
-              '<div style="font-size:20px;font-weight:800;color:'+pctColor+';">'+b.positivosPct+'%</div>'+
-              '<div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;">Desempeño</div>'+
-            '</div>'+
+        var medallas=medallaHtml(b.mini,'mini')+medallaHtml(b.grand,'grand');
+        return '<div style="flex:1;min-width:230px;">'+
+          '<div style="height:4px;width:44px;border-radius:4px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:10px;"></div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;">'+
+            '<div><div style="font-size:17px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
+            '<div style="font-size:10px;color:#94a3b8;">'+sub+' · Asistencia '+b.asistPct+'%</div></div>'+
+            '<div style="font-size:22px;font-weight:800;color:'+pctColor+';">'+b.positivosPct+'%</div>'+
           '</div>'+
           colorRows+
-          '<div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:14px;border-top:1px dashed #e2e8f0;">'+
-            medallaHtml(b.mini,'🥇','Mini Challenge')+
-            medallaHtml(b.grand,'🏆','Grand Challenge')+
-          '</div>'+
+          (medallas?('<div style="display:flex;gap:14px;justify-content:center;margin-top:16px;">'+medallas+'</div>'):'')+
         '</div>';
       }
 
-      // Observaciones — tono cálido y personal, sin repetir el mismo
-      // comentario de challenge varias veces.
+      // Observaciones — cálidas y centradas solo en logros. No se usa el
+      // comentario textual del maestro (podría traer una sugerencia de
+      // mejora): al ser un documento oficial, el texto siempre es positivo.
       var primerNombre=String(alumno.nombre||'').trim().split(' ')[0]||'Alumno(a)';
-      var feedbackUnicos=[];
-      challenges.forEach(function(c){
-        if(c.feedback && feedbackUnicos.indexOf(c.feedback)===-1) feedbackUnicos.push(c.feedback);
-      });
-      var comentarioMaestro=feedbackUnicos.length?(' Tu maestro(a) comentó: "'+feedbackUnicos[0]+'".'):'';
-      var obsDefault='¡Felicidades, '+primerNombre+'! Concluiste el nivel '+nivelDisplay+' con '+pctGlobal+'% de desempeño y '+asistGlobal+'% de asistencia — se nota tu esfuerzo y tu constancia en cada bloque.'+comentarioMaestro+' Sigue así, vas muy bien en tu camino con el inglés 🌟';
+      var obsDefault='¡Felicidades, '+primerNombre+'! Concluiste el nivel '+nivelDisplay+' con '+pctGlobal+'% de desempeño y '+asistGlobal+'% de asistencia — se nota tu esfuerzo y tu constancia en cada bloque. Sigue así, vas muy bien en tu camino con el inglés 🌟';
 
       var fechaHoy=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
       var folio=idGrupo+'-'+idAlumno+'-'+hoyISO();
@@ -1777,55 +1815,57 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         '<title>Reporte de Evaluación — '+alumno.nombre+'</title>'+
         '<style>'+
         '*{box-sizing:border-box;}'+
-        'body{font-family:Arial,sans-serif;background:#fff;color:#1e293b;margin:0;padding:0;}'+
-        '[contenteditable]:focus{outline:2px dashed #f97316;outline-offset:2px;border-radius:4px;}'+
+        "body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#334155;margin:0;padding:0;}"+
+        '[contenteditable]:focus{outline:2px dashed #f97316;outline-offset:3px;border-radius:4px;}'+
         '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
-        '</style></head><body style="padding:32px 40px;max-width:900px;margin:0 auto;">';
+        '</style></head><body style="padding:38px 46px;max-width:880px;margin:0 auto;">';
 
       // Encabezado con logo
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:16px;border-bottom:3px solid #f97316;">'+
-        '<div><img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" style="height:50px;object-fit:contain;display:block;" />'+
-        '<div style="font-size:13px;font-weight:700;color:#1c2b5e;margin-top:8px;">Reporte de Evaluación</div></div>'+
-        '<div style="text-align:right;"><div style="font-size:10px;color:#94a3b8;">Emitido: '+fechaHoy+'</div><div style="font-size:9px;color:#cbd5e1;">Folio '+folio+'</div></div>'+
+      html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">'+
+        '<img src="https://media.base44.com/images/public/69b6f6597a3725a9077d7706/42de62c34_image.png" style="height:46px;object-fit:contain;display:block;" />'+
+        '<div style="text-align:right;"><div style="font-size:10px;color:#94a3b8;">Emisiones: '+fechaHoy+'</div><div style="font-size:9px;color:#cbd5e1;">Folio: '+folio+'</div></div>'+
       '</div>';
+      html+='<h1 style="font-size:28px;font-weight:800;color:#111827;margin:14px 0 10px;">Reporte de Evaluación</h1>'+
+        '<div style="height:3px;background:linear-gradient(90deg,#f97316,#ef4444 60%,transparent);margin-bottom:22px;"></div>';
 
-      html+='<div style="font-size:11px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:20px;">Este documento certifica el desempeño académico del alumno en el nivel indicado dentro del programa <strong>Organic English — Inglés Intuitivo</strong>.</div>';
+      html+='<div style="font-size:12px;color:#64748b;margin-bottom:26px;">Este documento certifica el desempeño académico del alumno en el nivel indicado dentro del programa <strong style="color:#1c2b5e;">Organic English — Inglés Intuitivo</strong>.</div>';
 
       // Datos del alumno
-      html+='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:20px;">'+
-        '<div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Datos del alumno</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:12px;color:#334155;">'+
-          '<div><strong>Nombre:</strong> '+alumno.nombre+'</div>'+
-          '<div><strong>ID:</strong> '+alumno.id+'</div>'+
-          '<div><strong>Grupo:</strong> '+(grupo.id||idGrupo)+' · '+(grupo.horario||'—')+'</div>'+
-          '<div><strong>Maestro(a):</strong> '+maestro+'</div>'+
-          '<div><strong>Inscrito desde:</strong> '+alumno.fechaInscripcion+'</div>'+
-          '<div><strong>Estado final:</strong> '+(estadoTxt||'—')+'</div>'+
+      html+='<div style="margin-bottom:26px;">'+
+        '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Datos del alumno</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 24px;font-size:13px;color:#334155;padding-bottom:16px;border-bottom:1px solid #eef1f6;">'+
+          '<div><strong style="color:#1e293b;">Nombre:</strong> '+alumno.nombre+'</div>'+
+          '<div><strong style="color:#1e293b;">ID:</strong> '+alumno.id+'</div>'+
+          '<div><strong style="color:#1e293b;">Grupo:</strong> '+(grupo.id||idGrupo)+' · '+(grupo.horario||'—')+'</div>'+
+          '<div><strong style="color:#1e293b;">Maestro(a):</strong> '+maestro+'</div>'+
+          '<div><strong style="color:#1e293b;">Inscrito desde:</strong> '+alumno.fechaInscripcion+'</div>'+
+          '<div><strong style="color:#1e293b;">Estado final:</strong> '+(estadoTxt||'—')+'</div>'+
         '</div></div>';
 
-      // Nivel + gema (rombo) con % global
-      html+='<div style="display:flex;align-items:center;gap:20px;margin-bottom:22px;">'+
-        '<div style="width:72px;height:72px;background:linear-gradient(135deg,#1c2b5e,#3b5bdb);transform:rotate(45deg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+
-          '<span style="transform:rotate(-45deg);color:#fff;font-weight:800;font-size:13px;">'+pctGlobal+'%</span>'+
+      // Nivel + la joya real del panel (misma forma y color que en
+      // maestro.html/alumno, con el porcentaje real del alumno)
+      html+='<div style="display:flex;align-items:center;gap:18px;margin-bottom:32px;">'+
+        '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'+
+          gemaSVGReporte_(pctGlobal, idAlumno)+
+          '<div style="font-size:13px;font-weight:800;color:'+gemaColorTier_(pctGlobal)+';margin-top:2px;">'+pctGlobal+'%</div>'+
         '</div>'+
-        '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:.06em;">Nivel completado</div>'+
-        '<div contenteditable="true" title="Puedes corregir el texto antes de imprimir" style="font-size:24px;font-weight:800;color:#1c2b5e;">Nivel: '+nivelDisplay+'</div></div>'+
+        '<div contenteditable="true" title="Puedes corregir el texto antes de imprimir" style="font-size:28px;font-weight:800;color:#111827;">Nivel: '+nivelDisplay+'</div>'+
       '</div>';
 
       // Bloque 1 y Bloque 2
-      html+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">'+
+      html+='<div style="display:flex;gap:36px;flex-wrap:wrap;margin-bottom:30px;">'+
         bloqueColHtml('Bloque 1','Semanas 1-8',b1)+
         bloqueColHtml('Bloque 2','Semanas 9-16',b2)+
       '</div>';
 
       // Observaciones (editable antes de imprimir)
-      html+='<div style="margin-bottom:26px;">'+
-        '<div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Observaciones</div>'+
-        '<div contenteditable="true" title="Puedes editar este texto antes de imprimir" style="min-height:54px;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;font-size:12px;color:#334155;line-height:1.6;">'+obsDefault+'</div>'+
+      html+='<div style="margin-bottom:30px;">'+
+        '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Observaciones</div>'+
+        '<div contenteditable="true" title="Puedes editar este texto antes de imprimir" style="min-height:44px;padding:2px 0;font-size:13px;color:#334155;line-height:1.7;">'+obsDefault+'</div>'+
       '</div>';
 
       // Firmas: Director y Coordinador Académico
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px;">'+
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:56px;">'+
         '<div style="text-align:center;">'+
           '<div contenteditable="true" style="border-bottom:1.5px solid #1e293b;min-height:22px;margin-bottom:6px;font-size:13px;font-weight:700;color:#1e293b;">'+(dirNombre||'&nbsp;')+'</div>'+
           '<div style="font-size:11px;color:#64748b;">Director</div>'+
