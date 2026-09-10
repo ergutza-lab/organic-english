@@ -394,7 +394,7 @@
     <div style="display:flex;gap:10px;">
       <div style="flex:1;">
         <span class="monto-label">WhatsApp</span>
-        <input type="text" id="ni-whatsapp" placeholder="10 dígitos" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+        <input type="text" id="ni-whatsapp" placeholder="10 dígitos (o con código de país si es del extranjero)" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
       </div>
       <div style="flex:1;">
         <span class="monto-label">Edad</span>
@@ -416,7 +416,7 @@
       <span class="monto-label">Nombre del tutor</span>
       <input type="text" id="ni-tutor-nombre" placeholder="Nombre completo del tutor" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box;" />
       <span class="monto-label">WhatsApp del tutor</span>
-      <input type="text" id="ni-tutor-whatsapp" placeholder="10 dígitos" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;outline:none;box-sizing:border-box;" />
+      <input type="text" id="ni-tutor-whatsapp" placeholder="10 dígitos (o con código de país si es del extranjero)" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;outline:none;box-sizing:border-box;" />
     </div>
 
     <span class="monto-label">Tipo de inscripción</span>
@@ -595,10 +595,27 @@
 
  function cleanWA(phone) {
   var n = (phone || '').toString().replace(/\D/g, '');
-  if (n.length === 10) n = '521' + n;
-  else if (n.length === 12 && n.startsWith('52')) n = '521' + n.slice(2);
-  else if (n.length === 13 && n.startsWith('521')) {}
-  else n = '521' + n.slice(-10);
+  if (n.length === 10) {
+    // 10 digitos sin nada mas -- se asume Mexico (el caso mas comun con
+    // mucha diferencia) y se le agrega el prefijo que WhatsApp exige.
+    return '521' + n;
+  }
+  if (n.startsWith('52') && n.length === 12) {
+    // Mexico con codigo de pais pero sin el "1" extra que WhatsApp pide
+    // especificamente para numeros mexicanos -- se inserta.
+    return '521' + n.slice(2);
+  }
+  if (n.startsWith('521') && n.length === 13) {
+    // Mexico ya en el formato exacto que WhatsApp necesita.
+    return n;
+  }
+  // Cualquier otro numero -- de otro pais, con su propio codigo de pais
+  // (ej. 1 para EE.UU./Canada, 34 para España, etc.) -- se respeta tal
+  // cual, SIN forzarle el prefijo de Mexico. Antes, cualquier numero que
+  // no encajara en los 3 casos de arriba caia aqui y se le pegaba "521" +
+  // sus ultimos 10 digitos, lo cual arruinaba por completo un numero
+  // extranjero legitimo (ej. un numero de EE.UU. terminaba con un
+  // prefijo mexicano invalido, y WhatsApp no encontraba ese numero).
   return n;
 }
 
