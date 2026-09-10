@@ -1519,11 +1519,40 @@ function letraDeSlot(slot) {
   }
   return letras;
 }
-function letraEsperadaParaFecha(fecha) {
+function slotDeLetra(letra) {
+  var slot = 0;
+  for (var i = 0; i < letra.length; i++) {
+    slot = slot * 26 + (letra.charCodeAt(i) - 64);
+  }
+  return slot;
+}
+function lunesDeSemanaLetra(fecha) {
+  var d = new Date(fecha);
+  d.setHours(12, 0, 0, 0);
+  var dia = d.getDay(); // 0=Dom,1=Lun,...,6=Sab
+  var diasARestar = (dia === 0) ? 6 : (dia - 1);
+  d.setDate(d.getDate() - diasARestar);
+  return d;
+}
+function letraEsperadaParaFecha(fecha, referencia) {
+  // Se prefiere una referencia DINAMICA (el grupo mas reciente que ya
+  // existe) en vez de la ancla fija -- la ancla fija se puede desalinear
+  // con el tiempo si algun grupo se corrigio o creo manualmente con una
+  // letra distinta a la que la formula hubiera calculado. Se ancla tanto
+  // la fecha nueva como la referencia a su LUNES antes de comparar, para
+  // que no importe si la referencia cae en sabado.
+  if (referencia && referencia.fecha && referencia.letra) {
+    var lunesFecha = lunesDeSemanaLetra(fecha);
+    var lunesReferencia = lunesDeSemanaLetra(referencia.fecha);
+    var diasRef = Math.round((lunesFecha - lunesReferencia) / (1000 * 60 * 60 * 24));
+    var slot = slotDeLetra(referencia.letra) + Math.round(diasRef / 7);
+    if (slot < 1) slot = 1;
+    return letraDeSlot(slot);
+  }
   var dias = Math.round((fecha - ANCLA_FECHA) / (1000 * 60 * 60 * 24));
-  var slot = ANCLA_SLOT + Math.ceil(dias / 7);
-  if (slot < 1) slot = 1;
-  return letraDeSlot(slot);
+  var slot2 = ANCLA_SLOT + Math.floor(dias / 7);
+  if (slot2 < 1) slot2 = 1;
+  return letraDeSlot(slot2);
 }
 // NOTA: en control_ce, los grupos usan el campo "id" (no "idGrupo" como en
 // Direccion) -- adaptado en las 3 funciones siguientes.
@@ -1531,6 +1560,7 @@ function analizarSeriesIds(grupos) {
   var maxPorLetra = {};
   var numerosPorLetra = {};
   var letraPorFecha = {};
+  var referenciaMasReciente = null;
   (grupos || []).forEach(function (g) {
     var id = String(g.id || '').trim().toUpperCase();
     var m = id.match(/^([A-Z]+)(\d{2,})$/);
@@ -1540,8 +1570,13 @@ function analizarSeriesIds(grupos) {
     if (!(letra in maxPorLetra) || num > maxPorLetra[letra]) maxPorLetra[letra] = num;
     if (!numerosPorLetra[letra]) numerosPorLetra[letra] = {};
     numerosPorLetra[letra][num] = true;
-    var fechaG = g.fechaInicio ? new Date(g.fechaInicio).toISOString().slice(0, 10) : null;
+    if (!g.fechaInicio) return;
+    var fechaGObj = new Date(g.fechaInicio);
+    var fechaG = fechaGObj.toISOString().slice(0, 10);
     if (fechaG && !(fechaG in letraPorFecha)) letraPorFecha[fechaG] = letra;
+    if (!referenciaMasReciente || fechaGObj > referenciaMasReciente.fecha) {
+      referenciaMasReciente = { fecha: fechaGObj, letra: letra };
+    }
   });
   var letras = Object.keys(maxPorLetra).sort();
   var ultimaLetra = letras.length ? letras[letras.length - 1] : null;
@@ -1552,7 +1587,8 @@ function analizarSeriesIds(grupos) {
     siguienteNumeroEnSerie: maxNumeroUltimaLetra + 1,
     maxPorLetra: maxPorLetra,
     numerosPorLetra: numerosPorLetra,
-    letraPorFecha: letraPorFecha
+    letraPorFecha: letraPorFecha,
+    referenciaMasReciente: referenciaMasReciente
   };
 }
 function letraParaFecha(analisis, fechaISO) {
@@ -1560,7 +1596,7 @@ function letraParaFecha(analisis, fechaISO) {
     return { letra: analisis.letraPorFecha[fechaISO], esFechaNueva: false };
   }
   var fechaObj = fechaISO ? new Date(fechaISO + 'T00:00:00') : new Date();
-  return { letra: letraEsperadaParaFecha(fechaObj), esFechaNueva: true };
+  return { letra: letraEsperadaParaFecha(fechaObj, analisis.referenciaMasReciente), esFechaNueva: true };
 }
 function siguienteNumeroDisponible(analisis, letra, reservadosExtra) {
   var usados = analisis.numerosPorLetra[letra] || {};
