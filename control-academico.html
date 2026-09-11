@@ -1713,11 +1713,13 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       // después de juntar los grupos del mismo nivel). Eso NO es una
       // reprobada: se le dio el nivel por sus conocimientos previos, así
       // que en vez de mostrar 0% (se ve como que reprobó, en un documento
-      // oficial) se le da una base de 85% para el Bloque 1, con el MISMO
-      // peso (mismo número de clases) que su Bloque 2 real -- así el
-      // promedio final queda como un 50/50 justo entre "85% de base" y lo
-      // que de verdad consiguió en Bloque 2, ni arrastrado a 0 ni ignorado.
-      var BASE_COLOCACION=85;
+      // oficial) se le da una base de 100% para el Bloque 1, con el MISMO
+      // peso (mismo número de clases) que su Bloque 2 real -- acordado en
+      // junta (antes era 85%, se ajustó a 100% para que coincida con la
+      // regla que ya usa el panel del alumno en calificacionBloque1ParaPromedio_,
+      // Academico.gs). Así el promedio final queda como un 50/50 entre
+      // "100% de base" y lo que de verdad consiguió en Bloque 2.
+      var BASE_COLOCACION=100;
       if(b1.tot===0 && b2.tot>0){
         var presentesBase=Math.round(b2.tot*(BASE_COLOCACION/100));
         b1={
@@ -1753,6 +1755,18 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       // pero sobre el promedio real del NIVEL COMPLETO (pctGlobal/
       // asistGlobal, Bloque 1 + Bloque 2 ya combinados arriba).
       var asistGlobalNum=parseFloat(asistGlobal), pctGlobalNum=parseFloat(pctGlobal);
+
+      // "Evaluación Final" que se IMPRIME usa la misma fórmula oficial que
+      // ya usa el resto de la plataforma para esta cifra (getMapaGrupo,
+      // getEvaluacionAlumno del panel del alumno, y el snapshot automático
+      // de HISTORICO_BLOQUES): asistencia 80% + desempeño(verde/azul) 20%.
+      // pctGlobal (arriba) sigue siendo el % de desempeño puro -- se usa
+      // tal cual para "Estado final" (ver abajo, mismos dos criterios
+      // independientes que usa la plataforma) y en el texto de
+      // observaciones ("...% de desempeño"), donde sigue siendo el dato
+      // correcto a mostrar.
+      var evaluacionFinalPct=(asistGlobalNum*0.8 + pctGlobalNum*0.2).toFixed(2);
+
       var estadoTxt;
       if(asistGlobalNum>=80 && pctGlobalNum>=70) estadoTxt='Pase asegurado';
       else if(asistGlobalNum>=80 && pctGlobalNum>=60) estadoTxt='Pase con refuerzo';
@@ -1912,11 +1926,11 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       // no se ven sobre el blanco de la hoja.
       html+='<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">'+
         '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;background:#1c2b5e;border-radius:16px;padding:7px 11px 5px;box-shadow:0 6px 14px rgba(28,43,94,.3);">'+
-          gemaSVGReporte_(pctGlobal, idAlumno)+
+          gemaSVGReporte_(evaluacionFinalPct, idAlumno)+
         '</div>'+
         '<div style="display:flex;flex-direction:column;gap:2px;">'+
           '<div contenteditable="true" title="Puedes corregir el texto antes de imprimir" style="font-size:24px;font-weight:800;color:#111827;">Nivel: '+nivelDisplay+'</div>'+
-          '<div style="font-size:17px;font-weight:800;color:#1c2b5e;">Evaluación Final: '+pctGlobal+'%</div>'+
+          '<div style="font-size:17px;font-weight:800;color:#1c2b5e;">Evaluación Final: '+evaluacionFinalPct+'%</div>'+
         '</div>'+
       '</div>';
 
