@@ -1673,12 +1673,17 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var maestro=data.maestro||'—';
 
       // Cada challenge ya trae su propio campo "bloque" (igual que en
-      // maestro.html: r.challenges.some(c => (c.bloque||1)===bloqueActual)),
-      // así que se usa tal cual en vez de adivinar por fecha. Se prefieren
-      // los challenges de getMapaGrupo (resumenGlobal.challenges, ya
-      // confirmados con este campo) y se cae a los de este historial solo
-      // si por alguna razón no llegó resumenGlobal.
-      var challengesConBloque=(resumenGlobal&&resumenGlobal.challenges)||challenges;
+      // maestro.html: r.challenges.some(c => (c.bloque||1)===bloqueActual)).
+      // OJO: resumenGlobal.challenges (de getMapaGrupo) solo trae los
+      // challenges del idGrupo ACTUAL -- si el alumno cambió de grupo por
+      // fusión, los challenges que ganó en el grupo viejo (típicamente los
+      // de Bloque 1) NO están ahí y la medalla se perdía en el reporte. Por
+      // eso aquí se UNEN las dos fuentes (getMapaGrupo + el historial de
+      // este mismo reporte, que ya cubre todos los grupos del nivel) en vez
+      // de preferir solo una -- un challenge de más en la lista no hace
+      // daño porque abajo solo se usa para preguntar "¿existe alguno
+      // aprobado de este tipo en este bloque?", nunca para sumar/contar.
+      var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
 
       function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
@@ -1739,7 +1744,20 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var totCombinado=(b1.tot||0)+(b2.tot||0);
       var pctGlobal=totCombinado>0?(((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2):'0.00';
       var asistGlobal=totCombinado>0?(((b1.presentes||0)+(b2.presentes||0))/totCombinado*100).toFixed(2):'0.00';
-      var estadoTxt=(resumenGlobal&&resumenGlobal.estado)||'';
+
+      // "Estado final" NUNCA se toma de resumenGlobal.estado -- ese dato
+      // (de getMapaGrupo) clasifica al alumno usando SOLO su bloque ACTUAL
+      // según la fecha de hoy (ni siquiera es "del nivel completo"), y para
+      // un alumno de fusión/colocación ignora por completo el otro bloque.
+      // Aquí se reclasifica con el mismo criterio que usa getMapaGrupo,
+      // pero sobre el promedio real del NIVEL COMPLETO (pctGlobal/
+      // asistGlobal, Bloque 1 + Bloque 2 ya combinados arriba).
+      var asistGlobalNum=parseFloat(asistGlobal), pctGlobalNum=parseFloat(pctGlobal);
+      var estadoTxt;
+      if(asistGlobalNum>=80 && pctGlobalNum>=70) estadoTxt='Pase asegurado';
+      else if(asistGlobalNum>=80 && pctGlobalNum>=60) estadoTxt='Pase con refuerzo';
+      else if(asistGlobalNum>=75 || pctGlobalNum>=60) estadoTxt='Pendiente';
+      else estadoTxt='No acredita';
 
       // "NIVEL A1-Bloque 2" (texto crudo de la hoja) -> "A1". Este reporte
       // certifica el NIVEL COMPLETO (ya se ve el detalle de Bloque 1 y
