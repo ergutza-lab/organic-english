@@ -1702,6 +1702,32 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       }
       var b1=datosBloque(1), b2=datosBloque(2);
 
+      // Alumnos por COLOCACIÓN: entraron directo a un grupo que ya estaba
+      // cursando el Bloque 2 (nunca hubo Bloque 1 para ellos en este nivel,
+      // ni en este grupo ni en uno anterior -- b1.tot sigue en 0 incluso
+      // después de juntar los grupos del mismo nivel). Eso NO es una
+      // reprobada: se le dio el nivel por sus conocimientos previos, así
+      // que en vez de mostrar 0% (se ve como que reprobó, en un documento
+      // oficial) se le da una base de 85% para el Bloque 1, con el MISMO
+      // peso (mismo número de clases) que su Bloque 2 real -- así el
+      // promedio final queda como un 50/50 justo entre "85% de base" y lo
+      // que de verdad consiguió en Bloque 2, ni arrastrado a 0 ni ignorado.
+      var BASE_COLOCACION=85;
+      if(b1.tot===0 && b2.tot>0){
+        var presentesBase=Math.round(b2.tot*(BASE_COLOCACION/100));
+        b1={
+          tot:b2.tot,
+          presentes:presentesBase,
+          positivos:presentesBase,
+          pct:function(c){return 0;},
+          asistPct:BASE_COLOCACION,
+          positivosPct:BASE_COLOCACION,
+          mini:false,
+          grand:false,
+          esColocacion:true
+        };
+      }
+
       // El porcentaje y la asistencia globales SIEMPRE se calculan aquí,
       // combinando los registros reales de Bloque 1 + Bloque 2 (nunca se usa
       // resumenGlobal.porcentajeGlobal/asistencia, que vienen de getMapaGrupo
@@ -1795,20 +1821,25 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       }
 
       function bloqueColHtml(titulo, sub, b){
-        var colorRows=[1,2,3,4].map(function(c){
-          return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">'+
-            '<span style="width:11px;height:11px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;box-shadow:0 0 0 3px '+colorHex[c]+'22;"></span>'+
-            '<div style="flex:1;background:#eef1f6;border-radius:20px;height:11px;overflow:hidden;"><div style="width:'+b.pct(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
-            '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+b.pct(c)+'%</span>'+
-          '</div>';
-        }).join('');
+        // Un bloque de colocación no tiene desglose real por color (nunca
+        // cursó esas clases): en vez de barras en 0 (se verían como que no
+        // hizo nada), se muestra una nota explicando la base acreditada.
+        var colorRows=b.esColocacion
+          ? '<div style="background:#f1f5f9;border-radius:10px;padding:9px 11px;font-size:9.5px;color:#64748b;line-height:1.5;">Ingreso directo a Bloque 2 por evaluación de colocación — nivel de Bloque 1 acreditado con base '+BASE_COLOCACION+'%.</div>'
+          : [1,2,3,4].map(function(c){
+              return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">'+
+                '<span style="width:11px;height:11px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;box-shadow:0 0 0 3px '+colorHex[c]+'22;"></span>'+
+                '<div style="flex:1;background:#eef1f6;border-radius:20px;height:11px;overflow:hidden;"><div style="width:'+b.pct(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
+                '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+b.pct(c)+'%</span>'+
+              '</div>';
+            }).join('');
         var pctColor=b.positivosPct>=80?'#16a34a':b.positivosPct>=60?'#ca8a04':'#dc2626';
         var medallas=medallaHtml(b.mini,'mini')+medallaHtml(b.grand,'grand');
         return '<div style="flex:1;min-width:230px;">'+
           '<div style="height:4px;width:40px;border-radius:4px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:7px;"></div>'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px;">'+
             '<div><div style="font-size:15px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
-            '<div style="font-size:9px;color:#94a3b8;">'+sub+' · Asistencia '+b.asistPct+'%</div></div>'+
+            '<div style="font-size:9px;color:#94a3b8;">'+sub+(b.esColocacion?'':(' · Asistencia '+b.asistPct+'%'))+'</div></div>'+
             '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+b.positivosPct+'%</div>'+
           '</div>'+
           colorRows+
@@ -1873,7 +1904,7 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
       // Bloque 1 y Bloque 2
       html+='<div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:16px;">'+
-        bloqueColHtml('Bloque 1','Semanas 1-8',b1)+
+        bloqueColHtml('Bloque 1',b1.esColocacion?'Colocación':'Semanas 1-8',b1)+
         bloqueColHtml('Bloque 2','Semanas 9-16',b2)+
       '</div>';
 
