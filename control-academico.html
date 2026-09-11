@@ -1686,21 +1686,33 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         var colores={1:0,2:0,3:0,4:0};
         rows.forEach(function(h){ if(h.asistencia && h.color) colores[h.color]=(colores[h.color]||0)+1; });
         var presentes=rows.filter(function(h){return h.asistencia;}).length;
+        var positivos=colores[3]+colores[4];
         var mini=challengesConBloque.some(function(c){return c.tipo==='Mini' && (c.bloque||1)===n && c.aprobado;});
         var grand=challengesConBloque.some(function(c){return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===n && c.aprobado;});
         return {
           tot:tot,
+          presentes:presentes,
+          positivos:positivos,
           pct:function(c){return tot>0?Math.round((colores[c]/tot)*100):0;},
           asistPct:tot>0?Math.round((presentes/tot)*100):0,
-          positivosPct:tot>0?Math.round(((colores[3]+colores[4])/tot)*100):0,
+          positivosPct:tot>0?Math.round((positivos/tot)*100):0,
           mini:mini,
           grand:grand
         };
       }
       var b1=datosBloque(1), b2=datosBloque(2);
 
-      var pctGlobal=(resumenGlobal&&resumenGlobal.porcentajeGlobal!=null)?resumenGlobal.porcentajeGlobal:Math.round(((b1.positivosPct||0)+(b2.positivosPct||0))/2);
-      var asistGlobal=(resumenGlobal&&resumenGlobal.asistencia!=null)?resumenGlobal.asistencia:Math.round(((b1.asistPct||0)+(b2.asistPct||0))/2);
+      // El porcentaje y la asistencia globales SIEMPRE se calculan aquí,
+      // combinando los registros reales de Bloque 1 + Bloque 2 (nunca se usa
+      // resumenGlobal.porcentajeGlobal/asistencia, que vienen de getMapaGrupo
+      // y reflejan solo el grupo actual: si el alumno cambió de grupo por
+      // fusión a medio nivel, ese valor queda mal). Se usa el total combinado
+      // de registros (no el promedio simple de los dos % ya redondeados) para
+      // que el resultado sea el peso real de cada bloque y para poder
+      // mostrar 2 decimales con sentido.
+      var totCombinado=(b1.tot||0)+(b2.tot||0);
+      var pctGlobal=totCombinado>0?(((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2):'0.00';
+      var asistGlobal=totCombinado>0?(((b1.presentes||0)+(b2.presentes||0))/totCombinado*100).toFixed(2):'0.00';
       var estadoTxt=(resumenGlobal&&resumenGlobal.estado)||'';
 
       // "NIVEL A1-Bloque 2" (texto crudo de la hoja) -> "A1". Este reporte
