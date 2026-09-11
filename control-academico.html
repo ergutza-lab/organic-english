@@ -1989,8 +1989,8 @@ function cargarAsistencia(){
   var fecha=document.getElementById('asistFecha').value;
   if(!fecha){alert('Selecciona una fecha.');return;}
   var d=new Date(fecha+'T12:00:00'),dia=d.getDay();
-  if(dia===0||dia===6){
-    document.getElementById('asistBody').innerHTML='<tr><td colspan="6" class="empty-state">No hay clases los sábados ni domingos.</td></tr>';
+  if(dia===0){
+    document.getElementById('asistBody').innerHTML='<tr><td colspan="6" class="empty-state">No hay clases los domingos.</td></tr>';
     document.getElementById('btnGuardarAsist').style.display='none';return;
   }
   fetch(APPS_SCRIPT+'?action=getAsistenciaFecha&fecha='+fecha,{redirect:'follow'})
@@ -1998,14 +1998,22 @@ function cargarAsistencia(){
     .then(data=>{
       // Filtrar grupos sin alumnos -- excepto los de Chat Club, que nunca
       // tienen alumnos propios pero si necesitan confirmarse para pago.
-      // Los viernes SOLO se muestran los grupos de Chat Club (unico dia
-      // en que dan clase); de lunes a jueves se excluyen, ya que esos dias
-      // son de los grupos normales.
+      // El dia de la semana decide que tipo de grupo se muestra:
+      //  - Sabado (dia===6): solo grupos Sabatinos (tipoHorario 'sabado').
+      //  - Viernes (dia===5): solo Chat Club.
+      //  - Lunes a jueves: solo grupos entre semana normales (ni Sabatino
+      //    ni Chat Club).
+      //  - Personalizado: el backend (getAsistenciaFecha) ya filtra estas
+      //    filas segun su propio patron semanal, asi que si llegan aqui es
+      //    porque ese dia si les toca clase (o ya tienen un registro
+      //    previo) -- se muestran siempre, sin filtrar de nuevo por dia.
       asistenciaRows=(data.rows||[]).filter(function(r){
         if(r.activo===false || !r.maestroId || String(r.demo||'').toUpperCase()==='DEMO') return false;
         if(!r.esClub && !(r.inscritos>0 || r.inscritos===undefined)) return false;
-        if(dia===5) return r.esClub===true;   // viernes: solo Chat Club
-        return r.esClub!==true;               // lunes-jueves: solo grupos normales
+        if(r.tipoHorario==='personalizado') return true;
+        if(r.tipoHorario==='sabado') return dia===6;
+        if(r.esClub===true) return dia===5;
+        return dia>=1 && dia<=4;
       });
       renderAsistencia();
       document.getElementById('btnGuardarAsist').style.display=asistenciaRows.length?'inline-block':'none';
@@ -2028,7 +2036,19 @@ function renderAsistencia(){
     porMaestro[mid].forEach(function(item){
       var r=item.r,idx=item.idx,checked=r.dioclase?'checked':'';
       var nivelNombre=r.nivel+(r.nombre?' · <span style="color:#fbbf24;font-weight:700;">'+r.nombre+'</span>':'');
-      html+='<tr><td></td><td style="font-weight:600;color:var(--text);">'+r.idGrupo+'</td><td>'+r.horario+'</td><td>'+nivelNombre+'</td><td>'+(r.fechaInicio||'—')+'</td><td><div class="check-cell"><input type="checkbox" id="chk_'+idx+'" '+checked+' /><label for="chk_'+idx+'" style="font-size:13px;color:var(--muted);">Sí, dio clase</label></div></td></tr>';
+      var celdaAsist;
+      if(r.tipoHorario==='sabado'){
+        // Sabatino: en teoria son 4 clases de golpe cada sabado, pero puede
+        // haber dado menos por alguna contingencia -- se captura la
+        // cantidad real en vez de un simple si/no.
+        var esperado=r.cantidadEsperada||4;
+        var valorCant=(r.cantidadRegistrada!==null && r.cantidadRegistrada!==undefined) ? r.cantidadRegistrada : esperado;
+        celdaAsist='<div class="check-cell"><input type="number" id="cant_'+idx+'" min="0" max="'+esperado+'" step="1" value="'+valorCant+'" style="width:56px;text-align:center;" />'
+          +'<label for="cant_'+idx+'" style="font-size:13px;color:var(--muted);">de '+esperado+' clases dadas</label></div>';
+      } else {
+        celdaAsist='<div class="check-cell"><input type="checkbox" id="chk_'+idx+'" '+checked+' /><label for="chk_'+idx+'" style="font-size:13px;color:var(--muted);">Sí, dio clase</label></div>';
+      }
+      html+='<tr><td></td><td style="font-weight:600;color:var(--text);">'+r.idGrupo+'</td><td>'+r.horario+'</td><td>'+nivelNombre+'</td><td>'+(r.fechaInicio||'—')+'</td><td>'+celdaAsist+'</td></tr>';
     });
   });
   tbody.innerHTML=html;
@@ -2036,7 +2056,17 @@ function renderAsistencia(){
 
 function guardarAsistencia(){
   var fecha=document.getElementById('asistFecha').value,status=document.getElementById('asistStatus'),btn=document.getElementById('btnGuardarAsist');
-  var registros=asistenciaRows.map(function(r,idx){return{idMaestro:r.maestroId,idGrupo:r.idGrupo,fecha:fecha,dioclase:document.getElementById('chk_'+idx).checked,idCA:caData.id};});
+  var registros=asistenciaRows.map(function(r,idx){
+    if(r.tipoHorario==='sabado'){
+      var esperado=r.cantidadEsperada||4;
+      var cantidad=parseInt(document.getElementById('cant_'+idx).value,10);
+      if(isNaN(cantidad)) cantidad=0;
+      if(cantidad<0) cantidad=0;
+      if(cantidad>esperado) cantidad=esperado;
+      return{idMaestro:r.maestroId,idGrupo:r.idGrupo,fecha:fecha,dioclase:cantidad>0,cantidad:cantidad,idCA:caData.id};
+    }
+    return{idMaestro:r.maestroId,idGrupo:r.idGrupo,fecha:fecha,dioclase:document.getElementById('chk_'+idx).checked,idCA:caData.id};
+  });
   btn.textContent='Guardando...';btn.disabled=true;status.textContent='';
   fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'guardarAsistencia',registros:registros})})
     .then(r=>r.json())
