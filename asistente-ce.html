@@ -520,7 +520,7 @@
       <p class="monto-hint">Ingresa el monto que aparece en el comprobante. Pago semanal: $150 · 4 semanas: $570</p>
     </div>
     <div class="cal-cobertura">
-      <span class="cal-cobertura-label">¿Qué semana(s) cubre este pago?</span>
+      <span class="cal-cobertura-label" id="modal-comp-cobertura-label">¿Qué semana(s) cubre este pago?</span>
       <div id="cal-comp"></div>
     </div>
     <div class="modal-actions">
@@ -959,13 +959,13 @@ function renderPagos(){
       </div>
       <div class="pago-meta">Enviado el ${p.fecha_pago} · Grupo: ${p.grupo}</div>
       <div class="pago-meta" style="color:${p.vencimiento_ultimo_pago?'var(--gris-500)':'var(--gris-400)'}">${vencLabel}</div>
-      <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila})">
+      <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">
         <div class="comp-icon">${tipoIcon}</div>
         <div class="comp-info"><div class="comp-nombre">${p.comprobante_url?'Comprobante adjunto':'Sin comprobante'}</div><div class="comp-tipo">${tipoLabel}</div></div>
         <span class="comp-ver">${p.comprobante_url?'Ver →':''}</span>
       </div>
       <div class="pago-actions">
-        <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila})">Ver y validar</button>
+        <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">Ver y validar</button>
       </div>
     </div>`;
   }).join('');
@@ -1668,7 +1668,7 @@ function calRender(containerId){
   cont.innerHTML = html;
 }
 
-function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila){
+function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila,esSabatino){
   pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;pagoActivoFila=fila;
   document.getElementById('input-monto-validar').value=monto>0?monto:'';
   document.getElementById('modal-alumno-info').innerHTML=`
@@ -1684,7 +1684,13 @@ function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila){
     visor.innerHTML=`<img src="${cUrl}" alt="Comprobante" style="max-width:100%;max-height:380px;object-fit:contain;border-radius:8px;display:block" onerror="this.parentElement.innerHTML='<div style=\\'text-align:center;padding:20px\\'><p style=\\'color:var(--gris-500);font-size:13px;margin-bottom:12px\\'>No se pudo cargar la imagen</p><a href=\\'${cUrl}\\' target=\\'_blank\\' style=\\'background:var(--naranja);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px\\'>Abrir en nueva pestaña →</a></div>'">`;
   }
   document.getElementById('modal-comprobante').classList.add('open');
-  calInit('cal-comp');
+  // esSabatino viene del pago pendiente (grupo del alumno) -- si no se
+  // manda (por ejemplo, llamadas antiguas sin este dato) se asume
+  // entre-semana, igual que antes.
+  var esSabatinoComp = !!esSabatino;
+  calInit('cal-comp', esSabatinoComp);
+  var etiquetaComp = document.getElementById('modal-comp-cobertura-label');
+  if (etiquetaComp) etiquetaComp.textContent = esSabatinoComp ? '¿Qué sábado(s) cubre este pago?' : '¿Qué semana(s) cubre este pago?';
   document.body.style.overflow='hidden';
 }
 
