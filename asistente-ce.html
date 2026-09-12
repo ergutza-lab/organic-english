@@ -893,7 +893,7 @@ function abrirModalGrupo(idx){
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
       // Botón de pago: siempre visible para no becados — permite registrar pago aunque esté al corriente
       const validarBtn=!esBec
-        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
+        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}',${g.esSabatino?'true':'false'})" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
         :'';
       const darBajaBtn=`<button class="btn-wa-mini" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:6px 10px;" onclick="abrirModalDarBaja('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Dar de baja">🚫</button>`;
       const colocacionBtn=`<button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 10px;" onclick="solicitarColocacion('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}','${a.whatsapp||''}')" title="Solicitar examen de colocación (cambio de grupo)">🎓</button>`;
@@ -1152,7 +1152,7 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${waBtn}
-          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
+          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}',${a.esSabatino?'true':'false'})">📤 Validar pago</button>
           <button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 12px;" onclick="abrirModalProrroga('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')">⏳ Prórroga</button>
         </div>
         <div class="alerta-badge">Sin pago vigente</div>
@@ -1331,7 +1331,7 @@ function renderBajas(){
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${waLink}
-          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}')">📤 Validar pago</button>
+          <button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}',${a.esSabatino?'true':'false'})">📤 Validar pago</button>
         </div>
       </div>
     </div>`;
@@ -2105,16 +2105,23 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento, 
 // ── VALIDAR PAGO DESDE ASISTENTE CE ──────────────────────────────────────
 var validarCEAlumnoId = null;
 
-function abrirModalValidarCE(idAlumno) {
-  var nombre = idAlumno;
-  var esSabatinoAlumno = false;
-  if (datosPanel && datosPanel.sin_pago) {
-    var found = (datosPanel.sin_pago||[]).find(function(a){ return a.id === idAlumno; });
-    if (found) { nombre = found.nombre; esSabatinoAlumno = !!found.esSabatino; }
-  }
-  if (nombre === idAlumno && datosPanel && datosPanel.alumnos_baja) {
-    var foundBaja = (datosPanel.alumnos_baja||[]).find(function(a){ return a.id === idAlumno; });
-    if (foundBaja) { nombre = foundBaja.nombre; esSabatinoAlumno = !!foundBaja.esSabatino; }
+function abrirModalValidarCE(idAlumno, nombreParam, esSabatinoParam) {
+  var nombre = nombreParam || idAlumno;
+  var esSabatinoAlumno = !!esSabatinoParam;
+  // Respaldo: si quien llama no mando nombre/esSabatino directamente (por
+  // ejemplo, algun caller viejo que no se haya actualizado), se busca en
+  // sin_pago y alumnos_baja -- pero esto NO cubre alumnos al corriente o
+  // nuevos (los del roster de un grupo), que por eso ahora mandan el dato
+  // directo desde abrirModalGrupo en vez de depender de esta busqueda.
+  if (nombreParam === undefined && esSabatinoParam === undefined) {
+    if (datosPanel && datosPanel.sin_pago) {
+      var found = (datosPanel.sin_pago||[]).find(function(a){ return a.id === idAlumno; });
+      if (found) { nombre = found.nombre; esSabatinoAlumno = !!found.esSabatino; }
+    }
+    if (nombre === idAlumno && datosPanel && datosPanel.alumnos_baja) {
+      var foundBaja = (datosPanel.alumnos_baja||[]).find(function(a){ return a.id === idAlumno; });
+      if (foundBaja) { nombre = foundBaja.nombre; esSabatinoAlumno = !!foundBaja.esSabatino; }
+    }
   }
   validarCEAlumnoId = idAlumno;
   document.getElementById('validar-ce-alumno-info').innerHTML =
