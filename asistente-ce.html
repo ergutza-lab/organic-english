@@ -579,6 +579,22 @@
   </div>
 </div>
 
+<!-- MODAL CANCELAR COMPROBANTE VALIDADO -->
+<div class="modal-confirm-overlay" id="modal-cancelar-pago">
+  <div class="modal-confirm-box" style="text-align:left;">
+    <div class="modal-confirm-titulo">🗑️ Cancelar comprobante validado</div>
+    <div class="modal-confirm-sub" id="cancelar-pago-alumno-nombre" style="margin-bottom:14px;">—</div>
+    <p style="font-size:12px;color:var(--gris-500);margin-bottom:12px;">Esto elimina este comprobante ya validado. Si el alumno tiene otro pago que todavía cubra la fecha de hoy, se quedará activo; si no le queda ninguna vigencia, se le dará de baja automáticamente (con su correo de aviso).</p>
+    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Motivo (obligatorio)</label>
+    <textarea id="cancelar-pago-motivo" rows="3" placeholder="Ej. El comprobante se validó por error / monto incorrecto" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:6px;box-sizing:border-box;font-family:inherit;resize:vertical;"></textarea>
+    <div id="cancelar-pago-status" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;"></div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-ok" id="btn-confirmar-cancelar-pago" style="background:#ef4444" onclick="ejecutarCancelarPago()">Cancelar comprobante</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalCancelarPago()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DAR DE BAJA MANUAL -->
 <div class="modal-confirm-overlay" id="modal-dar-baja">
   <div class="modal-confirm-box" style="text-align:left;">
@@ -1941,6 +1957,70 @@ function ejecutarDarBaja() {
     });
 }
 
+var cancelarPagoActivoId = null;
+var cancelarPagoActivoFechaIso = null;
+
+function abrirModalCancelarPago(idAlumno, fechaIso, nombre, monto) {
+  if (!fechaIso) {
+    mostrarToast('No se pudo identificar la fecha exacta de este pago. Actualiza el panel e intenta de nuevo.', 'error');
+    return;
+  }
+  cancelarPagoActivoId = idAlumno;
+  cancelarPagoActivoFechaIso = fechaIso;
+  var montoStr = monto ? ' · $' + monto : '';
+  document.getElementById('cancelar-pago-alumno-nombre').innerHTML = `<strong>${nombre}</strong> <span style="color:var(--gris-400);">${idAlumno}${montoStr}</span>`;
+  document.getElementById('cancelar-pago-motivo').value = '';
+  document.getElementById('cancelar-pago-status').style.display = 'none';
+  var btn = document.getElementById('btn-confirmar-cancelar-pago');
+  btn.disabled = false; btn.textContent = 'Cancelar comprobante';
+  document.getElementById('modal-cancelar-pago').classList.add('open');
+}
+
+function cerrarModalCancelarPago() {
+  document.getElementById('modal-cancelar-pago').classList.remove('open');
+  cancelarPagoActivoId = null;
+  cancelarPagoActivoFechaIso = null;
+}
+
+function ejecutarCancelarPago() {
+  var motivo = document.getElementById('cancelar-pago-motivo').value.trim();
+  var status = document.getElementById('cancelar-pago-status');
+  var btn = document.getElementById('btn-confirmar-cancelar-pago');
+
+  if (!motivo) {
+    status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+    status.textContent = 'El motivo es obligatorio.';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Procesando…';
+  status.style.display = 'none';
+
+  var url = `${APPS_SCRIPT}?action=cancelarPagoValidado&idAlumno=${encodeURIComponent(cancelarPagoActivoId)}&fechaPago=${encodeURIComponent(cancelarPagoActivoFechaIso)}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}&motivo=${encodeURIComponent(motivo)}`;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        var msg = data.nuevoEstatus === 'Baja'
+          ? '✅ Comprobante cancelado. El alumno quedó en Baja (sin otra vigencia activa).'
+          : '✅ Comprobante cancelado. El alumno sigue activo' + (data.vigenciaHasta ? ' (vigente hasta ' + data.vigenciaHasta + ')' : '') + '.';
+        mostrarToast(msg, 'success');
+        cargarDatos();
+        cerrarModalCancelarPago();
+      } else {
+        btn.disabled = false; btn.textContent = 'Cancelar comprobante';
+        status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+        status.textContent = '❌ ' + (data.error || 'Error al cancelar el comprobante.');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false; btn.textContent = 'Cancelar comprobante';
+      status.style.display='block'; status.style.background='rgba(239,68,68,0.15)'; status.style.color='#f87171';
+      status.textContent = '❌ Error de conexión.';
+    });
+}
+
 function solicitarColocacion(idAlumno, nombre, whatsapp) {
   var motivo = prompt('¿Por qué motivo ' + nombre + ' solicita el examen de colocación (cambio de grupo)?\n\nEsto no cambia su grupo actual -- solo lo pone en la cola del maestro de colocación para que la evalúe.');
   if (!motivo || !motivo.trim()) return;
@@ -2078,10 +2158,12 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento, 
   var histHtml = '';
   if (datosPanel && datosPanel.grupos) {
     var histPagos = [];
+    var nombreAlumnoHist = idAlumno;
     datosPanel.grupos.forEach(function(g) {
       (g.alumnos || []).forEach(function(a) {
         if (a.id === idAlumno && a.historial_pagos) {
           histPagos = a.historial_pagos;
+          nombreAlumnoHist = a.nombre || idAlumno;
         }
       });
     });
@@ -2089,7 +2171,12 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento, 
       histHtml = '<div class="det-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.07);padding-top:6px;">'
         + '<span style="font-weight:700;color:#94a3b8;">Historial:</span><br>'
         + histPagos.map(function(p){
-            return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + '</span>';
+            // Solo los pagos ya VALIDADOS pueden cancelarse (los pendientes
+            // se rechazan desde el flujo normal de validación).
+            var cancelBtn = p.validado
+              ? ' · <a href="#" onclick="event.preventDefault();abrirModalCancelarPago(\'' + idAlumno + '\',\'' + (p.fecha_iso||'') + '\',\'' + nombreAlumnoHist.replace(/'/g,"\\'") + '\',\'' + (p.monto||'') + '\')" style="color:#ef4444;">Cancelar</a>'
+              : '';
+            return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + cancelBtn + '</span>';
           }).join('<br>')
         + '</div>';
     }
