@@ -2107,6 +2107,37 @@ function mostrarToast(msg,tipo=''){
 }
 
 
+// Construye el HTML del historial de pagos de un alumno (últimos 5),
+// con un link "Cancelar" en cada uno que ya esté VALIDADO. Se usa tanto
+// en la lista de Grupos (toggleInfoAlumno) como en Alertas (toggleInfoAlerta)
+// para que la cancelación esté disponible sin importar si el alumno se ve
+// actualmente "al corriente" o "sin pago".
+function construirHistorialPagosHtml_(idAlumno) {
+  if (!datosPanel || !datosPanel.grupos) return '';
+  var histPagos = [];
+  var nombreAlumnoHist = idAlumno;
+  datosPanel.grupos.forEach(function(g) {
+    (g.alumnos || []).forEach(function(a) {
+      if (a.id === idAlumno && a.historial_pagos) {
+        histPagos = a.historial_pagos;
+        nombreAlumnoHist = a.nombre || idAlumno;
+      }
+    });
+  });
+  if (histPagos.length < 1) return '';
+  return '<div class="det-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.07);padding-top:6px;">'
+    + '<span style="font-weight:700;color:#94a3b8;">Historial:</span><br>'
+    + histPagos.map(function(p){
+        // Solo los pagos ya VALIDADOS pueden cancelarse (los pendientes se
+        // rechazan desde el flujo normal de validación de comprobantes).
+        var cancelBtn = p.validado
+          ? ' · <a href="#" onclick="event.preventDefault();abrirModalCancelarPago(\'' + idAlumno + '\',\'' + (p.fecha_iso||'') + '\',\'' + nombreAlumnoHist.replace(/'/g,"\\'") + '\',\'' + (p.monto||'') + '\')" style="color:#ef4444;">Cancelar</a>'
+          : '';
+        return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + cancelBtn + '</span>';
+      }).join('<br>')
+    + '</div>';
+}
+
 function toggleInfoAlumno(el, e) {
   e.stopPropagation();
   var row = el.closest('.alumno-row');
@@ -2116,6 +2147,7 @@ function toggleInfoAlumno(el, e) {
     next.classList.toggle('open');
     return;
   }
+  var idAlumno   = el.dataset.id        || '';
   var correo     = el.dataset.correo     || '';
   var fecha      = el.dataset.fecha      || '—';
   var monto      = el.dataset.monto      || '';
@@ -2127,9 +2159,10 @@ function toggleInfoAlumno(el, e) {
   var urlHtml    = url ? '<div class="det-row">🔗 <a href="'+url+'" target="_blank">Ver comprobante</a></div>' : '';
   var comentHtml = coment ? '<div class="det-row">💬 '+coment+'</div>' : '';
   var vencHtml   = vencimiento ? '<div class="det-row">⏳ Vigencia hasta: <strong>'+vencimiento+'</strong></div>' : '<div class="det-row" style="color:#ef4444;">⚠️ Sin vigencia registrada</div>';
+  var histHtml   = construirHistorialPagosHtml_(idAlumno);
   var div = document.createElement('div');
   div.className = 'alumno-detalle open';
-  div.innerHTML = correoHtml+'<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml;
+  div.innerHTML = correoHtml+'<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml+histHtml;
   row.parentNode.insertBefore(div, row.nextSibling);
 }
 
@@ -2154,33 +2187,7 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento, 
   var urlHtml    = url    ? '<div class="det-row">🔗 <a href="' + url + '" target="_blank" style="color:#60a5fa;">Ver comprobante</a></div>' : '<div class="det-row" style="color:#64748b;">📎 Sin comprobante registrado</div>';
   var comentHtml = coment ? '<div class="det-row">💬 ' + coment + '</div>' : '';
 
-  // Historial de pagos del alumno
-  var histHtml = '';
-  if (datosPanel && datosPanel.grupos) {
-    var histPagos = [];
-    var nombreAlumnoHist = idAlumno;
-    datosPanel.grupos.forEach(function(g) {
-      (g.alumnos || []).forEach(function(a) {
-        if (a.id === idAlumno && a.historial_pagos) {
-          histPagos = a.historial_pagos;
-          nombreAlumnoHist = a.nombre || idAlumno;
-        }
-      });
-    });
-    if (histPagos.length > 1) {
-      histHtml = '<div class="det-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.07);padding-top:6px;">'
-        + '<span style="font-weight:700;color:#94a3b8;">Historial:</span><br>'
-        + histPagos.map(function(p){
-            // Solo los pagos ya VALIDADOS pueden cancelarse (los pendientes
-            // se rechazan desde el flujo normal de validación).
-            var cancelBtn = p.validado
-              ? ' · <a href="#" onclick="event.preventDefault();abrirModalCancelarPago(\'' + idAlumno + '\',\'' + (p.fecha_iso||'') + '\',\'' + nombreAlumnoHist.replace(/'/g,"\\'") + '\',\'' + (p.monto||'') + '\')" style="color:#ef4444;">Cancelar</a>'
-              : '';
-            return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + cancelBtn + '</span>';
-          }).join('<br>')
-        + '</div>';
-    }
-  }
+  var histHtml = construirHistorialPagosHtml_(idAlumno);
 
   panel.innerHTML =
     correoHtml
