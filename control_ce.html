@@ -711,6 +711,13 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
       <label>Comentario / estatus</label>
       <input type="text" id="ep-comentario" />
     </div>
+    <div class="modal-campo" style="display:flex;align-items:flex-start;gap:8px;background:#fff8e1;border-radius:8px;padding:10px;">
+      <input type="checkbox" id="ep-cobertura-manual" style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
+      <label for="ep-cobertura-manual" style="font-weight:400;font-size:13px;line-height:1.4;">
+        🔒 Fijar estas fechas de cobertura manualmente.<br>
+        <span style="color:#8a6d00;font-size:12px;">Si se marca, esta cobertura ya no se recorrerá automáticamente si el grupo se mueve de fecha más adelante (úsalo para casos especiales, como un alumno que empezó su grupo en una fecha distinta al resto).</span>
+      </label>
+    </div>
     <div class="modal-status" id="ep-status" style="display:none;margin-bottom:10px;font-size:13px;"></div>
     <div class="modal-acciones">
       <button class="btn btn-outline" onclick="cerrarModal('modal-editar-pago')">Cancelar</button>
@@ -2069,7 +2076,7 @@ function renderPagosAlumnos(filtro) {
     var montoStr = '$' + (Number(p.monto) || 0);
     return '<div class="pa-fila">' +
       '<span class="pa-fila-id">' + esc(p.idAlumno) + '</span>' +
-      '<span class="pa-fila-nombre">' + esc(p.nombreAlumno || '—') + '</span>' +
+      '<span class="pa-fila-nombre">' + esc(p.nombreAlumno || '—') + (p.coberturaManual ? ' <span title="Cobertura fijada manualmente -- no se recorre automáticamente" style="font-size:11px;">🔒</span>' : '') + '</span>' +
       '<span class="pa-fila-fecha">' + fechaStr + '</span>' +
       '<span class="pa-fila-monto">' + esc(montoStr) + '</span>' +
       '<a class="pa-fila-editar" onclick="abrirModalEditarPago(' + idx + ')">Editar</a>' +
@@ -2106,6 +2113,7 @@ function abrirModalEditarPago(idx) {
   document.getElementById('ep-cobertura-inicio').value = fechaParaInputDate(p.coberturaInicio);
   document.getElementById('ep-cobertura-fin').value = fechaParaInputDate(p.coberturaFin);
   document.getElementById('ep-comentario').value = p.comentario || '';
+  document.getElementById('ep-cobertura-manual').checked = !!p.coberturaManual;
   document.getElementById('ep-status').style.display = 'none';
   document.getElementById('modal-editar-pago').classList.add('abierto');
 }
@@ -2128,6 +2136,7 @@ function guardarEdicionPago() {
     coberturaInicio: document.getElementById('ep-cobertura-inicio').value,
     coberturaFin: document.getElementById('ep-cobertura-fin').value,
     comentario: document.getElementById('ep-comentario').value.trim(),
+    coberturaManual: document.getElementById('ep-cobertura-manual').checked,
     idCE: estado.idCE,
     // Auditoría automática: quién hizo esta edición y cuándo — independiente
     // del campo "Validado por" (que es un dato de negocio, no de auditoría).
@@ -2454,7 +2463,7 @@ function confirmarCambioEstatus() {
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gris)">Se recorre</span><strong id="mg-delta-dias">—</strong></div>
       <div style="display:flex;justify-content:space-between;"><span style="color:var(--gris)">Alumnos afectados</span><strong id="mg-total-alumnos">—</strong></div>
       <div id="mg-lista-alumnos" style="margin-top:8px;font-size:.78rem;color:var(--gris);max-height:120px;overflow-y:auto;"></div>
-      <p style="font-size:.76rem;color:var(--gris);margin:10px 0 0;">A cada alumno de este grupo se le recorrerá también la vigencia de todos sus pagos (inicio y fin) exactamente los mismos días, para conservar cuántas semanas ya tenían pagadas.</p>
+      <p style="font-size:.76rem;color:var(--gris);margin:10px 0 0;">A cada alumno de este grupo se le recorrerá también la vigencia de todos sus pagos (inicio y fin) exactamente los mismos días, para conservar cuántas semanas ya tenían pagadas. <strong>Excepción:</strong> los pagos con cobertura fijada manualmente (🔒) no se tocan.</p>
     </div>
 
     <div class="modal-acciones">
