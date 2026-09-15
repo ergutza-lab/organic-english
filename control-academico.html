@@ -1640,9 +1640,11 @@ function verEvalGrupo(idGrupo, nombreGrupo){
           '<td style="padding:6px 5px;text-align:center;">'+(mini?'✅':'—')+'</td>'+
           '<td style="padding:6px 5px;text-align:center;">'+(grand?'✅':'—')+'</td>'+
           '<td style="padding:6px 5px;font-size:11px;color:'+r.estadoColor+';">'+r.estado+'</td>'+
-          '<td style="padding:6px 5px;text-align:center;">'+
+          '<td style="padding:6px 5px;text-align:center;white-space:nowrap;">'+
             '<button title="Generar Reporte de Evaluación en PDF" onclick="this.disabled=true;this.textContent=\'…\';generarReporteEvaluacionAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+nombreEsc+'\',this)" '+
-            'style="background:rgba(249,115,22,0.15);color:#fdba74;border:1px solid rgba(249,115,22,0.4);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📄</button>'+
+            'style="background:rgba(249,115,22,0.15);color:#fdba74;border:1px solid rgba(249,115,22,0.4);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;margin-right:4px;">📄</button>'+
+            '<button title="Generar Diploma" onclick="this.disabled=true;this.textContent=\'…\';generarDiplomaAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+nombreEsc+'\',this)" '+
+            'style="background:rgba(28,43,94,0.15);color:#93a8e0;border:1px solid rgba(28,43,94,0.4);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;">🎓</button>'+
           '</td>'+
         '</tr>';
       });
@@ -1959,12 +1961,12 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       // línea, sin ícono de imagen rota.
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:70px;">'+
         '<div style="text-align:center;">'+
-          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/firma1.jpg" onerror="this.style.display=\'none\'" style="height:100px;object-fit:contain;display:block;margin:0 auto 4px;" />'+
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA1.webp" onerror="this.style.display=\'none\'" style="height:100px;object-fit:contain;display:block;margin:0 auto 4px;" />'+
           '<div contenteditable="true" style="border-bottom:1.5px solid #1e293b;min-height:22px;margin-bottom:6px;font-size:13px;font-weight:700;color:#1e293b;">'+(dirNombre||'&nbsp;')+'</div>'+
           '<div style="font-size:11px;color:#64748b;">Director</div>'+
         '</div>'+
         '<div style="text-align:center;">'+
-          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/firma2.jpg" onerror="this.style.display=\'none\'" style="height:100px;object-fit:contain;display:block;margin:0 auto 4px;" />'+
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA2.webp" onerror="this.style.display=\'none\'" style="height:100px;object-fit:contain;display:block;margin:0 auto 4px;" />'+
           '<div contenteditable="true" style="border-bottom:1.5px solid #1e293b;min-height:22px;margin-bottom:6px;font-size:13px;font-weight:700;color:#1e293b;">'+(coordNombre||'&nbsp;')+'</div>'+
           '<div style="font-size:11px;color:#64748b;">Coordinador Académico</div>'+
         '</div>'+
@@ -1982,6 +1984,95 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       resetBtn();
     })
     .catch(function(){ alert('Error de conexión al generar el reporte.'); resetBtn(); });
+}
+
+// ── DIPLOMA (PDF, por alumno) ──
+// Se genera desde el mismo lugar que el Reporte de Evaluación (botón 🎓
+// junto al 📄). Usa el mismo endpoint getHistorialAlumnoCA solo para sacar
+// el nivel del grupo (grupo.nivel -> "A1"/"A2"/etc, mismo formato que el
+// reporte). El diseño es la imagen de fondo ya autorizada (subida a GitHub
+// en images/DIPLOMA-FONDO.jpg -- si Erick la sube con otro nombre, solo hay
+// que cambiar esa URL abajo); el nombre del alumno, el nivel, la fecha y los
+// nombres de Director/Coordinador se dibujan ENCIMA con posiciones fijas en
+// px calculadas sobre la resolución real de esa imagen (880x1198). Si al
+// imprimir algo no cae exactamente en su lugar, son ajustes de píxeles en
+// este mismo bloque (top/left de cada elemento), no hay que tocar nada más.
+function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
+  var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
+  var coordNombre=(document.getElementById('pdfCoordinadorNombre')||{}).value||(caData&&caData.nombre)||'';
+
+  function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='🎓';} }
+
+  fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!data.success){alert('No se pudo cargar el nivel de este alumno.');resetBtn();return;}
+
+      var grupo=data.grupo||{};
+      // Mismo formato que el Reporte: "NIVEL A1-Bloque 2" (texto crudo) -> "A1"
+      function formatNivelDisplay_(nivelRaw){
+        var s=String(nivelRaw||'');
+        if(!s) return '—';
+        var m=s.match(/([A-Za-z]\d)/);
+        return m?m[1].toUpperCase():s;
+      }
+      var nivelDisplay=formatNivelDisplay_(grupo.nivel);
+      var fechaHoy=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+
+      var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+        '<title>Diploma — '+nombreAlumno+'</title>'+
+        '<style>'+
+        '*{box-sizing:border-box;}'+
+        '@page{size:letter;margin:0;}'+
+        "body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;margin:0;padding:0;}"+
+        '[contenteditable]:focus{outline:2px dashed #f97316;outline-offset:2px;border-radius:4px;}'+
+        '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
+        '</style></head><body>'+
+        '<div style="position:relative;width:880px;margin:0 auto;">'+
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/DIPLOMA-FONDO.jpg" style="display:block;width:880px;" />'+
+
+          // Nombre del alumno -- sobre la línea en blanco, debajo de "A:"
+          '<div contenteditable="true" title="Puedes corregir el nombre antes de imprimir" '+
+          'style="position:absolute;top:562px;left:0;width:880px;text-align:center;font-size:22px;font-weight:800;color:#1c2b5e;letter-spacing:.02em;">'+
+          (nombreAlumno||'&nbsp;')+'</div>'+
+
+          // Nivel -- parche color hueso sobre el "A1" de muestra del diseño + nivel real encima
+          '<div style="position:absolute;top:638px;left:648px;width:100px;height:32px;background:#f6f5f2;"></div>'+
+          '<div contenteditable="true" title="Nivel alcanzado -- puedes corregirlo antes de imprimir" '+
+          'style="position:absolute;top:640px;left:648px;width:100px;text-align:center;font-size:19px;font-weight:800;color:#111827;">'+
+          (nivelDisplay||'—')+'</div>'+
+
+          // Fecha de emisión -- debajo de "Sigue avanzando..."
+          '<div contenteditable="true" title="Puedes corregir la fecha antes de imprimir" '+
+          'style="position:absolute;top:783px;left:0;width:880px;text-align:center;font-size:13px;color:#64748b;">'+
+          'Fecha de emisión: '+fechaHoy+'</div>'+
+
+          // Firma + nombre del Director (columna izquierda)
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA1.webp" onerror="this.style.display=\'none\'" '+
+          'style="position:absolute;top:826px;left:120px;width:220px;height:70px;object-fit:contain;" />'+
+          '<div contenteditable="true" title="Nombre del Director -- puedes corregirlo antes de imprimir" '+
+          'style="position:absolute;top:901px;left:120px;width:220px;text-align:center;font-size:11px;font-weight:700;color:#1e293b;">'+
+          (dirNombre||'&nbsp;')+'</div>'+
+
+          // Firma + nombre del Coordinador Académico (columna derecha)
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA2.webp" onerror="this.style.display=\'none\'" '+
+          'style="position:absolute;top:826px;left:540px;width:220px;height:70px;object-fit:contain;" />'+
+          '<div contenteditable="true" title="Nombre del Coordinador Académico -- puedes corregirlo antes de imprimir" '+
+          'style="position:absolute;top:901px;left:540px;width:220px;text-align:center;font-size:11px;font-weight:700;color:#1e293b;">'+
+          (coordNombre||'&nbsp;')+'</div>'+
+
+        '</div>'+
+        '<div class="no-print" style="text-align:center;margin:18px 0;">'+
+          '<button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:10px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button>'+
+        '</div>'+
+        '</body></html>';
+
+      var w=window.open('','_blank','width=1000,height=900');
+      w.document.write(html);
+      w.document.close();
+      resetBtn();
+    })
+    .catch(function(){ alert('Error de conexión al generar el diploma.'); resetBtn(); });
 }
 
 // Fallback de nombre de nivel por si "grupo.nivel" no viene en la respuesta:
