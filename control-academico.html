@@ -1656,13 +1656,37 @@ function verEvalGrupo(idGrupo, nombreGrupo){
     .catch(function(){body.innerHTML='<div class="empty-state">Error al cargar.</div>';});
 }
 
+// ── PROMEDIO CANÓNICO (el mismo que ve el alumno en su panel) ──
+// alumno.html (renderEvaluacionAlumno) usa action=getEvaluacionAlumno así:
+// en Bloque 2 muestra d.promedioNivel (ya combina Bloque 1+2, calculado en
+// el backend); en Bloque 1 muestra d.porcentajeGlobal (solo el bloque
+// actual, porque el nivel todavía no tiene Bloque 2). Reporte y Constancia
+// usan ESTA MISMA función para que el número SIEMPRE coincida con lo que
+// el alumno ve -- nunca se debe recalcular por separado en cada archivo.
+function obtenerPromedioCanonico_(idAlumno, idGrupo){
+  return fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d||!d.success) return null;
+      var pcBloqueActual=d.porcentajeGlobal||0;
+      var enBloque2=d.bloque===2 && d.promedioNivel!==undefined && d.promedioNivel!==null;
+      return enBloque2 ? d.promedioNivel : pcBloqueActual;
+    })
+    .catch(function(){return null;});
+}
+
 // ── REPORTE DE EVALUACIÓN FINAL (PDF, por alumno) ──
 // Se genera desde el modal de "Evaluaciones del grupo" (Maestro > Grupo > Evaluaciones).
 // Combina el resumen ya cargado en window._grupoEvalDataActual (Gema % global, que
 // debe coincidir con lo que ya se ve en pantalla) con el detalle día por día de
 // action=getHistorialAlumnoCA (que trae el campo "bloque" en cada renglón) para
 // poder separar el desempeño en Bloque 1 (semanas 1-8) y Bloque 2 (semanas 9-16).
-// No requiere ninguna acción nueva en el backend: ambas acciones ya existen.
+// La cifra final que se IMPRIME (evaluacionFinalPct) se toma de
+// obtenerPromedioCanonico_ (idéntica a la del panel del alumno) siempre que
+// esa llamada responda; el cálculo local de abajo (80% asistencia + 20%
+// desempeño combinando Bloque 1+2) queda solo como respaldo si esa acción
+// fallara, para no dejar el botón sin funcionar.
+// No requiere ninguna acción nueva en el backend: las 3 acciones ya existen.
 function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
   var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
@@ -1670,9 +1694,12 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
   function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='📄';} }
 
-  fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(data){
+  Promise.all([
+    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
+    obtenerPromedioCanonico_(idAlumno, idGrupo)
+  ])
+    .then(function(resultados){
+      var data=resultados[0], promedioCanonico=resultados[1];
       if(!data.success){alert('No se pudo cargar el historial de este alumno.');resetBtn();return;}
 
       var alumno=data.alumno||{alumno:{}};
@@ -1766,16 +1793,13 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       // asistGlobal, Bloque 1 + Bloque 2 ya combinados arriba).
       var asistGlobalNum=parseFloat(asistGlobal), pctGlobalNum=parseFloat(pctGlobal);
 
-      // "Evaluación Final" que se IMPRIME usa la misma fórmula oficial que
-      // ya usa el resto de la plataforma para esta cifra (getMapaGrupo,
-      // getEvaluacionAlumno del panel del alumno, y el snapshot automático
-      // de HISTORICO_BLOQUES): asistencia 80% + desempeño(verde/azul) 20%.
-      // pctGlobal (arriba) sigue siendo el % de desempeño puro -- se usa
-      // tal cual para "Estado final" (ver abajo, mismos dos criterios
-      // independientes que usa la plataforma) y en el texto de
-      // observaciones ("...% de desempeño"), donde sigue siendo el dato
-      // correcto a mostrar.
-      var evaluacionFinalPct=(asistGlobalNum*0.8 + pctGlobalNum*0.2).toFixed(2);
+      // "Evaluación Final" que se IMPRIME: usa el promedio CANÓNICO (idéntico
+      // al panel del alumno) si obtenerPromedioCanonico_ respondió; si esa
+      // acción falló, cae al cálculo local de respaldo (asistencia 80% +
+      // desempeño 20%, Bloque 1+2 combinados) para no dejar el botón roto.
+      var evaluacionFinalPct = (promedioCanonico!==null && promedioCanonico!==undefined)
+        ? Number(promedioCanonico).toFixed(2)
+        : (asistGlobalNum*0.8 + pctGlobalNum*0.2).toFixed(2);
 
       var estadoTxt;
       if(asistGlobalNum>=80 && pctGlobalNum>=70) estadoTxt='Pase asegurado';
@@ -2102,43 +2126,16 @@ function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 // dibuja este código en flujo normal (no coordenadas sueltas), así que es
 // fácil ajustar tamaños/espaciados sin descuadrar nada.
 //
-// FOLIO: se intenta pedir un folio consecutivo real al backend con la
-// acción "getSiguienteFolioConstancia" (formato OE-{año}-{3 dígitos}). Si esa
-// acción TODAVÍA no existe en Codigo.gs (mientras Erick agrega la función de
-// abajo), el campo de folio queda editable a mano para no bloquear el uso
-// mientras tanto.
-//
-// ============================================================
-// BACKEND PENDIENTE -- agregar esto a Codigo.gs (Erick):
-// ============================================================
-// function obtenerSiguienteFolioConstancia() {
-//   var ss = SpreadsheetApp.openById(SHEET_ID);
-//   var sh = ss.getSheetByName('FOLIOS_CONSTANCIA');
-//   if (!sh) {
-//     sh = ss.insertSheet('FOLIOS_CONSTANCIA');
-//     sh.getRange(1,1,1,2).setValues([['Año','Consecutivo']]);
-//   }
-//   var anioActual = new Date().getFullYear();
-//   var datos = sh.getDataRange().getValues();
-//   var fila = -1;
-//   for (var i=1;i<datos.length;i++){ if (Number(datos[i][0])===anioActual){ fila=i+1; break; } }
-//   var siguiente;
-//   if (fila===-1){
-//     siguiente = 1;
-//     sh.getRange(sh.getLastRow()+1,1,1,2).setValues([[anioActual, siguiente]]);
-//   } else {
-//     siguiente = Number(sh.getRange(fila,2).getValue()) + 1;
-//     sh.getRange(fila,2).setValue(siguiente);
-//   }
-//   var numTexto = ('00'+siguiente).slice(-3); // 3 dígitos: 001, 002...
-//   return 'OE-'+anioActual+'-'+numTexto;
-// }
-// Y en el dispatcher de doGet (junto a los demás "action==="):
-//   if (action === 'getSiguienteFolioConstancia') {
-//     return ContentService.createTextOutput(JSON.stringify({success:true,
-//       folio: obtenerSiguienteFolioConstancia()})).setMimeType(ContentService.MimeType.JSON);
-//   }
-// ============================================================
+// FOLIO: la función obtenerSiguienteFolioConstancia() (formato
+// OE-{año}-{3 dígitos}) ya está agregada en el módulo Academico, en la
+// hoja FOLIOS_CONSTANCIA (se crea sola la primera vez, reinicia cada año).
+// Erick: falta registrar la acción en el módulo Router, exactamente igual
+// que ya está registrada 'getMapaGrupo' (la función misma ya arma y
+// devuelve el ContentService, así que el Router solo debe reenviar su
+// resultado, no volver a envolverlo):
+//   if (action === 'getSiguienteFolioConstancia') return obtenerSiguienteFolioConstancia();
+// Mientras esa línea no esté en el Router, esta llamada falla en silencio
+// y el campo de folio queda editable a mano (no bloquea el uso).
 function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
   var coordNombre=(document.getElementById('pdfCoordinadorNombre')||{}).value||(caData&&caData.nombre)||'';
@@ -2147,9 +2144,10 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
   Promise.all([
     fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
-    fetch(APPS_SCRIPT+'?action=getSiguienteFolioConstancia',{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false};})
+    fetch(APPS_SCRIPT+'?action=getSiguienteFolioConstancia',{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false};}),
+    obtenerPromedioCanonico_(idAlumno, idGrupo)
   ]).then(function(results){
-      var data=results[0], folioData=results[1];
+      var data=results[0], folioData=results[1], promedioCanonico=results[2];
       if(!data.success){alert('No se pudo cargar la información de este alumno.');resetBtn();return;}
 
       var alumno=data.alumno||{};
@@ -2159,10 +2157,11 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
       var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
 
-      // Mismo cálculo de promedio que usa el Reporte de Evaluación (asistencia
-      // 80% + desempeño 20%, Bloque 1 + Bloque 2 combinados, con la regla de
-      // colocación con base 100%) -- ver comentarios detallados en
-      // generarReporteEvaluacionAlumno más arriba en este archivo.
+      // El promedio que se IMPRIME viene de obtenerPromedioCanonico_ (idéntico
+      // al panel del alumno) siempre que esa acción responda. El cálculo de
+      // abajo (asistencia 80% + desempeño 20%, Bloque 1+2 combinados) es
+      // SOLO el respaldo si esa acción fallara -- ver detalle de la regla de
+      // colocación en generarReporteEvaluacionAlumno más arriba.
       function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
         var tot=rows.length;
@@ -2181,7 +2180,9 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var totCombinado=(b1.tot||0)+(b2.tot||0);
       var pctGlobalNum=totCombinado>0?(((b1.positivos||0)+(b2.positivos||0))/totCombinado*100):0;
       var asistGlobalNum=totCombinado>0?(((b1.presentes||0)+(b2.presentes||0))/totCombinado*100):0;
-      var evaluacionFinalPct=(asistGlobalNum*0.8 + pctGlobalNum*0.2);
+      var evaluacionFinalPct = (promedioCanonico!==null && promedioCanonico!==undefined)
+        ? Number(promedioCanonico)
+        : (asistGlobalNum*0.8 + pctGlobalNum*0.2);
       var promedioSobre10=(evaluacionFinalPct/10).toFixed(1);
 
       function formatNivelDisplay_(nivelRaw){
