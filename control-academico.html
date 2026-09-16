@@ -416,7 +416,7 @@
                 <th>ID</th><th>Correo</th><th>Alumno</th><th>Asistencia</th>
                 <th>🔴</th><th>🟡</th><th>🟢</th><th>🔵</th>
                 <th>Verde+Azul</th><th>Mini ⭐</th><th>Grand 🏆</th>
-                <th>% Global</th><th>Estado</th>
+                <th>Prom. Final</th><th>Estado</th>
               </tr>
             </thead>
             <tbody id="reporteBody"><tr><td colspan="13" class="empty-state">Selecciona un grupo</td></tr></tbody>
@@ -1583,8 +1583,13 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         body.innerHTML='<div class="empty-state">Sin registros de evaluación.</div>';return;
       }
 
-      // Ordenar por % global de mayor a menor
-      data.resultados.sort(function(a,b){ return (b.porcentajeGlobal||0)-(a.porcentajeGlobal||0); });
+      // Ordenar por Promedio Final (Bloque 1+2 si aplica, igual que la
+      // columna de abajo) de mayor a menor
+      function valorOrden_(r){
+        var enB2=r.bloque===2 && r.promedioNivel!==undefined && r.promedioNivel!==null;
+        return enB2 ? r.promedioNivel : (r.porcentajeGlobal||0);
+      }
+      data.resultados.sort(function(a,b){ return valorOrden_(b)-valorOrden_(a); });
       window._grupoEvalDataActual=data.resultados;
 
       // ── Config de firmas para el Reporte de Evaluación en PDF (se guarda en este navegador) ──
@@ -1609,7 +1614,7 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         '<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:auto;">'+
         '<thead><tr style="border-bottom:1px solid var(--border);">'+
         '<th style="padding:6px 5px;color:var(--muted);text-align:left;">Alumno</th>'+
-        '<th style="padding:6px 5px;color:var(--muted);text-align:center;">Gema %</th>'+
+        '<th style="padding:6px 5px;color:var(--muted);text-align:center;">Prom. Final</th>'+
         '<th style="padding:6px 5px;color:var(--muted);text-align:center;">Asist.</th>'+
         '<th style="padding:6px 5px;color:var(--muted);text-align:center;">🔴</th>'+
         '<th style="padding:6px 5px;color:var(--muted);text-align:center;">🟡</th>'+
@@ -1622,7 +1627,12 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         '</tr></thead><tbody>';
 
       data.resultados.forEach(function(r){
-        var pc=r.porcentajeGlobal||0;
+        // Mismo criterio que alumno.html: en Bloque 2 se muestra el
+        // promedio de NIVEL COMPLETO (Bloque 1+2, ya calculado en el
+        // backend en getMapaGrupo); en Bloque 1 se muestra el % del
+        // bloque actual porque el nivel todavía no tiene Bloque 2.
+        var enBloque2=r.bloque===2 && r.promedioNivel!==undefined && r.promedioNivel!==null;
+        var pc=enBloque2 ? r.promedioNivel : (r.porcentajeGlobal||0);
         var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
         var tot=r.totalClases||1;
         var gp=function(c){return tot>0?Math.round(((r.colores[c]||0)/tot)*100):0;};
@@ -2665,14 +2675,21 @@ function cargarReporteGrupo(){
       if(!data.success||!data.resultados||!data.resultados.length){
         tbody.innerHTML='<tr><td colspan="13" class="empty-state">Sin registros para este grupo.</td></tr>';return;
       }
-      // Ordenar por % Global de mayor a menor
-      data.resultados.sort(function(a,b){ return (b.porcentajeGlobal||0)-(a.porcentajeGlobal||0); });
+      // Ordenar por Promedio Final (Bloque 1+2 si aplica) de mayor a menor
+      function valorOrdenReporte_(r){
+        var enB2=r.bloque===2 && r.promedioNivel!==undefined && r.promedioNivel!==null;
+        return enB2 ? r.promedioNivel : (r.porcentajeGlobal||0);
+      }
+      data.resultados.sort(function(a,b){ return valorOrdenReporte_(b)-valorOrdenReporte_(a); });
       tbody.innerHTML=data.resultados.map(function(r){
         var tot=r.totalClases||1;
         var gp=function(c){return tot>0?Math.round(((r.colores[c]||0)/tot)*100):0;};
         var mini=r.challenges&&r.challenges.some(function(c){return c.tipo==='Mini'&&c.aprobado;});
         var grand=r.challenges&&r.challenges.some(function(c){return(c.tipo==='Grand'||c.tipo==='Gran')&&c.aprobado;});
-        var pc=r.porcentajeGlobal||0;
+        // Mismo criterio que el modal de Evaluaciones y alumno.html: en
+        // Bloque 2 se usa el promedio de nivel completo (Bloque 1+2).
+        var enBloque2=r.bloque===2 && r.promedioNivel!==undefined && r.promedioNivel!==null;
+        var pc=enBloque2 ? r.promedioNivel : (r.porcentajeGlobal||0);
         var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
         return '<tr>'+
           '<td>'+r.alumno.id+'</td>'+
@@ -2732,7 +2749,7 @@ function enviarReportePorCorreo(){
 function exportarReporte(){
   var idGrupo=document.getElementById('reporteGrupoSelect').value;
   if(!idGrupo){alert('Selecciona un grupo primero.');return;}
-  var rows=[['ID','Correo','Alumno','Asistencia','Rojo','Amarillo','Verde','Azul','Verde+Azul','Mini','Grand','% Global','Estado']];
+  var rows=[['ID','Correo','Alumno','Asistencia','Rojo','Amarillo','Verde','Azul','Verde+Azul','Mini','Grand','Prom. Final','Estado']];
   var tbody=document.getElementById('reporteBody');
   var trs=tbody.querySelectorAll('tr');
   trs.forEach(function(tr){
