@@ -1644,7 +1644,9 @@ function verEvalGrupo(idGrupo, nombreGrupo){
             '<button title="Generar Reporte de Evaluación en PDF" onclick="this.disabled=true;this.textContent=\'…\';generarReporteEvaluacionAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+nombreEsc+'\',this)" '+
             'style="background:rgba(249,115,22,0.15);color:#fdba74;border:1px solid rgba(249,115,22,0.4);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;margin-right:4px;">📄</button>'+
             '<button title="Generar Diploma" onclick="this.disabled=true;this.textContent=\'…\';generarDiplomaAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+nombreEsc+'\',this)" '+
-            'style="background:rgba(28,43,94,0.15);color:#93a8e0;border:1px solid rgba(28,43,94,0.4);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;">🎓</button>'+
+            'style="background:rgba(28,43,94,0.15);color:#93a8e0;border:1px solid rgba(28,43,94,0.4);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;margin-right:4px;">🎓</button>'+
+            '<button title="Generar Constancia de Estudios" onclick="this.disabled=true;this.textContent=\'…\';generarConstanciaAlumno(\''+r.alumno.id+'\',\''+idGrupo+'\',\''+nombreEsc+'\',this)" '+
+            'style="background:rgba(184,147,90,0.18);color:#e0c28f;border:1px solid rgba(184,147,90,0.45);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;cursor:pointer;">📜</button>'+
           '</td>'+
         '</tr>';
       });
@@ -2092,6 +2094,219 @@ function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       resetBtn();
     })
     .catch(function(){ alert('Error de conexión al generar el diploma.'); resetBtn(); });
+}
+
+// ── CONSTANCIA DE ESTUDIOS (PDF, por alumno) ──
+// Fondo subido por Erick a images/CONSTANCIA-FONDO.webp: solo trae logo y
+// sello, TODO el contenido (título, párrafos, cajas de datos, firmas) lo
+// dibuja este código en flujo normal (no coordenadas sueltas), así que es
+// fácil ajustar tamaños/espaciados sin descuadrar nada.
+//
+// FOLIO: se intenta pedir un folio consecutivo real al backend con la
+// acción "getSiguienteFolioConstancia" (formato OE-{año}-{3 dígitos}). Si esa
+// acción TODAVÍA no existe en Codigo.gs (mientras Erick agrega la función de
+// abajo), el campo de folio queda editable a mano para no bloquear el uso
+// mientras tanto.
+//
+// ============================================================
+// BACKEND PENDIENTE -- agregar esto a Codigo.gs (Erick):
+// ============================================================
+// function obtenerSiguienteFolioConstancia() {
+//   var ss = SpreadsheetApp.openById(SHEET_ID);
+//   var sh = ss.getSheetByName('FOLIOS_CONSTANCIA');
+//   if (!sh) {
+//     sh = ss.insertSheet('FOLIOS_CONSTANCIA');
+//     sh.getRange(1,1,1,2).setValues([['Año','Consecutivo']]);
+//   }
+//   var anioActual = new Date().getFullYear();
+//   var datos = sh.getDataRange().getValues();
+//   var fila = -1;
+//   for (var i=1;i<datos.length;i++){ if (Number(datos[i][0])===anioActual){ fila=i+1; break; } }
+//   var siguiente;
+//   if (fila===-1){
+//     siguiente = 1;
+//     sh.getRange(sh.getLastRow()+1,1,1,2).setValues([[anioActual, siguiente]]);
+//   } else {
+//     siguiente = Number(sh.getRange(fila,2).getValue()) + 1;
+//     sh.getRange(fila,2).setValue(siguiente);
+//   }
+//   var numTexto = ('00'+siguiente).slice(-3); // 3 dígitos: 001, 002...
+//   return 'OE-'+anioActual+'-'+numTexto;
+// }
+// Y en el dispatcher de doGet (junto a los demás "action==="):
+//   if (action === 'getSiguienteFolioConstancia') {
+//     return ContentService.createTextOutput(JSON.stringify({success:true,
+//       folio: obtenerSiguienteFolioConstancia()})).setMimeType(ContentService.MimeType.JSON);
+//   }
+// ============================================================
+function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
+  var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
+  var coordNombre=(document.getElementById('pdfCoordinadorNombre')||{}).value||(caData&&caData.nombre)||'';
+
+  function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='📜';} }
+
+  Promise.all([
+    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
+    fetch(APPS_SCRIPT+'?action=getSiguienteFolioConstancia',{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false};})
+  ]).then(function(results){
+      var data=results[0], folioData=results[1];
+      if(!data.success){alert('No se pudo cargar la información de este alumno.');resetBtn();return;}
+
+      var alumno=data.alumno||{};
+      var grupo=data.grupo||{};
+      var historial=data.historial||[];
+      var challenges=data.challenges||[];
+      var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
+      var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
+
+      // Mismo cálculo de promedio que usa el Reporte de Evaluación (asistencia
+      // 80% + desempeño 20%, Bloque 1 + Bloque 2 combinados, con la regla de
+      // colocación con base 100%) -- ver comentarios detallados en
+      // generarReporteEvaluacionAlumno más arriba en este archivo.
+      function datosBloque(n){
+        var rows=historial.filter(function(h){return Number(h.bloque)===n;});
+        var tot=rows.length;
+        var colores={1:0,2:0,3:0,4:0};
+        rows.forEach(function(h){ if(h.asistencia && h.color) colores[h.color]=(colores[h.color]||0)+1; });
+        var presentes=rows.filter(function(h){return h.asistencia;}).length;
+        var positivos=colores[3]+colores[4];
+        return {tot:tot,presentes:presentes,positivos:positivos};
+      }
+      var b1=datosBloque(1), b2=datosBloque(2);
+      var BASE_COLOCACION=100;
+      if(b1.tot===0 && b2.tot>0){
+        var presentesBase=Math.round(b2.tot*(BASE_COLOCACION/100));
+        b1={tot:b2.tot,presentes:presentesBase,positivos:presentesBase};
+      }
+      var totCombinado=(b1.tot||0)+(b2.tot||0);
+      var pctGlobalNum=totCombinado>0?(((b1.positivos||0)+(b2.positivos||0))/totCombinado*100):0;
+      var asistGlobalNum=totCombinado>0?(((b1.presentes||0)+(b2.presentes||0))/totCombinado*100):0;
+      var evaluacionFinalPct=(asistGlobalNum*0.8 + pctGlobalNum*0.2);
+      var promedioSobre10=(evaluacionFinalPct/10).toFixed(1);
+
+      function formatNivelDisplay_(nivelRaw){
+        var s=String(nivelRaw||'');
+        if(!s) return '—';
+        var m=s.match(/([A-Za-z]\d)/);
+        return m?m[1].toUpperCase():s;
+      }
+      var nivelDisplay=formatNivelDisplay_(grupo.nivel);
+      // Supuesto de categoría por nivel (A1/A2=BASIC, B1/B2=INTERMEDIATE,
+      // C1=ADVANCED) -- el campo queda editable por si Erick usa otra
+      // nomenclatura.
+      var categoriaPorNivel={A1:'BASIC',A2:'BASIC',B1:'INTERMEDIATE',B2:'INTERMEDIATE',C1:'ADVANCED'};
+      var categoriaNivel=categoriaPorNivel[nivelDisplay]||'';
+
+      var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      function fechaLargaDDMMYYYY_(fechaStr){
+        if(!fechaStr || fechaStr==='—' || fechaStr==='Sin fecha') return null;
+        var p=String(fechaStr).split('/');
+        if(p.length!==3) return null;
+        var d=parseInt(p[0],10), m=parseInt(p[1],10)-1, y=parseInt(p[2],10);
+        if(isNaN(d)||isNaN(m)||isNaN(y)||!meses[m]) return null;
+        return {dia:d, mes:meses[m], anio:y};
+      }
+      var fInicio=fechaLargaDDMMYYYY_(alumno.fechaInscripcion) || fechaLargaDDMMYYYY_(grupo.fechaInicio);
+      var periodoLinea1=fInicio ? ('Desde el '+fInicio.dia+' de '+fInicio.mes+' de '+fInicio.anio) : 'Desde el inicio de su inscripción';
+      var periodoLinea2='hasta la fecha';
+
+      var hoy=new Date();
+      var fechaEmisionTexto='el '+hoy.getDate()+' de '+meses[hoy.getMonth()]+' de '+hoy.getFullYear()+'.';
+
+      var folio=(folioData&&folioData.success&&folioData.folio)?folioData.folio:'OE-'+hoy.getFullYear()+'-___';
+
+      var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+        '<title>Constancia — '+nombreAlumno+'</title>'+
+        '<style>'+
+        '*{box-sizing:border-box;}'+
+        '@page{size:letter;margin:0;}'+
+        "body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;margin:0;padding:0;}"+
+        '[contenteditable]:focus{outline:2px dashed #f97316;outline-offset:2px;border-radius:4px;}'+
+        '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
+        '</style></head><body>'+
+        '<div style="position:relative;width:1075px;margin:0 auto;">'+
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/CONSTANCIA-FONDO.webp" style="display:block;width:1075px;" />'+
+
+          '<div contenteditable="true" title="Folio -- puedes corregirlo antes de imprimir" '+
+          'style="position:absolute;top:55px;right:90px;font-size:13px;color:#f5e6c8;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.4);">'+
+          'Folio: '+folio+'</div>'+
+
+          '<div style="position:absolute;top:335px;left:150px;width:775px;text-align:center;">'+
+
+            '<div style="font-size:16px;font-weight:700;color:#1c2b5e;letter-spacing:.08em;text-transform:uppercase;">Otorga la presente</div>'+
+
+            '<div style="font-size:52px;font-weight:900;color:#1c2b5e;margin-top:6px;letter-spacing:.04em;">CONSTANCIA</div>'+
+
+            '<div style="font-size:20px;font-weight:700;color:#334155;letter-spacing:.15em;margin-top:2px;">DE ESTUDIOS</div>'+
+
+            '<div style="font-size:17px;color:#1a1a1a;margin-top:18px;">A:</div>'+
+
+            '<div contenteditable="true" title="Puedes corregir el nombre antes de imprimir" '+
+            'style="font-size:26px;font-weight:800;color:#1c2b5e;margin-top:6px;display:inline-block;border-bottom:1.5px solid #1c2b5e;padding:0 10px 4px;">'+
+            (nombreAlumno||'&nbsp;')+'</div>'+
+
+            '<div style="font-size:15.5px;color:#1a1a1a;margin-top:16px;line-height:1.5;">'+
+              'Por medio de la presente se hace constar que actualmente cursa estudios de inglés, en la modalidad en línea, de acuerdo con nuestro programa académico y con los niveles establecidos en el Marco Común Europeo de Referencia para las Lenguas (MCER).'+
+            '</div>'+
+
+            '<div style="display:flex;justify-content:center;gap:14px;margin-top:22px;">'+
+              '<div style="flex:1;background:rgba(59,90,170,0.12);border:1px solid rgba(59,90,170,0.25);border-radius:10px;padding:16px 8px;">'+
+                '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:14.5px;color:#3b5aaa;font-weight:700;">'+
+                  '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1c2b5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5V4.5Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/></svg>'+
+                  'Nivel en Curso</div>'+
+                '<div contenteditable="true" title="Nivel alcanzado" style="font-size:36px;font-weight:900;color:#1c2b5e;margin-top:6px;">'+(nivelDisplay||'—')+'</div>'+
+                '<div contenteditable="true" title="Categoría del nivel -- puedes corregirla antes de imprimir" style="font-size:12.5px;color:#64748b;font-weight:700;letter-spacing:.05em;margin-top:2px;">'+(categoriaNivel||'&nbsp;')+'</div>'+
+              '</div>'+
+              '<div style="flex:1;background:rgba(59,90,170,0.12);border:1px solid rgba(59,90,170,0.25);border-radius:10px;padding:16px 8px;">'+
+                '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:14.5px;color:#3b5aaa;font-weight:700;">'+
+                  '<svg width="22" height="22" viewBox="0 0 24 24" fill="#1c2b5e"><path d="M12 2l2.9 6.26L21.8 9l-5 4.87L18.2 21 12 17.27 5.8 21l1.4-7.13-5-4.87 6.9-.74L12 2z"/></svg>'+
+                  'Promedio Actual</div>'+
+                '<div style="font-size:36px;font-weight:900;color:#1c2b5e;margin-top:6px;">'+
+                  '<span contenteditable="true" title="Promedio -- puedes corregirlo antes de imprimir">'+promedioSobre10+'</span>'+
+                  '<span style="font-size:18px;font-weight:700;">/10</span>'+
+                '</div>'+
+              '</div>'+
+              '<div style="flex:1;background:rgba(59,90,170,0.12);border:1px solid rgba(59,90,170,0.25);border-radius:10px;padding:16px 8px;">'+
+                '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:14.5px;color:#3b5aaa;font-weight:700;">'+
+                  '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1c2b5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'+
+                  'Periodo de Estudio</div>'+
+                '<div contenteditable="true" title="Puedes corregir el periodo antes de imprimir" style="font-size:15.5px;font-weight:700;color:#1c2b5e;margin-top:8px;line-height:1.35;">'+periodoLinea1+'<br>'+periodoLinea2+'</div>'+
+              '</div>'+
+            '</div>'+
+
+            '<div contenteditable="true" title="Puedes corregir este texto antes de imprimir" '+
+            'style="font-size:15px;color:#1a1a1a;margin-top:22px;line-height:1.5;">Durante este periodo, ha demostrado un compromiso destacado con su aprendizaje, mostrando dedicación, constancia y un notable progreso en sus habilidades comunicativas en inglés.</div>'+
+
+            '<div style="font-size:15px;color:#1a1a1a;margin-top:14px;line-height:1.5;">'+
+              '<span contenteditable="true" title="Puedes corregir este texto antes de imprimir">Se extiende la presente constancia para los fines que correspondan, en la Ciudad de México, </span>'+
+              '<span contenteditable="true" title="Puedes corregir la fecha antes de imprimir">'+fechaEmisionTexto+'</span>'+
+            '</div>'+
+
+          '</div>'+
+
+          '<div style="position:absolute;top:905px;left:150px;width:230px;text-align:center;">'+
+            '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA1.webp" onerror="this.style.display=\'none\'" style="height:60px;object-fit:contain;display:block;margin:0 auto;" />'+
+            '<div contenteditable="true" title="Nombre del Director -- puedes corregirlo antes de imprimir" style="border-bottom:1.5px solid #1e293b;font-size:17px;font-weight:700;color:#1e293b;padding-bottom:4px;margin-top:8px;">'+(dirNombre||'&nbsp;')+'</div>'+
+            '<div contenteditable="true" title="Puedes corregir este texto antes de imprimir" style="font-size:13px;color:#64748b;font-weight:700;margin-top:6px;letter-spacing:.05em;">DIRECTOR</div>'+
+          '</div>'+
+          '<div style="position:absolute;top:905px;right:150px;width:230px;text-align:center;">'+
+            '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA2.webp" onerror="this.style.display=\'none\'" style="height:60px;object-fit:contain;display:block;margin:0 auto;" />'+
+            '<div contenteditable="true" title="Nombre del Coordinador Académico -- puedes corregirlo antes de imprimir" style="border-bottom:1.5px solid #1e293b;font-size:17px;font-weight:700;color:#1e293b;padding-bottom:4px;margin-top:8px;">'+(coordNombre||'&nbsp;')+'</div>'+
+            '<div contenteditable="true" title="Puedes corregir este texto antes de imprimir" style="font-size:13px;color:#64748b;font-weight:700;margin-top:6px;letter-spacing:.05em;">DIRECCIÓN ACADÉMICA</div>'+
+          '</div>'+
+
+        '</div>'+
+        '<div class="no-print" style="text-align:center;margin:18px 0;">'+
+          '<button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:10px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button>'+
+        '</div>'+
+        '</body></html>';
+
+      var w=window.open('','_blank','width=1150,height=950');
+      w.document.write(html);
+      w.document.close();
+      resetBtn();
+    })
+    .catch(function(){ alert('Error de conexión al generar la constancia.'); resetBtn(); });
 }
 
 // Fallback de nombre de nivel por si "grupo.nivel" no viene en la respuesta:
