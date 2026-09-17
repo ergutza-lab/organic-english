@@ -336,7 +336,7 @@ function subirArchivoADrive(file, nombreFinal){
   return fetch(APPS_SCRIPT + '?action=getUploadToken')
     .then(function(r){ return r.json(); })
     .then(function(res){
-      if(!res.token) throw new Error('No se obtuvo token de subida.');
+      if(!res.token) throw new Error('No se obtuvo token de subida (revisa que getUploadToken siga funcionando).');
       var metadata = JSON.stringify({ name: nombreFinal, parents: [CARPETA_DRIVE_RH] });
       var form = new FormData();
       form.append('metadata', new Blob([metadata], { type: 'application/json' }));
@@ -347,7 +347,18 @@ function subirArchivoADrive(file, nombreFinal){
         body: form
       });
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      // Antes se hacía r.json() directo sin revisar r.ok -- si Drive
+      // respondía 403 (p.ej. la carpeta compartida sin permiso de Editor
+      // para esta cuenta) el error quedaba enterrado dentro del JSON de
+      // error de Google y el .then de abajo lo intentaba leer como si
+      // fuera una respuesta válida. Ahora se revisa el status primero.
+      if(!r.ok) return r.json().then(function(errBody){
+        throw new Error('Drive rechazó la subida (HTTP '+r.status+'): '+
+          (errBody && errBody.error && errBody.error.message ? errBody.error.message : 'sin detalle'));
+      });
+      return r.json();
+    })
     .then(function(driveResp){
       if(!driveResp.id) throw new Error('Error al subir a Drive.');
       return driveResp.webViewLink;
@@ -392,13 +403,24 @@ function guardarCandidato(){
       if(!data.success){ throw new Error(data.error || 'Error al guardar.'); }
       var idCandidato = data.idCandidato;
       var subidas = [];
+      // ANTES: estas 2 llamadas solo esperaban a que el fetch respondiera,
+      // sin leer el JSON ni revisar "success" -- si registrarArchivoCandidatoRH
+      // fallaba en el backend (parámetro incorrecto, error al escribir en
+      // Sheets, etc.) el error quedaba invisible y de todos modos se
+      // mostraba "Candidato registrado correctamente", que es exactamente
+      // el síntoma reportado (guarda "bien" pero luego aparece "sin
+      // archivos subidos"). Ahora si falla, SÍ se ve el error.
       if(archivoCV) subidas.push(
         subirArchivoADrive(archivoCV, idCandidato + '_CV_' + archivoCV.name)
           .then(function(url){ return fetch(APPS_SCRIPT + '?action=registrarArchivoCandidatoRH&idCandidato=' + encodeURIComponent(idCandidato) + '&tipo=cv&url=' + encodeURIComponent(url)); })
+          .then(function(r){ return r.json(); })
+          .then(function(d){ if(!d || d.success===false) throw new Error('No se pudo guardar el CV en el candidato: '+(d&&d.error?d.error:'respuesta inesperada del servidor')); })
       );
       if(archivoVideo) subidas.push(
         subirArchivoADrive(archivoVideo, idCandidato + '_VIDEO_' + archivoVideo.name)
           .then(function(url){ return fetch(APPS_SCRIPT + '?action=registrarArchivoCandidatoRH&idCandidato=' + encodeURIComponent(idCandidato) + '&tipo=video&url=' + encodeURIComponent(url)); })
+          .then(function(r){ return r.json(); })
+          .then(function(d){ if(!d || d.success===false) throw new Error('No se pudo guardar el video en el candidato: '+(d&&d.error?d.error:'respuesta inesperada del servidor')); })
       );
       status.textContent = subidas.length ? 'Subiendo archivos...' : 'Guardado.';
       return Promise.all(subidas);
