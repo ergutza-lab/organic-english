@@ -628,7 +628,21 @@
 
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
+function cleanWA(p){
+  var n=(p||'').toString().replace(/\D/g,'');
+  if(!n) return n;
+  if(n.length===10) return '521'+n; // MX sin ningún prefijo -> agregar 521
+  if(n.startsWith('52')&&n.length===12) return '521'+n.slice(2); // MX con 52 pero sin el 1 extra
+  if(n.startsWith('521')&&n.length===13) return n; // MX ya en formato exacto
+  // Cualquier otro número (EE.UU./Canadá con 1, Colombia con 57, o
+  // cualquier otro código de país) se respeta TAL CUAL, sin forzarle el
+  // prefijo mexicano. Antes, cualquier número que no encajara en los 3
+  // casos de arriba caía aquí y se le pegaba "521" + sus últimos 10
+  // dígitos, arruinando números extranjeros legítimos (ej. Control
+  // Escolar corregía un número de EE.UU. a formato correcto en Sheets, y
+  // esta función lo volvía a romper con un prefijo mexicano inválido).
+  return n;
+}
 
 // ── FIX: helper para detectar si un alumno es becado ──
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
