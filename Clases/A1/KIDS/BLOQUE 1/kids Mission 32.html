@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<script>
+window.__toJsDelivr = function(url){
+  if (!url) return null;
+  var m = url.match(/^https:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)$/);
+  if (m) return "https://cdn.jsdelivr.net/gh/" + m[1] + "/" + m[2] + "@" + m[3] + "/" + m[4];
+  var m2 = url.match(/^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/(?:raw|blob)\/([^\/]+)\/(.+)$/);
+  if (m2) return "https://cdn.jsdelivr.net/gh/" + m2[1] + "/" + m2[2] + "@" + m2[3] + "/" + m2[4];
+  return null;
+};
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Growie Kids — Mission 32 — Celebration Day: Explorer Badge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1c2b5e;--navy-dark:#111c40;--orange:#f97316;--orange-dark:#ea580c;--orange-light:#fdba74;
+  --green:#22c55e;--green-dark:#15803d;--cream:#fef3e2;--yellow:#fbbf24;--gold:#f59e0b;
+  --sky:#38bdf8;--sky-dark:#0284c7;--white:#fff;--shadow:0 18px 40px rgba(28,43,94,.35);--s:1;
+}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--navy-dark);}
+h1,h2,h3,.font-baloo{font-family:'Baloo 2',cursive;}
+.stage{position:fixed;inset:0;overflow:hidden}
+
+/* ══════════ ESTRUCTURA (canvas 16:9 = 1600x900 escalado a la ventana: nunca hay scroll) ══════════ */
+.slide{
+  position:absolute;inset:0;opacity:0;visibility:hidden;transform:translateX(40px);
+  transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  background-size:cover;background-position:center;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateX(0);transition:opacity .45s ease, transform .45s ease;z-index:2}
+.slide.prevslide{transform:translateX(-40px)}
+.deck{position:absolute;left:50%;top:50%;width:1600px;height:900px;margin:-450px 0 0 -800px;
+  transform:scale(var(--s));transform-origin:50% 50%}
+.slide-content{background-color:#fbe3b3;background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2001/FONDO%20SLIDES%20KIDS.webp')}
+
+.grid{position:absolute;left:60px;top:84px;width:1480px;height:720px;z-index:1;
+  display:grid;grid-template-columns:790px 640px;column-gap:50px;align-items:center}
+.grid.flip{grid-template-columns:640px 790px}
+.grid.flip .col-image{order:-1}
+.col-text{display:flex;flex-direction:column;gap:11px;justify-content:center;height:720px;min-height:0}
+.col-image{display:flex;align-items:center;justify-content:center}
+.colm{display:flex;flex-direction:column;gap:9px;min-width:0}
+.row{display:flex;gap:10px;align-items:stretch}
+.row.wrap{flex-wrap:wrap}.row.center{justify-content:center}.row.mid{align-items:center}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;align-items:stretch}
+
+/* ── cabecera ── */
+.head{display:flex;align-items:center;gap:16px}
+.slide-emoji{font-size:62px;line-height:1;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25))}
+.slide-title{
+  font-family:'Baloo 2',cursive;font-size:40px;font-weight:800;line-height:1.05;color:var(--navy);
+  text-shadow:0 0 14px rgba(255,255,255,.85), 0 2px 0 rgba(0,0,0,.12);
+  background:linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+  padding:8px 22px;border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.25);width:fit-content;
+}
+.slide-title.t-sm{font-size:33px}
+.slide-title.xl{font-size:72px;padding:6px 32px;border-radius:26px}
+
+/* ── animación de entrada (misma idea que Mission 28) ── */
+.pop{opacity:0;transform:translateY(16px) scale(.9)}
+.slide.active .pop{animation:popIn .5s cubic-bezier(.34,1.56,.64,1) var(--d,0s) forwards}
+.pop.settled{opacity:1;transform:none;animation:none;transition:transform .2s ease, box-shadow .2s ease, filter .2s ease}
+.pop.settled:hover{transform:scale(1.045) rotate(-.8deg);filter:brightness(1.08) saturate(1.1)}
+@keyframes popIn{
+  0%{opacity:0;transform:translateY(16px) scale(.9)}
+  60%{opacity:1;transform:translateY(-3px) scale(1.03)}
+  100%{opacity:1;transform:none}
+}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 12px rgba(251,191,36,.55)}50%{box-shadow:0 0 30px rgba(251,191,36,1)}}
+@keyframes breathe{0%,100%{transform:scale(.72)}50%{transform:scale(1.08)}}
+@keyframes fadeA{0%,45%{opacity:1}55%,95%{opacity:0}100%{opacity:1}}
+@keyframes fadeB{0%,45%{opacity:0}55%,95%{opacity:1}100%{opacity:0}}
+@keyframes fall{0%{transform:translateY(-50px) rotate(0)}100%{transform:translateY(980px) rotate(300deg)}}
+
+/* ── tarjetas de frase (estilo Mission 28) ── */
+.pc{
+  font-family:'Baloo 2',cursive;font-weight:700;font-size:27px;color:#fff;line-height:1.12;
+  padding:8px 20px;border-radius:18px;box-shadow:0 10px 22px rgba(0,0,0,.22);width:fit-content;max-width:100%;
+}
+.pc.lg{font-size:34px;padding:9px 24px}.pc.xl{font-size:44px;padding:8px 28px;border-radius:22px}.pc.sm{font-size:23px;padding:6px 16px}
+.c0{background:linear-gradient(135deg,var(--green) 0%,var(--green-dark) 100%)}
+.c1{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%)}
+.c2{background:linear-gradient(135deg,#2c3f86 0%,var(--navy) 100%)}
+.c3{background:linear-gradient(135deg,var(--yellow) 0%,#d97706 100%);color:var(--navy)}
+.c4{background:linear-gradient(135deg,var(--sky) 0%,var(--sky-dark) 100%)}
+.lab{font-family:'Baloo 2',cursive;font-weight:800;font-size:24px;color:var(--navy);background:rgba(255,255,255,.93);
+  padding:1px 18px;border-radius:100px;width:fit-content;box-shadow:0 6px 14px rgba(0,0,0,.15)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:'Baloo 2',cursive;font-weight:700;font-size:24px;color:#fff;
+  padding:3px 16px;border-radius:100px;box-shadow:0 6px 14px rgba(0,0,0,.2);white-space:nowrap}
+.chip.c3{color:var(--navy)}
+.blank{color:var(--orange-dark);font-weight:800;letter-spacing:2px;text-shadow:0 0 0 currentColor}
+.banner .blank,.pc .blank{color:inherit}
+.c0 .blank,.c1 .blank,.c2 .blank,.c4 .blank{color:#fff3c4}
+
+.banner{border-radius:22px;padding:8px 22px;font-family:'Baloo 2',cursive;font-weight:800;color:var(--navy);
+  box-shadow:0 12px 26px rgba(0,0,0,.25);text-align:center;line-height:1.1}
+.banner small{display:block;font-size:22px;font-weight:700;opacity:.9}
+.banner b{display:block;font-size:34px;font-weight:800}
+.banner-gold{background:linear-gradient(135deg,#fde68a,var(--yellow) 60%,#f59e0b)}
+.banner-navy{background:linear-gradient(135deg,#2c3f86,var(--navy));color:#fff}
+.banner-green{background:linear-gradient(135deg,#4ade80,var(--green-dark));color:#fff}
+.banner-orange{background:linear-gradient(135deg,var(--orange-light),var(--orange));color:var(--navy)}
+.glow{animation:glowPulse 2.2s ease-in-out infinite}
+
+/* ── tiles (iconos grandes) ── */
+.tiles{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.tile{width:250px;background:var(--cream);border:5px solid var(--navy);border-radius:26px;padding:8px 10px 8px;
+  text-align:center;box-shadow:0 12px 24px rgba(0,0,0,.22);flex:0 0 auto}
+.tile .ti{font-size:58px;line-height:1.05}
+.tile .tl{font-family:'Baloo 2',cursive;font-weight:800;font-size:26px;color:var(--navy);line-height:1.1}
+.tile.wide{width:auto}
+.t-green{border-color:var(--green-dark)}.t-orange{border-color:var(--orange-dark)}.t-navy{border-color:var(--navy)}
+.t-gold{border-color:#d97706}.t-sky{border-color:var(--sky-dark)}
+.tile.h{display:flex;align-items:center;gap:10px;text-align:left;width:auto;padding:5px 14px;border-radius:20px;border-width:4px}
+.tile.h .ti{font-size:36px}.tile.h .tl{font-size:25px}
+
+/* ── paneles crema con encabezado de color ── */
+.panel{background:var(--cream);border:4px solid var(--navy);border-radius:20px;overflow:hidden;box-shadow:0 10px 22px rgba(0,0,0,.22)}
+.panel-h{display:flex;align-items:center;gap:8px;font-family:'Baloo 2',cursive;font-weight:800;font-size:23px;color:#fff;padding:2px 14px}
+.panel-h .pi{font-size:24px}
+.panel-b{padding:5px 14px 7px;font-family:'Baloo 2',cursive;font-weight:700;font-size:26px;color:var(--navy);line-height:1.13}
+.h-green{background:linear-gradient(135deg,var(--green),var(--green-dark))}
+.h-orange{background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
+.h-navy{background:linear-gradient(135deg,#2c3f86,var(--navy))}
+.h-gold{background:linear-gradient(135deg,var(--yellow),#d97706);color:var(--navy)}
+.h-sky{background:linear-gradient(135deg,var(--sky),var(--sky-dark))}
+.panel.ok::after{content:'';}
+/* ── tarjeta de habla (con icono) ── */
+.say{display:flex;align-items:center;gap:10px;background:var(--cream);border:4px solid var(--navy);border-radius:20px;
+  padding:5px 12px 5px 8px;box-shadow:0 10px 22px rgba(0,0,0,.22)}
+.say-ic{font-size:34px;line-height:1;flex:0 0 auto}
+.say-tx{font-family:'Baloo 2',cursive;font-weight:700;font-size:24px;line-height:1.13;color:var(--navy)}
+.s-green{border-color:var(--green-dark)}.s-orange{border-color:var(--orange-dark)}.s-navy{border-color:var(--navy)}
+.s-gold{border-color:#d97706}.s-sky{border-color:var(--sky-dark)}
+.say.hi{background:linear-gradient(135deg,#fde68a,var(--yellow));border-color:#d97706}
+.say.hi .say-tx{font-size:30px;font-weight:800}
+.say.hi-o{background:linear-gradient(135deg,var(--orange-light),var(--orange));border-color:var(--orange-dark)}
+.say.hi-o .say-tx{font-size:28px;font-weight:800}
+
+/* ── roles A / B ── */
+.role{border-radius:24px;padding:8px 18px 12px;box-shadow:0 12px 26px rgba(0,0,0,.25);color:#fff}
+.role-a{background:linear-gradient(135deg,var(--green),var(--green-dark))}
+.role-b{background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
+.role-tag{display:inline-block;font-family:'Baloo 2',cursive;font-weight:800;font-size:22px;background:#fff;color:var(--navy);
+  padding:0 16px;border-radius:100px;margin-bottom:2px}
+.role-t{font-family:'Baloo 2',cursive;font-weight:800;font-size:29px;line-height:1.1;margin-bottom:5px}
+.role .chips{display:flex;gap:9px;flex-wrap:wrap}
+.chip.w{background:#fff;color:var(--navy);box-shadow:0 4px 10px rgba(0,0,0,.22)}
+.switchbar{align-self:center;font-family:'Baloo 2',cursive;font-weight:800;font-size:34px;color:var(--navy);
+  background:linear-gradient(135deg,#fde68a,var(--yellow));padding:2px 30px;border-radius:100px;box-shadow:0 0 24px rgba(251,191,36,.95)}
+
+/* ── pasos ASK / LISTEN / ANSWER / SWITCH ── */
+.steps{display:flex;align-items:stretch;gap:0}
+.step{flex:1;border-radius:22px;padding:8px 10px 10px;text-align:center;color:#fff;box-shadow:0 12px 24px rgba(0,0,0,.25);
+  border:4px solid #fff;min-width:0}
+.step .sn{font-family:'Baloo 2',cursive;font-weight:800;font-size:27px;line-height:1}
+.step .sx{font-family:'Baloo 2',cursive;font-weight:700;font-size:23px;line-height:1.1;margin-top:4px}
+.step .si{font-size:50px;line-height:1.1}
+.step.s1{background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
+.step.s2{background:linear-gradient(135deg,var(--sky),var(--sky-dark))}
+.step.s3{background:linear-gradient(135deg,var(--green),var(--green-dark))}
+.step.s4{background:linear-gradient(135deg,var(--yellow),#d97706);color:var(--navy)}
+.arrow{align-self:center;font-size:34px;font-weight:800;color:var(--navy);padding:0 3px;text-shadow:0 0 10px #fff}
+.actbar{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ── diálogo ── */
+.dlg{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.who{font-family:'Baloo 2',cursive;font-weight:800;font-size:25px;color:#fff;padding:0 18px;border-radius:100px;width:fit-content;
+  box-shadow:0 6px 14px rgba(0,0,0,.2)}
+.who.m{background:linear-gradient(135deg,var(--green),var(--green-dark))}
+.who.l{background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
+.bub{position:relative;font-family:'Baloo 2',cursive;font-weight:700;font-size:25px;line-height:1.1;padding:6px 16px;border-radius:20px;
+  color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.22);display:flex;align-items:center}
+.bub.m{background:linear-gradient(135deg,var(--green),var(--green-dark));border-top-left-radius:6px}
+.bub.l{background:linear-gradient(135deg,var(--orange),var(--orange-dark));border-top-right-radius:6px}
+
+/* ── herramientas / tool cards ── */
+.tool{background:var(--navy);border:4px solid var(--orange);border-radius:22px;padding:6px 8px 8px;box-shadow:0 12px 24px rgba(0,0,0,.28);
+  display:flex;flex-direction:column;gap:5px}
+.tool .tq{font-family:'Baloo 2',cursive;font-weight:700;font-size:24px;color:var(--orange-light);text-align:center;line-height:1.05}
+.tool .ta{background:var(--cream);border-radius:14px;border-bottom:5px solid var(--green);font-family:'Baloo 2',cursive;font-weight:800;
+  font-size:27px;color:var(--navy);text-align:center;padding:4px 8px;line-height:1.1}
+.tool .tic{font-size:34px;text-align:center;line-height:1}
+
+/* ── chequeo / botones de reacción ── */
+.chk{display:flex;align-items:center;gap:12px;background:var(--cream);border:4px solid #d6c7a8;border-radius:18px;padding:6px 14px;
+  font-family:'Baloo 2',cursive;font-weight:700;font-size:25px;color:var(--navy);cursor:pointer;
+  box-shadow:0 8px 18px rgba(0,0,0,.18);user-select:none}
+.chk .mk{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:#e8dcc3;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
+.chk[data-st="ready"]{border-color:var(--green-dark);background:#dcfce7;box-shadow:0 0 18px rgba(34,197,94,.7)}
+.chk[data-st="ready"] .mk{background:var(--green)}
+.chk[data-st="more"]{border-color:#d97706;background:#fef3c7;box-shadow:0 0 18px rgba(251,191,36,.8)}
+.chk[data-st="more"] .mk{background:var(--yellow);color:var(--navy)}
+.chk.plain{cursor:default}
+.bigbtn{display:flex;align-items:center;gap:16px;padding:8px 24px;border-radius:26px;font-family:'Baloo 2',cursive;font-weight:800;
+  font-size:34px;line-height:1.1;cursor:pointer;box-shadow:0 10px 22px rgba(0,0,0,.24);border:5px solid transparent;user-select:none}
+.bigbtn .bi{font-size:46px;line-height:1}
+.bb-green{background:linear-gradient(135deg,#4ade80,#16a34a);color:#fff}
+.bb-yellow{background:linear-gradient(135deg,#fde68a,var(--yellow));color:var(--navy)}
+.bb-orange{background:linear-gradient(135deg,var(--orange-light),var(--orange));color:var(--navy)}
+.bb-blue{background:linear-gradient(135deg,#7dd3fc,#0ea5e9);color:var(--navy)}
+.bigbtn.sm{font-size:28px;padding:6px 18px}.bigbtn.sm .bi{font-size:38px}
+.pop.settled.sel,.sel{border-color:#fff!important;box-shadow:0 0 0 6px var(--navy),0 0 30px rgba(251,191,36,.95)!important;transform:scale(1.03)}
+
+/* ── letrero de madera ── */
+.sign{background:linear-gradient(180deg,#c2853a,#8a5a1f);border:5px solid #5b3a12;border-radius:18px;padding:8px 26px 10px;text-align:center;
+  box-shadow:0 14px 26px rgba(0,0,0,.35), inset 0 0 0 3px rgba(255,220,150,.35);font-family:'Baloo 2',cursive;color:#fff8e6;line-height:1.05;width:fit-content}
+.sign .s-s{font-size:23px;font-weight:700;color:#ffe6b0}.sign .s-b{font-size:44px;font-weight:800;text-shadow:0 3px 0 #5b3a12}
+.sign .s-m{font-size:32px;font-weight:800;text-shadow:0 2px 0 #5b3a12}
+.fillline{background:rgba(255,255,255,.92);border:3px dashed var(--orange);border-radius:14px;padding:4px 16px;width:100%;
+  font-family:'Baloo 2',cursive;font-weight:800;font-size:26px;color:var(--orange-dark);min-height:46px;display:flex;align-items:center;gap:8px}
+.fillline .fl{letter-spacing:1px;color:var(--orange-dark)}
+.blank-slot{background:var(--cream);border:4px dashed var(--orange);border-radius:16px;font-family:'Baloo 2',cursive;font-weight:800;font-size:25px;
+  color:var(--orange-dark);padding:3px 14px;min-height:44px;display:flex;align-items:center;box-shadow:0 0 16px rgba(251,191,36,.6)}
+
+/* ── constructor de perfil (M29 s7) ── */
+.builder{background:var(--cream);border:5px solid var(--navy);border-radius:26px;padding:10px 14px;box-shadow:0 14px 28px rgba(0,0,0,.3);
+  display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.bslot{display:flex;flex-direction:column;gap:3px}
+.bslot .bn{display:flex;align-items:center;gap:8px;font-family:'Baloo 2',cursive;font-weight:800;font-size:24px;color:var(--navy);line-height:1.1}
+.bslot .bn .n{color:var(--orange-dark);font-size:26px}
+.bslot .bl{font-family:'Baloo 2',cursive;font-weight:700;font-size:23px;color:var(--navy);padding-left:40px;line-height:1.12}
+.bslot .bl div+div{margin-top:1px}
+
+/* ── camino M31 s4 ── */
+.path{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 22px;position:relative}
+.node{position:relative;background:var(--cream);border:4px solid var(--navy);border-radius:20px;padding:5px 6px 6px;text-align:center;
+  box-shadow:0 10px 20px rgba(0,0,0,.22)}
+.node .nn{position:absolute;top:-12px;left:4px;width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Baloo 2',cursive;
+  font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;border:3px solid #fff}
+.node .ne{font-size:34px;line-height:1.05}
+.node .nt{font-family:'Baloo 2',cursive;font-weight:800;font-size:22px;color:var(--navy);line-height:1.05}
+.node.opt{border-style:dashed;border-color:#94a3b8}
+.node.opt .nt::after{content:'';}
+.node .tag{position:absolute;bottom:-11px;right:8px;font-family:'DM Sans',sans-serif;font-weight:800;font-size:11px;letter-spacing:.6px;color:#fff;
+  background:#64748b;border-radius:100px;padding:1px 9px}
+.node.start,.node.endn{border-color:var(--green-dark)}
+.pathrow{display:contents}
+.node.n-in{border-color:var(--green-dark)}
+
+/* ── respiración M31 s2 ── */
+.breath{position:relative;width:190px;height:190px;margin:2px auto 0}
+.breath .bc{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bbf7d0,#4ade80 55%,#16a34a);
+  box-shadow:0 0 34px rgba(74,222,128,.85);animation:breathe 8s ease-in-out infinite}
+.breath .bt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2',cursive;font-weight:800;font-size:31px;color:var(--navy);text-align:center;line-height:1}
+.breath .bt.a{animation:fadeA 8s ease-in-out infinite}
+.breath .bt.b{animation:fadeB 8s ease-in-out infinite}
+.stepn{display:flex;align-items:center;gap:12px;background:var(--cream);border:4px solid var(--navy);border-radius:20px;padding:4px 14px 4px 8px;
+  font-family:'Baloo 2',cursive;font-weight:800;font-size:27px;color:var(--navy);box-shadow:0 10px 20px rgba(0,0,0,.2)}
+.stepn .sic{font-size:34px;line-height:1;flex:0 0 auto}
+
+/* ── marcadores (M30 s7 contador, M31 s7 progreso) ── */
+.counter{display:flex;gap:9px;align-items:center}
+.cdot{width:44px;height:44px;border-radius:50%;background:#fff;border:4px solid var(--navy);font-family:'Baloo 2',cursive;font-weight:800;font-size:24px;
+  color:var(--navy);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 12px rgba(0,0,0,.2);user-select:none}
+.cdot.done{background:var(--green);color:#fff;border-color:var(--green-dark);box-shadow:0 0 16px rgba(34,197,94,.9)}
+.mdot{width:30px;height:30px;font-size:0;border-width:3px}
+.support{display:flex;gap:12px;align-items:center;justify-content:center}
+.support span{width:58px;height:58px;border-radius:50%;background:var(--cream);border:4px solid var(--orange);font-size:30px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 16px rgba(251,191,36,.7)}
+
+/* ── M32: ecuación y badge ── */
+.eq{display:flex;align-items:center;justify-content:center;gap:12px}
+.eq .op{font-family:'Baloo 2',cursive;font-weight:800;font-size:52px;color:var(--navy);text-shadow:0 0 12px #fff;line-height:1}
+.eqb{text-align:center;border-radius:24px;padding:8px 16px;font-family:'Baloo 2',cursive;font-weight:800;color:#fff;box-shadow:0 12px 26px rgba(0,0,0,.25);line-height:1.05;flex:1}
+.eqb b{display:block;font-size:31px}.eqb i{display:block;font-style:normal;font-size:32px}
+.badge-wrap{position:relative;height:112px}
+.badge-cover,.badge-real{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.badge-cover{border-radius:26px;background:linear-gradient(135deg,#2c3f86,var(--navy));border:5px solid var(--yellow);cursor:pointer;
+  font-family:'Baloo 2',cursive;font-weight:800;font-size:44px;color:var(--yellow);animation:glowPulse 1.8s ease-in-out infinite;transition:opacity .5s}
+.badge-real{opacity:0;transform:scale(.3) rotate(-8deg);transition:opacity .6s ease, transform .7s cubic-bezier(.34,1.56,.64,1)}
+.badge-wrap.open .badge-real{opacity:1;transform:none}
+.badge-wrap.open .badge-cover{opacity:0;pointer-events:none}
+.ribbon{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;height:100%;border-radius:26px;
+  background:linear-gradient(135deg,#fde68a,var(--yellow) 55%,#f59e0b);border:6px solid var(--navy);
+  font-family:'Baloo 2',cursive;font-weight:800;font-size:46px;color:var(--navy);box-shadow:0 0 0 6px rgba(251,191,36,.5),0 0 40px rgba(251,191,36,.95)}
+.ribbon i{font-style:normal;font-size:44px}
+.goalcard{display:flex;align-items:center;gap:12px;background:var(--cream);border:4px solid var(--navy);border-radius:20px;padding:2px 16px;cursor:pointer;
+  font-family:'Baloo 2',cursive;font-weight:800;font-size:26px;color:var(--navy);box-shadow:0 8px 18px rgba(0,0,0,.2);user-select:none}
+.goalcard .gi{font-size:34px}
+.reflect{background:var(--cream);border:4px solid var(--navy);border-radius:22px;padding:6px 14px 8px;box-shadow:0 10px 22px rgba(0,0,0,.22)}
+.reflect .rq{font-family:'Baloo 2',cursive;font-weight:800;font-size:25px;color:var(--navy);line-height:1.1}
+.token{display:flex;align-items:center;justify-content:center;text-align:center;border-radius:22px;padding:8px 6px;font-family:'Baloo 2',cursive;font-weight:800;font-size:28px;
+  color:var(--navy);background:radial-gradient(circle at 30% 25%,#fff7cf,var(--yellow) 65%,#d97706);box-shadow:0 0 20px rgba(251,191,36,.95);border:4px solid #fff}
+
+
+.fl1{flex:1;min-width:0}
+.op2{font-family:'Baloo 2',cursive;font-weight:800;font-size:36px;color:var(--navy);text-shadow:0 0 10px #fff}
+.upcard{background:var(--cream);border:4px solid var(--navy);border-radius:22px;padding:6px 16px;box-shadow:0 10px 22px rgba(0,0,0,.22)}
+.up{display:flex;align-items:center;justify-content:space-around;gap:14px}
+.up .ul{display:block;font-family:'Baloo 2',cursive;font-weight:700;font-size:19px;color:#64748b;line-height:1}
+.up .chip{font-size:28px}
+.up .ar{font-size:38px;font-weight:800;color:var(--green-dark)}
+
+
+.minbox{background:rgba(255,255,255,.9);border:4px solid var(--green-dark);border-radius:22px;padding:6px 14px;box-shadow:0 10px 22px rgba(0,0,0,.22)}
+.tile.sm{width:250px;padding:6px 8px}.tile.sm .ti{font-size:46px}.tile.sm .tl{font-size:23px}
+.sel-chip{cursor:pointer}
+.slide[data-n="6"] .particles{display:none}.slide[data-n="6"] .particles.on{display:block}
+
+/* ── partículas ── */
+.particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.particles i{position:absolute;top:0;left:var(--x);font-style:normal;font-size:30px;opacity:0}
+.slide.active .particles i{opacity:.9;animation:fall var(--du) linear var(--dl) infinite}
+
+/* ── imagen lateral (cuadrada, igual que Mission 28) ── */
+.img-wrap{position:relative;width:640px;height:640px;border-radius:30px;overflow:hidden;box-shadow:var(--shadow);border:7px solid #fff;background:#0f1a3d;
+  animation:floatY 4.5s ease-in-out infinite;--z:1;--fx:.5;--fy:.5}
+.img-wrap .img-bg{position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(20px) brightness(.7);opacity:0}
+.img-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+  transform:translate(calc(clamp(calc((1 - var(--z)) / 2), calc((0.5 - var(--fx)) * var(--z)), calc((var(--z) - 1) / 2)) * 100%),
+                      calc(clamp(calc((1 - var(--z)) / 2), calc((0.5 - var(--fy)) * var(--z)), calc((var(--z) - 1) / 2)) * 100%)) scale(var(--z))}
+.img-wrap.fit-contain .img-bg{opacity:1}
+.img-wrap.fit-contain img{object-fit:contain}
+.img-ph{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:radial-gradient(circle at 30% 20%,#4ade80,#166534 70%);color:#fff;font-family:'Baloo 2',cursive;text-align:center}
+.ph-e{font-size:110px;line-height:1}.ph-t{font-size:22px;font-weight:700;opacity:.9}
+.img-wrap.noimg .img-ph,.hero-ph.on{display:flex}
+.img-wrap.noimg img,.img-wrap.noimg .img-bg{display:none}
+
+/* ══════════ PORTADA ══════════ */
+.slide-cover{background:#0b1330}
+.slide-cover.mode-split{background-color:#fbe3b3;background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2001/FONDO%20SLIDES%20KIDS.webp')}
+.hero-blur{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(28px) brightness(.55) saturate(1.1);transform:scale(1.15)}
+.slide-cover.mode-split .hero-blur{display:none}
+.cover-hero .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero-ph{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:radial-gradient(circle at 50% 30%,#2d6a3a,#0b1330 75%);color:#fff;font-family:'Baloo 2',cursive}
+.mode-hero .cover-split,.mode-split .cover-hero{display:none}
+.hero-top{position:absolute;top:26px;left:50%;transform:translateX(-50%);text-align:center;min-width:900px;white-space:nowrap;padding:12px 44px 14px;border-radius:34px;
+  background:linear-gradient(180deg,rgba(17,28,64,.86),rgba(17,28,64,.74));border:4px solid var(--orange);
+  box-shadow:0 0 0 6px rgba(251,191,36,.35),0 22px 50px rgba(0,0,0,.5);backdrop-filter:blur(3px)}
+.hero-kicker{display:inline-block;background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;font-family:'Baloo 2',cursive;font-weight:800;
+  font-size:25px;letter-spacing:4px;padding:1px 28px;border-radius:100px;box-shadow:0 0 22px rgba(249,115,22,.95)}
+.hero-row2{display:flex;align-items:baseline;justify-content:center;gap:22px}
+.hero-mission{font-family:'Baloo 2',cursive;font-weight:800;font-size:66px;line-height:1.02;color:#fff;text-shadow:0 4px 0 var(--orange-dark),0 0 30px rgba(251,191,36,.7)}
+.hero-title{font-family:'Baloo 2',cursive;font-weight:800;font-size:44px;line-height:1.02;color:var(--yellow);text-shadow:0 3px 0 rgba(0,0,0,.35)}
+.hero-sub{font-family:'Baloo 2',cursive;font-weight:800;font-size:38px;line-height:1.05;color:#fff;letter-spacing:1px}
+.hero-top.tbig .hero-row2{flex-direction:column;align-items:center;gap:0}
+.hero-top.tbig .hero-mission{font-size:40px}
+.hero-top.tbig .hero-title{font-size:80px;color:#fff3c4;text-shadow:0 4px 0 var(--orange-dark),0 0 36px rgba(251,191,36,1)}
+.hero-bottom{position:absolute;left:60px;right:60px;bottom:96px;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(180deg,rgba(17,28,64,.8),rgba(17,28,64,.9));border:3px solid var(--yellow);border-radius:28px;padding:10px 26px;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);backdrop-filter:blur(3px)}
+.hero-goal,.goalbox{font-family:'Baloo 2',cursive;font-weight:800;color:#fff;line-height:1.1}
+.hero-goal{font-size:30px}
+.hg-l{color:var(--orange-light)}.hg-t{color:#fff}
+.hero-bottom .chip,.goalbox+.row .chip{font-size:24px}
+.goalbox{font-size:29px;background:linear-gradient(135deg,#2c3f86,var(--navy));border:4px solid var(--orange);border-radius:20px;padding:6px 20px;box-shadow:0 10px 22px rgba(0,0,0,.28);width:fit-content}
+.kick{font-family:'Baloo 2',cursive;font-weight:800;font-size:29px;letter-spacing:4px;color:#fff;background:linear-gradient(135deg,var(--orange),var(--orange-dark));
+  width:fit-content;padding:1px 30px;border-radius:100px;box-shadow:0 0 24px rgba(249,115,22,.95)}
+.chips{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.minbox .chip{font-size:21px;padding:2px 12px}
+.chips .lab2{font-family:'Baloo 2',cursive;font-weight:800;font-size:26px;color:var(--navy)}
+.hero-bottom .lab2{color:#fff}
+
+/* ══════════ UI FIJA (badge, tracker, notas, navegación) ══════════ */
+.ui{position:fixed;inset:0;z-index:20;pointer-events:none}
+.ui .deck{pointer-events:none}
+.ui .deck > *{pointer-events:auto}
+.mission-badge{position:absolute;top:22px;left:22px;z-index:5;background:var(--orange);color:#fff;font-weight:700;font-size:15px;
+  padding:8px 18px;border-radius:100px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.mission-badge .leaf-spin{display:inline-block;animation:spin 3s linear infinite}
+body.is-cover .mission-badge,body.is-cover .tracker{display:none}
+.tracker{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;gap:7px;background:rgba(17,28,64,.88);
+  padding:5px 9px;border-radius:100px;box-shadow:0 10px 22px rgba(0,0,0,.3)}
+.tk{font-family:'DM Sans',sans-serif;font-weight:800;color:#fff;padding:3px 16px;border-radius:100px;text-align:center;line-height:1.05;
+  background:rgba(255,255,255,.13);min-width:132px}
+.tk small{display:block;font-size:10px;opacity:.75;letter-spacing:.8px}
+.tk .tkl{font-size:14px;letter-spacing:.5px}
+.tk.done{background:var(--green-dark)}
+.tk.active{background:var(--orange);box-shadow:0 0 16px rgba(249,115,22,.95)}
+.notes-toggle{position:absolute;top:22px;right:22px;z-index:25;background:var(--navy);color:#fff;border:none;border-radius:100px;
+  padding:10px 18px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;
+  font-family:'DM Sans',sans-serif;transition:transform .15s}
+.notes-toggle:hover{transform:scale(1.04)}
+.nav-controls{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:14px;
+  background:rgba(17,28,64,.88);padding:10px 20px;border-radius:100px;box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.nav-btn{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;background:var(--orange);color:#fff;font-size:20px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s, opacity .15s}
+.nav-btn:hover:not(:disabled){transform:scale(1.1)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.dots{display:flex;gap:7px}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:all .2s;border:none;padding:0}
+.dot.active{background:var(--orange);width:24px;border-radius:6px}
+.dot:hover{background:rgba(255,255,255,.6)}
+.slide-counter{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);z-index:20;color:#fff;font-size:13px;font-weight:700;
+  background:rgba(17,28,64,.75);padding:1px 12px;border-radius:100px}
+.notes-panel{position:fixed;top:0;right:0;height:100vh;width:min(440px,92vw);background:#fff;z-index:60;box-shadow:-16px 0 40px rgba(0,0,0,.35);
+  transform:translateX(100%);transition:transform .3s ease;overflow-y:auto;padding:24px 22px 40px}
+.notes-panel.open{transform:translateX(0)}
+.notes-close{position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--navy)}
+.notes-header{font-weight:800;font-size:20px;color:var(--navy);margin:6px 0 2px;padding-right:40px}
+.notes-sub{color:var(--orange);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:18px}
+.notes-block{margin-bottom:16px}
+.notes-label{font-size:11px;font-weight:800;color:#fff;background:var(--navy);display:inline-block;padding:3px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:6px}
+.notes-text{font-size:14px;color:#334155;line-height:1.55;white-space:pre-line}
+.notes-overlay{position:fixed;inset:0;background:rgba(17,28,64,.4);z-index:59;opacity:0;visibility:hidden;transition:opacity .3s}
+.notes-overlay.open{opacity:1;visibility:visible}
+
+
+</style>
+</head>
+<body class="is-cover">
+
+<div class="stage" id="stage">
+<section class="slide slide-cover mode-split" data-n="1"><div class="hero-blur" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/PORTADA.jpg')"></div><div class="deck cover-hero"><img class="hero-img" src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/PORTADA.jpg" alt="Growie Kids Mission 32" onerror="window.__imgErr(this)"><div class="hero-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · PORTADA.jpg</div></div><div class="hero-top "><div class="hero-kicker">ADVENTURE WEEK</div><div class="hero-row2"><div class="hero-mission">MISSION 32</div><div class="hero-title">CELEBRATION DAY!</div></div></div><div class="hero-bottom"><div class="chips"><span class="chip c0">PREPARE ✓</span><span class="chip c0">PRACTICE ✓</span><span class="chip c0">PRESENT ✓</span><span class="lab2">TODAY:</span><span class="chip c1">CELEBRATE!</span></div><div class="hero-goal"><span class="hg-l">Adventure Goal:</span> <span class="hg-t">Celebrate your English adventure!</span></div></div></div><div class="deck cover-split"><div class="grid"><div class="col-text"><div class="pop kick">ADVENTURE WEEK</div><div class="pop slide-title xl">MISSION 32</div><div class="pop pc c3 xl" >CELEBRATION DAY!</div><div class="chips"><span class="chip c0">PREPARE ✓</span><span class="chip c0">PRACTICE ✓</span><span class="chip c0">PRESENT ✓</span><span class="lab2">TODAY:</span><span class="chip c1">CELEBRATE!</span></div><div class="pop goalbox"><span class="hg-l">Adventure Goal:</span> <span class="hg-t">Celebrate your English adventure!</span></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/PORTADA.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/PORTADA.jpg" alt="Growie Kids Mission 32" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · PORTADA.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="2"><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">🧭</div><div class="pop slide-title">OUR A1.1 ADVENTURE</div></div><div class="pop pc c2 lg" >Look how far we traveled!</div><div class="tiles"><div class="pop tile t-green sm" ><div class="ti">👋</div><div class="tl">ABOUT ME</div></div><div class="pop tile t-orange sm" ><div class="ti">👨‍👩‍👧</div><div class="tl">PEOPLE &amp; FAMILY</div></div><div class="pop tile t-navy sm" ><div class="ti">🎒</div><div class="tl">OBJECTS &amp; CLASSROOM</div></div><div class="pop tile t-gold sm" ><div class="ti">🏠</div><div class="tl">HOME</div></div><div class="pop tile t-sky sm" ><div class="ti">❤️</div><div class="tl">FOOD &amp; LIKES</div></div><div class="pop tile t-green sm" ><div class="ti">🕐</div><div class="tl">TIME &amp; ROUTINE</div></div></div><div class="pop banner banner-gold glow" ><small>Quick Memory Challenge:</small><b>Say ONE thing you remember!</b></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%202.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%202.jpg" alt="Our A1.1 Adventure" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 2.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="3"><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">🏆</div><div class="pop slide-title">LOOK WHAT YOU CAN DO!</div></div><div class="pop lab" >I CAN...</div><div class="g2 "><div class="pop tile t-green h" ><div class="ti">👋</div><div class="tl">introduce myself.</div></div><div class="pop tile t-orange h" ><div class="ti">👨‍👩‍👧</div><div class="tl">talk about my family.</div></div><div class="pop tile t-navy h" ><div class="ti">🏠</div><div class="tl">talk about my home.</div></div><div class="pop tile t-gold h" ><div class="ti">❤️</div><div class="tl">say what I like.</div></div><div class="pop tile t-sky h" ><div class="ti">🕐</div><div class="tl">talk about my day.</div></div><div class="pop tile t-green h" ><div class="ti">💬</div><div class="tl">ask and answer questions.</div></div><div class="pop tile t-orange h" ><div class="ti">🤝</div><div class="tl">ask for help.</div></div></div><div class="pop banner banner-gold glow" ><b style="font-size:44px">MY ENGLISH IS GROWING!</b></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%203.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%203.jpg" alt="Look what you can do" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 3.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="4"><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">💭</div><div class="pop slide-title">MY EXPLORER REFLECTION</div></div><div class="pop lab" >Choose and share:</div><div class="g2 "><div class="pop reflect" ><div class="rq">⭐ I can do...</div><div class="fillline"><span class="fl">________________</span></div></div><div class="pop reflect" ><div class="rq">❤️ My favorite part was...</div><div class="fillline"><span class="fl">________________</span></div></div><div class="pop reflect" ><div class="rq">🌱 I want more practice with...</div><div class="fillline"><span class="fl">________________</span></div></div><div class="pop reflect" ><div class="rq">😀 Today I feel...</div><div class="chips" style="margin-top:4px"><span class="chip c0 sel-chip" data-tap="select" data-group="feelw">PROUD</span><span class="chip c1 sel-chip" data-tap="select" data-group="feelw">HAPPY</span><span class="chip c2 sel-chip" data-tap="select" data-group="feelw">READY</span><span class="chip c3 sel-chip" data-tap="select" data-group="feelw">EXCITED</span></div></div></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%204.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%204.jpg" alt="Explorer reflection" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 4.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="5"><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">💚</div><div class="pop slide-title">GROWIE’S FINAL FEEDBACK</div></div><div class="pop pc c1 lg" >GREAT JOB, EXPLORERS!</div><div class="pop lab" >During A1.1 you learned to:</div><div class="row wrap" style="gap:9px"><div class="pop token" style="flex:1 1 140px">SPEAK</div><div class="pop token" style="flex:1 1 140px">LISTEN</div><div class="pop token" style="flex:1 1 140px">ASK</div><div class="pop token" style="flex:1 1 140px">ANSWER</div><div class="pop token" style="flex:1 1 140px">KEEP GOING</div></div><div class="pop banner banner-green glow" ><small>Most important:</small><b style="font-size:44px">YOU COMMUNICATED!</b></div><div class="row wrap mid"><div class="pop lab" >Remember:</div><div class="pop pc c2 sm" >English does not need to be perfect to work.</div></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%205.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%205.jpg" alt="Growie’s final feedback" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 5.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="6"><div class="particles" aria-hidden="true"><i style="--x:5%;--dl:0.00s;--du:6.0s">🍃</i><i style="--x:6%;--dl:0.83s;--du:7.3s">✨</i><i style="--x:7%;--dl:1.66s;--du:8.6s">🍃</i><i style="--x:8%;--dl:2.49s;--du:9.9s">⭐</i><i style="--x:9%;--dl:3.32s;--du:7.2s">🍃</i><i style="--x:10%;--dl:4.15s;--du:8.5s">✨</i><i style="--x:11%;--dl:4.98s;--du:9.8s">🍃</i><i style="--x:12%;--dl:5.81s;--du:7.1s">⭐</i><i style="--x:13%;--dl:0.64s;--du:8.4s">🍃</i><i style="--x:14%;--dl:1.47s;--du:9.7s">✨</i><i style="--x:15%;--dl:2.30s;--du:7.0s">🍃</i><i style="--x:16%;--dl:3.13s;--du:8.3s">⭐</i><i style="--x:17%;--dl:3.96s;--du:9.6s">🍃</i><i style="--x:18%;--dl:4.79s;--du:6.9s">✨</i><i style="--x:19%;--dl:5.62s;--du:8.2s">🍃</i><i style="--x:20%;--dl:0.45s;--du:9.5s">⭐</i></div><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">🎖️</div><div class="pop slide-title">EXPLORER BADGE CEREMONY</div></div><div class="row wrap"><div class="pop pc c2" >GROWIE KIDS A1.1</div><div class="pop pc c0" >GROWIE EXPLORERS 1</div></div><div class="pop pc c1 lg" >YOUR ADVENTURE IS COMPLETE!</div><div class="pop badge-wrap" ><div class="badge-cover" data-tap="reveal">✨ ? ✨</div><div class="badge-real"><div class="ribbon"><i>⭐</i>A1.1 EXPLORER BADGE<i>⭐</i></div></div></div><div class="row mid"><div class="pop lab" >You earned this badge by:</div></div><div class="row wrap"><span class="chip c0">SHOWING UP</span><span class="chip c1">PRACTICING</span><span class="chip c4">COMMUNICATING</span><span class="chip c3">GROWING</span></div><div class="pop pc c3 lg" >Congratulations, Explorer!</div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%206.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%206.jpg" alt="Explorer Badge Ceremony" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 6.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="7"><div class="particles" aria-hidden="true"><i style="--x:5%;--dl:0.00s;--du:6.0s">🍃</i><i style="--x:6%;--dl:0.83s;--du:7.3s">✨</i><i style="--x:7%;--dl:1.66s;--du:8.6s">🍃</i><i style="--x:8%;--dl:2.49s;--du:9.9s">⭐</i><i style="--x:9%;--dl:3.32s;--du:7.2s">🍃</i><i style="--x:10%;--dl:4.15s;--du:8.5s">✨</i><i style="--x:11%;--dl:4.98s;--du:9.8s">🍃</i><i style="--x:12%;--dl:5.81s;--du:7.1s">⭐</i><i style="--x:13%;--dl:0.64s;--du:8.4s">🍃</i><i style="--x:14%;--dl:1.47s;--du:9.7s">✨</i><i style="--x:15%;--dl:2.30s;--du:7.0s">🍃</i><i style="--x:16%;--dl:3.13s;--du:8.3s">⭐</i><i style="--x:17%;--dl:3.96s;--du:9.6s">🍃</i><i style="--x:18%;--dl:4.79s;--du:6.9s">✨</i><i style="--x:19%;--dl:5.62s;--du:8.2s">🍃</i><i style="--x:20%;--dl:0.45s;--du:9.5s">⭐</i></div><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">🎉</div><div class="pop slide-title">WE DID IT!</div></div><div class="eq"><div class="pop eqb c0" ><b>28 MISSIONS</b><i>✓</i></div><span class="op">+</span><div class="pop eqb c1" ><b>ADVENTURE WEEK</b><i>✓</i></div><span class="op">=</span><div class="pop eqb c3" style="color:var(--navy)"><b>A1.1 COMPLETE!</b><i>🏅</i></div></div><div class="pop lab" >Say it together:</div><div class="pop pc c1 lg" >I CAN SPEAK ENGLISH!</div><div class="pop pc c0 lg" >MY ENGLISH IS GROWING!</div><div class="pop pc c2 lg" >THANK YOU, GROWIE!</div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%207.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%207.jpg" alt="We did it" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 7.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="8"><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">🚀</div><div class="pop slide-title">MY NEXT ENGLISH GOAL</div></div><div class="pop lab" >I want to...</div><div class="pop goalcard" data-tap="select" data-group="goal" data-fill="goalfill" data-value="speak more."><span class="gi">💬</span>speak more.</div><div class="pop goalcard" data-tap="select" data-group="goal" data-fill="goalfill" data-value="understand more."><span class="gi">👂</span>understand more.</div><div class="pop goalcard" data-tap="select" data-group="goal" data-fill="goalfill" data-value="ask more questions."><span class="gi">❓</span>ask more questions.</div><div class="pop goalcard" data-tap="select" data-group="goal" data-fill="goalfill" data-value="learn more words."><span class="gi">📚</span>learn more words.</div><div class="pop goalcard" data-tap="select" data-group="goal" data-fill="goalfill" data-value="feel more confident."><span class="gi">⭐</span>feel more confident.</div><div class="pop pc c2" >Choose ONE.</div><div class="pop lab" ><span>My next goal is...</span></div><div class="pop fillline" ><span class="fl" id="goalfill">________________</span></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%208.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%208.jpg" alt="The next path" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 8.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="9"><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">🌄</div><div class="pop slide-title">A NEW PATH OPENS</div></div><div class="pop pc c2 lg" >ONE ADVENTURE COMPLETE...</div><div class="pop pc c1 lg" >ANOTHER ADVENTURE AWAITS!</div><div class="row "><div class="pop banner banner-green" style="flex:1"><small>GROWIE EXPLORERS 1</small><b>A1.1</b><small>✓ COMPLETE</small></div><div class="colm fl1"><div class="pop pc c3" >Your badge is unlocked!</div><div class="pop pc c0" >The path continues...</div></div></div><div class="pop sign glow" ><div class="s-s">NEXT ADVENTURE:</div><div class="s-b">GROWIE EXPLORERS 2</div></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%209.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%209.jpg" alt="The Next Adventure" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 9.jpg</div></div></div></div></div></div></section>
+<section class="slide slide-content" data-n="10"><div class="particles" aria-hidden="true"><i style="--x:5%;--dl:0.00s;--du:6.0s">🍃</i><i style="--x:6%;--dl:0.83s;--du:7.3s">✨</i><i style="--x:7%;--dl:1.66s;--du:8.6s">🍃</i><i style="--x:8%;--dl:2.49s;--du:9.9s">⭐</i><i style="--x:9%;--dl:3.32s;--du:7.2s">🍃</i><i style="--x:10%;--dl:4.15s;--du:8.5s">✨</i><i style="--x:11%;--dl:4.98s;--du:9.8s">🍃</i><i style="--x:12%;--dl:5.81s;--du:7.1s">⭐</i><i style="--x:13%;--dl:0.64s;--du:8.4s">🍃</i><i style="--x:14%;--dl:1.47s;--du:9.7s">✨</i><i style="--x:15%;--dl:2.30s;--du:7.0s">🍃</i><i style="--x:16%;--dl:3.13s;--du:8.3s">⭐</i><i style="--x:17%;--dl:3.96s;--du:9.6s">🍃</i><i style="--x:18%;--dl:4.79s;--du:6.9s">✨</i><i style="--x:19%;--dl:5.62s;--du:8.2s">🍃</i><i style="--x:20%;--dl:0.45s;--du:9.5s">⭐</i></div><div class="deck"><div class="grid"><div class="col-text"><div class="head"><div class="pop slide-emoji">👋</div><div class="pop slide-title t-sm">CONGRATULATIONS, EXPLORERS!</div></div><div class="row wrap mid"><div class="pop pc c2 lg" >GROWIE KIDS A1.1</div><div class="pop pc c3 xl" >COMPLETE!</div></div><div class="pop pc c0" >YOU CAN COMMUNICATE IN ENGLISH.</div><div class="pop pc c1" >YOUR ENGLISH IS GROWING.</div><div class="pop pc c4 lg" >KEEP GOING!</div><div class="pop banner banner-orange glow" ><b style="font-size:40px">SEE YOU NEXT ADVENTURE!</b></div></div><div class="col-image"><div class="img-wrap"><div class="img-bg" style="background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%2010.jpg')"></div><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2032/SLIDE%2010.jpg" alt="See you next adventure" onload="window.__imgOk(this)" onerror="window.__imgErr(this)"><div class="img-ph"><div class="ph-e">🌳</div><div class="ph-t">Mission 32 · SLIDE 10.jpg</div></div></div></div></div></div></section>
+</div>
+
+<div class="ui"><div class="deck">
+  <div class="mission-badge"><span class="leaf-spin">🧭</span> ADVENTURE WEEK · MISSION 32 · Slide <span id="bn">1</span> / 10</div>
+  <div class="tracker"><div class="tk done" id="tk1"><small>MISSION 29</small><span class="tkl">PREPARE ✓</span></div><div class="tk done" id="tk2"><small>MISSION 30</small><span class="tkl">PRACTICE ✓</span></div><div class="tk done" id="tk3"><small>MISSION 31</small><span class="tkl">PRESENT ✓</span></div><div class="tk active" id="tk4"><small>MISSION 32</small><span class="tkl">CELEBRATE ●</span></div></div>
+  <button class="notes-toggle" id="notesToggle">🧑‍🏫 <span>Teacher Notes</span></button>
+  <div class="slide-counter" id="counter"></div>
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" aria-label="Previous">‹</button>
+    <div class="dots" id="dots"></div>
+    <button class="nav-btn" id="nextBtn" aria-label="Next">›</button>
+  </div>
+</div></div>
+
+<div class="notes-overlay" id="notesOverlay"></div>
+<aside class="notes-panel" id="notesPanel">
+  <button class="notes-close" id="notesClose">✕</button>
+  <div class="notes-header" id="notesTitle"></div>
+  <div class="notes-sub" id="notesStage"></div>
+  <div id="notesBody"></div>
+</aside>
+
+<script>
+const NOTES = [{"title": "Celebration Day!", "notes": {"STAGE": "Mission Start / Celebration Opening", "TIMING": "5 minutes", "WHAT TO DO": "Welcome students to the final Mission of A1.1. Connect Celebration Day directly to the completed Final Adventure. Make clear that today is about recognizing progress, not another examination.", "SAY": "“Explorers, look!” · “We made it!” · “Mission 29: Prepare — complete!” · “Mission 30: Practice — complete!” · “Mission 31: Present — complete!” · “And today?” · “Celebrate!” · “Welcome to Mission 32.” · “Celebration Day!” · “Today we look at how much your English has grown.”", "INSTRUCTIONS FOR STUDENTS": "“Look at the Great Grow Tree.” · “Look at our completed path.” · “Say: We did it!” · “Get ready to celebrate.”", "WHAT NOT TO DO": "Do not begin another test. · Do not ask students to repeat their entire Final Adventure presentation. · Do not reveal grades publicly. · Do not award the badge immediately. · Do not introduce A1.2 content.", "FOCUS": "Completion and recognition.", "PEDAGOGICAL INTENTION": "Students understand that Celebration Day recognizes the communication journey they have already completed.", "KEY UPGRADE": "The final Mission begins from success rather than another academic demand.", "CRITICAL ERROR": "Do not make Mission 32 feel like Mission 31 repeated.", "PRO TIP": "Have students make the Adventure Week sequence with their fingers: 1 = Prepare · 2 = Practice · 3 = Present · 4 = Celebrate", "FINAL CHECKLIST": "Students know this is Mission 32. · Students know Celebration Day has begun. · Students understand the Final Adventure is already complete. · Students feel successful."}}, {"title": "Our A1.1 Adventure", "notes": {"STAGE": "Journey Reflection / Memory Walk", "TIMING": "6 minutes", "WHAT TO DO": "Take a quick visual walk through the A1.1 journey. Invite students to say one phrase connected to any area. Accept a wide variety of correct familiar language.", "SAY": "“Look at our adventure.” · “We started with About Me.” · “Then family.” · “Objects.” · “Home.” · “Food and likes.” · “Time and routines.” · “What do you remember?” · “Choose one place.” · “Say one thing.” · Possible student responses: “My name is Ana.” · “My family is small.” · “This is my notebook.” · “There is a sofa.” · “I like pizza.” · “I wake up at seven.”", "INSTRUCTIONS FOR STUDENTS": "“Choose one area.” · “Say one sentence.” · “Listen to your friends.” · “Different answers are good.”", "WHAT NOT TO DO": "Do not review all 28 missions one by one. · Do not ask every child every question. · Do not correct every small error. · Do not turn the memory walk into an exam.", "FOCUS": "Recognition of accumulated learning.", "PEDAGOGICAL INTENTION": "Students perceive A1.1 as one connected communication journey instead of isolated lessons.", "KEY UPGRADE": "The recap is based on what students CAN communicate.", "CRITICAL ERROR": "Do not spend the entire Celebration Day re-teaching content.", "PRO TIP": "After every student contribution say: “Yes — that was part of our adventure!”", "FINAL CHECKLIST": "Students remembered language from different A1.1 areas. · Several students spoke. · The recap remained short and positive. · No new content was introduced."}}, {"title": "Look What You Can Do!", "notes": {"STAGE": "Achievement Recognition", "TIMING": "6 minutes", "WHAT TO DO": "Guide students through each “I can” ability. Have them respond physically or orally when they recognize something they can do.", "SAY": "“Can you introduce yourself?” · Students: “Yes!” · “Can you talk about your family?” · “Can you say what you like?” · “Can you ask for help?” · “Look how much English you can use now.”", "INSTRUCTIONS FOR STUDENTS": "“Listen.” · “Show thumbs up if you can do it.” · “Repeat one I can sentence.” · “Choose your strongest one.”", "WHAT NOT TO DO": "Do not require every student to claim complete independence in every category. · Do not shame students who still need support. · Do not compare children. · Do not make this a checklist for pass/fail.", "FOCUS": "Visible communication abilities.", "PEDAGOGICAL INTENTION": "Students explicitly recognize their own language growth.", "KEY UPGRADE": "Learning progress is expressed through communicative “I can” statements.", "CRITICAL ERROR": "Do not equate “I can” with perfect performance.", "PRO TIP": "Use: “I can do it with help” · as an acceptable intermediate response.", "FINAL CHECKLIST": "Students recognized multiple abilities. · Students used at least one “I can” statement. · Students understand progress can include support."}}, {"title": "My Explorer Reflection", "notes": {"STAGE": "Personal Reflection", "TIMING": "6 minutes", "WHAT TO DO": "Invite students to reflect on one thing they can do, one favorite part and optionally one thing they want to continue practicing. Keep speaking turns short.", "SAY": "“Now think about YOUR adventure.” · “What can you do?” · “What was your favorite part?” · “What do you want to practice more?” · “How do you feel today?” · MODEL: “I can introduce myself.” · “My favorite part was talking about food.” · “I want more practice with time.” · “I feel proud.”", "INSTRUCTIONS FOR STUDENTS": "“Choose one or two cards.” · “Give a short answer.” · “Use English if you can.” · “Ask for help if you need it.”", "WHAT NOT TO DO": "Do not force long reflection. · Do not correct personal opinions. · Do not interpret “I want more practice” negatively. · Do not turn reflection into evaluation.", "FOCUS": "Student ownership of progress.", "PEDAGOGICAL INTENTION": "Students become aware that language learning includes achievements and future growth.", "KEY UPGRADE": "Celebration includes meaningful reflection rather than only reward.", "CRITICAL ERROR": "Do not make students feel that needing practice cancels their achievements.", "PRO TIP": "Respond to “I want more practice” with: “Great goal!”", "FINAL CHECKLIST": "Students reflected. · Students named an ability or favorite part. · Students understood that continued practice is positive."}}, {"title": "Growie’s Final Feedback", "notes": {"STAGE": "Positive Feedback / Language Celebration", "TIMING": "6 minutes", "WHAT TO DO": "Give final group-level feedback. Recognize communication behaviors observed during the block and especially Adventure Week. If useful, mention two or three general language upgrades, but do not conduct a correction lesson.", "SAY": "“Growie has final feedback.” · “You spoke.” · “You listened.” · “You asked questions.” · “You answered.” · “You asked for help.” · “You kept going.” · “And that is communication.” · “Your English does not need to be perfect to work.” · “Your English is growing.”", "INSTRUCTIONS FOR STUDENTS": "“Listen.” · “Choose one skill you improved.” · “Say: My English is growing.”", "WHAT NOT TO DO": "Do not reveal individual scores. · Do not announce individual evaluation colors. · Do not publicly identify weak students. · Do not focus on errors. · Do not introduce new grammar.", "FOCUS": "Communication progress.", "PEDAGOGICAL INTENTION": "Students understand what Organic English considers meaningful progress.", "KEY UPGRADE": "Feedback celebrates communication behaviors, not only language forms.", "CRITICAL ERROR": "Do not allow administrative evaluation to dominate Celebration Day.", "PRO TIP": "Detailed individual feedback can be handled privately outside the celebration presentation when necessary.", "FINAL CHECKLIST": "Students received positive feedback. · Communication behaviors were recognized. · No public ranking occurred. · Students are ready for the badge ceremony."}}, {"title": "Explorer Badge Ceremony", "notes": {"STAGE": "Official Recognition / Badge Ceremony", "TIMING": "10 minutes", "WHAT TO DO": "Conduct the symbolic badge ceremony. Call students one at a time if group size allows. For online class, students may respond by raising a hand, turning on camera if available, using a reaction or simply listening as their name is called. Use each student’s name positively.", "SAY": "“Explorers, it is time.” · “You completed Growie Kids A1.1.” · “You prepared.” · “You practiced.” · “You completed the Final Adventure.” · “And now Growie has something for you.” · Reveal badge. · “The A1.1 Explorer Badge!” · When recognizing individual students: “Congratulations, [Name]!” · “You completed your A1.1 adventure.” · “Your English is growing.” · “Great job, Explorer!” · Group: “Congratulations, Explorers!”", "INSTRUCTIONS FOR STUDENTS": "“Listen for your name.” · “Celebrate your classmates.” · “Use a reaction.” · “Clap.” · “When you hear your name, say: Thank you!”", "WHAT NOT TO DO": "Do not announce grades while presenting badges. · Do not compare students. · Do not say one student earned a “better” badge. · Do not create multiple badge levels. · Do not make weaker students feel excluded during the celebration. · Do not introduce A1.2 content yet.", "FOCUS": "Recognition and belonging.", "PEDAGOGICAL INTENTION": "Students receive a memorable symbolic reward connected to effort and communication growth.", "KEY UPGRADE": "The badge has narrative meaning because it closes the entire 32-Mission A1.1 journey.", "CRITICAL ERROR": "Do not turn the badge ceremony into a public academic ranking.", "PRO TIP": "Use the same short recognition formula for every student to keep the ceremony equitable and manageable.", "FINAL CHECKLIST": "The badge was officially revealed. · Students were recognized. · No public comparison occurred. · Students understand the badge represents completed A1.1 progress. · The celebration remains inside the Growie World narrative."}}, {"title": "We Did It!", "notes": {"STAGE": "Group Celebration", "TIMING": "5 minutes", "WHAT TO DO": "Create a brief group celebration after the badge ceremony. Use call-and-response.", "SAY": "“Explorers!” · Students: “Yes!” · “Twenty-eight missions?” · Students: “Complete!” · “Adventure Week?” · Students: “Complete!” · “A1.1?” · Students: “Complete!” · “Can you speak English?” · Students: “Yes!” · “Say: My English is growing!”", "INSTRUCTIONS FOR STUDENTS": "“Celebrate.” · “Clap.” · “Use reactions.” · “Repeat the celebration phrases.”", "WHAT NOT TO DO": "Do not make the activity chaotic or overly long. · Do not introduce new content. · Do not add more academic requirements after the badge.", "FOCUS": "Shared achievement.", "PEDAGOGICAL INTENTION": "Students experience completion as a community rather than only as individual evaluation.", "KEY UPGRADE": "The block ends with collective belonging.", "CRITICAL ERROR": "Do not allow the class to end immediately after badge distribution without emotional closure.", "PRO TIP": "Take a class screenshot only if institutional policy and parental/privacy permissions allow it.", "FINAL CHECKLIST": "Students celebrated together. · A1.1 completion was clearly recognized. · Students used positive English celebration phrases."}}, {"title": "My Next English Goal", "notes": {"STAGE": "Forward Reflection / Growth Mindset", "TIMING": "5 minutes", "WHAT TO DO": "Have students choose one simple learning goal for their next stage. This is motivational, not evaluative.", "SAY": "“You finished one adventure.” · “But English keeps growing.” · “What do you want next?” · “Speak more?” · “Understand more?” · “Ask more questions?” · “Learn more words?” · “Feel more confident?” · “Choose one.” · MODEL: “My next goal is to speak more.”", "INSTRUCTIONS FOR STUDENTS": "“Choose one goal.” · “Say your goal.” · “Short answers are okay.”", "WHAT NOT TO DO": "Do not introduce A1.2 grammar. · Do not promise specific outcomes. · Do not compare student goals. · Do not evaluate the goals.", "FOCUS": "Continued learning.", "PEDAGOGICAL INTENTION": "Students view A1.1 completion as progress within a longer language journey.", "KEY UPGRADE": "The block closes with forward motivation instead of a hard endpoint.", "CRITICAL ERROR": "Do not make students feel they are starting from zero again.", "PRO TIP": "Connect the goal to growth: “Your next adventure starts from everything you already know.”", "FINAL CHECKLIST": "Students selected a future goal. · Students understand their learning continues. · No new course content was taught."}}, {"title": "A New Path Opens", "notes": {"STAGE": "Narrative Epilogue / Next Adventure Preview", "TIMING": "4 minutes", "WHAT TO DO": "Close the story arc. Make students understand that their A1.1 progress stays with them when they continue.", "SAY": "“Look behind us.” · “That was Growie Explorers 1.” · “Thirty-two missions.” · “Complete.” · “Now look ahead.” · “There is another path.” · “You are not starting again.” · “You take your English with you.” · “The next adventure is Growie Explorers 2.”", "INSTRUCTIONS FOR STUDENTS": "“Look at the new path.” · “Hold your Explorer badge.” · “Say: I’m ready for my next adventure!”", "WHAT NOT TO DO": "Do not begin teaching A1.2. · Do not explain upcoming grammar. · Do not make participation in the next block sound automatic if administrative progression has separate requirements. · Do not overload the preview.", "FOCUS": "Continuity and anticipation.", "PEDAGOGICAL INTENTION": "Students perceive language development as cumulative.", "KEY UPGRADE": "The narrative physically shows that A1.2 grows out of A1.1.", "CRITICAL ERROR": "Do not make A1.1 feel discarded now that it is complete.", "PRO TIP": "Point backward and forward: “Everything here helps you go there.”", "FINAL CHECKLIST": "A1.1 journey was visibly completed. · The badge is now part of the Explorer identity. · The next path was previewed. · No A1.2 teaching occurred."}}, {"title": "See You Next Adventure!", "notes": {"STAGE": "Final Closing", "TIMING": "2 minutes", "WHAT TO DO": "End simply and emotionally. No more teaching, correction or evaluation.", "SAY": "“Congratulations, Explorers!” · “You completed Growie Kids A1.1.” · “You can communicate in English.” · “Your English is growing.” · “Keep practicing.” · “Thank you for this adventure.” · “See you next adventure!”", "INSTRUCTIONS FOR STUDENTS": "“Wave to Growie.” · “Say: Thank you, Growie!” · “Say: See you next adventure!”", "WHAT NOT TO DO": "Do not introduce another activity. · Do not correct language at the end. · Do not add administrative announcements to the student-facing closing. · Do not restart the review.", "FOCUS": "Closure.", "PEDAGOGICAL INTENTION": "Students leave with a strong final memory of success, growth and belonging.", "KEY UPGRADE": "The final statement emphasizes communicative ability rather than course completion alone.", "CRITICAL ERROR": "Do not dilute the final moment with unnecessary information.", "PRO TIP": "Leave the final slide visible for a few seconds after students say goodbye.", "FINAL CHECKLIST": "Students were congratulated. · A1.1 was clearly marked complete. · Achievement was expressed communicatively. · Class ended positively. · Growie Explorers 1 narrative is officially complete."}}];
+
+const MISSION = 32;
+const TOTAL = 10;
+let current = 1;
+
+function fit(){
+  const s = Math.min(window.innerWidth/1600, window.innerHeight/900);
+  document.documentElement.style.setProperty('--s', s);
+}
+window.addEventListener('resize', fit); fit();
+
+/* ── imágenes: fallback a jsDelivr, y si tampoco existe -> placeholder ── */
+window.__imgOk = function(el){
+  try{
+    const wrap = el.closest('.img-wrap'); if(!wrap) return;
+    const r = el.naturalWidth / el.naturalHeight;
+    if (!wrap.dataset.crop && Math.abs(r - 1) > 0.12) wrap.classList.add('fit-contain');
+  }catch(e){}
+};
+window.__imgErr = function(el){
+  try{
+    const cur = el.getAttribute('src') || '';
+    const fb = window.__toJsDelivr(cur);
+    if (fb && cur.indexOf('jsdelivr.net') === -1) { el.src = fb; return; }
+  }catch(e){}
+  const wrap = el.closest('.img-wrap');
+  if (wrap) wrap.classList.add('noimg');
+  const hp = el.parentElement && el.parentElement.querySelector('.hero-ph');
+  if (hp) hp.classList.add('on');
+};
+
+/* ── portada: si la imagen es 16:9 -> modo héroe; si es (casi) cuadrada -> modo panel lateral ── */
+(function(){
+  const cov = document.querySelector('.slide-cover'); if(!cov) return;
+  const first = cov.querySelector('.hero-img'); if(!first) return;
+  const probe = new Image();
+  probe.onload = function(){
+    const r = probe.naturalWidth / probe.naturalHeight;
+    cov.classList.remove('mode-hero','mode-split');
+    cov.classList.add(r >= 1.45 ? 'mode-hero' : 'mode-split');
+  };
+  probe.onerror = function(){
+    const fb = window.__toJsDelivr(probe.src);
+    if (fb && probe.src.indexOf('jsdelivr.net') === -1) probe.src = fb;
+  };
+  probe.src = first.getAttribute('src');
+})();
+
+/* ── animaciones de entrada ── */
+document.querySelectorAll('.slide').forEach(sl => {
+  sl.querySelectorAll('.pop').forEach((el,i) => el.style.setProperty('--d', Math.min(0.06 + i*0.06, 1.1) + 's'));
+});
+document.addEventListener('animationend', e => {
+  if (e.target.classList && e.target.classList.contains('pop')) {
+    e.target.style.animation = 'none';
+    e.target.classList.add('settled');
+  }
+});
+
+/* ── navegación ── */
+const dotsWrap = document.getElementById('dots');
+for (let i=1;i<=TOTAL;i++){
+  const b = document.createElement('button'); b.className='dot'; b.setAttribute('aria-label','Slide '+i);
+  b.onclick = () => goTo(i); dotsWrap.appendChild(b);
+}
+let badgeOpen = false;
+function updateTracker(n){
+  if (MISSION !== 32) return;
+  const t = document.getElementById('tk4'); if(!t) return;
+  const done = (n >= 7) || badgeOpen;
+  t.classList.toggle('done', done); t.classList.toggle('active', !done);
+  t.querySelector('.tkl').textContent = 'CELEBRATE ' + (done ? '✓' : '●');
+}
+function goTo(n){
+  if (n < 1 || n > TOTAL) return;
+  current = n;
+  document.querySelectorAll('.slide').forEach(el => {
+    const en = parseInt(el.dataset.n, 10);
+    el.classList.toggle('active', en === n);
+    el.classList.toggle('prevslide', en < n);
+    if (en !== n) el.querySelectorAll('.pop').forEach(b => { b.classList.remove('settled'); b.style.animation=''; });
+  });
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === n-1));
+  document.getElementById('prevBtn').disabled = n === 1;
+  document.getElementById('nextBtn').disabled = n === TOTAL;
+  document.getElementById('counter').textContent = n + ' / ' + TOTAL;
+  document.getElementById('bn').textContent = n;
+  document.body.classList.toggle('is-cover', n === 1);
+  updateTracker(n);
+  renderNotes(n);
+}
+
+function renderNotes(n){
+  const s = NOTES[n-1];
+  document.getElementById('notesTitle').textContent = 'Slide ' + n + ' — ' + s.title;
+  document.getElementById('notesStage').textContent = s.notes.STAGE + ' · ' + s.notes.TIMING;
+  const order = ["WHAT TO DO","SAY","INSTRUCTIONS FOR STUDENTS","WHAT NOT TO DO","FOCUS","PEDAGOGICAL INTENTION","KEY UPGRADE","CRITICAL ERROR","PRO TIP","FINAL CHECKLIST"];
+  document.getElementById('notesBody').innerHTML = order.map(k => `
+    <div class="notes-block"><div class="notes-label">${k}</div><div class="notes-text"></div></div>`).join('');
+  document.querySelectorAll('#notesBody .notes-text').forEach((el,i) => { el.textContent = s.notes[order[i]] || ''; });
+}
+
+document.getElementById('prevBtn').onclick = () => goTo(current - 1);
+document.getElementById('nextBtn').onclick = () => goTo(current + 1);
+const notesPanel = document.getElementById('notesPanel');
+const notesOverlay = document.getElementById('notesOverlay');
+document.getElementById('notesToggle').onclick = () => { notesPanel.classList.add('open'); notesOverlay.classList.add('open'); };
+function closeNotes(){ notesPanel.classList.remove('open'); notesOverlay.classList.remove('open'); }
+document.getElementById('notesClose').onclick = closeNotes;
+notesOverlay.onclick = closeNotes;
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') goTo(current + 1);
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') goTo(current - 1);
+  if (e.key === 'Home') goTo(1);
+  if (e.key === 'End') goTo(TOTAL);
+  if (e.key === 'Escape') closeNotes();
+});
+
+/* ── interacciones dentro de las slides ── */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tap]'); if (!t) return;
+  const mode = t.dataset.tap;
+  if (mode === 'cycle') {
+    const seq = ['', 'ready', 'more'];
+    const nx = seq[(seq.indexOf(t.dataset.st || '') + 1) % 3];
+    t.dataset.st = nx;
+    const mk = t.querySelector('.mk'); if (mk) mk.textContent = (nx === 'more') ? '↻' : '✓';
+  } else if (mode === 'select') {
+    document.querySelectorAll('[data-group="' + t.dataset.group + '"]').forEach(x => x.classList.remove('sel'));
+    t.classList.add('sel');
+    if (t.dataset.fill) { const tg = document.getElementById(t.dataset.fill); if (tg) tg.textContent = t.dataset.value; }
+  } else if (mode === 'toggle') {
+    t.classList.toggle('done');
+  } else if (mode === 'reveal') {
+    const w = t.closest('.badge-wrap'); if (w) { w.classList.add('open'); badgeOpen = true; updateTracker(current);
+      const sl = t.closest('.slide'); if (sl) sl.querySelector('.particles') && sl.querySelector('.particles').classList.add('on'); }
+  }
+});
+
+goTo(1);
+
+</script>
+
+<script>
+(function(){
+  function attachBgFallback(){
+    var tested = {};
+    document.querySelectorAll('.slide-content,.slide-cover').forEach(function(el){
+      var css = getComputedStyle(el).backgroundImage;
+      var m = css.match(/url\(["']?([^"')]+)["']?\)/);
+      if (!m) return;
+      var primary = m[1];
+      if (primary.indexOf('jsdelivr.net') !== -1) return;
+      if (!tested[primary]) {
+        var fb = window.__toJsDelivr(primary);
+        tested[primary] = { fb: fb, els: [] };
+        if (fb) {
+          var test = new Image();
+          test.onerror = (function(key){ return function(){
+            tested[key].els.forEach(function(e){ e.style.backgroundImage = "url('" + tested[key].fb + "')"; });
+          };})(primary);
+          test.src = primary;
+        }
+      }
+      tested[primary].els.push(el);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachBgFallback);
+  else attachBgFallback();
+})();
+</script>
+
+</body>
+</html>
