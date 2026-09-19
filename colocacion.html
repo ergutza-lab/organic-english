@@ -333,7 +333,44 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
-  function cleanWA(p){var n=(p||'').toString().replace(/\D/g,'');if(n.length===10)n='521'+n;else if(n.length===12&&n.startsWith('52'))n='521'+n.slice(2);else if(n.length===13&&n.startsWith('521')){}else n='521'+n.slice(-10);return n;}
+  function cleanWA(p){
+    var n=(p||'').toString().replace(/\D/g,'');
+    if(!n) return n;
+    if(n.length===10) return '521'+n; // MX sin ningún prefijo -> agregar 521
+    if(n.startsWith('52')&&n.length===12) return '521'+n.slice(2); // MX con 52 pero sin el 1 extra
+    if(n.startsWith('521')&&n.length===13) return n; // MX ya en formato exacto
+    return n; // ya trae su propio código de país completo (EE.UU./Canadá con 1, Colombia con 57, etc.) -- no tocar
+  }
+
+  // ── COLOR POR NIVEL (compartido con Asesor, Asistente CE, Alumno,
+  // Maestro y Dirección -- mismo mapa en TODOS los paneles) ──
+  // nivelBaseParaColor_() le quita cualquier sufijo de bloque (".N" o
+  // "-Bloque N", con o sin el prefijo "NIVEL ") antes de buscar el color,
+  // así que agregar un bloque nuevo nunca requiere tocar esta función.
+  var COLOR_POR_NIVEL_MAP = {
+    'PRE-A1': '#64748b',
+    'A1':     '#1e3a6e',
+    'A2':     '#0891b2',
+    'B1':     '#16a34a',
+    'B2':     '#ea580c',
+    'C1':     '#7c3aed',
+    'C2':     '#db2777'
+  };
+  function nivelBaseParaColor_(nivelCrudo) {
+    var v = String(nivelCrudo || '').toUpperCase().replace(/^NIVEL\s*/, '').trim();
+    v = v.replace(/-BLOQUE\s*\d+/, '');
+    v = v.replace(/\.\d+$/, '');
+    if (v === 'STARTER' || v === 'PREA1') v = 'PRE-A1';
+    if (v === 'BASIC') v = 'A1';
+    if (v === 'ELEMENTARY') v = 'A2';
+    if (v === 'INTERMEDIATE') v = 'B1';
+    if (v === 'UPPER INTERMEDIATE' || v === 'UPPER-INTERMEDIATE') v = 'B2';
+    if (v === 'ADVANCED') v = 'C1';
+    return v;
+  }
+  function colorPorNivel(nivelCrudo) {
+    return COLOR_POR_NIVEL_MAP[nivelBaseParaColor_(nivelCrudo)] || '#94a3b8';
+  }
 
   var colocadorData    = null;
   var todosGrupos      = [];
@@ -481,13 +518,14 @@
     var html = '';
     Object.keys(porNivel).sort().forEach(function(nivel) {
       var nivelId = 'nivel-' + nivel.replace(/\s+/g,'_');
+      var colorNivel = colorPorNivel(nivel);
       html += '<div class="nivel-seccion">';
-      html += '<div class="nivel-titulo" style="cursor:pointer;user-select:none;" onclick="toggleNivel(\'' + nivelId + '\', this)">' + nivel + ' <span style="float:right;">▼</span></div>';
+      html += '<div class="nivel-titulo" style="cursor:pointer;user-select:none;background:' + colorNivel + '22;color:' + colorNivel + ';border:1px solid ' + colorNivel + '55;" onclick="toggleNivel(\'' + nivelId + '\', this)">' + nivel + ' <span style="float:right;">▼</span></div>';
       html += '<div id="' + nivelId + '" style="display:none;">';
       porNivel[nivel].forEach(function(g) {
         var pocas = g.lugares <= 3;
         var colorNombre = (g.nombre||'').toLowerCase().includes('adolescente') ? '#fbbf24' : '#f1f5f9';
-        html += '<div class="grupo-card">' +
+        html += '<div class="grupo-card" style="border-left:3px solid ' + colorNivel + ';">' +
           '<div><div class="g-id">' + g.idGrupo + ' — <span style="color:' + colorNombre + ';font-weight:700;">' + g.nombre + '</span></div><div class="g-horario">' + g.horario + ' · Lun a Jue</div></div>' +
           '<div class="g-estado">Asistente CE:<br><span>' + (g.asistente || '—') + '</span></div>' +
           '<div class="g-estado">Maestro:<br><span>' + (g.maestro || '—') + '</span></div>' +
@@ -584,12 +622,13 @@ function toggleNivel(id, btn) {
     }
     document.getElementById('modalGruposLista').innerHTML = lista.map(function(g) {
       var pocas = g.lugares <= 3;
-      return '<div class="grupo-opcion" onclick="seleccionarGrupo(\'' + g.idGrupo + '\', this)">' +
+      var colorNivel = colorPorNivel(g.nivel);
+      return '<div class="grupo-opcion" style="border-left:3px solid ' + colorNivel + ';" onclick="seleccionarGrupo(\'' + g.idGrupo + '\', this)">' +
         '<div class="go-header">' +
           '<span class="go-id">' + g.idGrupo + ' — ' + g.nombre + '</span>' +
           '<span class="go-plazas' + (pocas ? ' pocas' : '') + '">' + g.lugares + ' plazas</span>' +
         '</div>' +
-        '<div class="go-detalle">' + g.horario + ' · ' + g.nivel + '</div>' +
+        '<div class="go-detalle">' + g.horario + ' · <span style="color:' + colorNivel + ';font-weight:700;">' + g.nivel + '</span></div>' +
         '<div class="go-estado">' + (g.estado||'') + ' · CE: ' + (g.asistente||'—') + ' · Maestro: ' + (g.maestro||'—') + '</div>' +
       '</div>';
     }).join('');
