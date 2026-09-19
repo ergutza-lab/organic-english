@@ -650,13 +650,26 @@ function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'bec
 let asistente=null,datosPanel=null;
 
 // ── COLOR POR NIVEL (compartido con Asesor, Colocación, Maestro Alumno,
-// Dirección y Horario -- misma paleta y mismo orden en TODOS los paneles,
-// para que un nivel se vea siempre del mismo color en cualquier lado) ──
-// El color se asigna por POSICIÓN dentro de NIVELES_ORDEN, no por el texto
-// del nivel -- así, agregar un nivel nuevo (ej. "C2.1") a esa lista le da
-// color automáticamente sin tocar esta función nunca más.
+// Dirección y Horario -- mismo mapa en TODOS los paneles, para que un
+// nivel se vea siempre del mismo color en cualquier lado) ──
+// NIVELES_ORDEN / normalizarNivel se usan en otras partes del sistema para
+// distinguir "A1.1" como nivel aparte de "A1" -- eso NO se toca aquí.
+// Para el COLOR, en cambio, todos los bloques de un mismo nivel (A1.1,
+// A1.2, A1.3... o "A1-Bloque 1", "A1-Bloque 2"...) deben verse IGUAL, así
+// que nivelBaseParaColor_() le quita cualquier sufijo de bloque antes de
+// buscar el color -- agregar un bloque nuevo (A2.3, etc.) nunca requiere
+// tocar esta función.
 var NIVELES_ORDEN = ['PRE-A1','A1','A1.1','A2','B1','B1.2','B2','C1','C2'];
-var PALETA_COLOR_NIVEL = ['#64748b','#38bdf8','#0ea5e9','#22c55e','#eab308','#f97316','#ef4444','#a855f7','#ec4899'];
+
+var COLOR_POR_NIVEL_MAP = {
+  'PRE-A1': '#64748b', // Starter -- gris pizarra
+  'A1':     '#1e3a6e', // azul marino
+  'A2':     '#0891b2', // cyan / turquesa
+  'B1':     '#16a34a', // verde
+  'B2':     '#ea580c', // naranja
+  'C1':     '#7c3aed', // morado
+  'C2':     '#db2777'  // rosa -- NO estaba en la imagen de referencia; elegido para continuar la escala, confírmalo o dime cuál prefieres
+};
 
 function normalizarNivel(n) {
   var v = String(n || '').toUpperCase().replace(/^NIVEL\s*/,'').replace(/-BLOQUE\s*\d+/,'').trim();
@@ -672,11 +685,22 @@ function normalizarNivel(n) {
   return v;
 }
 
+function nivelBaseParaColor_(nivelCrudo) {
+  var v = String(nivelCrudo || '').toUpperCase().replace(/^NIVEL\s*/, '').trim();
+  v = v.replace(/-BLOQUE\s*\d+/, '');   // "A2-Bloque 1" -> "A2"
+  v = v.replace(/\.\d+$/, '');          // "A1.2" -> "A1", "A2.1" -> "A2" (no toca "PRE-A1")
+  if (v === 'STARTER' || v === 'PREA1') v = 'PRE-A1';
+  if (v === 'BASIC') v = 'A1';
+  if (v === 'ELEMENTARY') v = 'A2';
+  if (v === 'INTERMEDIATE') v = 'B1';
+  if (v === 'UPPER INTERMEDIATE' || v === 'UPPER-INTERMEDIATE') v = 'B2';
+  if (v === 'ADVANCED') v = 'C1';
+  return v;
+}
+
 function colorPorNivel(nivelCrudo) {
-  var nivelNorm = normalizarNivel(nivelCrudo);
-  var idx = NIVELES_ORDEN.indexOf(nivelNorm);
-  if (idx === -1) return '#94a3b8'; // nivel desconocido/no reconocido -> gris neutro
-  return PALETA_COLOR_NIVEL[idx % PALETA_COLOR_NIVEL.length];
+  var base = nivelBaseParaColor_(nivelCrudo);
+  return COLOR_POR_NIVEL_MAP[base] || '#94a3b8'; // nivel desconocido/no reconocido -> gris neutro
 }
 let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null,pagoActivoFila=null;
 let pagoActivoCoberturaInicio=null,pagoActivoCoberturaFin=null;
