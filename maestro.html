@@ -363,6 +363,36 @@
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
+  // ── COLOR POR NIVEL (compartido con Asesor, Asistente CE, Alumno,
+  // Colocación y Dirección -- mismo mapa en TODOS los paneles) ──
+  // nivelBaseParaColor_() le quita cualquier sufijo de bloque (".N" o
+  // "-Bloque N", con o sin el prefijo "NIVEL ") antes de buscar el color,
+  // así que agregar un bloque nuevo nunca requiere tocar esta función.
+  var COLOR_POR_NIVEL_MAP = {
+    'PRE-A1': '#64748b',
+    'A1':     '#1e3a6e',
+    'A2':     '#0891b2',
+    'B1':     '#16a34a',
+    'B2':     '#ea580c',
+    'C1':     '#7c3aed',
+    'C2':     '#db2777'
+  };
+  function nivelBaseParaColor_(nivelCrudo) {
+    var v = String(nivelCrudo || '').toUpperCase().replace(/^NIVEL\s*/, '').trim();
+    v = v.replace(/-BLOQUE\s*\d+/, '');
+    v = v.replace(/\.\d+$/, '');
+    if (v === 'STARTER' || v === 'PREA1') v = 'PRE-A1';
+    if (v === 'BASIC') v = 'A1';
+    if (v === 'ELEMENTARY') v = 'A2';
+    if (v === 'INTERMEDIATE') v = 'B1';
+    if (v === 'UPPER INTERMEDIATE' || v === 'UPPER-INTERMEDIATE') v = 'B2';
+    if (v === 'ADVANCED') v = 'C1';
+    return v;
+  }
+  function colorPorNivel(nivelCrudo) {
+    return COLOR_POR_NIVEL_MAP[nivelBaseParaColor_(nivelCrudo)] || '#94a3b8';
+  }
+
   var maestroData = null;
   var materialData = [];
   var panelData   = null;
@@ -560,11 +590,10 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
     }
     var inicio=g.fechaInicio?new Date(g.fechaInicio):null;
     var inicioStr=inicio?inicio.getDate()+'/'+(inicio.getMonth()+1)+'/'+inicio.getFullYear():'—';
-    var esBloque2 = g.nivel && g.nivel.toLowerCase().includes('bloque 2');
-    var nivelColor = esBloque2 ? '#67e8f9' : '#facc15';
+    var nivelColor = colorPorNivel(g.nivel);
     var nombre = g.nombre || '';
     var esAdolescente = nombre.toLowerCase().includes('adolescente');
-    return '<div style="margin-bottom:16px;background:var(--card);border-radius:14px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;">'
+    return '<div style="margin-bottom:16px;background:var(--card);border-radius:14px;border:1px solid rgba(255,255,255,0.06);border-left:4px solid '+nivelColor+';overflow:hidden;">'
       +'<div style="display:flex;align-items:center;padding:16px 20px;gap:12px;">'
         +'<div style="flex:1;cursor:pointer;" onclick="abrirGrupo(\''+g.id+'\')">'
           +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
@@ -822,10 +851,21 @@ function actualizarEstadoFecha(fechaStr) {
   // Extrae el nivel "base" de un texto como "NIVEL A1-Bloque 1" -> "A1", o
   // "NIVEL A1.1" -> "A1.1" -- misma logica que usa el backend, para que el
   // material coincida con el grupo abierto sin importar el formato exacto.
+  // OJO: a diferencia de colorPorNivel, aquí SÍ se conserva ".1"/".2" como
+  // nivel distinto (ej. "A1.1" se queda como "A1.1", no colapsa a "A1"),
+  // porque el material de clases de A1.1 puede ser distinto al de A1 --
+  // este helper es solo para robustecer el reconocimiento del prefijo
+  // "NIVEL ", no para unificar bloques como sí hace el color.
   function extraerNivelBase(nivelCompleto) {
     var texto = String(nivelCompleto || '').trim();
-    var m = texto.match(/NIVEL\s+([A-Z0-9.\-]+?)(?:-Bloque|$)/i);
-    return (m ? m[1] : texto).trim().toUpperCase();
+    // Antes requería que el texto empezara EXACTAMENTE con "NIVEL " para
+    // funcionar -- si alguien escribía el nivel directo en Sheets (ej.
+    // "A2-Bloque 1", sin ese prefijo), no lo reconocía y devolvía el texto
+    // completo sin procesar. Ahora quita el prefijo si está presente, pero
+    // funciona igual de bien si no lo está.
+    var sinPrefijo = texto.replace(/^NIVEL\s+/i, '');
+    var m = sinPrefijo.match(/^([A-Z0-9.\-]+?)(?:-Bloque\s*\d+|$)/i);
+    return (m ? m[1] : sinPrefijo).trim().toUpperCase();
   }
 
   // Color del nombre del grupo segun su categoria (Adult/Teens/Kids/Kids Jr),
