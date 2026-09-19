@@ -648,6 +648,36 @@ function cleanWA(p){
 function esBecado(a){ return String(a.estatus||'').trim().toLowerCase() === 'becado'; }
 
 let asistente=null,datosPanel=null;
+
+// ── COLOR POR NIVEL (compartido con Asesor, Colocación, Maestro Alumno,
+// Dirección y Horario -- misma paleta y mismo orden en TODOS los paneles,
+// para que un nivel se vea siempre del mismo color en cualquier lado) ──
+// El color se asigna por POSICIÓN dentro de NIVELES_ORDEN, no por el texto
+// del nivel -- así, agregar un nivel nuevo (ej. "C2.1") a esa lista le da
+// color automáticamente sin tocar esta función nunca más.
+var NIVELES_ORDEN = ['PRE-A1','A1','A1.1','A2','B1','B1.2','B2','C1','C2'];
+var PALETA_COLOR_NIVEL = ['#64748b','#38bdf8','#0ea5e9','#22c55e','#eab308','#f97316','#ef4444','#a855f7','#ec4899'];
+
+function normalizarNivel(n) {
+  var v = String(n || '').toUpperCase().replace(/^NIVEL\s*/,'').replace(/-BLOQUE\s*\d+/,'').trim();
+  if (v === 'PRE-A1' || v === 'STARTER' || v === 'PREA1') return 'PRE-A1';
+  if (v === 'A1.1' || v === 'A1.1 BEGINNER' || v === 'A11') return 'A1.1';
+  if (v === 'A1' || v === 'BASIC') return 'A1';
+  if (v === 'A2' || v === 'ELEMENTARY') return 'A2';
+  if (v === 'B1' || v === 'INTERMEDIATE') return 'B1';
+  if (v === 'B1.2' || v === 'B12') return 'B1.2';
+  if (v === 'B2' || v === 'UPPER INTERMEDIATE' || v === 'UPPER-INTERMEDIATE') return 'B2';
+  if (v === 'C1' || v === 'ADVANCED') return 'C1';
+  if (v === 'C2') return 'C2';
+  return v;
+}
+
+function colorPorNivel(nivelCrudo) {
+  var nivelNorm = normalizarNivel(nivelCrudo);
+  var idx = NIVELES_ORDEN.indexOf(nivelNorm);
+  if (idx === -1) return '#94a3b8'; // nivel desconocido/no reconocido -> gris neutro
+  return PALETA_COLOR_NIVEL[idx % PALETA_COLOR_NIVEL.length];
+}
 let pagoActivoId=null,pagoActivoFecha=null,pagoActivoNombre=null,pagoActivoWA=null,pagoActivoFila=null;
 let pagoActivoCoberturaInicio=null,pagoActivoCoberturaFin=null;
 let grupoSeleccionadoCambio=null,alumnoSeleccionadoCambio=null,nivelActivo=null,gruposCompartirCambio=[];
@@ -819,7 +849,7 @@ function renderGruposPorNivel(nivelFiltro){
           <div class="grupo-row-inner">
             <span class="grupo-chip">${g.id}</span>
             <div class="grupo-info">
-              <div class="grupo-nombre-row" style="color:${colorNombre};">${g.nombre} <span style="color:#94a3b8;font-size:12px;font-weight:400">${g.nivel||''}</span></div>
+              <div class="grupo-nombre-row" style="color:${colorNombre};">${g.nombre} <span style="color:${colorPorNivel(g.nivel)};font-size:12px;font-weight:700">${g.nivel||''}</span></div>
               <div class="grupo-horario-row">${g.horario}</div>
               ${g.linkZoom
                 ? `<div style="margin-top:3px;display:flex;align-items:center;gap:5px;">
@@ -2469,7 +2499,7 @@ function generarReportePDF(idGrupo) {
     </div>
     <div style="text-align:right;">
       <div class="grupo-titulo">${g.id} — ${g.nombre}</div>
-      <div class="grupo-sub">${g.horario} · Inicio: ${g.fecha_inicio} · ${g.nivel||''}</div>
+      <div class="grupo-sub">${g.horario} · Inicio: ${g.fecha_inicio} · <span style="color:${colorPorNivel(g.nivel)};font-weight:700;">${g.nivel||''}</span></div>
       <div class="grupo-sub" style="margin-top:4px;color:#94a3b8;">Generado el ${fecha}</div>
     </div>
   </div>
