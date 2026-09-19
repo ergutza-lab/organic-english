@@ -1293,22 +1293,40 @@ var SHEET_ID = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
 var gruposCache = [];
 var NIVELES_ORDEN = ['PRE-A1','A1','A1.1','A2','B1','B1.2','B2','C1','C2'];
 
-// Paleta ordenada por posición en NIVELES_ORDEN, NO por el texto del nivel
-// -- así, cualquier nivel nuevo que se agregue a NIVELES_ORDEN (ej. "C2.1")
-// obtiene color automáticamente, sin tocar esta función nunca más. Si algún
-// día se agregan más niveles que colores en la paleta, se repiten en orden
-// (modulo) en vez de fallar.
-// IMPORTANTE: esta misma paleta y NIVELES_ORDEN deben mantenerse IDÉNTICOS
-// en todos los paneles (Asesor, Asistente CE, Colocación, Maestro Alumno,
-// Dirección, Horario) para que un mismo nivel se vea del mismo color en
-// todos lados.
-var PALETA_COLOR_NIVEL = ['#64748b','#38bdf8','#0ea5e9','#22c55e','#eab308','#f97316','#ef4444','#a855f7','#ec4899'];
+// Mapa de color SOLO por nivel base (sin importar el bloque). Para el
+// color, "A1.1", "A1.2", "A1.3"... (o "A1-Bloque 1", "A1-Bloque 2") deben
+// verse TODOS igual -- son el mismo nivel, distinto bloque. Por eso esta
+// función NO usa normalizarNivel() (esa sí distingue "A1.1" como nivel
+// aparte para otros usos del sistema, como filtros) -- aquí se le quita
+// cualquier sufijo de bloque (".N" o "-Bloque N") antes de buscar el color,
+// así que agregar un bloque nuevo (A1.4, A2.3, etc.) nunca requiere tocar
+// esta función.
+var COLOR_POR_NIVEL_MAP = {
+  'PRE-A1': '#64748b', // Starter -- gris pizarra
+  'A1':     '#1e3a6e', // azul marino
+  'A2':     '#0891b2', // cyan / turquesa
+  'B1':     '#16a34a', // verde
+  'B2':     '#ea580c', // naranja
+  'C1':     '#7c3aed', // morado
+  'C2':     '#db2777'  // rosa -- NO estaba en la imagen de referencia; elegido para continuar la escala, confírmalo o dime cuál prefieres
+};
+
+function nivelBaseParaColor_(nivelCrudo) {
+  var v = String(nivelCrudo || '').toUpperCase().replace(/^NIVEL\s*/, '').trim();
+  v = v.replace(/-BLOQUE\s*\d+/, '');   // "A2-Bloque 1" -> "A2"
+  v = v.replace(/\.\d+$/, '');          // "A1.2" -> "A1", "A2.1" -> "A2" (no toca "PRE-A1")
+  if (v === 'STARTER' || v === 'PREA1') v = 'PRE-A1';
+  if (v === 'BASIC') v = 'A1';
+  if (v === 'ELEMENTARY') v = 'A2';
+  if (v === 'INTERMEDIATE') v = 'B1';
+  if (v === 'UPPER INTERMEDIATE' || v === 'UPPER-INTERMEDIATE') v = 'B2';
+  if (v === 'ADVANCED') v = 'C1';
+  return v;
+}
 
 function colorPorNivel(nivelCrudo) {
-  var nivelNorm = normalizarNivel(nivelCrudo);
-  var idx = NIVELES_ORDEN.indexOf(nivelNorm);
-  if (idx === -1) return '#94a3b8'; // nivel desconocido/no reconocido -> gris neutro
-  return PALETA_COLOR_NIVEL[idx % PALETA_COLOR_NIVEL.length];
+  var base = nivelBaseParaColor_(nivelCrudo);
+  return COLOR_POR_NIVEL_MAP[base] || '#94a3b8'; // nivel desconocido/no reconocido -> gris neutro
 }
 
 function normalizarNivel(n) {
