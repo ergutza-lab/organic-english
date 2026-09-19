@@ -1293,6 +1293,24 @@ var SHEET_ID = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
 var gruposCache = [];
 var NIVELES_ORDEN = ['PRE-A1','A1','A1.1','A2','B1','B1.2','B2','C1','C2'];
 
+// Paleta ordenada por posición en NIVELES_ORDEN, NO por el texto del nivel
+// -- así, cualquier nivel nuevo que se agregue a NIVELES_ORDEN (ej. "C2.1")
+// obtiene color automáticamente, sin tocar esta función nunca más. Si algún
+// día se agregan más niveles que colores en la paleta, se repiten en orden
+// (modulo) en vez de fallar.
+// IMPORTANTE: esta misma paleta y NIVELES_ORDEN deben mantenerse IDÉNTICOS
+// en todos los paneles (Asesor, Asistente CE, Colocación, Maestro Alumno,
+// Dirección, Horario) para que un mismo nivel se vea del mismo color en
+// todos lados.
+var PALETA_COLOR_NIVEL = ['#64748b','#38bdf8','#0ea5e9','#22c55e','#eab308','#f97316','#ef4444','#a855f7','#ec4899'];
+
+function colorPorNivel(nivelCrudo) {
+  var nivelNorm = normalizarNivel(nivelCrudo);
+  var idx = NIVELES_ORDEN.indexOf(nivelNorm);
+  if (idx === -1) return '#94a3b8'; // nivel desconocido/no reconocido -> gris neutro
+  return PALETA_COLOR_NIVEL[idx % PALETA_COLOR_NIVEL.length];
+}
+
 function normalizarNivel(n) {
   var v = String(n || '').toUpperCase().replace(/^NIVEL\s*/,'').replace(/-BLOQUE\s*\d+/,'').trim();
   if (v === 'PRE-A1' || v === 'STARTER' || v === 'PREA1') return 'PRE-A1';
