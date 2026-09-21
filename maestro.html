@@ -329,9 +329,9 @@
 
       <!-- TAB EVALUACIÓN GRUPO -->
       <div id="contenidoMapa" style="display:none;">
-        <div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#67e8f9;">
-          <strong>💎 Sistema de Evaluación:</strong> El porcentaje global se calcula con: 80% Asistencia + 20% Verde+Azul. Todos comienzan en 100% y bajan según su desempeño.
-        </div>
+        <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#fff;">
+  <strong>💎 Sistema de Evaluación:</strong> El porcentaje global se calcula con: 80% Asistencia + 20% Verde+Azul. Todos comienzan en 100% y bajan según su desempeño.
+</div>
         <div id="listaMapas"><div class="loading">Cargando evaluación...</div></div>
       </div>
 
@@ -1417,22 +1417,16 @@ function renderMapas(resultados) {
       +'</svg>';
 
     var bloqueActual = r.bloque || 1;
-    // Solo cuenta como "aprobado/pendiente" del bloque ACTUAL -- asi el
-    // area principal de Mini/Grand Challenge queda lista/vacia otra vez
-    // cuando el grupo pasa a Bloque 2, sin perder el historial del
-    // Bloque 1 (se muestra aparte, en chico, junto a la joya).
     var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado; });
     var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===bloqueActual && c.aprobado; });
     var miniNoAprobo  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado===false; });
     var grandNoAprobo = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===bloqueActual && c.aprobado===false; });
 
-    // Historial del Bloque 1 (solo tiene sentido mostrarlo si el grupo ya
-    // esta en Bloque 2 -- si sigue en Bloque 1, "actual" y "B1" son lo mismo).
     var tieneMiniB1  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===1 && c.aprobado; });
     var tieneGrandB1 = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===1 && c.aprobado; });
     var miniNoAproboB1  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===1 && c.aprobado===false; });
     var grandNoAproboB1 = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===1 && c.aprobado===false; });
-    
+
     function medalSVG(lit, noAprobo, w, h){
       w = w||38; h = h||52;
       var rc=lit?'#facc15':'#334155',mc=lit?'#fde047':'#334155',md=lit?'#ca8a04':'#1e293b',sc=lit?'#fff':'#475569';
@@ -1466,26 +1460,30 @@ function renderMapas(resultados) {
     var gp = function(c){ return total>0?Math.round((r.colores[c]/total)*100):0; };
 
     var colorSolidoCard = colorPorNivel(grupoActual.nivel);
-    return '<div class="mapa-card" style="padding-bottom:16px;background:'+colorSolidoCard+';">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+    return '<div class="mapa-card" style="padding:18px;background:'+colorSolidoCard+';border:1px solid rgba(255,255,255,0.15);">'
+
+      // ── Encabezado: nombre + estado ──
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
         +'<div>'
-          +'<div style="font-size:15px;font-weight:700;color:#f1f5f9;">'+r.alumno.nombre+'</div>'
-          +'<div style="font-size:11px;color:#64748b;">'+r.alumno.id+' · '+r.totalClases+' clases · Bloque '+r.bloque+'</div>'
+          +'<div style="font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.alumno.nombre+'</div>'
+          +'<div style="font-size:11px;color:rgba(255,255,255,0.85);">'+r.alumno.id+' · '+r.totalClases+' clases · Bloque '+r.bloque+'</div>'
         +'</div>'
-        +'<div style="font-size:13px;font-weight:700;color:'+r.estadoColor+';">'+r.estado+'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.estado+'</div>'
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">'
+
+      // ── Panel de gema + estado (fondo oscuro semitransparente) ──
+      +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">'
         +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
           +gemSVG
           +'<div style="font-size:13px;font-weight:800;color:'+gemaColor+';">'+pc+'%</div>'
         +'</div>'
         +'<div>'
-          +'<div style="font-size:14px;font-weight:700;color:#f1f5f9;">'+r.estado+'</div>'
-          +'<div style="font-size:11px;color:'+r.estadoColor+';">'+gemaLabel+'</div>'
+          +'<div style="font-size:14px;font-weight:700;color:#fff;">'+r.estado+'</div>'
+          +'<div style="font-size:11px;color:rgba(255,255,255,0.75);">'+gemaLabel+'</div>'
         +'</div>'
         +(bloqueActual===2
           ? '<div style="margin-left:auto;display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">'
-            +'<div style="font-size:8px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Bloque 1</div>'
+            +'<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">Bloque 1</div>'
             +'<div style="display:flex;gap:2px;" title="Mini Challenge B1: '+(tieneMiniB1?'Aprobado':miniNoAproboB1?'No aprobó':'Pendiente')+' · Grand Challenge B1: '+(tieneGrandB1?'Aprobado':grandNoAproboB1?'No aprobó':'Pendiente')+'">'
               +medalSVG(tieneMiniB1, miniNoAproboB1, 20, 27)
               +trophySVG(tieneGrandB1, grandNoAproboB1, 22, 27)
@@ -1493,53 +1491,61 @@ function renderMapas(resultados) {
           +'</div>'
           : '')
       +'</div>'
+
+      // ── Asistencia y Verde+Azul ──
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
-        +'<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;text-align:center;">'
-          +'<div style="font-size:18px;font-weight:700;'+(r.asistencia>=80?'color:#22c55e':r.asistencia>=75?'color:#facc15':'color:#ef4444')+'">'+r.asistencia+'%</div>'
-          +'<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Asistencia</div>'
+        +'<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;text-align:center;">'
+          +'<div style="font-size:18px;font-weight:700;'+(r.asistencia>=80?'color:#4ade80':r.asistencia>=75?'color:#fde047':'color:#f87171')+';text-shadow:0 1px 2px rgba(0,0,0,0.3);">'+r.asistencia+'%</div>'
+          +'<div style="font-size:10px;color:rgba(255,255,255,0.75);text-transform:uppercase;font-weight:600;">Asistencia</div>'
         +'</div>'
-        +'<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;text-align:center;">'
-          +'<div style="font-size:18px;font-weight:700;'+(r.positivos>=70?'color:#22c55e':r.positivos>=60?'color:#facc15':'color:#ef4444')+'">'+r.positivos+'%</div>'
-          +'<div style="font-size:10px;color:#64748b;text-transform:uppercase;">Verde+Azul</div>'
+        +'<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;text-align:center;">'
+          +'<div style="font-size:18px;font-weight:700;'+(r.positivos>=70?'color:#4ade80':r.positivos>=60?'color:#fde047':'color:#f87171')+';text-shadow:0 1px 2px rgba(0,0,0,0.3);">'+r.positivos+'%</div>'
+          +'<div style="font-size:10px;color:rgba(255,255,255,0.75);text-transform:uppercase;font-weight:600;">Verde+Azul</div>'
         +'</div>'
       +'</div>'
+
+      // ── 4 colores ──
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px;">'
-        +'<div style="background:rgba(239,68,68,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🔴</div><div style="font-size:12px;font-weight:700;color:#ef4444">'+gp(1)+'%</div></div>'
-        +'<div style="background:rgba(250,204,21,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🟡</div><div style="font-size:12px;font-weight:700;color:#facc15">'+gp(2)+'%</div></div>'
-        +'<div style="background:rgba(34,197,94,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🟢</div><div style="font-size:12px;font-weight:700;color:#22c55e">'+gp(3)+'%</div></div>'
-        +'<div style="background:rgba(59,130,246,0.15);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#3b82f6">'+gp(4)+'%</div></div>'
+        +'<div style="background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🔴</div><div style="font-size:12px;font-weight:700;color:#fff;">'+gp(1)+'%</div></div>'
+        +'<div style="background:rgba(250,204,21,0.25);border:1px solid rgba(250,204,21,0.4);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🟡</div><div style="font-size:12px;font-weight:700;color:#fff;">'+gp(2)+'%</div></div>'
+        +'<div style="background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.4);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🟢</div><div style="font-size:12px;font-weight:700;color:#fff;">'+gp(3)+'%</div></div>'
+        +'<div style="background:rgba(59,130,246,0.25);border:1px solid rgba(59,130,246,0.4);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:14px;">🔵</div><div style="font-size:12px;font-weight:700;color:#fff;">'+gp(4)+'%</div></div>'
       +'</div>'
+
+      // ── Mini + Grand Challenge ──
       +'<div style="display:flex;gap:8px;margin-bottom:10px;">'
-        +'<div style="flex:1;background:'+(tieneMini?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneMini?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
+        +'<div style="flex:1;background:rgba(0,0,0,0.3);border:1px solid '+(tieneMini?'rgba(251,191,36,0.5)':'rgba(255,255,255,0.15)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>'
-          +'<div style="font-size:9px;font-weight:700;color:'+(tieneMini?'#facc15':'#334155')+';text-transform:uppercase;">Mini Challenge · B'+bloqueActual+'</div>'
-         +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneMini?'#facc15':miniNoAprobo?'#ef4444':'#1e293b')+'">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
+          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;">Mini Challenge · B'+bloqueActual+'</div>'
+          +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneMini?'#fde047':miniNoAprobo?'#f87171':'rgba(255,255,255,0.7)')+';">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
           +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;})&&r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback
-            ?'<div style="margin-top:6px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px;text-align:left;">'
-              +'<div style="font-size:8px;font-weight:700;color:#facc15;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
-              +'<div style="font-size:10px;color:#cbd5e1;line-height:1.4;">'+r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
+            ?'<div style="margin-top:6px;background:rgba(0,0,0,0.35);border-radius:6px;padding:6px 8px;text-align:left;">'
+              +'<div style="font-size:8px;font-weight:700;color:#fde047;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
+              +'<div style="font-size:10px;color:#fff;line-height:1.4;">'+r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
               +'</div>'
             :'')
         +'</div>'
-        +'<div style="flex:1;background:'+(tieneGrand?'rgba(251,191,36,0.12)':'rgba(255,255,255,0.03)')+';border:'+(tieneGrand?'1px solid rgba(251,191,36,0.4)':'1px solid rgba(255,255,255,0.07)')+';border-radius:10px;padding:10px;text-align:center;">'
+        +'<div style="flex:1;background:rgba(0,0,0,0.3);border:1px solid '+(tieneGrand?'rgba(251,191,36,0.5)':'rgba(255,255,255,0.15)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>'
-          +'<div style="font-size:9px;font-weight:700;color:'+(tieneGrand?'#f97316':'#334155')+';text-transform:uppercase;">Grand Challenge · B'+bloqueActual+'</div>'
-         +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneGrand?'#f97316':grandNoAprobo?'#ef4444':'#1e293b')+'">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
+          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;">Grand Challenge · B'+bloqueActual+'</div>'
+          +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneGrand?'#fdba74':grandNoAprobo?'#f87171':'rgba(255,255,255,0.7)')+';">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
           +(r.challenges&&r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;})&&r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback
-            ?'<div style="margin-top:6px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px;text-align:left;">'
-              +'<div style="font-size:8px;font-weight:700;color:#f97316;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
-              +'<div style="font-size:10px;color:#cbd5e1;line-height:1.4;">'+r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
+            ?'<div style="margin-top:6px;background:rgba(0,0,0,0.35);border-radius:6px;padding:6px 8px;text-align:left;">'
+              +'<div style="font-size:8px;font-weight:700;color:#fdba74;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
+              +'<div style="font-size:10px;color:#fff;line-height:1.4;">'+r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
               +'</div>'
             :'')
         +'</div>'
       +'</div>'
+
+      // ── Observaciones recientes ──
       +(r.observaciones && r.observaciones.length > 0
-        ? '<div style="background:rgba(6,182,212,0.08);border-radius:8px;padding:10px;">'
+        ? '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px;">'
           +'<div style="font-size:10px;font-weight:700;color:#67e8f9;margin-bottom:6px;text-transform:uppercase;">📋 Observaciones recientes</div>'
           +r.observaciones.slice().reverse().map(function(o){
             return '<div style="display:flex;gap:8px;margin-bottom:4px;">'
-              +'<span style="font-size:10px;color:#475569;flex-shrink:0;">'+o.fecha+'</span>'
-              +'<span style="font-size:11px;color:#94a3b8;line-height:1.4;">'+o.texto+'</span>'
+              +'<span style="font-size:10px;color:rgba(255,255,255,0.6);flex-shrink:0;">'+o.fecha+'</span>'
+              +'<span style="font-size:11px;color:#fff;line-height:1.4;">'+o.texto+'</span>'
               +'</div>';
           }).join('')
           +'</div>'
