@@ -1730,21 +1730,13 @@ function verEvalGrupo(idGrupo, nombreGrupo){
     })
     .catch(function(){body.innerHTML='<div class="empty-state">Error al cargar.</div>';});
 }
-
-// ── PROMEDIO CANÓNICO ──
-function obtenerPromedioCanonico_(idAlumno, idGrupo){
-  return fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(!d||!d.success) return null;
-      var pcBloqueActual=d.porcentajeGlobal||0;
-      var enBloque2=d.bloque===2 && d.promedioNivel!==undefined && d.promedioNivel!==null;
-      return enBloque2 ? d.promedioNivel : pcBloqueActual;
-    })
-    .catch(function(){return null;});
-}
-
-// ── REPORTE DE EVALUACIÓN FINAL (PDF, por alumno) ──
+ 
+// ══════════════════════════════════════════════════════════════════
+//  REPORTE DE EVALUACIÓN (PDF, por alumno)
+//  Calcula Bloque 1 y Bloque 2 con la misma fórmula del backend:
+//    asistencia × 0.8 + (positivos / PRESENTES) × 0.2
+//  El "Promedio Final" es el promedio aritmético simple: (B1 + B2) / 2
+// ══════════════════════════════════════════════════════════════════
 function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
   var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
@@ -1752,16 +1744,12 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
   function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='📄';} }
 
-  Promise.all([
-      Promise.all([
-    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();})
-  ])
-    .then(function(resultados){
-      var data=resultados[0];
+  fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
       if(!data.success){alert('No se pudo cargar el historial de este alumno.');resetBtn();return;}
 
-      var alumno=data.alumno||{alumno:{}};
-      alumno={id:idAlumno,nombre:nombreAlumno,email:(data.alumno&&data.alumno.email)||'',fechaInscripcion:(data.alumno&&data.alumno.fechaInscripcion)||'—'};
+      var alumno={id:idAlumno,nombre:nombreAlumno,email:(data.alumno&&data.alumno.email)||'',fechaInscripcion:(data.alumno&&data.alumno.fechaInscripcion)||'—'};
       var grupo=data.grupo||{};
       var historial=data.historial||[];
       var challenges=data.challenges||[];
@@ -1769,7 +1757,8 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
       var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
 
-            function datosBloque(n){
+      // ── Nota de cada bloque: 80% asistencia + 20% positivos-sobre-presentes ──
+      function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
         var tot=rows.length;
         var colores={1:0,2:0,3:0,4:0};
@@ -1779,60 +1768,36 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         var mini=challengesConBloque.some(function(c){return c.tipo==='Mini' && (c.bloque||1)===n && c.aprobado;});
         var grand=challengesConBloque.some(function(c){return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===n && c.aprobado;});
 
-        // ── Cálculo EXACTO igual al del backend (getMapaGrupo / _calcularCalificacionBloqueGlobal_) ──
-        // - Asistencia: presentes / total de clases registradas (incluye ausentes)
-        // - Positivos (Verde+Azul): positivos / PRESENTES (no sobre el total)
-        // - Nota del bloque: asistencia×0.8 + positivos×0.2
-        // Antes esta función calculaba "positivosPct" sobre el total (mal) y no
-        // aplicaba el 80/20 -- por eso el Reporte de Evaluación mostraba 95%
-        // cuando el resto del sistema mostraba 96%.
         var asistPct = tot>0 ? Math.round((presentes/tot)*100) : 0;
         var pctPositivosSobrePresentes = presentes>0 ? Math.round((positivos/presentes)*100) : 0;
-        var notabloque = tot>0
+        var notaBloque = tot>0
           ? Math.round((asistPct * 0.8) + (pctPositivosSobrePresentes * 0.2))
           : 100;
 
         return {
-          tot:tot,
-          presentes:presentes,
-          positivos:positivos,
+          tot:tot, presentes:presentes, positivos:positivos,
           pct:function(c){return tot>0?Math.round((colores[c]/tot)*100):0;},
           asistPct:asistPct,
-          // positiivosPct ahora es "positivos sobre presentes" -- mismo numero que muestra el backend
           positivosPct:pctPositivosSobrePresentes,
-          // nota global del bloque, con la misma formula 80/20 que el resto del sistema
-          notaBloque:notabloque,
-          mini:mini,
-          grand:grand
+          notaBloque:notaBloque,
+          mini:mini, grand:grand
         };
       }
       var b1=datosBloque(1), b2=datosBloque(2);
 
       var BASE_COLOCACION=100;
       if(b1.tot===0 && b2.tot>0){
-        var presentesBase=Math.round(b2.tot*(BASE_COLOCACION/100));
+        var presentesBase=b2.tot;
         b1={
-          tot:b2.tot,
-          presentes:presentesBase,
-          positivos:presentesBase,
+          tot:b2.tot, presentes:presentesBase, positivos:presentesBase,
           pct:function(c){return 0;},
-          asistPct:BASE_COLOCACION,
-          positivosPct:BASE_COLOCACION,
-          mini:false,
-          grand:false,
-          esColocacion:true
+          asistPct:BASE_COLOCACION, positivosPct:BASE_COLOCACION,
+          notaBloque:BASE_COLOCACION,
+          mini:false, grand:false, esColocacion:true
         };
       }
 
-            // ── Evaluacion Final = promedio aritmetico simple de la nota del B1 y del B2 ──
-      // (coincide EXACTO con lo que muestra el preview de Cambio de Nivel en
-      // Control Academico, y con la regla de negocio confirmada: (B1+B2)/2).
-      // Antes se usaba "promedioCanonico" (via getEvaluacionAlumno), que
-      // aplicaba una formula distinta y daba un numero desfasado del resto
-      // de la plataforma. Tambien se calculaba "asistencia global" y
-      // "positivos global" combinados, pero ya no se usan para el Final.
       var totCombinado=(b1.tot||0)+(b2.tot||0);
-
       var asistGlobal = totCombinado>0
         ? (((b1.presentes||0)+(b2.presentes||0))/totCombinado*100).toFixed(2)
         : '0.00';
@@ -1840,20 +1805,15 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         ? (((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2)
         : '0.00';
 
-      var asistGlobalNum=parseFloat(asistGlobal), pctGlobalNum=parseFloat(pctGlobal);
-
-      // Promedio simple de las 2 notas de bloque (con 2 decimales)
+      // ── EVALUACIÓN FINAL = promedio aritmético simple (B1 + B2) / 2 ──
       var evaluacionFinalPct = ((b1.notaBloque + b2.notaBloque) / 2).toFixed(2);
 
-            // El estado ahora se clasifica sobre la EVALUACION FINAL (promedio simple B1+B2),
-      // no sobre la asistencia y positivos globales combinados. Asi el "Pase asegurado"
-      // refleja el mismo numero que ve el alumno como su nota final.
       var evaluacionFinalNum = parseFloat(evaluacionFinalPct);
-      var asistGlobalParaEstado = parseFloat(asistGlobal);
+      var asistGlobalNum = parseFloat(asistGlobal);
       var estadoTxt;
-      if(evaluacionFinalNum>=80 && asistGlobalParaEstado>=80) estadoTxt='Pase asegurado';
-      else if(evaluacionFinalNum>=70 && asistGlobalParaEstado>=80) estadoTxt='Pase con refuerzo';
-      else if(evaluacionFinalNum>=60 || asistGlobalParaEstado>=75) estadoTxt='Pendiente';
+      if(evaluacionFinalNum>=80 && asistGlobalNum>=80) estadoTxt='Pase asegurado';
+      else if(evaluacionFinalNum>=70 && asistGlobalNum>=80) estadoTxt='Pase con refuerzo';
+      else if(evaluacionFinalNum>=60 || asistGlobalNum>=75) estadoTxt='Pendiente';
       else estadoTxt='No acredita';
 
       function formatNivelDisplay_(nivelRaw){
@@ -1933,14 +1893,14 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
                 '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+b.pct(c)+'%</span>'+
               '</div>';
             }).join('');
-        var pctColor=b.positivosPct>=80?'#16a34a':b.positivosPct>=60?'#ca8a04':'#dc2626';
+        var pctColor=b.notaBloque>=80?'#16a34a':b.notaBloque>=60?'#ca8a04':'#dc2626';
         var medallas=medallaHtml(b.mini,'mini')+medallaHtml(b.grand,'grand');
         return '<div style="flex:1;min-width:230px;">'+
           '<div style="height:4px;width:40px;border-radius:4px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:7px;"></div>'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px;">'+
             '<div><div style="font-size:15px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
             '<div style="font-size:9px;color:#94a3b8;">'+sub+(b.esColocacion?'':(' · Asistencia '+b.asistPct+'%'))+'</div></div>'+
-            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+b.positivosPct+'%</div>'+
+            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+b.notaBloque+'%</div>'+
           '</div>'+
           colorRows+
           (medallas?('<div style="display:flex;gap:10px;justify-content:center;margin-top:9px;">'+medallas+'</div>'):'')+
@@ -2118,7 +2078,6 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='📜';} }
 
   Promise.all([
-      Promise.all([
     fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
     fetch(APPS_SCRIPT+'?action=getSiguienteFolioConstancia',{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false};})
   ]).then(function(results){
@@ -2128,11 +2087,8 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var alumno=data.alumno||{};
       var grupo=data.grupo||{};
       var historial=data.historial||[];
-      var challenges=data.challenges||[];
-      var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
-      var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
 
-            function datosBloque(n){
+      function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
         var tot=rows.length;
         var colores={1:0,2:0,3:0,4:0};
@@ -2140,8 +2096,6 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         var presentes=rows.filter(function(h){return h.asistencia;}).length;
         var positivos=colores[3]+colores[4];
 
-        // Misma formula que el backend y que el Reporte de Evaluacion:
-        // nota de bloque = asistencia*0.8 + (positivos/presentes)*0.2
         var asistPct = tot>0 ? Math.round((presentes/tot)*100) : 0;
         var pctPositivos = presentes>0 ? Math.round((positivos/presentes)*100) : 0;
         var notaBloque = tot>0
@@ -2471,15 +2425,12 @@ function renderEvaluaciones(){
     var acumColor=acum<0?'#ef4444':acum>=4?'#22c55e':'#f97316';
     var acumLabel=acum>=4?'Listo para subir nivel':acum<=-4?'Alerta - riesgo de bajar':''+acum+'/4 para subir';
 
-    var cardExtra = '';
-    var cardStyle = '';
     var btnEval = esSiMismo ? '' : '<button class="btn-evaluar-maestro" onclick="guardarEvalMaestro(\''+m.id+'\');">Guardar evaluacion</button>';
 
-    return '<div class="eval-card" id="evalcard_'+m.id+'" style="'+cardStyle+'">'+
+    return '<div class="eval-card" id="evalcard_'+m.id+'">'+
       '<div class="eval-card-header">'+foto+
         '<div><div class="eval-nombre">'+m.nombre+'</div><div class="eval-id">'+m.id+'</div></div>'+
       '</div>'+
-      cardExtra+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
         '<div class="nivel-badge nivel-'+nv.n+'" style="margin-bottom:0;"><span style="width:8px;height:8px;border-radius:50%;background:'+nv.color+';display:inline-block;"></span>'+
         (nv.n?'Nivel '+nv.n+' $'+nv.costo+'/clase':'Sin nivel')+'</div>'+
@@ -2580,7 +2531,7 @@ function guardarEvalMaestro(idMaestro){
   });
 }
 
-// ── REPORTE DE CALIFICACIONES ──
+// ── REPORTE DE CALIFICACIONES (tab) ──
 function poblarSelectGrupos(){
   var sel=document.getElementById('reporteGrupoSelect');
   sel.innerHTML='<option value="">Selecciona un grupo...</option>';
@@ -2710,7 +2661,11 @@ function switchTab(nombre){
 //  CAMBIO DE NIVEL -- lógica completa
 // ═══════════════════════════════════════════════════════════════════
 
-// Rellena el <select> del paso 1 con los grupos candidatos
+// Rellena el <select> del paso 1 con los grupos candidatos.
+// Lee el texto crudo de la columna E de GRUPOS ("NIVEL A2-Bloque 1") y lo
+// muestra como "A2 · B1" -- sin depender de bloqueActual/semanaActual
+// (que se calculan por fecha de inicio y pueden estar desactualizados
+// antes de ejecutar el cambio).
 function poblarSelectCambioNivel(){
   var sel = document.getElementById('cnGrupoSelect');
   if (!sel) return;
@@ -2725,11 +2680,6 @@ function poblarSelectCambioNivel(){
   });
 
   sel.innerHTML = '<option value="">— Selecciona un grupo —</option>' + candidatos.map(function(g){
-    // Leer el nivel DIRECTO del texto de Sheets (columna E de GRUPOS):
-    // "NIVEL A2-Bloque 1" -> mostramos "A2 · B1"
-    // Esto evita depender de bloqueActual/semanaActual (que se calculan
-    // por fecha de inicio y pueden estar desactualizados antes de que se
-    // ejecute el cambio de nivel).
     var nivelTexto = String(g.nivel||'').replace(/^NIVEL\s+/i, '');
     var matchBloque = nivelTexto.match(/^(.*?)-Bloque\s*(\d+)$/i);
     var etiquetaNivel;
@@ -2752,9 +2702,7 @@ function extraerNivelBaseCA(nivelRaw){
 
 // Inicializa la pantalla (se llama cada vez que se entra al tab)
 function cnInicializarPantalla(){
-  // Repoblar por si acaso cambió la lista de grupos
   poblarSelectCambioNivel();
-  // Reset del preview
   document.getElementById('cnPreviewContainer').innerHTML = '';
   cnGrupoActual = null;
   cnPreviewData = null;
@@ -2778,14 +2726,14 @@ function cnCargarPreview(){
   cnGrupoActual = g;
   cont.innerHTML = '<div class="empty-state" style="padding:20px;">Cargando preview...</div>';
 
-  // Determinar nivel base actual
   var nivelBaseActual = extraerNivelBaseCA(g.nivel);
 
-  // Cargar preview via backend en modo dryRun (para que calcule B1/B2/promedio sin escribir nada)
+  // Llamada dryRun: calcula B1/B2/promedio sin escribir nada.
+  // Manda un nivelNuevo cualquiera solo para satisfacer la validación del backend.
   var params = 'action=archivarYResetearNivelGrupo'
     + '&idGrupo=' + encodeURIComponent(idGrupo)
     + '&nivelAnterior=' + encodeURIComponent(nivelBaseActual)
-    + '&nivelNuevo=' + encodeURIComponent('A2')  // placeholder solo para que valide
+    + '&nivelNuevo=' + encodeURIComponent('A2')
     + '&dryRun=true'
     + '&idCA=' + encodeURIComponent(caData.id);
 
@@ -2829,9 +2777,10 @@ function cnRenderPreview(data, g, nivelBaseActual){
       '</tr>';
     }).join('');
     var yaArch = (data.alumnosYaArchivados||[]).length;
+    var textoEncabezado = 'Alumnos que se van a archivar ('+totalAlumnos+' total'+(yaArch>0?(', de los cuales '+yaArch+' ya estaban archivados'):'')+'):';
     tablaAlumnos =
       '<div style="margin-top:14px;">'+
-        '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Alumnos que se van a archivar ('+totalAlumnos+' total'+(yaArch>0?(', de los cuales '+yaArch+' ya estaban archivados'):'')+'):</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">'+textoEncabezado+'</div>'+
         '<div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
           '<table class="cn-tabla">'+
             '<thead><tr><th>Alumno</th><th style="text-align:center;">B1</th><th style="text-align:center;">B2</th><th style="text-align:center;">Promedio</th></tr></thead>'+
@@ -2906,14 +2855,12 @@ function cnAbrirConfirmacion(){
   var nivelBaseActual = extraerNivelBaseCA(cnGrupoActual.nivel);
   var data = cnPreviewData;
 
-  // Rellenar el modal
   document.getElementById('mcnGrupoId').textContent = grupoId;
   document.getElementById('mcnGrupoNombre').textContent = (cnGrupoActual.nombre||'') + ' · ' + cnGrupoActual.horario;
   document.getElementById('mcnNivelAnterior').textContent = nivelBaseActual;
   document.getElementById('mcnNivelNuevo').textContent = nuevoNivel;
   document.getElementById('mcnTotalAlumnos').textContent = data.totalArchivar + data.totalYaArchivados;
 
-  // Llenar la tabla de alumnos
   var tbody = document.querySelector('#mcnTablaAlumnos tbody');
   var filas = (data.alumnos||[]).map(function(a){
     return '<tr>'+
@@ -2925,15 +2872,12 @@ function cnAbrirConfirmacion(){
   }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);">Sin alumnos activos</td></tr>';
   tbody.innerHTML = filas;
 
-  // Resetear checkbox y botón
   document.getElementById('mcnConfirmCheck').checked = false;
   mcnActualizarBoton();
   document.getElementById('mcnStatus').textContent = '';
 
-  // Guardar el nuevo nivel para cuando confirme
   window._cnNuevoNivelSeleccionado = nuevoNivel;
 
-  // Mostrar el modal
   document.getElementById('modalConfirmarCambioNivel').classList.add('visible');
 }
 
@@ -2987,7 +2931,6 @@ function mcnEjecutarCambio(){
         status.textContent = '✅ Nivel archivado. ' + (data.totalArchivados || 0) + ' alumno(s) guardado(s). El grupo ahora está en NIVEL ' + nuevoNivel + '-Bloque 1.';
         status.style.color = '#4ade80';
         btn.textContent = 'Listo';
-        // Recargar datos y cerrar después de 2.5s
         setTimeout(function(){
           cerrarModalCambioNivel();
           cargarDatos();
@@ -3010,7 +2953,7 @@ function mcnEjecutarCambio(){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  HISTORIAL DE NIVELES ANTERIORES (dentro del modal de Maestro)
+//  HISTORIAL DE NIVELES ANTERIORES
 // ═══════════════════════════════════════════════════════════════════
 
 function abrirHistorialNiveles(idGrupo, nombreGrupo){
@@ -4324,4 +4267,4 @@ setInterval(revisarActividadAgenda, 60000);
 </script>
 
 </body>
-</html> 
+</html>
