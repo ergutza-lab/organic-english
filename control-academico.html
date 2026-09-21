@@ -1753,11 +1753,11 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='📄';} }
 
   Promise.all([
-    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
-    obtenerPromedioCanonico_(idAlumno, idGrupo)
+      Promise.all([
+    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();})
   ])
     .then(function(resultados){
-      var data=resultados[0], promedioCanonico=resultados[1];
+      var data=resultados[0];
       if(!data.success){alert('No se pudo cargar el historial de este alumno.');resetBtn();return;}
 
       var alumno=data.alumno||{alumno:{}};
@@ -1769,7 +1769,7 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
       var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
 
-      function datosBloque(n){
+            function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
         var tot=rows.length;
         var colores={1:0,2:0,3:0,4:0};
@@ -1778,13 +1778,30 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         var positivos=colores[3]+colores[4];
         var mini=challengesConBloque.some(function(c){return c.tipo==='Mini' && (c.bloque||1)===n && c.aprobado;});
         var grand=challengesConBloque.some(function(c){return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===n && c.aprobado;});
+
+        // ── Cálculo EXACTO igual al del backend (getMapaGrupo / _calcularCalificacionBloqueGlobal_) ──
+        // - Asistencia: presentes / total de clases registradas (incluye ausentes)
+        // - Positivos (Verde+Azul): positivos / PRESENTES (no sobre el total)
+        // - Nota del bloque: asistencia×0.8 + positivos×0.2
+        // Antes esta función calculaba "positivosPct" sobre el total (mal) y no
+        // aplicaba el 80/20 -- por eso el Reporte de Evaluación mostraba 95%
+        // cuando el resto del sistema mostraba 96%.
+        var asistPct = tot>0 ? Math.round((presentes/tot)*100) : 0;
+        var pctPositivosSobrePresentes = presentes>0 ? Math.round((positivos/presentes)*100) : 0;
+        var notabloque = tot>0
+          ? Math.round((asistPct * 0.8) + (pctPositivosSobrePresentes * 0.2))
+          : 100;
+
         return {
           tot:tot,
           presentes:presentes,
           positivos:positivos,
           pct:function(c){return tot>0?Math.round((colores[c]/tot)*100):0;},
-          asistPct:tot>0?Math.round((presentes/tot)*100):0,
-          positivosPct:tot>0?Math.round((positivos/tot)*100):0,
+          asistPct:asistPct,
+          // positiivosPct ahora es "positivos sobre presentes" -- mismo numero que muestra el backend
+          positivosPct:pctPositivosSobrePresentes,
+          // nota global del bloque, con la misma formula 80/20 que el resto del sistema
+          notaBloque:notabloque,
           mini:mini,
           grand:grand
         };
@@ -1807,20 +1824,36 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         };
       }
 
+            // ── Evaluacion Final = promedio aritmetico simple de la nota del B1 y del B2 ──
+      // (coincide EXACTO con lo que muestra el preview de Cambio de Nivel en
+      // Control Academico, y con la regla de negocio confirmada: (B1+B2)/2).
+      // Antes se usaba "promedioCanonico" (via getEvaluacionAlumno), que
+      // aplicaba una formula distinta y daba un numero desfasado del resto
+      // de la plataforma. Tambien se calculaba "asistencia global" y
+      // "positivos global" combinados, pero ya no se usan para el Final.
       var totCombinado=(b1.tot||0)+(b2.tot||0);
-      var pctGlobal=totCombinado>0?(((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2):'0.00';
-      var asistGlobal=totCombinado>0?(((b1.presentes||0)+(b2.presentes||0))/totCombinado*100).toFixed(2):'0.00';
+
+      var asistGlobal = totCombinado>0
+        ? (((b1.presentes||0)+(b2.presentes||0))/totCombinado*100).toFixed(2)
+        : '0.00';
+      var pctGlobal = totCombinado>0
+        ? (((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2)
+        : '0.00';
 
       var asistGlobalNum=parseFloat(asistGlobal), pctGlobalNum=parseFloat(pctGlobal);
 
-      var evaluacionFinalPct = (promedioCanonico!==null && promedioCanonico!==undefined)
-        ? Number(promedioCanonico).toFixed(2)
-        : (asistGlobalNum*0.8 + pctGlobalNum*0.2).toFixed(2);
+      // Promedio simple de las 2 notas de bloque (con 2 decimales)
+      var evaluacionFinalPct = ((b1.notaBloque + b2.notaBloque) / 2).toFixed(2);
 
+            // El estado ahora se clasifica sobre la EVALUACION FINAL (promedio simple B1+B2),
+      // no sobre la asistencia y positivos globales combinados. Asi el "Pase asegurado"
+      // refleja el mismo numero que ve el alumno como su nota final.
+      var evaluacionFinalNum = parseFloat(evaluacionFinalPct);
+      var asistGlobalParaEstado = parseFloat(asistGlobal);
       var estadoTxt;
-      if(asistGlobalNum>=80 && pctGlobalNum>=70) estadoTxt='Pase asegurado';
-      else if(asistGlobalNum>=80 && pctGlobalNum>=60) estadoTxt='Pase con refuerzo';
-      else if(asistGlobalNum>=75 || pctGlobalNum>=60) estadoTxt='Pendiente';
+      if(evaluacionFinalNum>=80 && asistGlobalParaEstado>=80) estadoTxt='Pase asegurado';
+      else if(evaluacionFinalNum>=70 && asistGlobalParaEstado>=80) estadoTxt='Pase con refuerzo';
+      else if(evaluacionFinalNum>=60 || asistGlobalParaEstado>=75) estadoTxt='Pendiente';
       else estadoTxt='No acredita';
 
       function formatNivelDisplay_(nivelRaw){
@@ -2085,11 +2118,11 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   function resetBtn(){ if(btnEl){btnEl.disabled=false;btnEl.textContent='📜';} }
 
   Promise.all([
+      Promise.all([
     fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
-    fetch(APPS_SCRIPT+'?action=getSiguienteFolioConstancia',{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false};}),
-    obtenerPromedioCanonico_(idAlumno, idGrupo)
+    fetch(APPS_SCRIPT+'?action=getSiguienteFolioConstancia',{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false};})
   ]).then(function(results){
-      var data=results[0], folioData=results[1], promedioCanonico=results[2];
+      var data=results[0], folioData=results[1];
       if(!data.success){alert('No se pudo cargar la información de este alumno.');resetBtn();return;}
 
       var alumno=data.alumno||{};
@@ -2099,27 +2132,31 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
       var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
 
-      function datosBloque(n){
+            function datosBloque(n){
         var rows=historial.filter(function(h){return Number(h.bloque)===n;});
         var tot=rows.length;
         var colores={1:0,2:0,3:0,4:0};
         rows.forEach(function(h){ if(h.asistencia && h.color) colores[h.color]=(colores[h.color]||0)+1; });
         var presentes=rows.filter(function(h){return h.asistencia;}).length;
         var positivos=colores[3]+colores[4];
-        return {tot:tot,presentes:presentes,positivos:positivos};
+
+        // Misma formula que el backend y que el Reporte de Evaluacion:
+        // nota de bloque = asistencia*0.8 + (positivos/presentes)*0.2
+        var asistPct = tot>0 ? Math.round((presentes/tot)*100) : 0;
+        var pctPositivos = presentes>0 ? Math.round((positivos/presentes)*100) : 0;
+        var notaBloque = tot>0
+          ? Math.round((asistPct * 0.8) + (pctPositivos * 0.2))
+          : 100;
+
+        return {tot:tot,presentes:presentes,positivos:positivos,notaBloque:notaBloque};
       }
       var b1=datosBloque(1), b2=datosBloque(2);
       var BASE_COLOCACION=100;
       if(b1.tot===0 && b2.tot>0){
-        var presentesBase=Math.round(b2.tot*(BASE_COLOCACION/100));
-        b1={tot:b2.tot,presentes:presentesBase,positivos:presentesBase};
+        b1={tot:b2.tot,presentes:b2.tot,positivos:b2.tot,notaBloque:BASE_COLOCACION};
       }
-      var totCombinado=(b1.tot||0)+(b2.tot||0);
-      var pctGlobalNum=totCombinado>0?(((b1.positivos||0)+(b2.positivos||0))/totCombinado*100):0;
-      var asistGlobalNum=totCombinado>0?(((b1.presentes||0)+(b2.presentes||0))/totCombinado*100):0;
-      var evaluacionFinalPct = (promedioCanonico!==null && promedioCanonico!==undefined)
-        ? Number(promedioCanonico)
-        : (asistGlobalNum*0.8 + pctGlobalNum*0.2);
+      // Evaluacion Final = promedio simple (B1+B2)/2
+      var evaluacionFinalPct = ((b1.notaBloque + b2.notaBloque) / 2);
       var promedioSobre10=(evaluacionFinalPct/10).toFixed(1);
 
       function formatNivelDisplay_(nivelRaw){
