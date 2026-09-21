@@ -2677,7 +2677,6 @@ function switchTab(nombre){
 function poblarSelectCambioNivel(){
   var sel = document.getElementById('cnGrupoSelect');
   if (!sel) return;
-  // Solo grupos: no cancelados, no demo, no personalizado, no chat club
   var candidatos = (gruposData||[]).filter(function(g){
     if (String(g.estado||'').toUpperCase() === 'CANCELADO') return false;
     if (String(g.demo||'').toUpperCase() === 'DEMO') return false;
@@ -2689,10 +2688,20 @@ function poblarSelectCambioNivel(){
   });
 
   sel.innerHTML = '<option value="">— Selecciona un grupo —</option>' + candidatos.map(function(g){
-    var nivelLimpio = extraerNivelBaseCA(g.nivel);
-    var bloque = (g.bloqueActual !== null && g.bloqueActual !== undefined) ? (' · B' + g.bloqueActual) : '';
-    var sem = (g.semanaActual !== null && g.semanaActual !== undefined) ? (' · Sem ' + g.semanaActual) : '';
-    return '<option value="'+g.id+'">'+g.id+' · '+(g.nombre||'')+' · '+nivelLimpio+bloque+sem+' · '+g.horario+'</option>';
+    // Leer el nivel DIRECTO del texto de Sheets (columna E de GRUPOS):
+    // "NIVEL A2-Bloque 1" -> mostramos "A2 · B1"
+    // Esto evita depender de bloqueActual/semanaActual (que se calculan
+    // por fecha de inicio y pueden estar desactualizados antes de que se
+    // ejecute el cambio de nivel).
+    var nivelTexto = String(g.nivel||'').replace(/^NIVEL\s+/i, '');
+    var matchBloque = nivelTexto.match(/^(.*?)-Bloque\s*(\d+)$/i);
+    var etiquetaNivel;
+    if (matchBloque) {
+      etiquetaNivel = matchBloque[1].trim() + ' · B' + matchBloque[2];
+    } else {
+      etiquetaNivel = nivelTexto.trim();
+    }
+    return '<option value="'+g.id+'">'+g.id+' · '+(g.nombre||'')+' · '+etiquetaNivel+' · '+g.horario+'</option>';
   }).join('');
 }
 
