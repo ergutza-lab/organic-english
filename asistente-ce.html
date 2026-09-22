@@ -1048,10 +1048,19 @@ function copiarZoom(link) {
   });
 }
 
+// Mapa global indexado por fila: así no hay que pelear con escapes de
+// URLs llenas de &, #, " que rompen el onclick en el HTML.
+window._pagosPendientesMap = {};
+
 function renderPagos(){
   const cont=document.getElementById('lista-pagos');
   const pagos=datosPanel?.pagos_pendientes||[];
   if(!pagos.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">✅</div><h3>Todo al corriente</h3><p>No hay comprobantes pendientes.</p></div>`;return;}
+
+  // Guardar los pagos en el mapa global por fila
+  window._pagosPendientesMap = {};
+  pagos.forEach(function(p){ window._pagosPendientesMap[p.fila] = p; });
+
   cont.innerHTML=pagos.map(p=>{
     const esPdf=p.comprobante_url?.toLowerCase().includes('.pdf')||p.comprobante_url?.includes('drive.google.com');
     const tipoIcon=p.comprobante_url?(esPdf?'📄':'🖼️'):'❌';
@@ -1061,7 +1070,6 @@ function renderPagos(){
     const vencLabel=p.vencimiento_ultimo_pago
       ? `Venció: ${p.vencimiento_ultimo_pago}`
       : 'Sin pago previo validado';
-    const nombreEscapado=(p.nombre||'').replace(/'/g,"\\'");
     return `
     <div class="pago-card">
       <div class="pago-top">
@@ -1082,11 +1090,30 @@ function renderPagos(){
       </div>
       <div class="pago-actions">
         <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">Ver y validar</button>
-              <button class="btn-eliminar-comprobante" onclick="abrirModalEliminarComprobante('${p.id_alumno}','${p.fecha_pago}','${nombreEscapado}','${p.monto||0}',${p.fila},'${(cUrl||'').replace(/'/g,"\\'")}')" title="Eliminar este comprobante (duplicado o con error)">🗑️</button>
+        <button class="btn-eliminar-comprobante" onclick="abrirModalEliminarComprobantePorFila(${p.fila})" title="Eliminar este comprobante (duplicado o con error)">🗑️</button>
       </div>
     </div>`;
   }).join('');
 }
+
+// Punto de entrada desde el botón: solo recibe la fila (un número seguro),
+// y busca el resto de los datos en el mapa global. Esto evita TODOS los
+// problemas de escape de URLs con &, #, ", etc.
+function abrirModalEliminarComprobantePorFila(fila) {
+  var p = window._pagosPendientesMap[fila];
+  if (!p) {
+    mostrarToast('Este comprobante ya no está disponible. Cierra y reabre el panel.', 'error');
+    return;
+  }
+  abrirModalEliminarComprobante(
+    p.id_alumno,
+    p.fecha_pago,
+    p.nombre,
+    p.monto || 0,
+    p.fila,
+    p.comprobante_url || ''
+  );
+}  
 
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
