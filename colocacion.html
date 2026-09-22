@@ -62,6 +62,32 @@
   .btn-asignar:hover { opacity: 0.9; }
   .btn-sin-grupo { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 100px; padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
   .btn-sin-grupo:hover { background: rgba(239,68,68,0.2); }
+   /* Boton "Eliminar solicitud" -- solo aplica a la lista de recolocaciones
+     (alumnos YA inscritos que piden cambio de grupo y luego se arrepienten).
+     Es una baja logica: se marca la solicitud como cancelada, no cambia
+     nada en el grupo actual del alumno. Gris neutro + hover rojo para
+     indicar "accion secundaria destructiva" sin que sea llamativa al ojo. */
+  .btn-cancelar-recolocacion {
+    background: rgba(148,163,184,0.12);
+    border: 1px solid rgba(148,163,184,0.35);
+    color: #cbd5e1;
+    border-radius: 100px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .btn-cancelar-recolocacion:hover {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.45);
+    color: #fca5a5;
+  }
+  .btn-cancelar-recolocacion:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   /* GRUPOS */
   .nivel-seccion { margin-bottom: 24px; }
@@ -501,10 +527,11 @@
           '<div class="detalle" style="margin-top:4px;color:#94a3b8;">Motivo: ' + r.motivo + '</div>' +
           '<div class="detalle">Solicitud: ' + new Date(r.fecha).toLocaleDateString('es-MX') + '</div>' +
         '</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
           '<a class="btn-whatsapp-verde" href="https://wa.me/' + cleanWA(r.whatsapp) + '?text=' + msgWA + '" target="_blank">WhatsApp</a>' +
           '<button class="btn-examen" onclick="abrirExamen(\'' + r.idAlumno + '\', \'' + r.nombre.replace(/'/g,"\\'") + '\', \'' + (r.whatsapp||'') + '\', \'' + (r.email||'') + '\')">🎓 Examen de colocación</button>' +
           '<button class="btn-asignar" onclick="abrirModalCambioGrupo(\'' + r.idAlumno + '\')">🔄 Cambiar de grupo</button>' +
+          '<button class="btn-cancelar-recolocacion" onclick="cancelarRecolocacion(\'' + r.idAlumno + '\', \'' + r.nombre.replace(/'/g,"\\'") + '\')">🗑️ Eliminar solicitud</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -622,6 +649,41 @@ function toggleNivel(id, btn) {
     document.getElementById('modalAsignacion').classList.add('active');
   }
 
+  // Cancela la solicitud de recolocacion de un alumno YA inscrito.
+  // Es una baja logica: el backend marca la solicitud como "Cancelada"
+  // y el alumno desaparece de esta lista, pero NADA cambia en su grupo
+  // actual -- sigue inscrito exactamente donde estaba.
+  function cancelarRecolocacion(idAlumno, nombre) {
+    if (!confirm(
+      '¿Eliminar la solicitud de cambio de grupo de ' + nombre + '?\n\n' +
+      '• El alumno seguirá inscrito en su grupo actual.\n' +
+      '• Solo se quita esta solicitud de la lista de colocación.\n' +
+      '• Esta acción no cambia nada académico.'
+    )) return;
+
+    // Buscar todos los botones con ese id para deshabilitarlos y evitar doble clic
+    var botones = document.querySelectorAll('.btn-cancelar-recolocacion');
+    botones.forEach(function(b){ b.disabled = true; });
+
+    fetch(APPS_SCRIPT + '?action=cancelarSolicitudRecolocacion' +
+      '&idAlumno='    + encodeURIComponent(idAlumno) +
+      '&idColocador=' + encodeURIComponent(colocadorData.id))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.success) {
+          // Recargar la lista para que desaparezca de inmediato
+          cargarDatos();
+        } else {
+          alert('Error: ' + (data.error || 'No se pudo eliminar la solicitud.'));
+          botones.forEach(function(b){ b.disabled = false; });
+        }
+      })
+      .catch(function(){
+        alert('Error de conexión. Intenta de nuevo.');
+        botones.forEach(function(b){ b.disabled = false; });
+      });
+  }
+ 
   function renderGruposModal(nivelFiltro) {
     var lista = nivelFiltro ? todosGrupos.filter(function(g){ return g.nivel === nivelFiltro; }) : todosGrupos;
     if (!lista.length) {
