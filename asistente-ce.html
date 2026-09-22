@@ -386,9 +386,10 @@
         <div class="header-sub">Asistente CE</div>
       </div>
     </div>
-    <div class="header-right">
+       <div class="header-right">
       <img id="header-avatar" class="header-avatar" src="" alt="" onerror="this.style.display='none'">
       <span class="header-name" id="header-name"></span>
+      <button class="btn-salir" onclick="actualizarPanelAsistente()" style="background:rgba(34,197,94,0.18);border-color:rgba(34,197,94,0.4);color:#86efac;">🔄 Actualizar</button>
       <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
   </div>
@@ -742,6 +743,34 @@ setTimeout(()=>{
   if(c) c.addEventListener('keydown',e=>{if(e.key==='Enter')iniciarLogin();});
 },500);
 
+  // ── Rehidratación de sesión: al cargar la página, si hay una sesión
+// guardada, la restaura automáticamente y entra directo al panel.
+// Esto evita que el asistente tenga que volver a hacer login cada vez
+// que cambia a WhatsApp y regresa.
+(function rehidratarSesionAsistente() {
+  try {
+    const guardada = localStorage.getItem('oe_asistente_ce_sesion');
+    if (!guardada) return;
+    const datos = JSON.parse(guardada);
+    if (!datos || !datos.asistente || !datos.asistente.id) {
+      localStorage.removeItem('oe_asistente_ce_sesion');
+      return;
+    }
+    // Opcional: invalidar la sesión si tiene más de 7 días
+    const DIAS_VALIDEZ = 7;
+    if (datos.ts && (Date.now() - datos.ts) > DIAS_VALIDEZ * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('oe_asistente_ce_sesion');
+      return;
+    }
+    // Rehidratar y entrar directo al panel
+    asistente = datos.asistente;
+    mostrarPanel();
+  } catch (e) {
+    // Si algo falla, ignorar y dejar el login normal
+    try { localStorage.removeItem('oe_asistente_ce_sesion'); } catch(_) {}
+  }
+})();
+
 function iniciarLogin(){
   const id=document.getElementById('input-id').value.trim().toUpperCase();
   const clave=document.getElementById('input-clave').value.trim();
@@ -767,9 +796,42 @@ function mostrarPanel(){
   const av=document.getElementById('header-avatar');
   if(asistente.foto_url){av.src=asistente.foto_url;av.style.display='block';}
   else av.style.display='none';
+
+  // Guardar la sesión en localStorage para que NO se pierda cuando el
+  // celular recarga la página al volver de otra app (WhatsApp, cámara, etc).
+  try {
+    localStorage.setItem('oe_asistente_ce_sesion', JSON.stringify({
+      asistente: asistente,
+      ts: Date.now()
+    }));
+  } catch(e) { /* localStorage lleno o bloqueado -- sigue igual */ }
+
   cargarDatos();
 }
 
+// Refresca todos los datos del panel SIN sacar al asistente (sin reload,
+// sin perder sesión, sin cerrar la app). Mantiene el tab activo y el
+// estado de los modales abiertos si los hay.
+async function actualizarPanelAsistente() {
+  var btn = document.querySelector('button[onclick="actualizarPanelAsistente()"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.dataset.textoOriginal = btn.textContent;
+    btn.textContent = '⏳ Actualizando...';
+  }
+  try {
+    await cargarDatos();
+    mostrarToast('✅ Panel actualizado', 'success');
+  } catch (e) {
+    mostrarToast('Error al actualizar', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.textoOriginal || '🔄 Actualizar';
+    }
+  }
+}
+  
 function cerrarSesion(){
   asistente=null;datosPanel=null;nivelActivo=null;
   document.getElementById('nivel-selector').innerHTML='';
@@ -777,6 +839,10 @@ function cerrarSesion(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('input-id').value='';
   document.getElementById('input-clave').value='';
+  // Limpiar la sesión guardada -- si no, al recargar la página volvería a
+  // entrar automáticamente, que es lo opuesto a lo que quiere el usuario
+  // cuando da clic en "Salir".
+  try { localStorage.removeItem('oe_asistente_ce_sesion'); } catch(e) {}
 }
 
 async function cargarDatos(){
