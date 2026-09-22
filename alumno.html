@@ -120,30 +120,62 @@
     background: var(--color-nivel);
     border-color: rgba(255,255,255,0.15);
   }
-  #tab-datos .card .card-title,
+    #tab-datos .card .card-title,
   #tab-pagos .card .card-title { color: rgba(255,255,255,0.88); }
   #tab-datos .card .card-icon,
   #tab-pagos .card .card-icon { background: rgba(0,0,0,0.22) !important; }
+
+  /* Labels y textos secundarios sobre fondo de nivel: blancos legibles */
   #tab-datos .card .grupo-label,
   #tab-datos .card .grupo-sub,
   #tab-datos .card .persona-rol,
+  #tab-datos .card .field-label,
   #tab-pagos .card .field-label,
   #tab-pagos .card .pago-tipo,
-  #tab-pagos .card .reglamento-desc { color: rgba(255,255,255,0.72); }
+  #tab-pagos .card .reglamento-desc,
+  #tab-pagos .card .persona-rol,
+  #tab-pagos .card .califs-text,
+  #tab-pagos .card .progreso-labels,
+  #tab-pagos .card .hist-tabla th { color: rgba(255,255,255,0.9); }
+
+  /* Valores y montos: blanco puro */
   #tab-datos .card .grupo-val,
   #tab-datos .card .persona-nombre,
   #tab-datos .card .field-val,
+  #tab-datos .card .pago-tipo,
   #tab-pagos .card .field-val,
-  #tab-pagos .card .pago-monto { color: #fff; }
-  #tab-datos .card .field-row,
-  #tab-pagos .card .field-row { border-bottom-color: rgba(255,255,255,0.12); }
-  #tab-pagos .card .hist-tabla th { color: rgba(255,255,255,0.72); border-bottom-color: rgba(255,255,255,0.15); }
-  #tab-pagos .card .hist-tabla td { color: rgba(255,255,255,0.9); border-bottom-color: rgba(255,255,255,0.1); }
+  #tab-pagos .card .pago-tipo,
+  #tab-pagos .card .pago-monto,
   #tab-pagos .card .hist-monto { color: #fff; }
-  #tab-pagos .card .progreso-labels { color: rgba(255,255,255,0.72); }
-  #tab-pagos .card .progreso-bar { background: rgba(0,0,0,0.25); }
-  #tab-pagos .card .califs-text { color: rgba(255,255,255,0.9); }
-  #tab-pagos .card .pago-highlight { background: rgba(0,0,0,0.22); }
+
+  /* Header superior del alumno (ID / Correo / WhatsApp / Salir):
+     el header ahora usa el color del nivel, asi que los labels grises
+     oscuros deben ir claros para poder leerse bien. */
+  .info-alumno-bar .info-dato-label { color: rgba(255,255,255,0.75); }
+  .info-alumno-bar .info-dato-val { color: #fff; }
+  .info-alumno-bar .badge-id { background: rgba(0,0,0,0.35); color: #fff; }
+  .info-alumno-bar .btn-logout {
+    color: rgba(255,255,255,0.9);
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(0,0,0,0.2);
+  }
+  .info-alumno-bar .btn-logout:hover {
+    color: #fff;
+    border-color: #fff;
+    background: rgba(0,0,0,0.35);
+  }
+
+  /* Bordes y separadores suaves sobre el color del nivel */
+  #tab-datos .card .field-row,
+  #tab-pagos .card .field-row { border-bottom-color: rgba(255,255,255,0.15); }
+  #tab-pagos .card .hist-tabla th { border-bottom-color: rgba(255,255,255,0.18); }
+  #tab-pagos .card .hist-tabla td { color: rgba(255,255,255,0.95); border-bottom-color: rgba(255,255,255,0.12); }
+
+  /* Barras y cajas internas: negro sutil para dar contraste */
+  #tab-pagos .card .progreso-bar { background: rgba(0,0,0,0.3); }
+  #tab-pagos .card .pago-highlight { background: rgba(0,0,0,0.25); }
+
+  /* Boton "Cambiar grupo" sobre el color del nivel */
   #tab-datos .card .btn-cambiar-grupo {
     background: rgba(255,255,255,0.15);
     border-color: rgba(255,255,255,0.45);
@@ -2025,6 +2057,31 @@
   function bloqueDesbloqueadoAlumno() {
     return (alumnoData && alumnoData._bloqueActual) || 1;
   }
+    var ORDEN_NIVELES_OE = ['PRE-A1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+  function nivelDeSubnivelOE_(subnivel) {
+    if (!subnivel) return '';
+    var s = subnivel.indexOf('KIDS-') === 0 ? subnivel.slice(5) : subnivel;
+    var m = s.match(/^([A-Z0-9]+(?:-[A-Z0-9]+)?)\./);
+    return m ? m[1] : s;
+  }
+
+  // Regla de negocio:
+  //  - Niveles POR DEBAJO del nivel actual: SIEMPRE desbloqueados (ya los curso)
+  //  - Nivel ACTUAL del alumno: aplica la regla de bloque (solo su bloque actual
+  //    + los anteriores)
+  //  - Niveles SUPERIORES: bloqueados hasta avanzar
+  function subnivelEstaDesbloqueadoOE_(subnivel) {
+    if (subnivel && subnivel.indexOf('KIDS-') === 0) {
+      return bloqueDeSubnivel(subnivel) <= bloqueDesbloqueadoAlumno();
+    }
+    var nivelSub = nivelDeSubnivelOE_(subnivel);
+    var nivelAlumno = (alumnoData && alumnoData._nivelBase) || 'A1';
+    var idxSub = ORDEN_NIVELES_OE.indexOf(nivelSub);
+    var idxAlu = ORDEN_NIVELES_OE.indexOf(nivelAlumno);
+    if (idxSub !== -1 && idxAlu !== -1 && idxSub < idxAlu) return true;
+    return bloqueDeSubnivel(subnivel) <= bloqueDesbloqueadoAlumno();
+  }
   function mostrarAvisoNivelBloqueado() {
     document.getElementById('modalNivelPracticaTitulo').textContent = 'Nivel bloqueado';
     document.getElementById('modalNivelPracticaContenido').innerHTML =
@@ -2081,13 +2138,13 @@
     nivelPracticaActual = nivel;
     var lista = WORKBOOKS_POR_NIVEL[nivel] || [];
     var bloqueAlumno = bloqueDesbloqueadoAlumno();
-    var desbloqueados = lista.filter(function (w) { return bloqueDeSubnivel(w.subnivel) <= bloqueAlumno; });
+        var desbloqueados = lista.filter(function (w) { return subnivelEstaDesbloqueadoOE_(w.subnivel); });
     subnivelSeleccionado = desbloqueados.length ? desbloqueados[desbloqueados.length - 1].subnivel : (lista.length ? lista[0].subnivel : null);
     renderWorkbooksYLecciones();
   }
 
-  function seleccionarWorkbook(subnivel) {
-    if (bloqueDeSubnivel(subnivel) > bloqueDesbloqueadoAlumno()) return;
+    function seleccionarWorkbook(subnivel) {
+    if (!subnivelEstaDesbloqueadoOE_(subnivel)) return;
     subnivelSeleccionado = subnivel;
     renderWorkbooksYLecciones();
   }
@@ -2097,8 +2154,8 @@
     var bloqueAlumno = bloqueDesbloqueadoAlumno();
 
     var wb = document.getElementById('workbooksDescarga');
-    wb.innerHTML = lista.map(function (w) {
-      var bloqueado = bloqueDeSubnivel(w.subnivel) > bloqueAlumno;
+        wb.innerHTML = lista.map(function (w) {
+      var bloqueado = !subnivelEstaDesbloqueadoOE_(w.subnivel);
       return libroWorkbookHtml(w, w.subnivel === subnivelSeleccionado, bloqueado);
     }).join('');
 
@@ -7886,8 +7943,8 @@
   };
   Object.assign(LECCIONES_CONTENIDO, LECCIONES_A21_CONTENIDO);
 
-  function abrirLeccion(subnivel, numero) {
-    if (bloqueDeSubnivel(subnivel) > bloqueDesbloqueadoAlumno()) {
+    function abrirLeccion(subnivel, numero) {
+    if (!subnivelEstaDesbloqueadoOE_(subnivel)) {
       mostrarAvisoNivelBloqueado();
       return;
     }
@@ -8518,12 +8575,14 @@ function renderEvaluacionAlumno(d) {
     + '<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
     + '</svg>';
 
-  var gemaInline = document.getElementById('gemaInline');
+    var gemaInline = document.getElementById('gemaInline');
   if (gemaInline) {
-    var gemSVGchica = gemSVG.replace('width="60" height="68"', 'width="24" height="27"');
+    var gemSVGchica = gemSVG.replace('width="60" height="68"', 'width="26" height="29"');
     gemaInline.innerHTML =
-      gemSVGchica +
-      '<div style="font-size:12px;font-weight:800;color:'+gemaColor+';line-height:1.1;white-space:nowrap;">'+pc+'%</div>';
+      '<div style="background:rgba(0,0,0,0.45);border-radius:12px;padding:5px 10px;display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,0.2);box-shadow:0 2px 8px rgba(0,0,0,0.35);">' +
+        gemSVGchica +
+        '<div style="font-size:13px;font-weight:800;color:'+gemaColor+';line-height:1;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.5);">'+pc+'%</div>' +
+      '</div>';
   }
 
   if (enBloque2) {
