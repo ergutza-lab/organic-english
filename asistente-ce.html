@@ -180,6 +180,22 @@
     .btn-validar:active{transform:scale(.98)}
     .btn-rechazar{padding:9px 14px;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background .18s}
     .btn-rechazar:hover{background:var(--rojo-10)}
+        /* Boton compacto para eliminar un comprobante duplicado o con error.
+       Solo icono, para no invadir el flujo principal de "Ver y validar". */
+    .btn-eliminar-comprobante{
+      flex-shrink:0;
+      padding:9px 12px;
+      background:#fff;
+      color:var(--rojo);
+      border:1.5px solid var(--rojo);
+      border-radius:var(--r-md);
+      font-size:14px;
+      cursor:pointer;
+      transition:background .18s;
+      font-family:'Plus Jakarta Sans',sans-serif;
+    }
+    .btn-eliminar-comprobante:hover{background:var(--rojo-10)}
+    .btn-eliminar-comprobante:disabled{opacity:.4;cursor:not-allowed}
 
     /* NUEVOS CARDS */
     .nuevo-card{background:#fff;border-radius:var(--r-lg);padding:15px 18px;box-shadow:var(--shadow-sm);margin-bottom:9px;border:1px solid var(--gris-100);border-left:3px solid var(--azul-claro);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
@@ -611,7 +627,22 @@
   </div>
 </div>
 
-
+<!-- MODAL ELIMINAR COMPROBANTE PENDIENTE (duplicado o con error) -->
+<div class="modal-confirm-overlay" id="modal-eliminar-comprobante">
+  <div class="modal-confirm-box" style="text-align:left;">
+    <div class="modal-confirm-titulo">🗑️ Eliminar comprobante</div>
+    <div class="modal-confirm-sub" id="eliminar-comprobante-info" style="margin-bottom:14px;">—</div>
+    <p style="font-size:12px;color:var(--gris-500);margin-bottom:12px;">Esto <strong>borra el registro por completo</strong> de la base de datos. Úsalo solo para comprobantes duplicados o que ya no aplican. Si el comprobante está validado, usa el flujo de "Cancelar comprobante" en lugar de este.</p>
+    <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:4px;">Motivo (obligatorio)</label>
+    <textarea id="eliminar-comprobante-motivo" rows="3" placeholder="Ej. Duplicado del comprobante enviado el mismo día / Comprobante equivocado" style="width:100%;padding:10px 12px;border:1.5px solid var(--gris-200);border-radius:10px;font-size:14px;margin-bottom:6px;box-sizing:border-box;font-family:inherit;resize:vertical;"></textarea>
+    <div id="eliminar-comprobante-status" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;"></div>
+    <div class="modal-confirm-acciones">
+      <button class="btn-confirm-ok" id="btn-confirmar-eliminar-comprobante" style="background:#dc2626" onclick="ejecutarEliminarComprobante()">🗑️ Eliminar comprobante</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalEliminarComprobante()">Cancelar</button>
+    </div>
+  </div>
+</div>
+  
 <!-- MODAL: Avisos tras solicitar examen de colocacion (recolocacion) -->
 <div class="modal-confirm-overlay" id="modal-aviso-colocacion">
   <div class="modal-confirm-box" style="text-align:left;">
@@ -1030,6 +1061,7 @@ function renderPagos(){
     const vencLabel=p.vencimiento_ultimo_pago
       ? `Venció: ${p.vencimiento_ultimo_pago}`
       : 'Sin pago previo validado';
+    const nombreEscapado=(p.nombre||'').replace(/'/g,"\\'");
     return `
     <div class="pago-card">
       <div class="pago-top">
@@ -1050,6 +1082,7 @@ function renderPagos(){
       </div>
       <div class="pago-actions">
         <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">Ver y validar</button>
+        <button class="btn-eliminar-comprobante" onclick="abrirModalEliminarComprobante('${p.id_alumno}','${p.fecha_pago}','${nombreEscapado}','${p.monto||0}',${p.fila})" title="Eliminar este comprobante (duplicado o con error)">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -2044,6 +2077,93 @@ function abrirModalCancelarPago(idAlumno, fechaIso, nombre, monto) {
   document.getElementById('modal-cancelar-pago').classList.add('open');
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ELIMINAR COMPROBANTE PENDIENTE (duplicado o con error)
+// A diferencia de "rechazar" (que deja rastro), esto BORRA la fila
+// completa de PAGOS_ALUMNO. Solo aplica a comprobantes NO validados.
+// ══════════════════════════════════════════════════════════════════════
+var eliminarComprobanteActivo = null;
+
+function abrirModalEliminarComprobante(idAlumno, fechaPago, nombre, monto, fila) {
+  if (!fila) {
+    mostrarToast('No se pudo identificar este comprobante. Cierra y vuelve a abrir el panel.', 'error');
+    return;
+  }
+  eliminarComprobanteActivo = { idAlumno, fechaPago, nombre, monto, fila };
+
+  var montoStr = monto && Number(monto) > 0 ? ' · $' + monto : '';
+  document.getElementById('eliminar-comprobante-info').innerHTML =
+    '<strong>' + nombre + '</strong> <span style="color:var(--gris-400);">' + idAlumno + '</span><br>' +
+    '<span style="font-size:12px;color:var(--gris-500);">Enviado el ' + fechaPago + montoStr + '</span>';
+
+  document.getElementById('eliminar-comprobante-motivo').value = '';
+  document.getElementById('eliminar-comprobante-status').style.display = 'none';
+
+  var btn = document.getElementById('btn-confirmar-eliminar-comprobante');
+  btn.disabled = false;
+  btn.textContent = '🗑️ Eliminar comprobante';
+
+  document.getElementById('modal-eliminar-comprobante').classList.add('open');
+}
+
+function cerrarModalEliminarComprobante() {
+  document.getElementById('modal-eliminar-comprobante').classList.remove('open');
+  eliminarComprobanteActivo = null;
+}
+
+function ejecutarEliminarComprobante() {
+  if (!eliminarComprobanteActivo) return;
+
+  var motivo = document.getElementById('eliminar-comprobante-motivo').value.trim();
+  var status = document.getElementById('eliminar-comprobante-status');
+  var btn = document.getElementById('btn-confirmar-eliminar-comprobante');
+
+  if (!motivo) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(239,68,68,0.15)';
+    status.style.color = '#f87171';
+    status.textContent = 'El motivo es obligatorio (queda en auditoría).';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Eliminando…';
+  status.style.display = 'none';
+
+  var url = APPS_SCRIPT
+    + '?action=eliminarComprobantePendienteCE'
+    + '&idAlumno='    + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
+    + '&fila='        + encodeURIComponent(eliminarComprobanteActivo.fila)
+    + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : '')
+    + '&motivo='      + encodeURIComponent(motivo);
+
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) {
+        mostrarToast('🗑️ Comprobante eliminado', 'success');
+        cerrarModalEliminarComprobante();
+        // Refrescar la lista de pagos pendientes
+        cargarDatos();
+      } else {
+        btn.disabled = false;
+        btn.textContent = '🗑️ Eliminar comprobante';
+        status.style.display = 'block';
+        status.style.background = 'rgba(239,68,68,0.15)';
+        status.style.color = '#f87171';
+        status.textContent = '❌ ' + (data.error || 'No se pudo eliminar el comprobante.');
+      }
+    })
+    .catch(function(){
+      btn.disabled = false;
+      btn.textContent = '🗑️ Eliminar comprobante';
+      status.style.display = 'block';
+      status.style.background = 'rgba(239,68,68,0.15)';
+      status.style.color = '#f87171';
+      status.textContent = '❌ Error de conexión.';
+    });
+}
+  
 function cerrarModalCancelarPago() {
   document.getElementById('modal-cancelar-pago').classList.remove('open');
   cancelarPagoActivoId = null;
