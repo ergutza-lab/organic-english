@@ -1832,8 +1832,10 @@
       uploadZone.parentNode.insertBefore(div, uploadZone);
     }
  
-    document.getElementById('modalPago').classList.add('visible');
-    verificarBloqueoPago();
+        document.getElementById('modalPago').classList.add('visible');
+    // Verificación asíncrona: consulta al backend y luego decide
+    // si hay que bloquear la zona de subida o no.
+    verificarBloqueoPago().then(function(){ /* sin acción adicional */ });
   }
   function cerrarModalPago() {
     document.getElementById('modalPago').classList.remove('visible');
@@ -1881,53 +1883,109 @@
     return (Date.now() - ts) / (1000 * 60 * 60);
   }
 
-  function verificarBloqueoPago() {
-    var horas = _horasDesdeUltimoComprobante();
-    if (horas < 24) {
-      var restante = Math.ceil(24 - horas);
-      var s = alumnoData ? alumnoData.asistente : null;
-      var asisNombre = s ? (s.nombre || 'tu asistente') : 'tu asistente';
-      var waHref = s && s.whatsapp ? 'https://wa.me/' + cleanWA(s.whatsapp) : '#';
-
-      document.getElementById('uploadZone').style.display = 'none';
-      document.getElementById('uploadPreview').style.display = 'none';
-      document.getElementById('btnSubir').style.display = 'none';
-      document.getElementById('btnSubir').classList.remove('activo');
-      document.querySelector('.btn-cerrar-pago').style.marginTop = '0';
-
-      var avisoId = 'avisoComprobante24h';
-      var aviso = document.getElementById(avisoId);
-      if (!aviso) {
-        aviso = document.createElement('div');
-        aviso.id = avisoId;
-        document.getElementById('uploadZone').parentNode.insertBefore(aviso, document.getElementById('uploadZone'));
-      }
-      aviso.innerHTML =
-        '<div style="background:rgba(251,191,36,0.08);border:1.5px solid rgba(251,191,36,0.35);border-radius:14px;padding:20px 18px;margin-bottom:14px;text-align:center;">' +
-          '<div style="font-size:32px;margin-bottom:10px;">📋</div>' +
-          '<div style="font-size:15px;font-weight:700;color:#fbbf24;margin-bottom:8px;">Ya hay un comprobante en el sistema</div>' +
-          '<div style="font-size:13px;color:#94a3b8;line-height:1.65;margin-bottom:14px;">' +
-            'Puedes subir un nuevo comprobante en <strong style="color:#fbbf24;">' + restante + (restante === 1 ? ' hora' : ' horas') + '</strong>.<br>' +
-            'Si crees que hubo un error, contacta a tu asistente.' +
-          '</div>' +
-          '<a href="' + waHref + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;text-decoration:none;">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>' +
-            'Contactar a ' + asisNombre +
-          '</a>' +
-        '</div>';
-      aviso.style.display = 'block';
-      return true;
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Verificación REAL del candado: consulta al backend cuál es el
+  //  timestamp del último comprobante subido por este alumno. Esto es lo
+  //  que impide el salto de candado entre dispositivos/navegadores/
+  //  incógnito. El localStorage solo se usa como caché para respuesta
+  //  instantánea, pero SIEMPRE gana el timestamp del backend si es más
+  //  reciente.
+  // ═══════════════════════════════════════════════════════════════════════
+  function _consultarUltimoComprobanteBackend() {
+    if (!alumnoData || !alumnoData.alumno || !alumnoData.alumno.id) {
+      return Promise.resolve(_tsUltimoComprobante());
     }
-    var aviso = document.getElementById('avisoComprobante24h');
-    if (aviso) aviso.style.display = 'none';
-    document.getElementById('uploadZone').style.display = 'block';
-    document.getElementById('btnSubir').style.display = 'block';
-    return false;
+    return fetch(APPS_SCRIPT + '?action=getUltimoComprobanteAlumno&idAlumno=' + encodeURIComponent(alumnoData.alumno.id), { redirect: 'follow' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var tsBackend = (data && data.success && data.ultimoTimestamp) ? data.ultimoTimestamp : 0;
+        var tsLocal   = _tsUltimoComprobante();
+        var tsFinal   = Math.max(tsBackend, tsLocal);
+        // Si el backend tiene un timestamp más reciente que el local,
+        // sincronizamos el localStorage para no consultar el backend de
+        // más en la misma sesión.
+        if (tsBackend > tsLocal && tsBackend > 0) {
+          try { localStorage.setItem(_claveComprobante(), String(tsBackend)); } catch(e) {}
+        }
+        return tsFinal;
+      })
+      .catch(function(){
+        // Si el backend falla (sin conexión, etc.), caemos al localStorage
+        // para no dejar al alumno sin poder subir cuando está offline.
+        return _tsUltimoComprobante();
+      });
+  }
+  
+    // ═══════════════════════════════════════════════════════════════════════
+  //  Devuelve una PROMESA<boolean>:
+  //    true  = bloqueado (ya hay comprobante reciente)
+  //    false = libre para subir
+  //  Consulta al backend + localStorage (gana el más reciente).
+  //  Mientras verifica, muestra un estado "Verificando..." si aplica.
+  // ═══════════════════════════════════════════════════════════════════════
+  function verificarBloqueoPago() {
+    return _consultarUltimoComprobanteBackend().then(function(tsUltimo) {
+      var horas = tsUltimo ? ((Date.now() - tsUltimo) / (1000 * 60 * 60)) : 999;
+
+      if (horas < 24) {
+        var restante = Math.ceil(24 - horas);
+        var s = alumnoData ? alumnoData.asistente : null;
+        var asisNombre = s ? (s.nombre || 'tu asistente') : 'tu asistente';
+        var waHref = s && s.whatsapp ? 'https://wa.me/' + cleanWA(s.whatsapp) : '#';
+
+        // Ocultar zona de carga y botón
+        document.getElementById('uploadZone').style.display = 'none';
+        document.getElementById('uploadPreview').style.display = 'none';
+        document.getElementById('btnSubir').style.display = 'none';
+        document.getElementById('btnSubir').classList.remove('activo');
+        document.querySelector('.btn-cerrar-pago').style.marginTop = '0';
+
+        // Mostrar aviso si no existe
+        var avisoId = 'avisoComprobante24h';
+        var aviso = document.getElementById(avisoId);
+        if (!aviso) {
+          aviso = document.createElement('div');
+          aviso.id = avisoId;
+          document.getElementById('uploadZone').parentNode.insertBefore(aviso, document.getElementById('uploadZone'));
+        }
+        aviso.innerHTML =
+          '<div style="background:rgba(251,191,36,0.08);border:1.5px solid rgba(251,191,36,0.35);border-radius:14px;padding:20px 18px;margin-bottom:14px;text-align:center;">' +
+            '<div style="font-size:32px;margin-bottom:10px;">📋</div>' +
+            '<div style="font-size:15px;font-weight:700;color:#fbbf24;margin-bottom:8px;">Tu comprobante ya está en el sistema</div>' +
+            '<div style="font-size:13px;color:#94a3b8;line-height:1.65;margin-bottom:14px;">' +
+              'Tu comprobante de pago ya fue recibido y será <strong style="color:#fbbf24;">validado por tu asistente CE</strong>.<br><br>' +
+              'No necesitas subirlo de nuevo. Si quieres reemplazarlo, podrás hacerlo en <strong style="color:#fbbf24;">' + restante + (restante === 1 ? ' hora' : ' horas') + '</strong>.' +
+            '</div>' +
+            '<a href="' + waHref + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;text-decoration:none;">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.549 4.122 1.515 5.86L0 24l6.318-1.498A11.951 11.951 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.001-1.372l-.36-.213-3.741.886.902-3.636-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>' +
+              'Contactar a ' + asisNombre +
+            '</a>' +
+          '</div>';
+        aviso.style.display = 'block';
+        return true;
+      }
+
+      // No bloqueado: limpiar aviso si existía
+      var aviso = document.getElementById('avisoComprobante24h');
+      if (aviso) aviso.style.display = 'none';
+      document.getElementById('uploadZone').style.display = 'block';
+      document.getElementById('btnSubir').style.display = 'block';
+      return false;
+    });
   }
 
   function subirComprobante() {
     if (!archivoSubida||!alumnoData) return;
-    if (verificarBloqueoPago()) return;
+        // Consultamos al backend antes de subir -- así el candado no se puede
+    // saltar cambiando de dispositivo o borrando caché.
+    verificarBloqueoPago().then(function(bloqueado) {
+      if (bloqueado) return;
+      _continuarSubidaComprobante();
+    });
+    return;
+  }
+
+  function _continuarSubidaComprobante() {
     var btn=document.getElementById('btnSubir');
     btn.classList.remove('activo'); btn.classList.add('cargando'); btn.textContent='Subiendo...';
     setUploadStatus('Enviando comprobante...','');
