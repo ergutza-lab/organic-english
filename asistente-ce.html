@@ -1082,7 +1082,7 @@ function renderPagos(){
       </div>
       <div class="pago-actions">
         <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">Ver y validar</button>
-        <button class="btn-eliminar-comprobante" onclick="abrirModalEliminarComprobante('${p.id_alumno}','${p.fecha_pago}','${nombreEscapado}','${p.monto||0}',${p.fila})" title="Eliminar este comprobante (duplicado o con error)">🗑️</button>
+              <button class="btn-eliminar-comprobante" onclick="abrirModalEliminarComprobante('${p.id_alumno}','${p.fecha_pago}','${nombreEscapado}','${p.monto||0}',${p.fila},'${(cUrl||'').replace(/'/g,"\\'")}')" title="Eliminar este comprobante (duplicado o con error)">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -2084,12 +2084,20 @@ function abrirModalCancelarPago(idAlumno, fechaIso, nombre, monto) {
 // ══════════════════════════════════════════════════════════════════════
 var eliminarComprobanteActivo = null;
 
-function abrirModalEliminarComprobante(idAlumno, fechaPago, nombre, monto, fila) {
-  if (!fila) {
+function abrirModalEliminarComprobante(idAlumno, fechaPago, nombre, monto, fila, comprobanteUrl) {
+  if (!idAlumno || !fechaPago) {
     mostrarToast('No se pudo identificar este comprobante. Cierra y vuelve a abrir el panel.', 'error');
     return;
   }
-  eliminarComprobanteActivo = { idAlumno, fechaPago, nombre, monto, fila };
+  // Guardamos los datos clave que necesita el backend para buscar la fila
+  eliminarComprobanteActivo = {
+    idAlumno: idAlumno,
+    fechaPago: fechaPago,
+    nombre: nombre,
+    monto: monto,
+    fila: fila, // solo informativo
+    comprobanteUrl: comprobanteUrl || ''
+  };
 
   var montoStr = monto && Number(monto) > 0 ? ' · $' + monto : '';
   document.getElementById('eliminar-comprobante-info').innerHTML =
@@ -2130,20 +2138,40 @@ function ejecutarEliminarComprobante() {
   btn.textContent = 'Eliminando…';
   status.style.display = 'none';
 
+  // Enviamos idAlumno + fecha + URL en lugar del número de fila.
+  // El backend buscará la fila exacta justo antes de borrar -- así no
+  // falla si el número de fila cambió desde que se cargó el panel.
   var url = APPS_SCRIPT
     + '?action=eliminarComprobantePendienteCE'
-    + '&idAlumno='    + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
-    + '&fila='        + encodeURIComponent(eliminarComprobanteActivo.fila)
-    + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : '')
-    + '&motivo='      + encodeURIComponent(motivo);
+    + '&idAlumno='        + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
+    + '&fechaPago='       + encodeURIComponent(eliminarComprobanteActivo.fechaPago)
+    + '&comprobanteUrl='  + encodeURIComponent(eliminarComprobanteActivo.comprobanteUrl || '')
+    + '&idAsistente='     + encodeURIComponent(asistente ? asistente.id : '')
+    + '&motivo='          + encodeURIComponent(motivo);
 
-  fetch(url)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
+  console.log('[Eliminar] Llamando:', url);
+
+  fetch(url, { redirect: 'follow' })
+    .then(function(r){
+      console.log('[Eliminar] HTTP status:', r.status);
+      return r.text();
+    })
+    .then(function(texto){
+      console.log('[Eliminar] Respuesta cruda:', texto);
+      var data;
+      try { data = JSON.parse(texto); }
+      catch(e) {
+        btn.disabled = false;
+        btn.textContent = '🗑️ Eliminar comprobante';
+        status.style.display = 'block';
+        status.style.background = 'rgba(239,68,68,0.15)';
+        status.style.color = '#f87171';
+        status.textContent = '❌ El servidor devolvió algo inesperado. Revisa la consola (F12).';
+        return;
+      }
       if (data.success) {
         mostrarToast('🗑️ Comprobante eliminado', 'success');
         cerrarModalEliminarComprobante();
-        // Refrescar la lista de pagos pendientes
         cargarDatos();
       } else {
         btn.disabled = false;
@@ -2152,15 +2180,21 @@ function ejecutarEliminarComprobante() {
         status.style.background = 'rgba(239,68,68,0.15)';
         status.style.color = '#f87171';
         status.textContent = '❌ ' + (data.error || 'No se pudo eliminar el comprobante.');
+
+        // Si el backend mandó diagnóstico, lo mostramos en consola
+        if (data.diagnostico || data.candidatas) {
+          console.warn('[Eliminar] Diagnóstico del backend:', data.diagnostico || data.candidatas);
+        }
       }
     })
-    .catch(function(){
+    .catch(function(err){
+      console.error('[Eliminar] Error de fetch:', err);
       btn.disabled = false;
       btn.textContent = '🗑️ Eliminar comprobante';
       status.style.display = 'block';
       status.style.background = 'rgba(239,68,68,0.15)';
       status.style.color = '#f87171';
-      status.textContent = '❌ Error de conexión.';
+      status.textContent = '❌ Error de conexión: ' + err.message;
     });
 }
   
