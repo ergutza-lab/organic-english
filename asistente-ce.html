@@ -2165,16 +2165,15 @@ function ejecutarEliminarComprobante() {
   btn.textContent = 'Eliminando…';
   status.style.display = 'none';
 
-  // Enviamos idAlumno + fecha + URL en lugar del número de fila.
-  // El backend buscará la fila exacta justo antes de borrar -- así no
-  // falla si el número de fila cambió desde que se cargó el panel.
+  // El backend busca la fila por ID_Alumno + reglas específicas
+  // (monto=0, sin validar, sin vigencia, status=Pendiente). NO necesitamos
+  // mandar la URL ni el número de fila -- es mucho más robusto así.
   var url = APPS_SCRIPT
     + '?action=eliminarComprobantePendienteCE'
-    + '&idAlumno='        + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
-    + '&fechaPago='       + encodeURIComponent(eliminarComprobanteActivo.fechaPago)
-    + '&comprobanteUrl='  + encodeURIComponent(eliminarComprobanteActivo.comprobanteUrl || '')
-    + '&idAsistente='     + encodeURIComponent(asistente ? asistente.id : '')
-    + '&motivo='          + encodeURIComponent(motivo);
+    + '&idAlumno='    + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
+    + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : '')
+    + '&motivo='      + encodeURIComponent(motivo)
+    + '&fechaPago='   + encodeURIComponent(eliminarComprobanteActivo.fechaPago || '');
 
   console.log('[Eliminar] Llamando:', url);
 
@@ -2208,9 +2207,9 @@ function ejecutarEliminarComprobante() {
         status.style.color = '#f87171';
         status.textContent = '❌ ' + (data.error || 'No se pudo eliminar el comprobante.');
 
-        // Si el backend mandó diagnóstico, lo mostramos en consola
-        if (data.diagnostico || data.candidatas) {
-          console.warn('[Eliminar] Diagnóstico del backend:', data.diagnostico || data.candidatas);
+        // Diagnóstico en consola si el backend lo mandó
+        if (data.diagnostico) {
+          console.warn('[Eliminar] Diagnóstico del backend:', data.diagnostico);
         }
       }
     })
