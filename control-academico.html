@@ -1976,6 +1976,14 @@ function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       }
       var nivelDisplay=formatNivelDisplay_(grupo.nivel);
       var fechaHoy=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+           // Detectar si el grupo es Kids/Kids Jr para usar el fondo correcto del diploma.
+      // Se revisa primero grupo.nombre (lo que viene del backend) y si no,
+      // el nombre del grupo que ya se guardó al abrir el modal de evaluaciones.
+      var nombreGrupoParaKids = grupo.nombre || window._grupoEvalNombreActual || '';
+      var esKidsDiploma = esNombreGrupoKidsCA(nombreGrupoParaKids);
+      var fondoDiplomaUrl = esKidsDiploma
+        ? 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/DIPLOMA%20KIDS.webp'
+        : 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/DIPLOMA-FONDO.webp';
 
       var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
         '<title>Diploma — '+nombreAlumno+'</title>'+
@@ -1987,7 +1995,7 @@ function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
         '</style></head><body>'+
         '<div style="position:relative;width:880px;margin:0 auto;">'+
-          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/DIPLOMA-FONDO.webp" style="display:block;width:880px;" />'+
+                   '<img src="'+fondoDiplomaUrl+'" style="display:block;width:880px;" />'+
           '<div contenteditable="true" title="Puedes corregir el nombre antes de imprimir" '+
           'style="position:absolute;top:558px;left:0;width:880px;text-align:center;font-size:30px;font-weight:800;color:#1c2b5e;letter-spacing:.02em;">'+
           (nombreAlumno||'&nbsp;')+'</div>'+
