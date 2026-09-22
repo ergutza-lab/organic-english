@@ -1437,60 +1437,73 @@
   }
   function cerrarInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='none'; }
 
-  function login() {
-    var id = document.getElementById('inputId').value.trim().toUpperCase();
-    var email = document.getElementById('inputEmail').value.trim();
-    var err = document.getElementById('errorMsg');
-    if (!id || !email) { err.style.display='block'; err.textContent='Completa todos los campos.'; return; }
-    err.style.display = 'none';
-    var btn = document.querySelector('.btn-primary');
-    btn.textContent = 'Verificando...'; btn.disabled = true;
-    fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email), { redirect: 'follow' })
-      .then(r => r.json())
-      .then(data => {
-        btn.textContent = 'Entrar'; btn.disabled = false;
-        if (data.success) {
-          alumnoData = data;
-          mostrarPanel();
-          if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
+ function login() {
+  var id = document.getElementById('inputId').value.trim().toUpperCase();
+  var email = document.getElementById('inputEmail').value.trim();
+  var err = document.getElementById('errorMsg');
+  if (!id || !email) { err.style.display='block'; err.textContent='Completa todos los campos.'; return; }
+  err.style.display = 'none';
+  var btn = document.querySelector('.btn-primary');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+
+  fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email), { redirect: 'follow' })
+    .then(r => r.json())
+    .then(data => {
+      btn.textContent = 'Entrar'; btn.disabled = false;
+
+      if (data.success) {
+        alumnoData = data;
+        mostrarPanel();
+        if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
+      } else {
+        err.style.display = 'block';
+
+        if (data.error === 'BAJA') {
+          var titulo = '';
+          var mensaje = '';
+
+          if (data.motivo === 'CANCELADO') {
+            titulo  = '📋 Tu inscripción fue pausada';
+            mensaje = 'Notamos que no se completó el pago a tiempo, así que tu reserva quedó en pausa. ' +
+                      'Nos encantaría verte de vuelta en clases — cuando quieras retomar, aquí estaremos. 🌱';
+          } else if (data.motivo === 'REEMBOLSO') {
+            titulo  = '📋 Tu inscripción está en pausa';
+            mensaje = 'Tu inscripción quedó pendiente de un trámite. Cuando estés listo/a para regresar, ' +
+                      'con gusto te ayudamos a retomar tus clases. 🌱';
+          } else {
+            titulo  = '🌱 ¡Te extrañamos en clase!';
+            mensaje = 'Aún no tenemos registrado tu pago de la colegiatura, por eso tu acceso quedó temporalmente ' +
+                      'en pausa. Estás a un paso de volver — envíale tu comprobante a tu Asistente de Control Escolar ' +
+                      'y tu acceso se reactivará de inmediato. 💛';
+          }
+
+          var waBtn = data.asisNombre
+            ? '<a href="https://wa.me/' + cleanWA(data.asisWhatsapp) + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;background:#16a34a;color:#fff;border-radius:100px;padding:13px 24px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px rgba(22,163,74,0.35);">' +
+                '💬 Contactar a ' + data.asisNombre +
+              '</a>' +
+              '<div style="margin-top:10px;font-size:11px;color:#94a3b8;">Tu asistente puede subir tu comprobante y reactivarte al instante</div>'
+            : '<div style="margin-top:14px;font-size:12px;color:#94a3b8;">Contacta directamente a tu Asistente de Control Escolar para reactivar tu acceso.</div>';
+
+          err.innerHTML =
+            '<div style="text-align:left;line-height:1.6;">' +
+              '<div style="font-size:15px;font-weight:700;color:#fb923c;margin-bottom:10px;">' + titulo + '</div>' +
+              '<div style="font-size:13px;color:#cbd5e1;">' + mensaje + '</div>' +
+              '<div style="text-align:center;">' + waBtn + '</div>' +
+              '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#64748b;text-align:center;line-height:1.5;">' +
+                'Si ya realizaste tu pago, envía tu comprobante por WhatsApp y quedará registrado en el sistema al momento.' +
+              '</div>' +
+            '</div>';
+        } else {
+          err.textContent = data.error || 'ID o correo incorrectos.';
         }
-        else {
-          err.style.display = 'block';
-          if (data.error === 'BAJA') {
-  var titulo = '';
-  var mensaje = '';
-
-  if (data.motivo === 'CANCELADO') {
-    titulo  = '📋 Tu inscripción fue pausada';
-    mensaje = 'Notamos que no se completó el pago a tiempo, así que tu reserva quedó en pausa. ' +
-              'Nos encantaría verte de vuelta en clases — cuando quieras retomar, aquí estaremos. 🌱';
-  } else if (data.motivo === 'REEMBOLSO') {
-    titulo  = '📋 Tu inscripción está en pausa';
-    mensaje = 'Tu inscripción quedó pendiente de un trámite. Cuando estés listo/a para regresar, ' +
-              'con gusto te ayudamos a retomar tus clases. 🌱';
-  } else {
-    titulo  = '🌱 ¡Te extrañamos en clase!';
-    mensaje = 'Aún no tenemos registrado tu pago de la colegiatura, por eso tu acceso quedó temporalmente ' +
-              'en pausa. Estás a un paso de volver — envíale tu comprobante a tu Asistente de Control Escolar ' +
-              'y tu acceso se reactivará de inmediato. 💛';
-  }
-
-  var waBtn = data.asisNombre
-    ? '<a href="https://wa.me/' + cleanWA(data.asisWhatsapp) + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;background:#16a34a;color:#fff;border-radius:100px;padding:13px 24px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px rgba(22,163,74,0.35);">' +
-        '💬 Contactar a ' + data.asisNombre +
-      '</a>' +
-      '<div style="margin-top:10px;font-size:11px;color:#94a3b8;">Tu asistente puede subir tu comprobante y reactivarte al instante</div>'
-    : '<div style="margin-top:14px;font-size:12px;color:#94a3b8;">Contacta directamente a tu Asistente de Control Escolar para reactivar tu acceso.</div>';
-
-  err.innerHTML =
-    '<div style="text-align:left;line-height:1.6;">' +
-      '<div style="font-size:15px;font-weight:700;color:#fb923c;margin-bottom:10px;">' + titulo + '</div>' +
-      '<div style="font-size:13px;color:#cbd5e1;">' + mensaje + '</div>' +
-      '<div style="text-align:center;">' + waBtn + '</div>' +
-      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#64748b;text-align:center;line-height:1.5;">' +
-        'Si ya realizaste tu pago, envía tu comprobante por WhatsApp y quedará registrado en el sistema al momento.' +
-      '</div>' +
-    '</div>';
+      }
+    })
+    .catch(() => {
+      btn.textContent = 'Entrar';
+      btn.disabled = false;
+      err.style.display = 'block';
+      err.textContent = 'Error de conexion.';
+    });
 }
       })
       .catch(() => { btn.textContent='Entrar'; btn.disabled=false; err.style.display='block'; err.textContent='Error de conexion.'; });
