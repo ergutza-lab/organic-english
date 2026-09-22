@@ -721,7 +721,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <div class="modal-status" id="ep-status" style="display:none;margin-bottom:10px;font-size:13px;"></div>
     <div class="modal-acciones">
       <button class="btn btn-outline" onclick="cerrarModal('modal-editar-pago')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarEdicionPago()">Guardar cambios</button>
+            <button class="btn btn-primary" id="btn-guardar-edicion-pago" onclick="guardarEdicionPago()">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -2176,20 +2176,41 @@ function guardarEdicionPago() {
   }).then(function (res) {
     if (res.success) {
       status.style.color = '#2e7d32';
+
       if (res.reactivado) {
         status.innerHTML =
           '✅ Cambios guardados.<br>' +
           '<span style="color:#f97316;font-weight:700;">🎉 Se reactivó el acceso de ' +
           (res.nombreAlumno || 'el alumno') +
-          ' — su estatus cambió de Baja a Validado y se le envió correo.</span>';
-      } else {
-        status.textContent = '✅ Cambios guardados.';
-      }
-      setTimeout(function () {
-        cerrarModal('modal-editar-pago');
+          ' — su estatus cambió de Baja a Validado y se le envió correo.</span>' +
+          '<br><span style="color:#94a3b8;font-size:12px;">El mensaje queda visible hasta que hagas clic en "Cerrar".</span>';
+
+        // Refrescar datos en segundo plano, SIN cerrar el modal
         cargarPagosAlumnos();
         cargarDatos();
-      }, 1800);
+
+        // Convertir el botón "Guardar cambios" en "Cerrar"
+        var btnGuardar = document.getElementById('btn-guardar-edicion-pago');
+        if (btnGuardar) {
+          btnGuardar.textContent = 'Cerrar';
+          btnGuardar.onclick = function() {
+            cerrarModal('modal-editar-pago');
+            // Restaurar el botón para la próxima vez
+            setTimeout(function() {
+              btnGuardar.textContent = 'Guardar cambios';
+              btnGuardar.onclick = guardarEdicionPago;
+            }, 300);
+          };
+        }
+      } else {
+        status.textContent = '✅ Cambios guardados.';
+        // Sin reactivación: cerrar tras 1.5s como antes
+        setTimeout(function () {
+          cerrarModal('modal-editar-pago');
+          cargarPagosAlumnos();
+          cargarDatos();
+        }, 1500);
+      }
     } else {
       status.style.color = '#c62828';
       status.textContent = '❌ ' + (res.error || 'No se pudo guardar.');
@@ -2509,9 +2530,9 @@ function confirmarCambioEstatus() {
       <p style="font-size:.76rem;color:var(--gris);margin:10px 0 0;">A cada alumno de este grupo se le recorrerá también la vigencia de todos sus pagos (inicio y fin) exactamente los mismos días, para conservar cuántas semanas ya tenían pagadas. <strong>Excepción:</strong> los pagos con cobertura fijada manualmente (🔒) no se tocan.</p>
     </div>
 
-    <div class="modal-acciones">
-      <button class="btn btn-outline" onclick="cerrarModal('modal-mover-grupo')">Cancelar</button>
-      <button class="btn btn-naranja" id="btn-confirmar-mover-grupo" onclick="ejecutarMoverGrupo()" disabled>Confirmar movimiento</button>
+        <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-editar-pago')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-edicion-pago" onclick="guardarEdicionPago()">Guardar cambios</button>
     </div>
     <div class="modal-msg" id="modal-mover-grupo-msg"></div>
   </div>
