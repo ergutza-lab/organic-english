@@ -1562,51 +1562,116 @@ function compartirZoomWA(idGrupo){
 //  la Constancia, y (por consistencia) el preview del Cambio de Nivel.
 // ═══════════════════════════════════════════════════════════════════
 function calcularNotasBloquesAlumno_(historial, challengesConBloque){
+  // ═══════════════════════════════════════════════════════════════════
+  // LECTURA ROBUSTA DEL BLOQUE DE CADA REGISTRO
+  // El backend puede devolver el campo como "bloque" o "Bloque", como
+  // numero o string, o incluso no traerlo. Para que un reporte NUNCA
+  // caiga en "Bloque 2 = 100% sin datos" cuando en realidad SI hay datos,
+  // aplicamos este orden de fallbacks:
+  //   1. h.bloque / h.Bloque si es 1 o 2
+  //   2. h.semana / h.Semana -> 1-8 = B1, 9-16 = B2
+  //   3. Posicion del registro en el array (primeros 16 = B1, resto = B2)
+  // ═══════════════════════════════════════════════════════════════════
+  var totalRegistros = (historial||[]).length;
+  var mitad = Math.ceil(totalRegistros / 2);
+
+  function bloqueDeRegistro_(h, idx){
+    // Intento 1: h.bloque / h.Bloque
+    var b = h.bloque !== undefined ? h.bloque : h.Bloque;
+    if (b !== undefined && b !== null && b !== '') {
+      var nB = Number(b);
+      if (nB === 1 || nB === 2) return nB;
+      // Acepta strings tipo "Bloque 1", "1-Bloque", "B1"
+      var sB = String(b).toUpperCase();
+      if (sB.indexOf('BLOQUE 2') !== -1 || /\bB2\b/.test(sB) || /\bBLOQUE\s*2\b/.test(sB)) return 2;
+      if (sB.indexOf('BLOQUE 1') !== -1 || /\bB1\b/.test(sB) || /\bBLOQUE\s*1\b/.test(sB)) return 1;
+    }
+    // Intento 2: derivar de la semana (1-8 = B1, 9-16 = B2)
+    var s = h.semana !== undefined ? h.semana : h.Semana;
+    if (s !== undefined && s !== null && s !== '') {
+      var nS = Number(s);
+      if (!isNaN(nS) && nS > 0) return nS <= 8 ? 1 : 2;
+    }
+    // Intento 3: derivar de la posicion en el array
+    // (mitad B1, mitad B2) -- evita que TODO caiga en B1
+    if (totalRegistros > 0) {
+      return (idx < mitad) ? 1 : 2;
+    }
+    return 1;
+  }
+
   function datosBloque(n){
-    var rows=(historial||[]).filter(function(h){return Number(h.bloque)===n;});
-    var tot=rows.length;
-    var colores={1:0,2:0,3:0,4:0};
-    rows.forEach(function(h){ if(h.asistencia && h.color) colores[h.color]=(colores[h.color]||0)+1; });
-    var presentes=rows.filter(function(h){return h.asistencia;}).length;
-    var positivos=colores[3]+colores[4];
+    var rows = (historial||[]).filter(function(h, idx){
+      return bloqueDeRegistro_(h, idx) === n;
+    });
+    var tot = rows.length;
+    var colores = {1:0, 2:0, 3:0, 4:0};
+    rows.forEach(function(h){
+      if (h.asistencia && h.color) colores[h.color] = (colores[h.color]||0) + 1;
+    });
+    var presentes = rows.filter(function(h){ return h.asistencia; }).length;
+    var positivos = colores[3] + colores[4];
 
     var asistPct = tot>0 ? Math.round((presentes/tot)*100) : 0;
     var pctPositivosSobrePresentes = presentes>0 ? Math.round((positivos/presentes)*100) : 0;
     var notaBloque = tot>0
       ? Math.round((asistPct * 0.8) + (pctPositivosSobrePresentes * 0.2))
-      : 100;
+      : null;
 
     return {
       tot: tot,
       presentes: presentes,
       positivos: positivos,
       colores: colores,
-      pct: function(c){return tot>0?Math.round((colores[c]/tot)*100):0;},
+      pct: function(c){ return tot>0 ? Math.round((colores[c]/tot)*100) : 0; },
       asistPct: asistPct,
       positivosPct: pctPositivosSobrePresentes,
       notaBloque: notaBloque,
-      mini: (challengesConBloque||[]).some(function(c){return c.tipo==='Mini' && (c.bloque||1)===n && c.aprobado;}),
-      grand: (challengesConBloque||[]).some(function(c){return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===n && c.aprobado;})
+      sinRegistros: tot === 0,
+      mini: (challengesConBloque||[]).some(function(c){
+        var cb = c.bloque !== undefined ? c.bloque : c.Bloque;
+        var nb = Number(cb);
+        if (isNaN(nb)) nb = 1;
+        return c.tipo === 'Mini' && nb === n && c.aprobado;
+      }),
+      grand: (challengesConBloque||[]).some(function(c){
+        var cb = c.bloque !== undefined ? c.bloque : c.Bloque;
+        var nb = Number(cb);
+        if (isNaN(nb)) nb = 1;
+        return (c.tipo === 'Grand' || c.tipo === 'Gran') && nb === n && c.aprobado;
+      })
     };
   }
+
   var b1 = datosBloque(1);
   var b2 = datosBloque(2);
+
+  // Caso especial: alumno de colocacion (empieza directo en Bloque 2)
   var BASE_COLOCACION = 100;
-  if (b1.tot===0 && b2.tot>0){
+  if (b1.tot === 0 && b2.tot > 0) {
     b1 = {
       tot: b2.tot, presentes: b2.tot, positivos: b2.tot,
-      colores: {1:0,2:0,3:0,4:0},
-      pct: function(c){return 0;},
+      colores: {1:0, 2:0, 3:0, 4:0},
+      pct: function(c){ return 0; },
       asistPct: BASE_COLOCACION, positivosPct: BASE_COLOCACION,
       notaBloque: BASE_COLOCACION,
+      sinRegistros: false,
       mini: false, grand: false,
       esColocacion: true
     };
   }
+
+  // Promedio: solo contar bloques con datos reales.
+  var bloquesConDatos = (b1.notaBloque != null ? 1 : 0) + (b2.notaBloque != null ? 1 : 0);
+  var sumaNotas = (b1.notaBloque || 0) + (b2.notaBloque || 0);
+  var promedio = bloquesConDatos > 0
+    ? Math.round((sumaNotas / bloquesConDatos) * 100) / 100
+    : null;
+
   return {
     b1: b1,
     b2: b2,
-    promedio: Math.round(((b1.notaBloque + b2.notaBloque) / 2) * 100) / 100
+    promedio: promedio
   };
 }
 
@@ -1641,7 +1706,30 @@ function verEvalGrupo(idGrupo, nombreGrupo){
       // Índice rápido: idAlumno -> {historial, challenges}
       var mapaHistorialPorAlumno = {};
       (historialGrupo.alumnos||[]).forEach(function(x){ mapaHistorialPorAlumno[x.idAlumno] = x; });
-
+      // ═══ DIAGNÓSTICO TEMPORAL — quitar después de verificar el fix ═══
+      console.log('=== DIAGNÓSTICO REPORTE ===');
+      console.log('Alumnos en historialGrupo:', (historialGrupo.alumnos||[]).length);
+      (historialGrupo.alumnos||[]).slice(0, 3).forEach(function(x){
+        console.log('Alumno:', x.idAlumno, '| registros:', (x.historial||[]).length);
+        var primeros5 = (x.historial||[]).slice(0, 5);
+        primeros5.forEach(function(h, i){
+          console.log('  registro['+i+']:', {
+            bloque: h.bloque, Bloque: h.Bloque,
+            semana: h.semana, Semana: h.Semana,
+            fecha: h.fecha, asistencia: h.asistencia, color: h.color
+          });
+        });
+        var ultimos3 = (x.historial||[]).slice(-3);
+        ultimos3.forEach(function(h, i){
+          console.log('  ULTIMO['+i+']:', {
+            bloque: h.bloque, Bloque: h.Bloque,
+            semana: h.semana, Semana: h.Semana,
+            fecha: h.fecha, asistencia: h.asistencia, color: h.color
+          });
+        });
+      });
+      // ═══════════════════════════════════════════════════════════════════
+     
       function valorOrden_(r){
         var histAl = mapaHistorialPorAlumno[r.alumno.id];
         if (histAl && histAl.historial) {
@@ -1771,13 +1859,15 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         ? (((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2)
         : '0.00';
 
-      // Promedio final = (B1 + B2) / 2
-      var evaluacionFinalPct = notas.promedio.toFixed(2);
+            // Promedio final = promedio de bloques con datos reales.
+      // Si no hay ningun dato todavia, mostrar "—".
+      var evaluacionFinalPct = (notas.promedio != null) ? notas.promedio.toFixed(2) : '—';
 
-      var evaluacionFinalNum = parseFloat(evaluacionFinalPct);
+            var evaluacionFinalNum = notas.promedio != null ? parseFloat(evaluacionFinalPct) : 0;
       var asistGlobalNum = parseFloat(asistGlobal);
       var estadoTxt;
-      if(evaluacionFinalNum>=80 && asistGlobalNum>=80) estadoTxt='Pase asegurado';
+      if (notas.promedio == null) estadoTxt = 'En curso';
+      else if(evaluacionFinalNum>=80 && asistGlobalNum>=80) estadoTxt='Pase asegurado';
       else if(evaluacionFinalNum>=70 && asistGlobalNum>=80) estadoTxt='Pase con refuerzo';
       else if(evaluacionFinalNum>=60 || asistGlobalNum>=75) estadoTxt='Pendiente';
       else estadoTxt='No acredita';
@@ -1859,14 +1949,18 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
                 '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+b.pct(c)+'%</span>'+
               '</div>';
             }).join('');
-        var pctColor=b.notaBloque>=80?'#16a34a':b.notaBloque>=60?'#ca8a04':'#dc2626';
+                var esSinRegistros = b.notaBloque==null;
+        var pctColor=esSinRegistros?'#94a3b8':(b.notaBloque>=80?'#16a34a':b.notaBloque>=60?'#ca8a04':'#dc2626');
         var medallas=medallaHtml(b.mini,'mini')+medallaHtml(b.grand,'grand');
+        var subTexto = esSinRegistros
+          ? (sub + ' · Sin registros aún')
+          : (sub + (b.esColocacion?'':(' · Asistencia '+b.asistPct+'%')));
         return '<div style="flex:1;min-width:230px;">'+
           '<div style="height:4px;width:40px;border-radius:4px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:7px;"></div>'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px;">'+
             '<div><div style="font-size:15px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
-            '<div style="font-size:9px;color:#94a3b8;">'+sub+(b.esColocacion?'':(' · Asistencia '+b.asistPct+'%'))+'</div></div>'+
-            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+b.notaBloque+'%</div>'+
+            '<div style="font-size:9px;color:#94a3b8;">'+subTexto+'</div></div>'+
+            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+(esSinRegistros?'—':b.notaBloque+'%')+'</div>'+
           '</div>'+
           colorRows+
           (medallas?('<div style="display:flex;gap:10px;justify-content:center;margin-top:9px;">'+medallas+'</div>'):'')+
