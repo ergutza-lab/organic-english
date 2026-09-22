@@ -2157,8 +2157,8 @@ function guardarEdicionPago() {
   var status = document.getElementById('ep-status');
   status.style.display = 'block'; status.style.color = '#666';
   status.textContent = 'Guardando...';
-     
-   api({
+
+  api({
     action: 'actualizarPagoAlumnoCE',
     idAlumno: p.idAlumno,
     fechaOriginal: p.fecha,
@@ -2171,12 +2171,10 @@ function guardarEdicionPago() {
     comentario: document.getElementById('ep-comentario').value.trim(),
     coberturaManual: document.getElementById('ep-cobertura-manual').checked,
     idCE: estado.idCE,
-    // Auditoría automática: quién hizo esta edición y cuándo — independiente
-    // del campo "Validado por" (que es un dato de negocio, no de auditoría).
     editadoPorCE: estado.idCE,
     fechaEdicion: new Date().toISOString()
   }).then(function (res) {
-        if (res.success) {
+    if (res.success) {
       status.style.color = '#2e7d32';
       if (res.reactivado) {
         status.innerHTML =
@@ -2190,9 +2188,8 @@ function guardarEdicionPago() {
       setTimeout(function () {
         cerrarModal('modal-editar-pago');
         cargarPagosAlumnos();
-        cargarDatos(); // refrescar también el resto del panel
+        cargarDatos();
       }, 1800);
-    }
     } else {
       status.style.color = '#c62828';
       status.textContent = '❌ ' + (res.error || 'No se pudo guardar.');
