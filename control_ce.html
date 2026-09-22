@@ -2088,8 +2088,29 @@ function renderPagosAlumnos(filtro) {
 }
 function filtrarPagosAlumnos() { renderPagosAlumnos(document.getElementById('filtro-pagos-alumnos').value); }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  HELPERS PARA MOSTRAR FECHAS EN LOS INPUTS DEL MODAL DE EDICIÓN DE PAGO
+//  -----------------------------------------------------------------------
+//  El bug original: `new Date("2026-09-26")` en el navegador interpreta
+//  ese string ISO como UTC medianoche. En México (UTC-6) eso cae en
+//  "2026-09-25 18:00" hora local, y al llamar .getDate() devuelve 25 en
+//  vez de 26. Resultado: la fecha se veía un día antes de la real.
+//
+//  Fix: si el string ya viene en formato ISO "yyyy-MM-dd..." se toman
+//  los primeros 10 caracteres DIRECTAMENTE (sin pasar por new Date()),
+//  así nunca se cruza el huso horario.
+// ═══════════════════════════════════════════════════════════════════════════
+
 function fechaParaInputDatetime(iso) {
   if (!iso) return '';
+  // Caso 1: string ISO "2026-09-26" (sin hora) -- es una fecha "pura"
+  // que representa un día en la lógica de negocio. Mostrar tal cual,
+  // sin parsear, así no se desfasa por huso horario.
+  if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    return iso.substring(0, 10) + 'T00:00';
+  }
+  // Caso 2: string ISO con hora "2026-09-26T14:30:00.000Z" -- aquí sí
+  // necesitamos parsear para convertir UTC a hora local de México.
   var d = new Date(iso);
   if (isNaN(d.getTime())) return '';
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') +
@@ -2098,6 +2119,15 @@ function fechaParaInputDatetime(iso) {
 
 function fechaParaInputDate(iso) {
   if (!iso) return '';
+  // Caso 1: string ISO "2026-09-26" -- mostrar tal cual sin parsear.
+  // Esto es lo que arregla el bug del sábado: si el backend guarda
+  // "2026-09-26" en la celda, se muestra "2026-09-26" en el input.
+  if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
+    return iso.substring(0, 10);
+  }
+  // Caso 2: objeto Date (cuando Sheets devuelve la celda como fecha nativa)
+  // o string con hora. Aquí sí parseamos, pero usando métodos LOCALES
+  // (getFullYear/getMonth/getDate), nunca los UTC (getUTCFullYear...).
   var d = new Date(iso);
   if (isNaN(d.getTime())) return '';
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
