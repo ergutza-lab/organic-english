@@ -9246,19 +9246,50 @@ window.addEventListener('appinstalled', function () {
   }
 })();
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  REGISTRO DEL SERVICE WORKER + AVISO DE ACTUALIZACIÓN
+//  -----------------------------------------------------------------------
+//  ANTES: se escuchaba "controllerchange" para mostrar la banda naranja de
+//  "versión nueva disponible". Ese evento se dispara TANTO cuando el SW de
+//  alumnos se actualiza de verdad, COMO cuando otro panel del sistema
+//  (maestro, control_ce, etc.) registra su propio SW y desplaza al de
+//  alumnos -- al volver a alumno.html, el SW de alumnos retoma el control
+//  y el evento se dispara otra vez, aunque el código de alumno.html no
+//  haya cambiado en absoluto. Resultado: la banda aparecía "porque sí"
+//  cada vez que el usuario cambiaba entre paneles.
+//
+//  AHORA: se escucha "updatefound" -- que SOLO se dispara cuando el
+//  archivo "service-worker-alumnos.js" cambió de contenido en el servidor.
+//  Es decir: cuando hay una actualización REAL de la app de alumnos. Si
+//  otro panel toma el control y luego el de alumnos lo retoma, este evento
+//  NO se dispara, así que la banda no molesta.
+// ═══════════════════════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    var yaHabiaControlador = !!navigator.serviceWorker.controller;
 
-        navigator.serviceWorker.register('service-worker-alumnos.js?v=2')
-      .then(function (reg) { console.log('Service worker de alumnos registrado (v' + APP_VERSION + '):', reg.scope); })
-      .catch(function (err) { console.log('No se pudo registrar el service worker:', err); });
+    navigator.serviceWorker.register('service-worker-alumnos.js')
+      .then(function (registration) {
 
-    navigator.serviceWorker.addEventListener('controllerchange', function () {
-      if (!yaHabiaControlador) { yaHabiaControlador = true; return; }
-      var aviso = document.getElementById('avisoActualizacionOE');
-      if (aviso) aviso.style.display = 'flex';
-    });
+        // Evento que se dispara SOLO cuando el archivo del SW cambió de
+        // contenido en el servidor (un update real, no un re-registro).
+        registration.addEventListener('updatefound', function () {
+          var nuevoWorker = registration.installing;
+          if (!nuevoWorker) return;
+
+          nuevoWorker.addEventListener('statechange', function () {
+            // Cuando el nuevo SW termina de instalarse Y ya existe un
+            // controlador previo (o sea, NO es la primera instalación de
+            // la vida en este navegador), mostramos la banda de aviso.
+            if (nuevoWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              var aviso = document.getElementById('avisoActualizacionOE');
+              if (aviso) aviso.style.display = 'flex';
+            }
+          });
+        });
+      })
+      .catch(function (err) {
+        console.log('No se pudo registrar el service worker:', err);
+      });
   });
 }
 </script>
