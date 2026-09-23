@@ -2077,9 +2077,15 @@ function renderPagosAlumnos(filtro) {
     var p = x.p, idx = x.idx;
     var fechaStr = p.fecha ? formatFecha(p.fecha) : '—';
     var montoStr = '$' + (Number(p.monto) || 0);
-    return '<div class="pa-fila">' +
+        // Detectar pagos incompletos: tienen monto > 0 pero sin cobertura fin
+    var sinCobertura = (Number(p.monto) > 0) && !p.coberturaFin;
+    var badgeAlerta = sinCobertura
+      ? '<span title="Este pago no tiene vigencia asignada. Edítalo para ponerle fecha inicio y fin." style="margin-left:6px;font-size:12px;">⚠️</span>'
+      : '';
+    var fondoAlerta = sinCobertura ? 'background:#fff7ed;' : '';
+    return '<div class="pa-fila" style="' + fondoAlerta + '">' +
       '<span class="pa-fila-id">' + esc(p.idAlumno) + '</span>' +
-      '<span class="pa-fila-nombre">' + esc(p.nombreAlumno || '—') + (p.coberturaManual ? ' <span title="Cobertura fijada manualmente -- no se recorre automáticamente" style="font-size:11px;">🔒</span>' : '') + '</span>' +
+      '<span class="pa-fila-nombre">' + esc(p.nombreAlumno || '—') + (p.coberturaManual ? ' <span title="Cobertura fijada manualmente" style="font-size:11px;">🔒</span>' : '') + badgeAlerta + '</span>' +
       '<span class="pa-fila-fecha">' + fechaStr + '</span>' +
       '<span class="pa-fila-monto">' + esc(montoStr) + '</span>' +
       '<a class="pa-fila-editar" onclick="abrirModalEditarPago(' + idx + ')">Editar</a>' +
