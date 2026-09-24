@@ -541,10 +541,16 @@ function renderizar(){
     return out;
   }
 
-  function renderClubCard(g){
-    var out='<div class="gcard club">';
+    function renderClubCard(g){
+    var av = avanceMap[g.id];
+    var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
+    var out='<div class="gcard club" onclick="verAlumnos(\''+g.id+'\',\''+g.nombre.replace(/'/g,"\\'")+'\')" style="cursor:pointer;">';
     out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:#c084fc;">'+g.nombre+'</span></div>';
-    out+='<div class="gcap">Viernes 8:00 PM</div>';
+    if(clubNum !== null){
+      var clubPad = String(clubNum).length < 2 ? '0' + clubNum : String(clubNum);
+      out+='<div class="gcap" style="color:#fff;font-weight:700;font-size:11px;">🎙 CHAT CLUB ' + clubPad + '</div>';
+    }
+    out+='<div class="gcap" style="opacity:0.75;">Viernes 8:00 PM</div>';
     out+='</div>';
     return out;
   }
@@ -640,7 +646,14 @@ function renderMovil(activos, horas, activosSabado, activosClub){
     return card;
   }
 
-  function renderVmClubCard(g){
+    function renderVmClubCard(g){
+    var av = avanceMap[g.id];
+    var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
+    var clubTxt = '';
+    if(clubNum !== null){
+      var clubPad = String(clubNum).length < 2 ? '0' + clubNum : String(clubNum);
+      clubTxt = '<div class="vm-gcap" style="color:#fff;font-weight:700;">🎙 CHAT CLUB ' + clubPad + '</div>';
+    }
     var card=document.createElement('div');
     card.className='vm-card club';
     card.innerHTML=
@@ -648,7 +661,9 @@ function renderMovil(activos, horas, activosSabado, activosClub){
         '<span class="vm-gid">'+g.id+'</span>'+
         '<span class="vm-gnom" style="color:#c084fc;">'+ g.nombre+'</span>'+
       '</div>'+
-      '<div class="vm-gcap">Viernes 8:00 PM</div>';
+      clubTxt +
+      '<div class="vm-gcap" style="opacity:0.75;">Viernes 8:00 PM</div>';
+    card.onclick = (function(id, nombre){ return function(){ verAlumnos(id, nombre); }; })(g.id, g.nombre);
     return card;
   }
 
@@ -714,12 +729,16 @@ function verAlumnos(idGrupo, nombre){
   if(g){
     var fi=parseFecha(g.fechaInicio);
     if(fi) infoHtml+='<span class="st-badge inicio">📅 Inicio: '+fmtFecha(fi)+'</span>';
-    var av=avanceMap[idGrupo];
-    if(av && av.leccionActual!=null && av.bloqueActual!=null){
+        var av=avanceMap[idGrupo];
+    if(av && av.leccionActual!=null){
       var leccionPad=String(av.leccionActual).length<2?'0'+av.leccionActual:String(av.leccionActual);
-      var nivelFmt=formatNivelBloque(g.nivel,av.bloqueActual);
-      var tipoLeccion=esNombreGrupoKids(g.nombre)?'MISSION':'LESSON';
-      infoHtml+='<span class="st-badge avance">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
+      if(g.esClub){
+        infoHtml+='<span class="st-badge avance" style="background:rgba(192,132,252,0.12);color:#a855f7;border:1px solid rgba(192,132,252,0.35);">🎙 CHAT CLUB ' + leccionPad + '</span>';
+      } else if(av.bloqueActual!=null){
+        var nivelFmt=formatNivelBloque(g.nivel,av.bloqueActual);
+        var tipoLeccion=esNombreGrupoKids(g.nombre)?'MISSION':'LESSON';
+        infoHtml+='<span class="st-badge avance">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
+      }
     }
   }
   document.getElementById('stInfo').innerHTML=infoHtml;
