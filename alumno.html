@@ -2226,13 +2226,34 @@
   //  Determina el nivel BASE del alumno (PRE-A1, A1, A2, B1, B2, C1, C2)
   //  a partir del texto guardado en grupo.nivel (ej. "NIVEL A1-Bloque 1").
   // ═══════════════════════════════════════════════════════════════════════
-  function nivelAlumnoBaseParaPractica() {
+    function nivelAlumnoBaseParaPractica() {
+    // Intento 1: leer de la variable _nivelBase (que ya se usa en otras partes del código)
+    if (alumnoData && alumnoData._nivelBase) {
+      var v1 = String(alumnoData._nivelBase).toUpperCase();
+      if (v1 === 'PREA1' || v1 === 'PRE-A1' || v1 === 'STARTER') return 'PRE-A1';
+      return v1;
+    }
+
+    // Intento 2: extraer del texto del grupo
     var nivelRaw = (alumnoData && alumnoData.grupo && alumnoData.grupo.nivel) || '';
-    var m = String(nivelRaw).toUpperCase().match(/([A-Z]+\d?)/);
-    if (!m) return 'A1';
-    var v = m[1];
-    if (v === 'PREA1' || v === 'PRE-A1') return 'PRE-A1';
-    return v; // A1, A2, B1, B2, C1, C2
+    var texto = String(nivelRaw).toUpperCase();
+
+    // Buscar patrones específicos: PRE-A1, A1, A2, B1, B2, C1, C2
+    // Los niveles válidos ordenados de más específicos a más generales
+    var nivelesPosibles = ['PRE-A1', 'PREA1', 'C2', 'C1', 'B2', 'B1', 'A2', 'A1'];
+    for (var i = 0; i < nivelesPosibles.length; i++) {
+      if (texto.indexOf(nivelesPosibles[i]) !== -1) {
+        var encontrado = nivelesPosibles[i];
+        if (encontrado === 'PREA1') encontrado = 'PRE-A1';
+        return encontrado;
+      }
+    }
+
+    // Último fallback: regex simple
+    var m = texto.match(/([A-Z]\d)/);
+    if (m) return m[1];
+
+    return 'A1';
   }
 
   function indiceNivelParaPractica(nivel) {
