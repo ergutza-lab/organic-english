@@ -4261,6 +4261,30 @@ function cargarSeguimiento(){
     return;
   }
 
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Cargando alumnos...</td></tr>';
+
+  fetch(APPS_SCRIPT + '?action=getDatosCE&id=' + encodeURIComponent(caData ? caData.id : ''), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Error al cargar los alumnos.</td></tr>';
+        return;
+      }
+      // Solo mostramos alumnos activos (Validado o Becado) -- los que
+      // tiene sentido verificar en su panel.
+      var todos = data.todosAlumnos || [];
+      segAlumnosCache = todos.filter(function(a){
+        var e = String(a.estatus || '').trim();
+        return e === 'Validado' || e === 'Becado';
+      });
+      segCargado = true;
+      renderSegTabla();
+    })
+    .catch(function(){
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Error de conexión.</td></tr>';
+    });
+}
+
 // ═══ AGREGADO v2: ordenamiento de la tabla ═══
 function ordenarSeguimiento(campo){
   if (segOrdenCampo === campo) {
