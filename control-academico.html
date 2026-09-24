@@ -268,7 +268,18 @@
   .btn-acceder-alumno { background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; border:none; border-radius:10px; padding:12px 20px; font-size:14px; font-weight:700; cursor:pointer; flex:1; min-width:200px; box-shadow:0 6px 18px rgba(59,130,246,0.3); }
   .btn-acceder-alumno:hover { opacity:0.92; }
   @media(max-width:640px){ .ficha-grid { grid-template-columns:1fr; } }
-
+  /* ═══ AGREGADO v2: ordenamiento + header fijo en Seguimiento de alumnos ═══ */
+  .seg-tabla thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+  .seg-th-ordenable { cursor: pointer; user-select: none; transition: color .15s; }
+  .seg-th-ordenable:hover { color: var(--text); }
+  .seg-th-ordenable.orden-activo { color: #60a5fa; }
+  .seg-th-flecha { display: inline-block; margin-left: 4px; font-size: 10px; opacity: .8; }
+ 
   @media(max-width:768px){.panel-root{padding:1rem;}.stats-row{grid-template-columns:1fr 1fr;}.maestros-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}}
 </style>
 </head>
@@ -627,16 +638,16 @@
     </div>
 
     <!-- ═══ AGREGADO: sección completa "Seguimiento de alumnos" ═══ -->
-    <div id="tab-seguimiento" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Seguimiento de alumnos</span>
-          <span style="font-size:11px;color:var(--muted);">Haz clic en el nombre del alumno para ver su ficha académica y acceder a su panel</span>
-        </div>
-        <input type="text" id="segBuscador" class="seg-buscador" placeholder="Buscar alumno por ID, nombre o grupo..." oninput="filtrarSeguimiento()">
-        <div class="tabla-wrap" style="max-height:65vh;overflow-y:auto;">
-          <table>
+          <div class="tabla-wrap" style="max-height:65vh;overflow-y:auto;">
+          <table class="seg-tabla">
             <thead>
+              <tr>
+                <th class="seg-th-ordenable" data-campo="id" onclick="ordenarSeguimiento('id')" style="width:130px;">ID Alumno<span class="seg-th-flecha"></span></th>
+                <th class="seg-th-ordenable" data-campo="nombre" onclick="ordenarSeguimiento('nombre')">Nombre<span class="seg-th-flecha"></span></th>
+                <th class="seg-th-ordenable" data-campo="grupo" onclick="ordenarSeguimiento('grupo')" style="width:130px;">Grupo<span class="seg-th-flecha"></span></th>
+                <th style="width:110px;">Estatus</th>
+              </tr>
+            </thead>
               <tr>
                 <th style="width:120px;">ID Alumno</th>
                 <th>Nombre</th>
@@ -4235,6 +4246,9 @@ var segAlumnosCache = [];
 var segCargado = false;
 var segAlumnoActual = null;
 var segGrupoActual = null;
+// ═══ AGREGADO v2: estado del ordenamiento ═══
+var segOrdenCampo = 'nombre';
+var segOrdenAsc = true;
 
 function cargarSeguimiento(){
   var tbody = document.getElementById('segBody');
@@ -4247,6 +4261,27 @@ function cargarSeguimiento(){
     return;
   }
 
+// ═══ AGREGADO v2: ordenamiento de la tabla ═══
+function ordenarSeguimiento(campo){
+  if (segOrdenCampo === campo) {
+    segOrdenAsc = !segOrdenAsc;
+  } else {
+    segOrdenCampo = campo;
+    segOrdenAsc = true;
+  }
+  renderSegTabla();
+}
+
+function actualizarFlechasSeg(){
+  document.querySelectorAll('.seg-th-ordenable').forEach(function(th){
+    var campo  = th.getAttribute('data-campo');
+    var flecha = th.querySelector('.seg-th-flecha');
+    var activo = (campo === segOrdenCampo);
+    th.classList.toggle('orden-activo', activo);
+    if (flecha) flecha.textContent = activo ? (segOrdenAsc ? '▲' : '▼') : '';
+  });
+}
+ 
   tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Cargando alumnos...</td></tr>';
 
   fetch(APPS_SCRIPT + '?action=getDatosCE&id=' + encodeURIComponent(caData ? caData.id : ''), { redirect: 'follow' })
@@ -4287,9 +4322,28 @@ function renderSegTabla(){
     });
   }
 
-  lista.sort(function(a,b){
-    return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+    // ═══ AGREGADO v2: orden dinámico por ID / Nombre / Grupo ═══
+  lista.sort(function(a, b){
+    var va, vb;
+    if (segOrdenCampo === 'id') {
+      va = String(a.idAlumno || '').toLowerCase();
+      vb = String(b.idAlumno || '').toLowerCase();
+      var cmp = va.localeCompare(vb, 'es', { numeric: true, sensitivity: 'base' });
+      return segOrdenAsc ? cmp : -cmp;
+    }
+    if (segOrdenCampo === 'grupo') {
+      va = String(a.idGrupo || '').toLowerCase();
+      vb = String(b.idGrupo || '').toLowerCase();
+      var cmp2 = va.localeCompare(vb, 'es', { numeric: true, sensitivity: 'base' });
+      return segOrdenAsc ? cmp2 : -cmp2;
+    }
+    // nombre (default)
+    va = String(a.nombre || '');
+    vb = String(b.nombre || '');
+    var cmp3 = va.localeCompare(vb, 'es', { sensitivity: 'base' });
+    return segOrdenAsc ? cmp3 : -cmp3;
   });
+  actualizarFlechasSeg();
 
   if (!lista.length) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Sin alumnos que coincidan con la búsqueda.</td></tr>';
