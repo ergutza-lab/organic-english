@@ -246,12 +246,24 @@
       </div>
     </div>
 
-    <!-- VISTA GRUPO PERSONALIZADO -->
+        <!-- VISTA GRUPO PERSONALIZADO -->
     <div id="vistaPersonalizado" style="display:none;">
       <button class="back-btn" onclick="volverGruposDesdePersonalizado()">← Mis grupos</button>
-      <div class="grupo-info-card">
-        <h3 id="personalizadoTitulo">—</h3>
-        <p id="personalizadoAlumno" style="margin-top:4px;">—</p>
+      <div class="grupo-info-card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h3 id="personalizadoTitulo">—</h3>
+          <p id="personalizadoAlumno" style="margin-top:4px;">—</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <div style="display:flex;gap:6px;">
+            <button id="btnInvitarWhatsPer" onclick="invitarClasePersonalizado()" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">💬 Invitar a la clase</button>
+            <button onclick="abrirModalZoomPersonalizado()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="entrarZoomMaestroPersonalizado()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🖥️ Entrar a Zoom</button>
+            <button onclick="abrirModalGrabacionPersonalizado()" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>
+          </div>
+        </div>
       </div>
 
       <div style="background:var(--card);border-radius:14px;padding:20px;margin-top:16px;">
@@ -2615,6 +2627,63 @@ setInterval(revisarActividadAgenda, 60000);
       if (aviso) aviso.style.display = 'block';
     }
   })();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  BOTONES DE ZOOM/WHATSAPP/GRABACIÓN EN VISTA PERSONALIZADO
+//  PER-02 (y cualquier grupo personalizado que en realidad funcione como
+//  grupo normal) necesita los mismos botones que un grupo regular, pero
+//  la vista personalizada antes solo tenía "Programar clases".
+// ═══════════════════════════════════════════════════════════════════════
+
+function invitarClasePersonalizado() {
+  if (!grupoActual || !grupoActual.linkWhats) {
+    mostrarToast('No hay link de WhatsApp configurado para este grupo','error');
+    return;
+  }
+  var maestroNombre = maestroData ? maestroData.nombre : 'tu maestro';
+  var alumnoNombre = (grupoActual.alumnos && grupoActual.alumnos.length) ? grupoActual.alumnos[0].nombre : 'alumno';
+  var msg = '🎓 ¡Hola ' + alumnoNombre + '! Te recuerdo que nuestra clase está por comenzar.\n\n'
+    + '👤 Alumno: ' + alumnoNombre + '\n'
+    + '📚 Nivel: ' + (grupoActual.nivel || '') + '\n'
+    + '⏰ Horario: ' + (grupoActual.horario || '') + '\n\n'
+    + 'Ingresa a tu plataforma personal y da clic en el botón azul que dice "Unirme a mis clases por Zoom". 🎓\n\n'
+    + '¡Te espero! 😊\n— ' + maestroNombre;
+  navigator.clipboard.writeText(msg).then(function() {
+    mostrarToast('✅ Mensaje copiado. Pégalo en WhatsApp.','success');
+    setTimeout(function() {
+      window.open(grupoActual.linkWhats, '_blank');
+    }, 800);
+  }).catch(function() {
+    window.open(grupoActual.linkWhats, '_blank');
+  });
+}
+
+function abrirModalZoomPersonalizado() {
+  // Reutiliza el mismo modal de Zoom que ya existe
+  grupoZoomActual = grupoActual.id;
+  document.getElementById('zoomGrupoLabel').textContent = 'Grupo ' + grupoActual.id + ' · ' + (grupoActual.horario || '');
+  document.getElementById('zoomInput').value = grupoActual.linkZoom || '';
+  document.getElementById('zoomStatus').textContent = '';
+  document.getElementById('modalZoom').style.display = 'flex';
+}
+
+function entrarZoomMaestroPersonalizado() {
+  if (!grupoActual || !grupoActual.linkZoom) {
+    mostrarToast('No hay enlace Zoom configurado para este grupo','error');
+    return;
+  }
+  window.open(grupoActual.linkZoom, '_blank');
+}
+
+function abrirModalGrabacionPersonalizado() {
+  // Reutiliza el mismo modal de Grabación que ya existe
+  grupoGrabActual = grupoActual.id;
+  document.getElementById('grabGrupoLabel').textContent = 'Grupo ' + grupoActual.id + ' · ' + (grupoActual.horario || '');
+  document.getElementById('grabInput').value = grupoActual.grabacion || '';
+  document.getElementById('grabStatus').textContent = '';
+  document.getElementById('modalGrabacion').style.display = 'flex';
+}
+  
 </script>
 
 </body>
