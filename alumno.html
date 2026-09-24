@@ -2368,15 +2368,37 @@
 
   var LECCIONES_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/ADULTS/';
 
+    // ═══════════════════════════════════════════════════════════════════════
+  //  Base de las imágenes de lecciones (Adults/Teens).
+  //  IMPORTANTE: se usa "raw.githubusercontent.com" (no "github.com/blob")
+  //  porque esa URL devuelve el ARCHIVO directo, mientras que "/blob/" es
+  //  la página HTML de vista previa de GitHub (no sirve como <img src>).
+  //  Y NO se usa encodeURIComponent sobre el nombre completo porque ya se
+  //  está concatenando con la base ya codificada -- codificar dos veces o
+  //  codificar el "?" del query string rompe la URL. Se codifican SOLO los
+  //  segmentos variables (subnivel + número).
+  // ═══════════════════════════════════════════════════════════════════════
+  var LECCIONES_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/ADULTS/';
+
+  function construirUrlImagenLeccion(subnivel, num) {
+    // num con dos dígitos: 01, 02, ..., 28
+    var numStr = num < 10 ? '0' + num : String(num);
+    // El archivo se llama "A2.1 01.jpg" (con espacio, extensión .jpg)
+    var nombreArchivo = subnivel + ' ' + numStr + '.jpg';
+    // Codificamos SOLO el espacio como %20 (el resto de caracteres del
+    // subnivel como "A2.1" no requieren codificación)
+    return LECCIONES_IMG_BASE + nombreArchivo.replace(/ /g, '%20');
+  }
+
   function columnaRangoLecciones(subnivel, desde, hasta) {
     var html = '<div class="misiones-kids-grid">';
     for (var i = desde; i <= hasta; i++) {
       var num = i < 10 ? '0' + i : '' + i;
       var leccionData = LECCIONES_CONTENIDO[subnivel + '-' + i];
       var tituloCorto = leccionData ? extraerTituloCorto(leccionData.titulo) : '';
-      var imgUrl = LECCIONES_IMG_BASE + encodeURIComponent(subnivel + ' ' + num + '.jpeg');
-      html += '<div class="mision-kids-card" onclick="abrirLeccion(\''+subnivel+'\','+i+')">' +
-        '<div class="leccion-img-wrap"><img src="'+imgUrl+'" alt="Lesson '+num+'" onload="this.classList.add(\'loaded\')" onerror="this.parentElement.style.animation=\'none\';this.outerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;&quot;>📖</div>\'"></div>' +
+      var imgUrl = construirUrlImagenLeccion(subnivel, i);
+      html += '<div class="mision-kids-card" onclick="abrirLeccion(\'' + subnivel + '\',' + i + ')">' +
+        '<div class="leccion-img-wrap"><img src="' + imgUrl + '" alt="Lesson ' + num + '" onload="this.classList.add(\'loaded\')" onerror="this.parentElement.style.animation=\'none\';this.outerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;&quot;>📖</div>\'"></div>' +
         '<div class="mision-kids-num">LESSON ' + num + '</div>' +
         (tituloCorto ? '<div class="mision-kids-titulo">' + tituloCorto + '</div>' : '') +
       '</div>';
@@ -2384,7 +2406,6 @@
     html += '</div>';
     return html;
   }
-
   var KIDS_IMG_BASE      = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/';
   var KIDS_FONDO_URL     = KIDS_IMG_BASE + 'FONDO%20KIDS.webp';
   var KIDS_WORKBOOK_A11_DRIVE = 'https://drive.google.com/file/d/16CQGgOF0GgKO94bMNi4hD9t0MWeZVO8q/view?usp=drive_link';
