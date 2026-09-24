@@ -2156,7 +2156,23 @@
   function bloqueDesbloqueadoAlumno() {
     return (alumnoData && alumnoData._bloqueActual) || 1;
   }
-    var ORDEN_NIVELES_OE = ['PRE-A1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+      // ═══════════════════════════════════════════════════════════════════════
+  //  Orden COMPLETO de subniveles (NO solo niveles). Esto es importante
+  //  porque la regla del candado distingue entre A1.1, A1.2, A2.1, A2.2
+  //  etc. -- no solo entre A1 y A2. Antes solo existía ORDEN_NIVELES_OE
+  //  (nivel base) y por eso un alumno de A1.1 podía ver material de A2.1
+  //  (ambos caían en "bloque 1" por error).
+  // ═══════════════════════════════════════════════════════════════════════
+  var ORDEN_SUBNIVELES_OE = [
+    'PRE-A1',
+    'A1.1', 'A1.2',
+    'A2.1', 'A2.2',
+    'B1.1', 'B1.2',
+    'B2.1', 'B2.2',
+    'C1.1', 'C1.2'
+  ];
+
+  var ORDEN_NIVELES_OE = ['PRE-A1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
   function nivelDeSubnivelOE_(subnivel) {
     if (!subnivel) return '';
@@ -2165,21 +2181,43 @@
     return m ? m[1] : s;
   }
 
-  // Regla de negocio:
-  //  - Niveles POR DEBAJO del nivel actual: SIEMPRE desbloqueados (ya los curso)
-  //  - Nivel ACTUAL del alumno: aplica la regla de bloque (solo su bloque actual
-  //    + los anteriores)
-  //  - Niveles SUPERIORES: bloqueados hasta avanzar
+  // Regla de negocio CORREGIDA:
+  //  - Subniveles POR DEBAJO del subnivel actual del alumno: SIEMPRE
+  //    desbloqueados (ya los curso).
+  //  - Subnivel ACTUAL del alumno: SIEMPRE desbloqueado (es su material).
+  //  - Subniveles SUPERIORES (cualquier nivel mayor): bloqueados.
   function subnivelEstaDesbloqueadoOE_(subnivel) {
+    // Kids: se usa su propia lógica (A1.1 y A1.2)
     if (subnivel && subnivel.indexOf('KIDS-') === 0) {
       return bloqueDeSubnivel(subnivel) <= bloqueDesbloqueadoAlumno();
     }
-    var nivelSub = nivelDeSubnivelOE_(subnivel);
-    var nivelAlumno = (alumnoData && alumnoData._nivelBase) || 'A1';
-    var idxSub = ORDEN_NIVELES_OE.indexOf(nivelSub);
-    var idxAlu = ORDEN_NIVELES_OE.indexOf(nivelAlumno);
-    if (idxSub !== -1 && idxAlu !== -1 && idxSub < idxAlu) return true;
-    return bloqueDeSubnivel(subnivel) <= bloqueDesbloqueadoAlumno();
+
+    // El alumno puede tener _nivelBase como "A1" o como "A1.1"; probamos ambos.
+    var nivelAlumnoCompleto = '';
+    if (alumnoData && alumnoData.grupo && alumnoData.grupo.nivel) {
+      // grupo.nivel es algo como "NIVEL A1-Bloque 1" -- se extrae solo el "A1"
+      var m = String(alumnoData.grupo.nivel).match(/([A-Za-z]\d)/);
+      var nivelBase = m ? m[1].toUpperCase() : '';
+      // El bloque actual del alumno determina si es .1 o .2
+      var bloqueActual = bloqueDesbloqueadoAlumno() || 1;
+      nivelAlumnoCompleto = nivelBase + '.' + bloqueActual;
+    }
+
+    var idxSub = ORDEN_SUBNIVELES_OE.indexOf(subnivel);
+    var idxAlumno = ORDEN_SUBNIVELES_OE.indexOf(nivelAlumnoCompleto);
+
+    // Si alguno no está en la lista, fallback seguro: comparar por nivel base
+    if (idxSub === -1 || idxAlumno === -1) {
+      var nivelSubBase = nivelDeSubnivelOE_(subnivel);
+      var idxSubBase = ORDEN_NIVELES_OE.indexOf(nivelSubBase);
+      var idxAluBase = ORDEN_NIVELES_OE.indexOf(nivelAlumnoCompleto.split('.')[0]);
+      if (idxSubBase !== -1 && idxAluBase !== -1 && idxSubBase < idxAluBase) return true;
+      return false; // ante la duda, mejor bloquear que mostrar de más
+    }
+
+    // ✅ La regla: el alumno puede ver su subnivel y todos los ANTERIORES.
+    //    Cualquier subnivel posterior queda BLOQUEADO.
+    return idxSub <= idxAlumno;
   }
   function mostrarAvisoNivelBloqueado() {
     document.getElementById('modalNivelPracticaTitulo').textContent = 'Nivel bloqueado';
