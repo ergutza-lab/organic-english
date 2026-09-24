@@ -1066,44 +1066,7 @@
     <div id="tab-practica" class="tab-content">
      <div id="nivelesGridView">
       <div class="practica-sticky-header"><div class="practica-titulo">Practica tu clase:</div></div>
-      <div class="niveles-grid">
-        <div class="nivel-card nivel-clicable" style="--color-nivel-btn:#bbbbbb;--color-nivel-texto:#3f3f3f;" onclick="abrirNivelPractica('Pre-A1')">
-          <div class="nivel-nombre">Pre-A1</div>
-          <div class="nivel-cefr">STARTER</div>
-          <div class="nivel-trad">Principiante</div>
-          <p class="nivel-desc">Comenzarás tu camino en el inglés desde cero. Desarrollarás confianza, aprenderás lenguaje esencial para comunicarte en situaciones muy simples y te prepararás para iniciar A1 con éxito.</p>
-        </div>
-        <div class="nivel-card nivel-clicable" style="--color-nivel-btn:#1e3a6e;--color-nivel-texto:#fff;" onclick="abrirNivelPractica('A1')">
-          <div class="nivel-nombre">A1</div>
-          <div class="nivel-cefr">BASIC</div>
-          <div class="nivel-trad">Básico</div>
-          <p class="nivel-desc">Aprenderás a comunicarte en situaciones cotidianas básicas. Podrás presentarte, hacer preguntas simples y comprender expresiones frecuentes para desenvolverte con mayor confianza.</p>
-        </div>
-        <div class="nivel-card nivel-clicable" style="--color-nivel-btn:#0891b2;--color-nivel-texto:#fff;" onclick="abrirNivelPractica('A2')">
-          <div class="nivel-nombre">A2</div>
-          <div class="nivel-cefr">ELEMENTARY</div>
-          <div class="nivel-trad">Elemental</div>
-          <p class="nivel-desc">Podrás comunicarte en situaciones cotidianas con mayor independencia. Ampliarás tu vocabulario y desarrollarás conversaciones sobre rutinas, trabajo, familia e intereses personales.</p>
-        </div>
-        <div class="nivel-card nivel-bloqueado" style="--color-nivel-btn:#2e7d52;--color-nivel-texto:#fff;">
-          <div class="nivel-nombre">B1</div>
-          <div class="nivel-cefr">INTERMEDIATE</div>
-          <div class="nivel-trad">Intermedio</div>
-          <p class="nivel-desc">Te comunicarás con mayor fluidez en temas familiares y situaciones reales. Desarrollarás la capacidad de expresar opiniones, compartir experiencias y participar activamente en conversaciones.</p>
-        </div>
-        <div class="nivel-card nivel-bloqueado" style="--color-nivel-btn:#e8520a;--color-nivel-texto:#fff;">
-          <div class="nivel-nombre">B2</div>
-          <div class="nivel-cefr">UPPER-INTERMEDIATE</div>
-          <div class="nivel-trad">Intermedio Alto</div>
-          <p class="nivel-desc">Te expresarás con seguridad y naturalidad en una amplia variedad de contextos. Perfeccionarás tu precisión, ampliarás tu vocabulario y sostendrás conversaciones más complejas y espontáneas.</p>
-        </div>
-        <div class="nivel-card nivel-bloqueado" style="--color-nivel-btn:#6b3fa0;--color-nivel-texto:#fff;">
-          <div class="nivel-nombre">C1</div>
-          <div class="nivel-cefr">ADVANCED</div>
-          <div class="nivel-trad">Avanzado</div>
-          <p class="nivel-desc">Dominarás el inglés con un alto nivel de fluidez y precisión. Te comunicarás con espontaneidad en contextos académicos, profesionales y sociales, adaptando tu lenguaje a diferentes situaciones.</p>
-        </div>
-      </div>
+            <div class="niveles-grid" id="nivelesGridDinamico"></div>
      </div>
 
       <div id="nivelDetalleView" style="display:none;">
@@ -2239,6 +2202,74 @@
   var nivelPracticaActual = null;
   var subnivelSeleccionado = null;
 
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  DEFINICIÓN DE NIVELES (con contenido visual de cada uno)
+  // ═══════════════════════════════════════════════════════════════════════
+  var NIVELES_PRACTICA_INFO = [
+    { nivel: 'Pre-A1', color: '#bbbbbb', textoColor: '#3f3f3f', cefr: 'STARTER',     trad: 'Principiante',
+      desc: 'Comenzarás tu camino en el inglés desde cero. Desarrollarás confianza, aprenderás lenguaje esencial para comunicarte en situaciones muy simples y te prepararás para iniciar A1 con éxito.' },
+    { nivel: 'A1',     color: '#1e3a6e', textoColor: '#fff',    cefr: 'BASIC',       trad: 'Básico',
+      desc: 'Aprenderás a comunicarte en situaciones cotidianas básicas. Podrás presentarte, hacer preguntas simples y comprender expresiones frecuentes para desenvolverte con mayor confianza.' },
+    { nivel: 'A2',     color: '#0891b2', textoColor: '#fff',    cefr: 'ELEMENTARY',  trad: 'Elemental',
+      desc: 'Podrás comunicarte en situaciones cotidianas con mayor independencia. Ampliarás tu vocabulario y desarrollarás conversaciones sobre rutinas, trabajo, familia e intereses personales.' },
+    { nivel: 'B1',     color: '#2e7d52', textoColor: '#fff',    cefr: 'INTERMEDIATE',trad: 'Intermedio',
+      desc: 'Te comunicarás con mayor fluidez en temas familiares y situaciones reales. Desarrollarás la capacidad de expresar opiniones, compartir experiencias y participar activamente en conversaciones.' },
+    { nivel: 'B2',     color: '#e8520a', textoColor: '#fff',    cefr: 'UPPER-INTERMEDIATE', trad: 'Intermedio Alto',
+      desc: 'Te expresarás con seguridad y naturalidad en una amplia variedad de contextos. Perfeccionarás tu precisión, ampliarás tu vocabulario y sostendrás conversaciones más complejas y espontáneas.' },
+    { nivel: 'C1',     color: '#6b3fa0', textoColor: '#fff',    cefr: 'ADVANCED',    trad: 'Avanzado',
+      desc: 'Dominarás el inglés con un alto nivel de fluidez y precisión. Te comunicarás con espontaneidad en contextos académicos, profesionales y sociales, adaptando tu lenguaje a diferentes situaciones.' }
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Determina el nivel BASE del alumno (PRE-A1, A1, A2, B1, B2, C1, C2)
+  //  a partir del texto guardado en grupo.nivel (ej. "NIVEL A1-Bloque 1").
+  // ═══════════════════════════════════════════════════════════════════════
+  function nivelAlumnoBaseParaPractica() {
+    var nivelRaw = (alumnoData && alumnoData.grupo && alumnoData.grupo.nivel) || '';
+    var m = String(nivelRaw).toUpperCase().match(/([A-Z]+\d?)/);
+    if (!m) return 'A1';
+    var v = m[1];
+    if (v === 'PREA1' || v === 'PRE-A1') return 'PRE-A1';
+    return v; // A1, A2, B1, B2, C1, C2
+  }
+
+  function indiceNivelParaPractica(nivel) {
+    var orden = ['PRE-A1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+    var v = String(nivel).toUpperCase();
+    if (v === 'PREA1' || v === 'PRE-A1') v = 'PRE-A1';
+    return orden.indexOf(v);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Pinta el grid de niveles: los que están a la IZQUIERDA del alumno (o
+  //  su propio nivel) son clicables; los de la DERECHA quedan bloqueados
+  //  (con el mismo diseño gris + tooltip de "se desbloquea cuando avances").
+  // ═══════════════════════════════════════════════════════════════════════
+  function renderNivelesPractica() {
+    var grid = document.getElementById('nivelesGridDinamico');
+    if (!grid) return;
+
+    var nivelAlumno = nivelAlumnoBaseParaPractica();
+    var idxAlumno = indiceNivelParaPractica(nivelAlumno);
+
+    grid.innerHTML = NIVELES_PRACTICA_INFO.map(function (info) {
+      var idx = indiceNivelParaPractica(info.nivel);
+      var desbloqueado = (idx !== -1 && idxAlumno !== -1 && idx <= idxAlumno);
+      var clase = desbloqueado ? 'nivel-clicable' : 'nivel-bloqueado';
+      var onclickAttr = desbloqueado ? ' onclick="abrirNivelPractica(\'' + info.nivel + '\')"' : '';
+      var tooltipAttr = desbloqueado ? '' : ' title="Se desbloquea cuando avances a este nivel"';
+
+      return '<div class="nivel-card ' + clase + '"' + onclickAttr + tooltipAttr +
+             ' style="--color-nivel-btn:' + info.color + ';--color-nivel-texto:' + info.textoColor + ';">' +
+               '<div class="nivel-nombre">' + info.nivel + '</div>' +
+               '<div class="nivel-cefr">' + info.cefr + '</div>' +
+               '<div class="nivel-trad">' + info.trad + '</div>' +
+               '<p class="nivel-desc">' + info.desc + '</p>' +
+             '</div>';
+    }).join('');
+  }
+  
   function libroWorkbookHtml(w, activo, bloqueado) {
     if (bloqueado) {
       return '<div class="libro-workbook bloqueado" title="Se desbloquea cuando avances a este nivel">' +
