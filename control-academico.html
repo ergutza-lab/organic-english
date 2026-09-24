@@ -4282,6 +4282,8 @@ var segAlumnoActual = null;
 var segGrupoActual = null;
 var segOrdenCampo = 'nombre';
 var segOrdenAsc = true;
+var segGruposCE = [];        // ═══ AGREGADO: grupos de getDatosCE (con idAsistente/idMaestro) ═══
+var segAsistentesCE = [];    // ═══ AGREGADO: asistentes de getDatosCE (con id/nombre) ═══
 
 function cargarSeguimiento(){
   var tbody = document.getElementById('segBody');
@@ -4301,11 +4303,14 @@ function cargarSeguimiento(){
         tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Error al cargar los alumnos.</td></tr>';
         return;
       }
-      var todos = data.todosAlumnos || [];
+            var todos = data.todosAlumnos || [];
       segAlumnosCache = todos.filter(function(a){
         var e = String(a.estatus || '').trim();
         return e === 'Validado' || e === 'Becado';
       });
+      // ═══ AGREGADO: guardar grupos y asistentes para resolver maestro/CE ═══
+      segGruposCE = data.grupos || [];
+      segAsistentesCE = data.asistentes || [];
       segCargado = true;
       renderSegTabla();
     })
@@ -4411,14 +4416,33 @@ function abrirFichaAcademica(idAlumno){
   document.getElementById('fdGrupo').textContent = alumno.idGrupo || '—';
   document.getElementById('fdEstatus').textContent = alumno.estatus || '—';
 
+  // ═══ AGREGADO: resolver maestro y asistente desde el GRUPO (fuente verdadera) ═══
+  var grupoDelAlumno = (segGruposCE || []).filter(function(g){ return g.id === alumno.idGrupo; })[0]
+                    || (gruposData || []).filter(function(g){ return g.id === alumno.idGrupo; })[0]
+                    || null;
+
+  // Asistente CE
   var asisTxt = '—';
-  if (alumno.idAsistente) {
+  if (grupoDelAlumno && grupoDelAlumno.idAsistente) {
+    var nombreAsis = '';
+    var aObj = (segAsistentesCE || []).filter(function(a){ return a.id === grupoDelAlumno.idAsistente; })[0];
+    if (aObj) nombreAsis = aObj.nombre || '';
+    asisTxt = grupoDelAlumno.idAsistente + (nombreAsis ? ' — ' + nombreAsis : '');
+  } else if (alumno.idAsistente) {
     asisTxt = alumno.idAsistente + (alumno.nombreAsistente ? ' — ' + alumno.nombreAsistente : '');
   }
   document.getElementById('fdAsistente').textContent = asisTxt;
 
+  // Maestro
   var maeTxt = '—';
-  if (alumno.idMaestro) {
+  if (grupoDelAlumno && grupoDelAlumno.idMaestro) {
+    var nombreMae = grupoDelAlumno.maestroNombre || '';
+    if (!nombreMae) {
+      var mObj = (maestrosData || []).filter(function(m){ return m.id === grupoDelAlumno.idMaestro; })[0];
+      if (mObj) nombreMae = mObj.nombre || '';
+    }
+    maeTxt = grupoDelAlumno.idMaestro + (nombreMae ? ' — ' + nombreMae : '');
+  } else if (alumno.idMaestro) {
     maeTxt = alumno.idMaestro + (alumno.nombreMaestro ? ' — ' + alumno.nombreMaestro : '');
   }
   document.getElementById('fdMaestro').textContent = maeTxt;
