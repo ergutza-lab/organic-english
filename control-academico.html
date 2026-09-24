@@ -4242,11 +4242,14 @@ function descargarHistorialAlumnoPDF() {
 //  y getEvaluacionAlumno() para los datos académicos.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  SEGUIMIENTO DE ALUMNOS (Control Académico)
+// ═══════════════════════════════════════════════════════════════════════════
+
 var segAlumnosCache = [];
 var segCargado = false;
 var segAlumnoActual = null;
 var segGrupoActual = null;
-// ═══ AGREGADO v2: estado del ordenamiento ═══
 var segOrdenCampo = 'nombre';
 var segOrdenAsc = true;
 
@@ -4254,8 +4257,6 @@ function cargarSeguimiento(){
   var tbody = document.getElementById('segBody');
   if (!tbody) return;
 
-  // Si ya cargamos una vez, no volvemos a pedir salvo que el usuario
-  // lo pida explícitamente recargando la pantalla completa.
   if (segCargado && segAlumnosCache.length) {
     renderSegTabla();
     return;
@@ -4270,8 +4271,6 @@ function cargarSeguimiento(){
         tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Error al cargar los alumnos.</td></tr>';
         return;
       }
-      // Solo mostramos alumnos activos (Validado o Becado) -- los que
-      // tiene sentido verificar en su panel.
       var todos = data.todosAlumnos || [];
       segAlumnosCache = todos.filter(function(a){
         var e = String(a.estatus || '').trim();
@@ -4285,7 +4284,6 @@ function cargarSeguimiento(){
     });
 }
 
-// ═══ AGREGADO v2: ordenamiento de la tabla ═══
 function ordenarSeguimiento(campo){
   if (segOrdenCampo === campo) {
     segOrdenAsc = !segOrdenAsc;
@@ -4305,30 +4303,6 @@ function actualizarFlechasSeg(){
     if (flecha) flecha.textContent = activo ? (segOrdenAsc ? '▲' : '▼') : '';
   });
 }
- 
-  tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Cargando alumnos...</td></tr>';
-
-  fetch(APPS_SCRIPT + '?action=getDatosCE&id=' + encodeURIComponent(caData ? caData.id : ''), { redirect: 'follow' })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if (!data || !data.ok) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Error al cargar los alumnos.</td></tr>';
-        return;
-      }
-      // Solo mostramos alumnos activos (Validado o Becado) -- los que
-      // tiene sentido verificar en su panel.
-      var todos = data.todosAlumnos || [];
-      segAlumnosCache = todos.filter(function(a){
-        var e = String(a.estatus || '').trim();
-        return e === 'Validado' || e === 'Becado';
-      });
-      segCargado = true;
-      renderSegTabla();
-    })
-    .catch(function(){
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Error de conexión.</td></tr>';
-    });
-}
 
 function renderSegTabla(){
   var tbody = document.getElementById('segBody');
@@ -4346,7 +4320,6 @@ function renderSegTabla(){
     });
   }
 
-    // ═══ AGREGADO v2: orden dinámico por ID / Nombre / Grupo ═══
   lista.sort(function(a, b){
     var va, vb;
     if (segOrdenCampo === 'id') {
@@ -4361,7 +4334,6 @@ function renderSegTabla(){
       var cmp2 = va.localeCompare(vb, 'es', { numeric: true, sensitivity: 'base' });
       return segOrdenAsc ? cmp2 : -cmp2;
     }
-    // nombre (default)
     va = String(a.nombre || '');
     vb = String(b.nombre || '');
     var cmp3 = va.localeCompare(vb, 'es', { sensitivity: 'base' });
@@ -4400,12 +4372,10 @@ function abrirFichaAcademica(idAlumno){
   segAlumnoActual = alumno;
   segGrupoActual = (gruposData || []).filter(function(g){ return g.id === alumno.idGrupo; })[0] || null;
 
-  // Cabecera del modal
   document.getElementById('fichaNombre').textContent = alumno.nombre || '—';
   document.getElementById('fichaSub').textContent = 'Grupo: ' + (alumno.idGrupo || '—') + ' · ' + (alumno.nivel || '');
   document.getElementById('fichaIdChip').textContent = alumno.idAlumno || '—';
 
-  // Datos personales -- los que ya tenemos
   document.getElementById('fdId').textContent = alumno.idAlumno || '—';
   document.getElementById('fdFecha').textContent = alumno.fechaInscripcion ? formatFechaCA(alumno.fechaInscripcion) : '—';
   document.getElementById('fdGrupo').textContent = alumno.idGrupo || '—';
@@ -4426,7 +4396,6 @@ function abrirFichaAcademica(idAlumno){
   document.getElementById('fdWhatsapp').textContent = alumno.whatsapp || '—';
   document.getElementById('fdEmail').textContent = alumno.email || '—';
 
-  // Tutor (si aplica)
   var tutorNombre = alumno.tutorNombre || '';
   var tutorWhats  = alumno.tutorWhatsapp || '';
   if (tutorNombre || tutorWhats) {
@@ -4436,7 +4405,6 @@ function abrirFichaAcademica(idAlumno){
     document.getElementById('fdTutorWrap').style.display = 'none';
   }
 
-  // Resetear académicos
   ['faPorcentaje','faAsistencia','faPositivos','faClases','faNivel','faBloque','faEstado','faColores','faChallenges'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) { el.textContent = '—'; el.className = el.className.replace(/\s(azul|verde|amarillo|rojo|naranja)/g, ''); }
@@ -4446,7 +4414,6 @@ function abrirFichaAcademica(idAlumno){
   document.getElementById('fichaContenido').style.display = 'none';
   document.getElementById('modalFichaAcademica').classList.add('visible');
 
-  // Cargar datos académicos
   fetch(APPS_SCRIPT + '?action=getEvaluacionAlumno&idAlumno=' + encodeURIComponent(alumno.idAlumno) + '&idGrupo=' + encodeURIComponent(alumno.idGrupo), { redirect: 'follow' })
     .then(function(r){ return r.json(); })
     .then(function(res){
@@ -4543,7 +4510,6 @@ function copiarFicha(campo){
   }
 }
 
-// Helper: formatea una fecha ISO a formato mexicano corto
 function formatFechaCA(iso){
   if (!iso) return '—';
   var d = new Date(iso);
