@@ -8846,15 +8846,31 @@ function renderEvaluacionAlumno(d) {
     }
   }
 
-  var labelMini  = kidsTheme ? 'Mini Adventure'  : 'Mini Challenge';
+    var labelMini  = kidsTheme ? 'Mini Adventure'  : 'Mini Challenge';
   var labelGrand = kidsTheme ? 'Final Adventure' : 'Grand Challenge';
 
-  var tieneMini  = d.challenges && d.challenges.some(function(c){ return c.tipo==='Mini' && c.aprobado; });
-  var tieneGrand = d.challenges && d.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
+  // ═══════════════════════════════════════════════════════════════════
+  //  Separa los challenges del bloque ACTUAL (van al panel) de los del
+  //  bloque anterior o nivel anterior (van al histórico).
+  // ═══════════════════════════════════════════════════════════════════
+  var bloqueActualNum = d.bloque || 1;
+  var challengesNivel = d.challenges || [];
+  var challengesHistoricos = (d.challengesHistoricos || []).slice();
 
-  var miniCh  = d.challenges && d.challenges.find(function(c){ return c.tipo==='Mini'; });
-  var grandCh = d.challenges && d.challenges.find(function(c){ return c.tipo==='Grand'||c.tipo==='Gran'; });
-  var fbMini  = miniCh  && miniCh.feedback  ? miniCh.feedback  : '';
+  var miniCh = null, grandCh = null;
+  challengesNivel.forEach(function(ch) {
+    var esMini = ch.tipo.toLowerCase().indexOf('mini') === 0;
+    if (ch.bloque === bloqueActualNum) {
+      if (esMini) miniCh = ch;
+      else grandCh = ch;
+    } else if (ch.bloque < bloqueActualNum) {
+      challengesHistoricos.push(ch);
+    }
+  });
+
+  var tieneMini  = !!(miniCh && miniCh.aprobado);
+  var tieneGrand = !!(grandCh && grandCh.aprobado);
+  var fbMini  = miniCh  && miniCh.feedback ? miniCh.feedback : '';
   var fbGrand = grandCh && grandCh.feedback ? grandCh.feedback : '';
 
   function medalSVG(lit, noAprobo){
@@ -8894,7 +8910,8 @@ function renderEvaluacionAlumno(d) {
 
   html += '<div style="display:flex;gap:12px;margin-bottom:8px;">';
 
-  var miniExiste = miniCh !== undefined;
+  // ── Mini Challenge del bloque actual ──
+  var miniExiste = miniCh !== undefined && miniCh !== null;
   var miniNoAprobo = miniExiste && !tieneMini;
   var miniBg = tieneMini ? (kidsTheme?'rgba(251,191,36,0.35)':'rgba(251,191,36,0.25)') : miniNoAprobo ? (kidsTheme?'rgba(239,68,68,0.35)':'rgba(239,68,68,0.25)') : kIdleBoxBg;
   var miniBorder = tieneMini ? '1px solid rgba(251,191,36,0.6)' : miniNoAprobo ? '1px solid rgba(239,68,68,0.6)' : kIdleBorder;
@@ -8908,14 +8925,15 @@ function renderEvaluacionAlumno(d) {
     html += '<div style="font-size:9px;font-weight:700;color:'+(kidsTheme?'#a16207':'#facc15')+';margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
     html += '<div style="font-size:11px;color:'+(kidsTheme?'#1e293b':'#fff')+';line-height:1.5;">'+fbMini+'</div></div>';
   }
-  if (!tieneMini) {
+  if (!miniExiste) {
     html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Mini\')">📹 Subir mi video</button>';
   }
   var urlMini = miniCh && miniCh.urlVideo ? miniCh.urlVideo : '';
   html += '<a id="linkVideoMini" class="link-video-subido" href="'+urlMini+'" target="_blank" style="display:'+(urlMini?'block':'none')+'">▶ Ver mi video subido</a>';
   html += '</div>';
 
-  var grandExiste = grandCh !== undefined;
+  // ── Grand Challenge del bloque actual ──
+  var grandExiste = grandCh !== undefined && grandCh !== null;
   var grandNoAprobo = grandExiste && !tieneGrand;
   var grandBg = tieneGrand ? (kidsTheme?'rgba(251,191,36,0.35)':'rgba(251,191,36,0.25)') : grandNoAprobo ? (kidsTheme?'rgba(239,68,68,0.35)':'rgba(239,68,68,0.25)') : kIdleBoxBg;
   var grandBorder = tieneGrand ? '1px solid rgba(251,191,36,0.6)' : grandNoAprobo ? '1px solid rgba(239,68,68,0.6)' : kIdleBorder;
@@ -8934,6 +8952,15 @@ function renderEvaluacionAlumno(d) {
   html += '</div>';
 
   html += '</div>';
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  BOTÓN "VER HISTORIAL DE CHALLENGES"
+  // ═══════════════════════════════════════════════════════════════════
+  if (challengesHistoricos.length > 0) {
+    html += '<button onclick="abrirHistorialChallenges()" style="width:100%;margin-top:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:600;cursor:pointer;">📜 Ver historial de challenges anteriores (' + challengesHistoricos.length + ')</button>';
+  }
+
+  window._challengesHistoricos = challengesHistoricos;
   html += '<div style="font-size:10px;color:'+kSub+';text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
 
   document.getElementById('evaluacionAlumno').innerHTML = html;
@@ -9045,6 +9072,75 @@ function renderEvaluacionAlumno(d) {
     if (growieMascot) growieMascot.style.display = 'none';
   }
   document.addEventListener('DOMContentLoaded',function(){document.getElementById('inputEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});});
+
+function abrirHistorialChallenges() {
+  var lista = window._challengesHistoricos || [];
+  var cont = document.getElementById('historialChallengesContenido');
+  if (!cont) return;
+
+  if (!lista.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px;">Aún no tienes challenges anteriores.</div>';
+    document.getElementById('modalHistorialChallenges').classList.add('visible');
+    return;
+  }
+
+  var grupos = {};
+  lista.forEach(function(ch) {
+    var nivelLimpio = (ch.nivel || 'Nivel actual').replace(/^NIVEL\s+/i, '').replace(/-Bloque\s*\d+/i, '').trim();
+    var clave = nivelLimpio + '::' + (ch.bloque || 0);
+    if (!grupos[clave]) grupos[clave] = { nivel: nivelLimpio, bloque: ch.bloque || 0, items: [] };
+    grupos[clave].items.push(ch);
+  });
+
+  var claves = Object.keys(grupos).sort(function(a, b) {
+    var pa = grupos[a], pb = grupos[b];
+    if (pa.nivel !== pb.nivel) return pa.nivel < pb.nivel ? 1 : -1;
+    return (pb.bloque || 0) - (pa.bloque || 0);
+  });
+
+  var html = '';
+  claves.forEach(function(clave) {
+    var gr = grupos[clave];
+    var titulo = gr.nivel + (gr.bloque ? ' · Bloque ' + gr.bloque : '');
+    html += '<div style="margin-bottom:16px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid rgba(249,115,22,0.3);padding-bottom:4px;">'+titulo+'</div>';
+    gr.items.sort(function(a, b) { return new Date(b.fecha) - new Date(a.fecha); });
+    gr.items.forEach(function(ch) {
+      var esMini = ch.tipo.toLowerCase().indexOf('mini') === 0;
+      var icono = esMini ? '🎖️' : '🏆';
+      var nombre = esMini ? 'Mini Challenge' : 'Grand Challenge';
+      var fecha = ch.fecha ? new Date(ch.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+      var badge = ch.aprobado
+        ? '<span style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);border-radius:100px;padding:2px 10px;font-size:10px;font-weight:700;">Aprobado ✓</span>'
+        : '<span style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:100px;padding:2px 10px;font-size:10px;font-weight:700;">No aprobado</span>';
+      html += '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;margin-bottom:8px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+      html += '<span style="font-size:13px;font-weight:700;color:#fff;">'+icono+' '+nombre+'</span>';
+      html += badge;
+      html += '</div>';
+      html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">'+fecha+'</div>';
+      if (ch.feedback) {
+        html += '<div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:6px 10px;margin-top:6px;">';
+        html += '<div style="font-size:9px;font-weight:700;color:#facc15;text-transform:uppercase;margin-bottom:3px;">💬 Retroalimentación</div>';
+        html += '<div style="font-size:12px;color:#fff;line-height:1.5;">'+ch.feedback+'</div>';
+        html += '</div>';
+      }
+      if (ch.urlVideo) {
+        html += '<a href="'+ch.urlVideo+'" target="_blank" style="display:inline-block;margin-top:6px;font-size:11px;color:#60a5fa;text-decoration:underline;">▶ Ver video</a>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  cont.innerHTML = html;
+  document.getElementById('modalHistorialChallenges').classList.add('visible');
+}
+
+function cerrarHistorialChallenges() {
+  document.getElementById('modalHistorialChallenges').classList.remove('visible');
+}
+  
 </script>
 <div id="modalVideoChallenge" class="modal-video-overlay">
   <div class="modal-video-box">
@@ -9435,5 +9531,19 @@ if ('serviceWorker' in navigator) {
     <div id="encuestaStatus" style="text-align:center;font-size:12px;margin-top:8px;"></div>
   </div>
 </div>
+
+<!-- MODAL: HISTORIAL COMPLETO DE CHALLENGES -->
+<div id="modalHistorialChallenges" class="modal-video-overlay" onclick="if(event.target===this)cerrarHistorialChallenges()">
+  <div class="modal-video-box" style="max-width:520px;">
+    <div style="font-size:36px;text-align:center;margin-bottom:6px;">📜</div>
+    <div class="modal-video-titulo">Mi historial de challenges</div>
+    <div class="modal-video-sub">Todos los que has presentado hasta hoy</div>
+    <div id="historialChallengesContenido" style="max-height:60vh;overflow-y:auto;text-align:left;padding-right:4px;"></div>
+    <button class="btn-cerrar-video" onclick="cerrarHistorialChallenges()" style="margin-top:16px;">Cerrar</button>
+  </div>
+</div>
+
+
+  
 </body>
 </html>
