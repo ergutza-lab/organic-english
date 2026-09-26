@@ -232,23 +232,27 @@
     </div>
 
         <!-- VISTA CHAT CLUB -->
-    <div id="vistaClub" style="display:none;">
-      <button class="back-btn" onclick="volverGruposDesdeClub()">← Mis grupos</button>
-      <div class="grupo-info-card">
-        <h3 id="clubTitulo">—</h3>
-        <p style="margin-top:4px;">Viernes 8:00 PM · Este grupo no tiene alumnos ni evaluación — solo debes mantener actualizado el link de Zoom y subir la grabación de cada clase.</p>
+<div id="vistaClub" style="display:none;">
+  <button class="back-btn" onclick="volverGruposDesdeClub()">← Mis grupos</button>
+  <div class="grupo-info-card" id="clubInfoCard" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h3 id="clubTitulo">—</h3>
+      <p id="clubSub">Viernes 8:00 PM · Chat Club</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+      <div style="display:flex;gap:6px;">
+        <button id="btnInvitarWhatsClub" onclick="invitarClaseClub()" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">💬 Invitar a la clase</button>
+        <button onclick="abrirModalZoomClub()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔗 Enlace Zoom</button>
       </div>
-
-      <!-- Link Zoom -->
-      <div style="background:var(--card);border-radius:14px;padding:20px;margin-top:16px;">
-        <label style="display:block;font-size:11px;font-weight:700;color:var(--gris2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔗 Link de Zoom de este Chat Club</label>
-        <input type="text" id="inputLinkClub" placeholder="https://zoom.us/j/..." style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:12px;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="guardarLinkClub()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar link</button>
-          <button onclick="entrarZoomClub()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;">🖥️ Entrar a Zoom</button>
-        </div>
-        <div id="clubStatus" style="margin-top:12px;font-size:12px;display:none;"></div>
+      <div style="display:flex;gap:6px;">
+        <button id="btnEntrarZoomClub" onclick="entrarZoomClub()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🖥️ Entrar a Zoom</button>
+        <button onclick="abrirModalGrabacionClub()" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>
       </div>
+    </div>
+  </div>
+  <!-- Banner de vigencia de la grabación -->
+  <div id="clubGrabacionVigencia" style="margin-top:16px;"></div>
+</div>
 
       <!-- Grupo de WhatsApp -->
       <div style="background:var(--card);border-radius:14px;padding:20px;margin-top:16px;">
@@ -634,69 +638,104 @@ if (fotoEl) { fotoEl.src = data.fotoMaestro; fotoEl.style.display = 'block'; }
   }).join('');
 }
 
-function abrirClub(idClub) {
-  grupoActual = panelData.grupos.find(function(g){ return g.id === idClub; });
-  if (!grupoActual) return;
-  document.getElementById('vistaGrupos').style.display='none';
-  document.getElementById('vistaClub').style.display='block';
-  document.getElementById('clubTitulo').textContent = grupoActual.nombre;
-
-  // Link Zoom
-  document.getElementById('inputLinkClub').value = grupoActual.linkClub || '';
-  document.getElementById('clubStatus').style.display = 'none';
-
-  // Grupo de WhatsApp
-  document.getElementById('inputWhatsClub').value = grupoActual.linkWhats || '';
-  document.getElementById('whatsClubStatus').style.display = 'none';
-
-  // Grabación
-  document.getElementById('inputGrabacionClub').value = grupoActual.grabacion || '';
-  document.getElementById('grabacionClubStatus').style.display = 'none';
-  renderGrabacionVigenciaInfo();
-}
 function volverGruposDesdeClub() {
   document.getElementById('vistaClub').style.display='none';
   document.getElementById('vistaGrupos').style.display='block';
   grupoActual=null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  CHAT CLUB -- vista del maestro
+// ═══════════════════════════════════════════════════════════════════════
+
+// Banderas para que los modales compartidos (modalZoom / modalGrabacion)
+// sepan a qué endpoint llamar cuando se guarda.
+var _zoomEsClub = false;
+var _grabEsClub = false;
+
+function abrirClub(idClub) {
+  grupoActual = panelData.grupos.find(function(g){ return g.id === idClub; });
+  if (!grupoActual) return;
+  document.getElementById('vistaGrupos').style.display='none';
+  document.getElementById('vistaClub').style.display='block';
+  document.getElementById('clubTitulo').textContent = grupoActual.nombre;
+  document.getElementById('clubSub').textContent = (grupoActual.horario || 'Viernes 8:00 PM') + ' · Chat Club';
+
+  // Pinta el encabezado con el mismo color lila que la tarjeta de la lista
+  var card = document.getElementById('clubInfoCard');
+  card.style.background = 'linear-gradient(135deg, #7c3aed, #5b21b6)';
+  card.style.borderBottom = '3px solid #a855f7';
+
+  // Activa/desactiva el botón de invitar según haya o no link de WhatsApp
+  var btnInvitar = document.getElementById('btnInvitarWhatsClub');
+  if (grupoActual.linkWhats) {
+    btnInvitar.style.opacity = '1';
+  } else {
+    btnInvitar.style.opacity = '0.5';
+  }
+
+  renderGrabacionVigenciaInfo();
+}
+
+function volverGruposDesdeClub() {
+  document.getElementById('vistaClub').style.display='none';
+  document.getElementById('vistaGrupos').style.display='block';
+  grupoActual=null;
+  _zoomEsClub = false;
+  _grabEsClub = false;
+}
+
+// ── MODAL ZOOM (reutiliza el modal existente) ──
+function abrirModalZoomClub() {
+  if (!grupoActual) return;
+  _zoomEsClub = true;
+  grupoZoomActual = grupoActual.id;
+  document.getElementById('zoomGrupoLabel').textContent = 'Chat Club · ' + grupoActual.nombre;
+  document.getElementById('zoomInput').value = grupoActual.linkClub || '';
+  document.getElementById('zoomStatus').textContent = '';
+  document.getElementById('modalZoom').style.display = 'flex';
+}
+
 function entrarZoomClub() {
-  if (!grupoActual || !grupoActual.linkClub) {
-    mostrarToast('No hay link de Zoom configurado para este Chat Club','error');
-    return;
-  }
-  window.open(grupoActual.linkClub, '_blank');
-}
-
-function guardarWhatsClub() {
-  var link = document.getElementById('inputWhatsClub').value.trim();
-  var status = document.getElementById('whatsClubStatus');
+  if (!grupoActual) return;
+  var link = grupoActual.linkClub || '';
   if (!link) {
-    status.style.display='block'; status.style.color='#f87171';
-    status.textContent='Escribe un link antes de guardar.';
+    mostrarToast('No hay enlace de Zoom configurado todavía. Presiona "🔗 Enlace Zoom" para agregarlo.','error');
     return;
   }
-  status.style.display='block'; status.style.color='#94a3b8'; status.textContent='Guardando...';
-  fetch(APPS_SCRIPT+'?action=actualizarWhatsClubMaestro&idClub='+encodeURIComponent(grupoActual.id)+'&idMaestro='+encodeURIComponent(maestroData.id)+'&link='+encodeURIComponent(link))
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if (data.success) {
-        grupoActual.linkWhats = link;
-        status.style.color='#4ade80';
-        status.textContent='✅ Link de WhatsApp guardado.';
-      } else {
-        status.style.color='#f87171';
-        status.textContent='Error: '+(data.error||'');
-      }
-    })
-    .catch(function(){ status.style.color='#f87171'; status.textContent='Error de conexión.'; });
+  window.open(link, '_blank');
 }
 
+// ── INVITAR A LA CLASE POR WHATSAPP ──
 function invitarClaseClub() {
-  if (!grupoActual || !grupoActual.linkWhats) {
-    mostrarToast('No hay link de WhatsApp configurado para este Chat Club','error');
+  if (!grupoActual) return;
+
+  // Si no hay link de WhatsApp, pedirlo con un prompt simple y guardarlo
+  if (!grupoActual.linkWhats) {
+    var link = prompt('Pega aquí el link del grupo de WhatsApp del ' + grupoActual.nombre + ':');
+    if (!link || !link.trim()) return;
+    if (!link.includes('chat.whatsapp.com') && !link.includes('wa.me')) {
+      mostrarToast('El link no parece ser de WhatsApp','error');
+      return;
+    }
+    // Guardar y luego continuar con el flujo normal
+    fetch(APPS_SCRIPT+'?action=actualizarWhatsClubMaestro&idClub='+encodeURIComponent(grupoActual.id)+'&idMaestro='+encodeURIComponent(maestroData.id)+'&link='+encodeURIComponent(link.trim()))
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if (data.success) {
+          grupoActual.linkWhats = link.trim();
+          document.getElementById('btnInvitarWhatsClub').style.opacity = '1';
+          mostrarToast('✅ Link de WhatsApp guardado.','success');
+          setTimeout(function(){ invitarClaseClub(); }, 500);
+        } else {
+          mostrarToast('Error: '+(data.error||''),'error');
+        }
+      })
+      .catch(function(){ mostrarToast('Error de conexión','error'); });
     return;
   }
+
+  // Ya hay link: copiar mensaje al portapapeles y abrir el grupo
   var maestroNombre = maestroData ? maestroData.nombre : 'tu maestro';
   var msg = '🎓 ¡Hola a todos! Les recuerdo que nuestra clase del Chat Club está por comenzar.\n\n'
     + '📚 ' + (grupoActual.nombre || '') + '\n'
@@ -711,55 +750,41 @@ function invitarClaseClub() {
   });
 }
 
-function guardarGrabacionClub() {
-  var link = document.getElementById('inputGrabacionClub').value.trim();
-  var status = document.getElementById('grabacionClubStatus');
-  if (!link) {
-    status.style.display='block'; status.style.color='#f87171';
-    status.textContent='Pega el link de la grabación antes de guardar.';
-    return;
-  }
-  status.style.display='block'; status.style.color='#94a3b8'; status.textContent='Guardando...';
-  fetch(APPS_SCRIPT+'?action=actualizarGrabacionClubMaestro&idClub='+encodeURIComponent(grupoActual.id)+'&idMaestro='+encodeURIComponent(maestroData.id)+'&link='+encodeURIComponent(link))
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if (data.success) {
-        grupoActual.grabacion = link;
-        grupoActual.grabacionFecha = new Date().toISOString();
-        status.style.color='#4ade80';
-        status.textContent='✅ Grabación guardada. Vigente hasta el próximo viernes 7 PM.';
-        renderGrabacionVigenciaInfo();
-      } else {
-        status.style.color='#f87171';
-        status.textContent='Error: '+(data.error||'');
-      }
-    })
-    .catch(function(){ status.style.color='#f87171'; status.textContent='Error de conexión.'; });
+// ── MODAL GRABACIÓN (reutiliza el modal existente) ──
+function abrirModalGrabacionClub() {
+  if (!grupoActual) return;
+  _grabEsClub = true;
+  grupoGrabActual = grupoActual.id;
+  document.getElementById('grabGrupoLabel').textContent = 'Chat Club · ' + grupoActual.nombre;
+  document.getElementById('grabInput').value = grupoActual.grabacion || '';
+  document.getElementById('grabStatus').textContent = '';
+  document.getElementById('modalGrabacion').style.display = 'flex';
 }
 
+// ── BANNER DE VIGENCIA DE LA GRABACIÓN ──
 function renderGrabacionVigenciaInfo() {
-  var cont = document.getElementById('grabacionVigenteInfo');
-  if (!cont) return;
+  var cont = document.getElementById('clubGrabacionVigencia');
+  if (!cont || !grupoActual) return;
 
-  if (!grupoActual || !grupoActual.grabacion) {
-    cont.innerHTML = '<div style="background:rgba(148,163,184,0.08);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#94a3b8;">📭 Aún no has subido ninguna grabación. Pega el link después de cada clase.</div>';
+  if (!grupoActual.grabacion) {
+    cont.innerHTML = '<div style="background:rgba(148,163,184,0.08);border:1px solid rgba(148,163,184,0.2);border-radius:10px;padding:12px 14px;font-size:12px;color:#94a3b8;">📭 Aún no has subido ninguna grabación. Presiona "🎥 Grabación" después de cada clase del viernes.</div>';
     return;
   }
 
   if (grupoActual.grabacionVigente) {
-    cont.innerHTML = '<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:12px 14px;">'
+    cont.innerHTML = '<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px 14px;">'
       + '<div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">✅ Grabación vigente</div>'
       + '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px;">Válida hasta el <strong>'+grupoActual.grabacionFechaLimite+'</strong></div>'
       + '<a href="'+grupoActual.grabacion+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;text-decoration:none;">▶️ Ver grabación</a>'
       + '</div>';
   } else {
-    cont.innerHTML = '<div style="background:rgba(217,119,6,0.1);border:1px solid rgba(217,119,6,0.3);border-radius:8px;padding:12px 14px;">'
+    cont.innerHTML = '<div style="background:rgba(217,119,6,0.1);border:1px solid rgba(217,119,6,0.3);border-radius:10px;padding:12px 14px;">'
       + '<div style="font-size:11px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">⚠️ Grabación vencida</div>'
       + '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px;">Expiró el <strong>'+grupoActual.grabacionFechaLimite+'</strong>. Sube una nueva después de tu clase de este viernes para mantenerla vigente.</div>'
       + '<a href="'+grupoActual.grabacion+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(217,119,6,0.2);border:1px solid rgba(217,119,6,0.4);color:#fbbf24;padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;text-decoration:none;">▶️ Ver grabación (vencida)</a>'
       + '</div>';
   }
-}
+}  
   
 function abrirMiMaterial() {
   document.getElementById('vistaGrupos').style.display='none';
@@ -1751,15 +1776,44 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     document.getElementById('zoomStatus').textContent = '';
     document.getElementById('modalZoom').style.display = 'flex';
   }
-  function cerrarModalZoom() {
+    function cerrarModalZoom() {
     modalAbierto = false;
     document.getElementById('modalZoom').style.display = 'none';
     grupoZoomActual = null;
+    _zoomEsClub = false;
   }
-  function guardarZoom() {
+  
+    function guardarZoom() {
     if (!grupoZoomActual) return;
     var link = document.getElementById('zoomInput').value.trim();
     document.getElementById('zoomStatus').textContent = 'Guardando...';
+
+    // Si el modal se abrió desde la vista del Chat Club, llamar al endpoint
+    // que además propaga el link a todos los grupos del mismo nivel.
+    if (_zoomEsClub) {
+      fetch(APPS_SCRIPT+'?action=actualizarLinkClubMaestro&idClub='+encodeURIComponent(grupoZoomActual)+'&idMaestro='+encodeURIComponent(maestroData.id)+'&link='+encodeURIComponent(link))
+        .then(r=>r.json())
+        .then(d=>{
+          if (d.success) {
+            var g = panelData.grupos.find(function(x){ return x.id===grupoZoomActual; });
+            if (g) g.linkClub = link;
+            document.getElementById('zoomStatus').textContent = '✅ Guardado y propagado a los grupos del nivel';
+            setTimeout(function(){
+              cerrarModalZoom();
+              if (grupoActual && grupoActual.id === grupoZoomActual) {
+                // Refrescar el estado del club actual
+              }
+            }, 1500);
+            mostrarToast('Enlace de Zoom actualizado','success');
+          } else {
+            document.getElementById('zoomStatus').textContent = '❌ Error: '+(d.error||'');
+          }
+        })
+        .catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
+      return;
+    }
+
+    // Flujo normal para grupos regulares
     fetch(APPS_SCRIPT+'?action=actualizarLinkGrupo&idGrupo='+encodeURIComponent(grupoZoomActual)+'&linkZoom='+encodeURIComponent(link), {redirect:'follow'})
       .then(r=>r.json())
       .then(d=>{
@@ -1775,6 +1829,7 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       })
       .catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
   }
+  
   function abrirModalGrabacion(idGrupo) {
     modalAbierto = true;
     var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
@@ -1785,15 +1840,57 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     document.getElementById('grabStatus').textContent = '';
     document.getElementById('modalGrabacion').style.display = 'flex';
   }
-  function cerrarModalGrabacion() {
+  
+    function cerrarModalGrabacion() {
     modalAbierto = false;
     document.getElementById('modalGrabacion').style.display = 'none';
     grupoGrabActual = null;
+    _grabEsClub = false;
   }
+  
   function guardarGrabacion() {
     if (!grupoGrabActual) return;
     var link = document.getElementById('grabInput').value.trim();
     document.getElementById('grabStatus').textContent = 'Guardando...';
+
+    // Si el modal se abrió desde la vista del Chat Club, llamar al endpoint
+    // que además guarda el timestamp de subida para calcular la vigencia.
+    if (_grabEsClub) {
+      fetch(APPS_SCRIPT+'?action=actualizarGrabacionClubMaestro&idClub='+encodeURIComponent(grupoGrabActual)+'&idMaestro='+encodeURIComponent(maestroData.id)+'&link='+encodeURIComponent(link))
+        .then(r=>r.json())
+        .then(d=>{
+          if (d.success) {
+            var g = panelData.grupos.find(function(x){ return x.id===grupoGrabActual; });
+            if (g) {
+              g.grabacion = link;
+              g.grabacionFecha = new Date().toISOString();
+              // Recalcular vigencia en el cliente (el backend lo hará bien la próxima vez)
+              var d2 = new Date();
+              var dia = d2.getDay();
+              var diasHastaViernes = (5 - dia + 7) % 7;
+              if (diasHastaViernes === 0) diasHastaViernes = 7;
+              d2.setDate(d2.getDate() + diasHastaViernes);
+              d2.setHours(19,0,0,0);
+              g.grabacionVigente = true;
+              g.grabacionFechaLimite = d2.getDate()+'/'+(d2.getMonth()+1)+'/'+d2.getFullYear()+' 19:00';
+            }
+            document.getElementById('grabStatus').textContent = '✅ Guardado · vigente hasta el próximo viernes 7 PM';
+            setTimeout(function(){
+              cerrarModalGrabacion();
+              if (grupoActual && grupoActual.id === grupoGrabActual) {
+                renderGrabacionVigenciaInfo();
+              }
+            }, 1500);
+            mostrarToast('Grabación actualizada','success');
+          } else {
+            document.getElementById('grabStatus').textContent = '❌ Error: '+(d.error||'');
+          }
+        })
+        .catch(()=>{ document.getElementById('grabStatus').textContent = '❌ Error de conexión'; });
+      return;
+    }
+
+    // Flujo normal para grupos regulares
     fetch(APPS_SCRIPT+'?action=actualizarGrabacionGrupo&idGrupo='+encodeURIComponent(grupoGrabActual)+'&grabacion='+encodeURIComponent(link), {redirect:'follow'})
       .then(r=>r.json())
       .then(d=>{
