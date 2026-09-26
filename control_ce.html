@@ -684,6 +684,16 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <div class="modal-titulo">Editar pago</div>
     <div class="modal-sub" id="modal-editar-pago-sub">—</div>
     <div class="modal-campo">
+      <label>ID de pago <span style="color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;">(solo lectura — para aclaraciones)</span></label>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="text" id="ep-id-pago" readonly
+               style="flex:1;background:#f8fafc;font-family:'DM Mono',monospace;font-weight:700;color:#4f46e5;cursor:text;"
+               placeholder="—" />
+        <button type="button" onclick="copiarIdPago()" title="Copiar ID"
+                style="padding:.55rem .8rem;background:#eef2ff;border:1.5px solid #c7d2fe;border-radius:8px;font-size:.8rem;font-weight:700;color:#4f46e5;cursor:pointer;white-space:nowrap;">📋</button>
+      </div>
+    </div>
+    <div class="modal-campo">
       <label>Fecha de pago</label>
       <input type="datetime-local" id="ep-fecha" />
     </div>
@@ -2140,11 +2150,15 @@ function fechaParaInputDate(iso) {
 }
 
 var epIdxActual = null;
+
+  
+  
 function abrirModalEditarPago(idx) {
   var p = pagosAlumnosCache[idx];
   if (!p) return;
   epIdxActual = idx;
   document.getElementById('modal-editar-pago-sub').textContent = 'Alumno: ' + p.idAlumno;
+  document.getElementById('ep-id-pago').value = p.idPago || '(pago viejo, sin ID)';
   document.getElementById('ep-fecha').value = fechaParaInputDatetime(p.fecha);
   document.getElementById('ep-monto').value = p.monto || '';
   document.getElementById('ep-validado-por').value = p.validadoPor || '';
@@ -2157,6 +2171,34 @@ function abrirModalEditarPago(idx) {
   document.getElementById('modal-editar-pago').classList.add('abierto');
 }
 
+function copiarIdPago() {
+  var input = document.getElementById('ep-id-pago');
+  if (!input || !input.value || input.value === '(pago viejo, sin ID)') return;
+  input.select();
+  input.setSelectionRange(0, 99999); // para móviles
+  try {
+    document.execCommand('copy');
+    var btn = event && event.target;
+    if (btn) {
+      var original = btn.textContent;
+      btn.textContent = '✅';
+      setTimeout(function () { btn.textContent = original; }, 1200);
+    }
+  } catch (e) {
+    // Fallback: usar la API moderna si el navegador la soporta
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(input.value).then(function () {
+        var btn = event && event.target;
+        if (btn) {
+          var original = btn.textContent;
+          btn.textContent = '✅';
+          setTimeout(function () { btn.textContent = original; }, 1200);
+        }
+      });
+    }
+  }
+}
+  
 function guardarEdicionPago() {
   var p = pagosAlumnosCache[epIdxActual];
   if (!p) return;
