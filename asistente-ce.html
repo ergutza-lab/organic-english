@@ -1089,7 +1089,7 @@ function abrirModalGrupo(idx){
       const tipoChip = a.tipoInscripcion
         ? `<span style="font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
         : '';
-      return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-correo="${a.correo||a.email||''}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
+            return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-correo="${a.correo||a.email||''}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}" data-id-pago="${a.ultimo_pago_id_pago||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
@@ -1147,15 +1147,16 @@ function renderPagos(){
           <span class="pago-monto">${montoLabel}</span>
         </div>
       </div>
-      <div class="pago-meta">Enviado el ${p.fecha_pago} · Grupo: ${p.grupo}</div>
+            <div class="pago-meta">Enviado el ${p.fecha_pago} · Grupo: ${p.grupo}</div>
       <div class="pago-meta" style="color:${p.vencimiento_ultimo_pago?'var(--gris-500)':'var(--gris-400)'}">${vencLabel}</div>
-      <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">
+      ${p.idPago ? `<div class="pago-meta" style="font-family:'JetBrains Mono',monospace;color:#818cf8;font-weight:700;">ID pago: ${p.idPago}</div>` : ''}
+            <div class="comprobante-btn" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'},'${p.idPago||''}')">
         <div class="comp-icon">${tipoIcon}</div>
         <div class="comp-info"><div class="comp-nombre">${p.comprobante_url?'Comprobante adjunto':'Sin comprobante'}</div><div class="comp-tipo">${tipoLabel}</div></div>
         <span class="comp-ver">${p.comprobante_url?'Ver →':''}</span>
       </div>
       <div class="pago-actions">
-        <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'})">Ver y validar</button>
+                <button class="btn-validar" onclick="abrirModalComp('${p.id_alumno}','${p.fecha_pago}','${p.nombre}','${p.monto}','${p.grupo}','${cUrl}',${p.fila},${p.esSabatino?'true':'false'},'${p.idPago||''}')">Ver y validar</button>
         <button class="btn-eliminar-comprobante" onclick="abrirModalEliminarComprobantePorFila(${p.fila})" title="Eliminar este comprobante (duplicado o con error)">🗑️</button>
       </div>
     </div>`;
@@ -1413,15 +1414,19 @@ function mostrarReportePagosAlumno(alumno, pagos) {
     return;
   }
 
-  const filas = reportePagosDataActual.map(function (p) {
+    const filas = reportePagosDataActual.map(function (p) {
     const periodoTxt = (p.periodoInicio && p.periodoFin) ? (p.periodoInicio + ' al ' + p.periodoFin) : '—';
     const comprobanteTxt = p.comprobanteUrl
       ? '<a href="' + p.comprobanteUrl + '" target="_blank" rel="noopener">Ver comprobante</a>'
       : '<span style="color:var(--gris-400)">— sin comprobante —</span>';
+    const idPagoTxt = p.idPago
+      ? '<span style="font-family:\'JetBrains Mono\',monospace;color:#4f46e5;font-weight:700;font-size:11px;">' + p.idPago + '</span>'
+      : '<span style="color:var(--gris-400)">—</span>';
     return `<tr>
       <td>${p.fecha || '—'}</td>
       <td>$${(p.monto || 0).toFixed(2)}</td>
       <td>${periodoTxt}</td>
+      <td>${idPagoTxt}</td>
       <td>${p.estatus || '—'}</td>
       <td>${p.validadoPor || '—'}</td>
       <td>${comprobanteTxt}</td>
@@ -1435,6 +1440,7 @@ function mostrarReportePagosAlumno(alumno, pagos) {
           <th>Fecha</th>
           <th>Monto</th>
           <th>Periodo que cubre</th>
+          <th>ID pago</th>
           <th>Estatus</th>
           <th>Validó</th>
           <th>Comprobante</th>
@@ -1476,12 +1482,13 @@ function generarPDFHistorialPagos(alumno, pagos) {
   doc.text('Grupo: ' + (alumno.idGrupo || '—') + '   |   Inscrito desde: ' + (alumno.fechaInscripcion || '—'), 14, y);
   y += 10;
 
-  var colX = { fecha: 14, monto: 48, periodo: 72, estatus: 122, validador: 150, comprobante: 180 };
+    var colX = { fecha: 14, monto: 48, periodo: 72, idPago: 118, estatus: 152, validador: 178, comprobante: 205 };
   doc.setFontSize(9);
   doc.setFont(undefined, 'bold');
   doc.text('Fecha', colX.fecha, y);
   doc.text('Monto', colX.monto, y);
   doc.text('Periodo que cubre', colX.periodo, y);
+  doc.text('ID pago', colX.idPago, y);
   doc.text('Estatus', colX.estatus, y);
   doc.text('Validó', colX.validador, y);
   doc.text('Comprobante', colX.comprobante, y);
@@ -1495,12 +1502,13 @@ function generarPDFHistorialPagos(alumno, pagos) {
     doc.text('Este alumno no tiene ningún pago registrado en el sistema.', 14, y);
   }
 
-  pagos.forEach(function (p) {
+    pagos.forEach(function (p) {
     if (y > 190) { doc.addPage(); y = 18; }
     doc.text(p.fecha || '—', colX.fecha, y);
     doc.text('$' + (p.monto || 0).toFixed(2), colX.monto, y);
     var periodoTxt = (p.periodoInicio && p.periodoFin) ? (p.periodoInicio + ' al ' + p.periodoFin) : '—';
     doc.text(periodoTxt, colX.periodo, y);
+    doc.text(p.idPago || '—', colX.idPago, y);
     doc.text(p.estatus || '—', colX.estatus, y);
     doc.text(p.validadoPor || '—', colX.validador, y);
     if (p.comprobanteUrl) {
@@ -1878,13 +1886,14 @@ function calRender(containerId){
   cont.innerHTML = html;
 }
 
-function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila,esSabatino){
+function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila,esSabatino,idPago){
   pagoActivoId=idAlumno;pagoActivoFecha=fechaPago;pagoActivoFila=fila;
   document.getElementById('input-monto-validar').value=monto>0?monto:'';
-  document.getElementById('modal-alumno-info').innerHTML=`
+    document.getElementById('modal-alumno-info').innerHTML=`
     <div class="row"><span>Alumno</span><span>${nombre} (${idAlumno})</span></div>
     <div class="row"><span>Grupo</span><span>${grupo}</span></div>
-    <div class="row"><span>Fecha envío</span><span>${fechaPago}</span></div>`;
+    <div class="row"><span>Fecha envío</span><span>${fechaPago}</span></div>
+    ${idPago ? `<div class="row"><span>ID pago</span><span style="font-family:'JetBrains Mono',monospace;color:#818cf8;font-weight:700;">${idPago}</span></div>` : ''}`;
   const visor=document.getElementById('modal-visor');
   if(!cUrl){
     visor.innerHTML='<p style="color:var(--gris-400);font-size:13px">Sin comprobante adjunto</p>';
@@ -2451,7 +2460,7 @@ function construirHistorialPagosHtml_(idAlumno) {
         var cancelBtn = p.validado
           ? ' · <a href="#" onclick="event.preventDefault();abrirModalCancelarPago(\'' + idAlumno + '\',\'' + (p.fecha_iso||'') + '\',\'' + nombreAlumnoHist.replace(/'/g,"\\'") + '\',\'' + (p.monto||'') + '\')" style="color:#ef4444;">Cancelar</a>'
           : '';
-        return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + cancelBtn + '</span>';
+                return '<span style="color:#64748b;font-size:11px;">📅 ' + p.fecha + (p.monto?' · $'+p.monto:'') + (p.validado_por?' · ✓ '+p.validado_por:'') + (p.idPago ? ' · <span style="font-family:\'JetBrains Mono\',monospace;color:#818cf8;">' + p.idPago + '</span>' : '') + cancelBtn + '</span>';
       }).join('<br>')
     + '</div>';
 }
@@ -2465,22 +2474,24 @@ function toggleInfoAlumno(el, e) {
     next.classList.toggle('open');
     return;
   }
-  var idAlumno   = el.dataset.id        || '';
+    var idAlumno   = el.dataset.id        || '';
   var correo     = el.dataset.correo     || '';
   var fecha      = el.dataset.fecha      || '—';
   var monto      = el.dataset.monto      || '';
   var url        = el.dataset.url        || '';
   var coment     = el.dataset.comentario || '';
   var vencimiento= el.dataset.vencimiento|| '';
+  var idPago     = el.dataset.idPago     || '';
   var montoStr   = monto ? ' · $'+monto : '';
   var correoHtml = correo ? '<div class="det-row">✉️ '+correo+'</div>' : '';
   var urlHtml    = url ? '<div class="det-row">🔗 <a href="'+url+'" target="_blank">Ver comprobante</a></div>' : '';
   var comentHtml = coment ? '<div class="det-row">💬 '+coment+'</div>' : '';
   var vencHtml   = vencimiento ? '<div class="det-row">⏳ Vigencia hasta: <strong>'+vencimiento+'</strong></div>' : '<div class="det-row" style="color:#ef4444;">⚠️ Sin vigencia registrada</div>';
+  var idPagoHtml = idPago ? '<div class="det-row">🆔 ID pago: <strong style="font-family:\'JetBrains Mono\',monospace;color:#818cf8;">'+idPago+'</strong></div>' : '';
   var histHtml   = construirHistorialPagosHtml_(idAlumno);
   var div = document.createElement('div');
   div.className = 'alumno-detalle open';
-  div.innerHTML = correoHtml+'<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+vencHtml+urlHtml+comentHtml+histHtml;
+  div.innerHTML = correoHtml+'<div class="det-row">📅 Último pago: <strong>'+fecha+montoStr+'</strong></div>'+idPagoHtml+vencHtml+urlHtml+comentHtml+histHtml;
   row.parentNode.insertBefore(div, row.nextSibling);
 }
 
