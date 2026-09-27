@@ -208,31 +208,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .st-empty{padding:1.5rem;text-align:center;color:#64748b;font-size:13px}
 .st-close{width:100%;margin-top:12px;background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:10px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 
-/* ── SEMANA DEL GRUPO EN LA VISTA ACTUAL ── */
-function calcSemanaEnVista(fechaInicio){
-  try {
-    if(!fechaInicio) return null;
-    var fi = parseFecha(fechaInicio);
-    if(!fi) return null;
-    fi.setHours(0,0,0,0);
-
-    // Calcular el lunes de la semana vista (respeta semanaOffset)
-    var hoy = new Date();
-    var day = hoy.getDay();
-    var diff = day === 0 ? -6 : 1 - day;
-    var lunes = new Date(hoy);
-    lunes.setDate(hoy.getDate() + diff + (semanaOffset || 0) * 7);
-    lunes.setHours(0,0,0,0);
-
-    var dias = Math.floor((lunes - fi) / (1000*60*60*24));
-    if(dias < 0) return null;
-    return Math.floor(dias / 7) + 1;
-  } catch(e) {
-    console.error('calcSemanaEnVista error:', e);
-    return null;
-  }
-}
-  
+ 
 /* ── MODAL LECCIONES ── */
 .lc-box{background:#fff;border-radius:16px;max-width:900px;width:95%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
 .lc-box h2{font-size:16px;font-weight:800;color:#1c2b5e;margin:0;padding:22px 22px 3px;flex-shrink:0}
@@ -892,6 +868,33 @@ function verAlumnos(idGrupo, nombre){
 }
 function cerrarAlumnos(){ document.getElementById('stOverlay').classList.remove('open'); }
 
+/* ── SEMANA DEL GRUPO EN LA VISTA ACTUAL ── */
+function calcSemanaEnVista(fechaInicio){
+  try {
+    if(!fechaInicio) return null;
+    var fi = parseFecha(fechaInicio);
+    if(!fi) return null;
+    fi.setHours(0,0,0,0);
+
+    var hoy = new Date();
+    var day = hoy.getDay();
+    var diff = day === 0 ? -6 : 1 - day;
+    var lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diff + (semanaOffset || 0) * 7);
+    lunes.setHours(0,0,0,0);
+
+    var dias = Math.floor((lunes - fi) / (1000*60*60*24));
+    if(dias < 0) return null;
+    return Math.floor(dias / 7) + 1;
+  } catch(e) {
+    console.error('calcSemanaEnVista error:', e);
+    return null;
+  }
+}
+
+/* ── MODAL LECCIONES ── */
+var lcData = [];
+  
 /* ── MODAL LECCIONES ── */
 var lcData = [];
 var lcOrden = { col: 'grupo', dir: 1 };
@@ -993,7 +996,7 @@ function ordenarYRenderLecciones(){
       leccionTxt = (r.leccion !== '' && r.leccion != null) ? r.leccion : '—';
     }
 
-    html += '<tr class="'+rowCls+'">';
+        html += '<tr class="'+rowCls+'">';
     html += '<td><b>'+r.grupo+'</b></td>';
     html += '<td>'+r.nombre+'</td>';
     html += '<td>'+r.horario+'</td>';
@@ -1017,8 +1020,8 @@ function ordenarYRenderLecciones(){
     arrow.textContent = dir === 1 ? '▲' : '▼';
     arrow.classList.add('activo');
   }
-}
-  
+}   ← ESTA LLAVE (la que cierra ordenarYRenderLecciones)
+
 /* ── SEMANA Y CIERRE ── */
 function cambiarSemana(dir){ semanaOffset+=dir; renderizar(); }
 function cerrarHorario(){
