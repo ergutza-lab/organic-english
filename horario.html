@@ -156,6 +156,41 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .gcap{font-size:10px;color:rgba(255,255,255,0.8)}
 .gcap b{color:#fff}
 
+/* ── MARCADORES DE CHALLENGE ── */
+.gcard.mini-week{
+  box-shadow: 0 0 0 2px #f59e0b, 0 4px 12px rgba(245,158,11,0.45);
+}
+.gcard.grand-week{
+  box-shadow: 0 0 0 2px #dc2626, 0 4px 12px rgba(220,38,38,0.5);
+}
+.gchallenge{
+  margin-top:4px;
+  display:block;
+  text-align:center;
+  font-size:9px;
+  font-weight:800;
+  padding:3px 7px;
+  border-radius:100px;
+  letter-spacing:0.4px;
+}
+.gchallenge.mini{ background:#f59e0b; color:#fff; }
+.gchallenge.grand{
+  background:#dc2626; color:#fff;
+  animation:pulse-grand 1.6s ease-in-out infinite;
+}
+@keyframes pulse-grand{
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.04); }
+}
+
+/* Móvil */
+.vm-card.mini-week{
+  box-shadow: 0 0 0 2px #f59e0b, 0 2px 8px rgba(245,158,11,0.45);
+}
+.vm-card.grand-week{
+  box-shadow: 0 0 0 2px #dc2626, 0 2px 8px rgba(220,38,38,0.5);
+}
+  
 /* ── MODAL ALUMNOS ── */
 .st-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:9999}
 .st-overlay.open{display:flex}
@@ -173,6 +208,23 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .st-empty{padding:1.5rem;text-align:center;color:#64748b;font-size:13px}
 .st-close{width:100%;margin-top:12px;background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:10px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 
+/* ── SEMANA DEL GRUPO EN LA VISTA ACTUAL ── */
+function calcSemanaEnVista(fechaInicio){
+  if(!fechaInicio) return null;
+  var fi = parseFecha(fechaInicio);
+  if(!fi) return null;
+  fi.setHours(0,0,0,0);
+
+  // Lunes de la semana que se está viendo (respeta semanaOffset)
+  var rng = getWeekRange(semanaOffset);
+  var lunes = new Date(rng.mon);
+  lunes.setHours(0,0,0,0);
+
+  var dias = Math.floor((lunes - fi) / (1000*60*60*24));
+  if(dias < 0) return null;
+  return Math.floor(dias / 7) + 1;
+}
+  
 /* ── MODAL LECCIONES ── */
 .lc-box{background:#fff;border-radius:16px;max-width:900px;width:95%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
 .lc-box h2{font-size:16px;font-weight:800;color:#1c2b5e;margin:0;padding:22px 22px 3px;flex-shrink:0}
@@ -576,15 +628,28 @@ function renderizar(){
     '</div>';
   });
 
-  function renderGcard(g){
+    function renderGcard(g){
     var lvl=getLvl(g.nivel);
     var nom=(g.nombre||'').trim();
     var colorNombre=colorPorNombreGrupoHorario(nom);
     var vac=Math.max(0,g.cupoMax-Math.min(g.cupoMax,g.inscritos));
     var niv=g.nivel.replace(/Nivel\s*/gi,'').trim();
-    var out='<div class="gcard '+lvl+'" onclick="verAlumnos(\''+g.id+'\',\''+nom.replace(/'/g,"\\'")+'\')">';
+
+    var semana = calcSemanaEnVista(g.fechaInicio);
+    var extraCls = '';
+    var extraHtml = '';
+    if(semana === 4){
+      extraCls = ' mini-week';
+      extraHtml = '<span class="gchallenge mini">🎯 MINI CHALLENGE</span>';
+    } else if(semana === 8){
+      extraCls = ' grand-week';
+      extraHtml = '<span class="gchallenge grand">🏆 GRAND CHALLENGE</span>';
+    }
+
+    var out='<div class="gcard '+lvl+extraCls+'" onclick="verAlumnos(\''+g.id+'\',\''+nom.replace(/'/g,"\\'")+'\')">';
     out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:'+colorNombre+';">'+nom+'</span><span class="gnivel">'+niv+'</span></div>';
     out+='<div class="gcap"><b>'+vac+'</b> vac. · '+Math.min(g.cupoMax,g.inscritos)+'/'+g.cupoMax+'</div>';
+    out+=extraHtml;
     out+='</div>';
     return out;
   }
@@ -675,21 +740,34 @@ function renderMovil(activos, horas, activosSabado, activosClub){
     byTeacherClub[key].push(g);
   });
 
-  function renderVmCard(g){
+    function renderVmCard(g){
     var lvl=getLvl(g.nivel);
     var nom=(g.nombre||'').trim();
     var colorNombre=colorPorNombreGrupoHorario(nom);
     var vac=Math.max(0,g.cupoMax-Math.min(g.cupoMax,g.inscritos));
     var niv=g.nivel.replace(/Nivel\s*/gi,'').trim();
+
+    var semana = calcSemanaEnVista(g.fechaInicio);
+    var extraCls = '';
+    var extraHtml = '';
+    if(semana === 4){
+      extraCls = ' mini-week';
+      extraHtml = '<span class="gchallenge mini">🎯 MINI CHALLENGE</span>';
+    } else if(semana === 8){
+      extraCls = ' grand-week';
+      extraHtml = '<span class="gchallenge grand">🏆 GRAND CHALLENGE</span>';
+    }
+
     var card=document.createElement('div');
-    card.className='vm-card '+lvl;
+    card.className='vm-card '+lvl+extraCls;
     card.innerHTML=
       '<div class="vm-row">'+
         '<span class="vm-gid">'+g.id+'</span>'+
         '<span class="vm-gnom" style="color:'+colorNombre+';">'+ nom+'</span>'+
         '<span class="vm-gniv">'+niv+'</span>'+
       '</div>'+
-      '<div class="vm-gcap"><b>'+vac+'</b> vac. · '+Math.min(g.cupoMax,g.inscritos)+'/'+g.cupoMax+'</div>';
+      '<div class="vm-gcap"><b>'+vac+'</b> vac. · '+Math.min(g.cupoMax,g.inscritos)+'/'+g.cupoMax+'</div>'+
+      extraHtml;
     card.onclick=(function(id,nombre){return function(){verAlumnos(id,nombre);};})(g.id,nom);
     return card;
   }
