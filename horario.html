@@ -173,6 +173,27 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 .st-empty{padding:1.5rem;text-align:center;color:#64748b;font-size:13px}
 .st-close{width:100%;margin-top:12px;background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:10px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 
+/* ── MODAL LECCIONES ── */
+.lc-box{background:#fff;border-radius:16px;padding:22px;max-width:900px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
+.lc-box h2{font-size:16px;font-weight:800;color:#1c2b5e;margin-bottom:3px}
+.lc-sub{font-size:12px;color:#64748b;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+.lc-table-wrap{overflow-x:auto;margin-bottom:12px}
+.lc-table{width:100%;border-collapse:collapse;font-size:13px}
+.lc-table th{background:#1c2b5e;color:#fff;padding:9px 10px;text-align:left;font-weight:700;font-size:12px;cursor:pointer;user-select:none;white-space:nowrap}
+.lc-table th:hover{background:#243373}
+.lc-table td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#1e293b}
+.lc-table tbody tr:hover td{background:#f8fafc}
+.lc-row-mini td{background:#fef3c7 !important}
+.lc-row-mini:hover td{background:#fde68a !important}
+.lc-row-grand td{background:#fee2e2 !important}
+.lc-row-grand:hover td{background:#fecaca !important}
+.lc-arrow{opacity:0.4;font-size:10px;margin-left:4px}
+.lc-arrow.activo{opacity:1;color:#fb923c}
+.lc-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.lc-badge.mini{background:#f59e0b;color:#fff}
+.lc-badge.grand{background:#dc2626;color:#fff}
+.lc-empty{padding:2rem;text-align:center;color:#64748b;font-size:13px}
+  
 /* ── LOADING / ERROR ── */
 .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#64748b;gap:12px;padding:3rem}
 .spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top:3px solid #f97316;border-radius:50%;animation:spin .7s linear infinite}
@@ -229,6 +250,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
       </div>
     </div>
     <div class="tb-right">
+      <button class="btn" onclick="abrirLecciones()">📖 Lecciones</button>
       <button class="btn" onclick="cambiarSemana(-1)">◀</button>
       <button class="btn" onclick="cambiarSemana(1)">▶</button>
       <button class="btn btn-cerrar" onclick="cerrarHorario()">✕ Cerrar</button>
@@ -259,6 +281,29 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 
 </div>
 
+<!-- Modal lecciones -->
+<div class="st-overlay" id="lcOverlay" onclick="if(event.target===this)cerrarLecciones()">
+  <div class="lc-box">
+    <h2>📖 Lecciones por grupo</h2>
+    <div class="lc-sub" id="lcSub">Cargando...</div>
+    <div class="lc-table-wrap">
+      <table class="lc-table">
+        <thead>
+          <tr>
+            <th onclick="ordenarLecciones('grupo')">Grupo <span class="lc-arrow" data-col="grupo"></span></th>
+            <th onclick="ordenarLecciones('nombre')">Nombre <span class="lc-arrow" data-col="nombre"></span></th>
+            <th onclick="ordenarLecciones('horario')">Horario <span class="lc-arrow" data-col="horario"></span></th>
+            <th onclick="ordenarLecciones('maestro')">Maestro <span class="lc-arrow" data-col="maestro"></span></th>
+            <th onclick="ordenarLecciones('leccion')">Lección <span class="lc-arrow" data-col="leccion"></span></th>
+          </tr>
+        </thead>
+        <tbody id="lcBody"></tbody>
+      </table>
+    </div>
+    <button class="st-close" onclick="cerrarLecciones()">Cerrar</button>
+  </div>
+</div>
+  
 <!-- Modal alumnos -->
 <div class="st-overlay" id="stOverlay" onclick="if(event.target===this)cerrarAlumnos()">
   <div class="st-box">
@@ -756,6 +801,130 @@ function verAlumnos(idGrupo, nombre){
 }
 function cerrarAlumnos(){ document.getElementById('stOverlay').classList.remove('open'); }
 
+/* ── MODAL LECCIONES ── */
+var lcData = [];
+var lcOrden = { col: 'grupo', dir: 1 };
+
+function calcSemanaBloque(fechaInicio){
+  if(!fechaInicio) return null;
+  var fi = parseFecha(fechaInicio);
+  if(!fi) return null;
+  fi.setHours(0,0,0,0);
+  var hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  var dias = Math.floor((hoy - fi) / (1000*60*60*24));
+  if(dias < 0) return null;
+  return Math.floor(dias / 7) + 1;
+}
+
+function abrirLecciones(){
+  lcData = grupos.map(function(g){
+    var av = avanceMap[g.id] || {};
+    var semana = calcSemanaBloque(g.fechaInicio);
+    var challengeTipo = '';
+    if(semana === 4) challengeTipo = 'mini';
+    else if(semana === 8) challengeTipo = 'grand';
+
+    var nombreMaestro = '';
+    if(g.esClub){
+      nombreMaestro = g.idMaestro ? (maestros[g.idMaestro] || g.idMaestro) : 'Sin asignar';
+    } else {
+      nombreMaestro = g.idMaestro ? (maestros[g.idMaestro] || g.idMaestro) : 'Sin asignar';
+    }
+
+    return {
+      grupo: g.id,
+      nombre: g.nombre || '',
+      horario: g.horario || '',
+      maestro: nombreMaestro,
+      leccion: (av.leccionActual != null) ? av.leccionActual : '',
+      semana: semana,
+      challengeTipo: challengeTipo,
+      esClub: !!g.esClub,
+      esSabatino: g.tipoHorario === 'sabado'
+    };
+  });
+
+  document.getElementById('lcSub').textContent =
+    lcData.length + ' grupos activos · ' +
+    '🟡 Mini (semana 4) · 🔴 Grand (semana 8)';
+
+  ordenarYRenderLecciones();
+  document.getElementById('lcOverlay').classList.add('open');
+}
+
+function cerrarLecciones(){
+  document.getElementById('lcOverlay').classList.remove('open');
+}
+
+function ordenarLecciones(col){
+  if(lcOrden.col === col) lcOrden.dir *= -1;
+  else { lcOrden.col = col; lcOrden.dir = 1; }
+  ordenarYRenderLecciones();
+}
+
+function ordenarYRenderLecciones(){
+  var col = lcOrden.col, dir = lcOrden.dir;
+
+  lcData.sort(function(a,b){
+    var va = a[col], vb = b[col];
+    if(col === 'leccion'){
+      va = (va === '' || va == null) ? -1 : Number(va);
+      vb = (vb === '' || vb == null) ? -1 : Number(vb);
+      return (va - vb) * dir;
+    }
+    va = String(va||'').toUpperCase();
+    vb = String(vb||'').toUpperCase();
+    if(va < vb) return -1 * dir;
+    if(va > vb) return 1 * dir;
+    return 0;
+  });
+
+  var html = '';
+  lcData.forEach(function(r){
+    var rowCls = '';
+    var badge = '';
+    if(r.challengeTipo === 'mini'){
+      rowCls = 'lc-row-mini';
+      badge = '<span class="lc-badge mini">MINI</span>';
+    } else if(r.challengeTipo === 'grand'){
+      rowCls = 'lc-row-grand';
+      badge = '<span class="lc-badge grand">GRAND</span>';
+    }
+
+    var leccionTxt;
+    if(r.esClub){
+      leccionTxt = (r.leccion !== '' && r.leccion != null) ? ('🎙 ' + r.leccion) : '—';
+    } else {
+      leccionTxt = (r.leccion !== '' && r.leccion != null) ? r.leccion : '—';
+    }
+
+    html += '<tr class="'+rowCls+'">';
+    html += '<td><b>'+r.grupo+'</b></td>';
+    html += '<td>'+r.nombre+'</td>';
+    html += '<td>'+r.horario+'</td>';
+    html += '<td>'+r.maestro+'</td>';
+    html += '<td>'+leccionTxt+badge+'</td>';
+    html += '</tr>';
+  });
+
+  if(!html){
+    html = '<tr><td colspan="5" class="lc-empty">Sin grupos activos</td></tr>';
+  }
+
+  document.getElementById('lcBody').innerHTML = html;
+
+  document.querySelectorAll('.lc-arrow').forEach(function(el){
+    el.textContent = '';
+    el.classList.remove('activo');
+  });
+  var arrow = document.querySelector('.lc-arrow[data-col="'+col+'"]');
+  if(arrow){
+    arrow.textContent = dir === 1 ? '▲' : '▼';
+    arrow.classList.add('activo');
+  }
+}
+  
 /* ── SEMANA Y CIERRE ── */
 function cambiarSemana(dir){ semanaOffset+=dir; renderizar(); }
 function cerrarHorario(){
