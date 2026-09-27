@@ -210,19 +210,27 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 
 /* ── SEMANA DEL GRUPO EN LA VISTA ACTUAL ── */
 function calcSemanaEnVista(fechaInicio){
-  if(!fechaInicio) return null;
-  var fi = parseFecha(fechaInicio);
-  if(!fi) return null;
-  fi.setHours(0,0,0,0);
+  try {
+    if(!fechaInicio) return null;
+    var fi = parseFecha(fechaInicio);
+    if(!fi) return null;
+    fi.setHours(0,0,0,0);
 
-  // Lunes de la semana que se está viendo (respeta semanaOffset)
-  var rng = getWeekRange(semanaOffset);
-  var lunes = new Date(rng.mon);
-  lunes.setHours(0,0,0,0);
+    // Calcular el lunes de la semana vista (respeta semanaOffset)
+    var hoy = new Date();
+    var day = hoy.getDay();
+    var diff = day === 0 ? -6 : 1 - day;
+    var lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diff + (semanaOffset || 0) * 7);
+    lunes.setHours(0,0,0,0);
 
-  var dias = Math.floor((lunes - fi) / (1000*60*60*24));
-  if(dias < 0) return null;
-  return Math.floor(dias / 7) + 1;
+    var dias = Math.floor((lunes - fi) / (1000*60*60*24));
+    if(dias < 0) return null;
+    return Math.floor(dias / 7) + 1;
+  } catch(e) {
+    console.error('calcSemanaEnVista error:', e);
+    return null;
+  }
 }
   
 /* ── MODAL LECCIONES ── */
