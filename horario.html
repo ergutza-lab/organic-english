@@ -515,20 +515,22 @@ async function cargarGrupos(){
       return g.id && String(g.estado).toUpperCase()!=='CANCELADO' && String(g.demo).toUpperCase()!=='DEMO';
     });
     renderizar();
-  }catch(e){
-    // IMPORTANTE: nunca sobrescribir el contenido de #area con innerHTML --
-    // eso destruye #grid y #vistaMovil de forma permanente, haciendo que
-    // cualquier intento posterior de cambiar de semana (cambiarSemana ->
-    // renderizar) truene con "Cannot read properties of null" porque el
-    // grid ya no existe en el DOM. El mensaje de error se muestra en su
-    // propio contenedor separado, sin tocar #area.
+    }catch(e){
+    console.error('❌ ERROR EN cargarGrupos:', e);
+    console.error('Mensaje:', e.message);
+    console.error('Stack:', e.stack);
+
     document.getElementById('loading').style.display='none';
     document.getElementById('area').style.display='none';
     var errDiv = document.getElementById('errorCarga');
-    errDiv.textContent = 'Error al cargar datos. Intenta recargar la página.';
+    errDiv.innerHTML = '<div style="font-weight:700;margin-bottom:8px;">Error al cargar datos</div>' +
+      '<div style="font-size:12px;background:#fef2f2;border:1px solid #fecaca;padding:12px;border-radius:8px;text-align:left;color:#991b1b;font-family:monospace;white-space:pre-wrap;max-width:600px;margin:0 auto;">' +
+      'Mensaje: ' + (e.message || 'sin mensaje') + '\n\n' +
+      'Stack: ' + (e.stack || 'sin stack') +
+      '</div>' +
+      '<div style="margin-top:12px;font-size:12px;">Recarga con Ctrl+F5. Si el error persiste, manda captura de esto.</div>';
     errDiv.style.display='block';
   }
-}
 
 /* ── RENDER PRINCIPAL ── */
 function renderizar(){
