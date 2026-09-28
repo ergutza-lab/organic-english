@@ -237,6 +237,19 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
 <script>
 const SHEET_ID = '1o4j9xO55LOMe7APJGYZlonq6pbAiN8Gy16istfKh0vU';
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+  // ═══════════════════════════════════════════════════════════════════════
+//  OVERRIDE MANUAL DE LECCIÓN PARA CHAT CLUBS
+//  Si un club arranca de cero, se cambia de maestra, o se rompe el orden,
+//  aquí puedes forzar el número de lección que debe mostrarse en el
+//  horario. Solo afecta a los clubs listados aquí; los demás siguen
+//  usando el valor que viene del sistema.
+//  Para volver al automático: borra la línea del club.
+// ═══════════════════════════════════════════════════════════════════════
+var OVERRIDE_LECCION_CLUB = {
+  'CLUB-BASIC': 4
+  // Para agregar otro club:
+  // 'CLUB-INTERMEDIO': 7,
+};
 var semanaOffset = 0;
 var grupos = [], maestros = {}, alumnos = {}, byTeacher = {}, allTeachers = [], avanceMap = {};
 
@@ -515,9 +528,13 @@ function renderizar(){
     return out;
   }
 
-  function renderClubCard(g){
+    function renderClubCard(g){
     var av = avanceMap[g.id];
     var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
+    // Override manual si está listado arriba
+    if (OVERRIDE_LECCION_CLUB.hasOwnProperty(g.id)) {
+      clubNum = OVERRIDE_LECCION_CLUB[g.id];
+    }
     var out='<div class="gcard club" onclick="verAlumnos(\''+g.id+'\',\''+g.nombre.replace(/'/g,"\\'")+'\')" style="cursor:pointer;">';
     out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:#c084fc;">'+g.nombre+'</span></div>';
     if(clubNum !== null){
@@ -619,9 +636,12 @@ function renderMovil(activos, horas, activosSabado, activosClub){
     return card;
   }
 
-  function renderVmClubCard(g){
+   function renderVmClubCard(g){
     var av = avanceMap[g.id];
     var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
+    if (OVERRIDE_LECCION_CLUB.hasOwnProperty(g.id)) {
+      clubNum = OVERRIDE_LECCION_CLUB[g.id];
+    }
     var clubTxt = '';
     if(clubNum !== null){
       var clubPad = String(clubNum).length < 2 ? '0' + clubNum : String(clubNum);
