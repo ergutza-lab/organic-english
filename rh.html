@@ -693,8 +693,8 @@ function renderCandidatos(){
       + '<textarea class="cand-notas" id="notas-'+c.id+'" placeholder="Notas...">'+esc(c.notas||'')+'</textarea>'
             + '<div class="cand-acciones">'
         + (c.resolucion === 'Aceptado'
-            ? '<button class="btn-rh-promover" onclick="abrirModalPromoverRH(\'' + c.id + '\')">🎓 Promover a activo</button>'
-            : '')
+    ? '<button class="btn-rh-promover" onclick="abrirModalPromoverRH(\'' + c.id + '\',\'' + (c.resolucion || '').replace(/'/g, "\\'") + '\')">🎓 Promover a activo</button>'
+    : '')
         + '<button class="btn-mini btn-eliminar" onclick="eliminarCandidato(\''+c.id+'\')">🗑️ Eliminar</button>'
         + '<button class="btn-mini btn-guardar" onclick="guardarCambiosCandidato(\''+c.id+'\')">💾 Guardar cambios</button>'
       + '</div>'
@@ -825,24 +825,31 @@ function esc(s){ var d=document.createElement('div'); d.textContent=s||''; retur
 // ═══════════════════════════════════════════════════════════════════════
 var _promCandidatoActual = null;
 
-function abrirModalPromoverRH(idCandidato){
+function abrirModalPromoverRH(idCandidato, resolucionDesdeHTML){
   var cand = candidatosData.filter(function(c){ return c.id === idCandidato; })[0];
   if (!cand) return;
+
+  // Usa la resolución que viene del botón (que el usuario VE en pantalla);
+  // si por alguna razón no llegó, cae al valor del array en memoria.
+  var resolucionReal = resolucionDesdeHTML || cand.resolucion;
 
   // Normaliza: quita acentos, mayúsculas y espacios invisibles
   var _norm = function(s){
     return (s || '').toString()
-      .replace(/\u00A0/g, ' ')      // reemplaza nbsp por espacio normal
-      .replace(/\s+/g, ' ')         // colapsa espacios múltiples
+      .replace(/\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
       .toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .trim();
   };
 
-  if (_norm(cand.resolucion) !== 'aceptado') {
-    alert('Solo se pueden promover candidatos con resolución "Aceptado".\nValor actual detectado: "' + (cand.resolucion || '(vacío)') + '"');
+  if (_norm(resolucionReal) !== 'aceptado') {
+    alert('Solo se pueden promover candidatos con resolución "Aceptado".\nValor desde botón: "' + (resolucionDesdeHTML || '(nada)') + '"\nValor en memoria: "' + (cand.resolucion || '(vacío)') + '"');
     return;
   }
+
+  // Nos aseguramos que el candidato en memoria tenga la resolución correcta
+  cand.resolucion = resolucionReal;
   _promCandidatoActual = cand;
 
   document.getElementById('promNombreRH').textContent = cand.nombre + ' (' + cand.id + ')';
