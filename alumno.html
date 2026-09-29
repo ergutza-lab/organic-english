@@ -2409,7 +2409,7 @@
   var KIDS_IMG_BASE      = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/';
   var KIDS_FONDO_URL     = KIDS_IMG_BASE + 'FONDO%20KIDS.webp';
   var KIDS_WORKBOOK_A11_DRIVE = 'https://drive.google.com/file/d/16CQGgOF0GgKO94bMNi4hD9t0MWeZVO8q/view?usp=drive_link';
-  var KIDS_WORKBOOK_A12_DRIVE = '#';
+  var KIDS_WORKBOOK_A12_DRIVE = 'https://drive.google.com/file/d/1zrMF5zXTDrCxYS2QnKSzCZRAlpHIE-UF/view?usp=sharing';
   var KIDS_WORKBOOKS = [
     { subnivel: 'KIDS-A1.1', img: KIDS_IMG_BASE + 'KIDS%20A1.1.jpg', drive: KIDS_WORKBOOK_A11_DRIVE, label: 'Workbook Kids A1.1' },
     { subnivel: 'KIDS-A1.2', img: KIDS_IMG_BASE + 'KIDS%20A1.2.jpg', drive: KIDS_WORKBOOK_A12_DRIVE, label: 'Workbook Kids A1.2' }
@@ -2455,41 +2455,31 @@
     '</div>';
   }
 
-  function renderWorkbooksYMisionesKids() {
-    var bloqueAlumno = bloqueDesbloqueadoAlumno();
-    var wb = document.getElementById('workbooksDescarga');
-    wb.innerHTML = KIDS_WORKBOOKS.map(function (w) {
-      var bloqueado = bloqueDeSubnivel(w.subnivel) > bloqueAlumno;
-      return libroWorkbookKidsHtml(w, w.subnivel === kidsSubnivelSeleccionado, bloqueado);
-    }).join('');
-
-    var titulo = document.getElementById('nivelDetalleTitulo');
-    var subLabel = kidsSubnivelSeleccionado === 'KIDS-A1.2' ? 'A1.2' : 'A1.1';
-    if (titulo) titulo.innerHTML = '<div style="background:rgba(255,250,240,0.9);border-radius:16px;padding:14px 18px;display:inline-block;width:100%;box-sizing:border-box;-webkit-text-stroke:0;text-shadow:none;font-family:\'Segoe UI\',Arial,sans-serif;"><div style="font-size:19px;font-weight:800;color:#166534;">🌱 GROWIE KIDS ' + subLabel + '+</div><div style="font-size:13px;font-weight:600;color:#6b7280;margin-top:2px;">GROWIE EXPLORERS ' + subLabel + '+</div></div>';
-
-    var grid = document.getElementById('leccionesGrid');
+      var grid = document.getElementById('leccionesGrid');
     if (kidsSubnivelSeleccionado === 'KIDS-A1.1') {
-      grid.innerHTML = columnaMisionesKids();
+      grid.innerHTML = columnaMisionesKids('KIDS-A1.1');
+    } else if (kidsSubnivelSeleccionado === 'KIDS-A1.2') {
+      grid.innerHTML = columnaMisionesKids('KIDS-A1.2');
     } else {
-      grid.innerHTML = '<p style="text-align:center;color:#e2e8f0;font-size:13px;max-width:320px;line-height:1.6;">🌱 Las misiones de <strong>Growie Kids A1.2</strong> estarán disponibles muy pronto.</p>';
+      grid.innerHTML = '<p style="text-align:center;color:#e2e8f0;font-size:13px;">🌱 Selecciona un nivel.</p>';
     }
-  }
 
-  function columnaMisionesKids() {
-    var html = '<div class="misiones-kids-grid">';
-    MISIONES_KIDS_LISTA.forEach(function (mi) {
-      var thumb = mi.img
-        ? '<img src="'+mi.img+'" alt="Mission '+mi.num+'" class="mision-kids-img">'
-        : '<div class="mision-kids-img mision-kids-img-vacia">🏆</div>';
-      html += '<div class="mision-kids-card" onclick="abrirLeccion(\'KIDS-A1.1\','+mi.num+')">' +
-        thumb +
-        '<div class="mision-kids-num">MISSION ' + mi.num + '</div>' +
-        '<div class="mision-kids-titulo">' + mi.titulo + '</div>' +
-      '</div>';
-    });
-    html += '</div>';
-    return html;
-  }
+  function columnaMisionesKids(subnivel) {
+  var lista = (subnivel === 'KIDS-A1.2') ? MISIONES_KIDS_A12_LISTA : MISIONES_KIDS_LISTA;
+  var html = '<div class="misiones-kids-grid">';
+  lista.forEach(function (mi) {
+    var thumb = mi.img
+      ? '<img src="'+mi.img+'" alt="Mission '+mi.num+'" class="mision-kids-img" onerror="this.parentElement.classList.add(\'mision-kids-img-vacia\');this.outerHTML=\'<div class=&quot;mision-kids-img mision-kids-img-vacia&quot;>🌱</div>\'">'
+      : '<div class="mision-kids-img mision-kids-img-vacia">🏆</div>';
+    html += '<div class="mision-kids-card" onclick="abrirLeccion(\''+subnivel+'\','+mi.num+')">' +
+      thumb +
+      '<div class="mision-kids-num">MISSION ' + mi.num + '</div>' +
+      '<div class="mision-kids-titulo">' + mi.titulo + '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  return html;
+}
 
   var LECCIONES_CONTENIDO = {
     'A1.1-1': {
@@ -5208,6 +5198,843 @@
       ]
     }
   };
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTENIDO DE LAS MISIONES · GROWIE KIDS A1.2
+//  Sigue el mismo patrón que A1.1 (completar + hablar_escribir)
+// ═══════════════════════════════════════════════════════════════
+var MISIONES_KIDS_A12_CONTENIDO = {
+
+  "KIDS-A1.2-1": {
+    titulo: "MISSION 1: \"Welcome Back!\"",
+    objetivo: "Reconectar con amigos y saludar al regresar.",
+    tema: "Welcome Back!",
+    imagen: KIDS_A12_IMG_BASE + '1.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and circle",
+        instrucciones: "Lee las frases y marca las que sirven para saludar a un amigo al volver a verlo.",
+        items: [
+          { texto: "Welcome back! · Nice to see you! · Good night! · Hi again! -> Marca las correctas:",
+            sugerida: "Welcome back!, Nice to see you!, Hi again!" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete the conversation",
+        instrucciones: "Completa el diálogo entre Growie y Mia.",
+        items: [
+          { texto: "Growie: Welcome back! Mia: Hi, Growie! Nice to ___ you!",
+            sugerida: "Nice to see you!" },
+          { texto: "Growie: Nice to see you, ___.",
+            sugerida: "Nice to see you, Leo." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Saluda a un compañero usando 'Welcome back!' y 'Nice to see you!'",
+        writing: [
+          { texto: "Hi, ___. Welcome back!", sugerida: "Hi, Leo. Welcome back!" }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-2": {
+    titulo: "MISSION 2: \"Days of the Week\"",
+    objetivo: "Relacionar los días con actividades.",
+    tema: "Days of the Week",
+    imagen: KIDS_A12_IMG_BASE + '2.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Une cada día con una actividad: school · English · play · read · relax.",
+        items: [
+          { texto: "Monday = ___ · Tuesday = ___ · Wednesday = ___ · Thursday = ___ · Friday = ___",
+            sugerida: "Monday=school, Tuesday=English, Wednesday=play, Thursday=read, Friday=relax" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las oraciones con tus propias actividades.",
+        items: [
+          { texto: "On Monday, I ___.", sugerida: "On Monday, I go to school." },
+          { texto: "On Wednesday, I ___.", sugerida: "On Wednesday, I play." },
+          { texto: "On Friday, I ___.", sugerida: "On Friday, I relax." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My week',
+        speaking: "Di en voz alta qué haces durante la semana.",
+        writing: [
+          { texto: "During the week, I ___.", sugerida: "During the week, I study English and play soccer." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-3": {
+    titulo: "MISSION 3: \"Order the Days\"",
+    objetivo: "Poner los días en el orden correcto.",
+    tema: "Order the Days",
+    imagen: KIDS_A12_IMG_BASE + '3.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and order",
+        instrucciones: "Escribe los días en el orden correcto: Wednesday · Monday · Friday · Tuesday · Thursday.",
+        items: [
+          { texto: "1° ___ 2° ___ 3° ___ 4° ___ 5° ___",
+            sugerida: "Monday, Tuesday, Wednesday, Thursday, Friday" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con tus actividades de cada día.",
+        items: [
+          { texto: "On Mondays, I ___.", sugerida: "On Mondays, I go to school." },
+          { texto: "On Tuesdays, I ___.", sugerida: "On Tuesdays, I study English." },
+          { texto: "On Thursdays, I ___.", sugerida: "On Thursdays, I read." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Elige un día y cuenta qué haces.",
+        writing: [
+          { texto: "On ___, I ___.", sugerida: "On Saturday, I play with my friends." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-4": {
+    titulo: "MISSION 4: \"How Often?\"",
+    objetivo: "Usar adverbios de frecuencia.",
+    tema: "How Often?",
+    imagen: KIDS_A12_IMG_BASE + '4.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona: always = every time · usually = many times · sometimes = some times · never = 0 times.",
+        items: [
+          { texto: "always = ___ · usually = ___ · sometimes = ___ · never = ___",
+            sugerida: "always=every time, usually=many times, sometimes=some times, never=0 times" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con tu propia información.",
+        items: [
+          { texto: "I always ___.", sugerida: "I always read at night." },
+          { texto: "I usually ___.", sugerida: "I usually play after school." },
+          { texto: "I sometimes ___.", sugerida: "I sometimes watch TV." },
+          { texto: "I never ___.", sugerida: "I never eat candy." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Ask and answer',
+        speaking: "Pregunta: How often do you read / play / study?",
+        writing: [
+          { texto: "How often do you study? I ___ study.", sugerida: "How often do you study? I always study." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-5": {
+    titulo: "MISSION 5: \"My School Subjects\"",
+    objetivo: "Nombrar las materias de la escuela.",
+    tema: "My School Subjects",
+    imagen: KIDS_A12_IMG_BASE + '5.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and label",
+        instrucciones: "Escribe la materia correcta: English · math · science · art · P.E.",
+        items: [
+          { texto: "📐=___ 🎨=___ 🔬=___ ⚽=___ 🗣️=___",
+            sugerida: "math, art, science, P.E., English" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con tu información.",
+        items: [
+          { texto: "I have ___ at school.", sugerida: "I have math at school." },
+          { texto: "I like ___.", sugerida: "I like art." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Di tu materia favorita en voz alta.",
+        writing: [
+          { texto: "My favorite subject is ___.", sugerida: "My favorite subject is English." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-6": {
+    titulo: "MISSION 6: \"Classroom Objects\"",
+    objetivo: "Identificar objetos del salón de clases.",
+    tema: "Classroom Objects",
+    imagen: KIDS_A12_IMG_BASE + '6.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and check",
+        instrucciones: "Marca los objetos que ves: desk · chair · board · book · backpack · computer.",
+        items: [
+          { texto: "Objetos que veo en mi salón:", sugerida: "desk, chair, board, book, backpack, computer" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con la cantidad correcta.",
+        items: [
+          { texto: "There is a ___.", sugerida: "There is a board." },
+          { texto: "There are ___ chairs.", sugerida: "There are eight chairs." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My classroom',
+        speaking: "Describe tu salón de clases.",
+        writing: [
+          { texto: "In my classroom, there is ___.", sugerida: "In my classroom, there is a big board." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-7": {
+    titulo: "MISSION 7: \"Teacher or Classmate?\"",
+    objetivo: "Distinguir entre maestro y compañero.",
+    tema: "Teacher or Classmate?",
+    imagen: KIDS_A12_IMG_BASE + '7.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and identify",
+        instrucciones: "Escribe teacher o classmate según la imagen.",
+        items: [
+          { texto: "Person A: ___ Person B: ___ Person C: ___",
+            sugerida: "Person A: teacher, Person B: classmate, Person C: classmate" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las presentaciones.",
+        items: [
+          { texto: "This is my teacher, ___.", sugerida: "This is my teacher, Miss Ana." },
+          { texto: "This is my friend, ___.", sugerida: "This is my friend, Leo." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Presenta a alguien de tu escuela.",
+        writing: [
+          { texto: "This is my ___.", sugerida: "This is my friend, Ana." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-8": {
+    titulo: "MISSION 8: \"School Review\"",
+    objetivo: "Repasar todo lo aprendido sobre la escuela.",
+    tema: "School Review",
+    imagen: KIDS_A12_IMG_BASE + '8.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada parte del mapa con su tema: days · subjects · classroom · teacher and friends.",
+        items: [
+          { texto: "📅=___ 📚=___ 🏫=___ 👩‍🏫=___",
+            sugerida: "📅=days, 📚=subjects, 🏫=classroom, 👩‍🏫=teacher and friends" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las oraciones sobre tu escuela.",
+        items: [
+          { texto: "On Mondays, I ___.", sugerida: "On Mondays, I have math." },
+          { texto: "My favorite subject is ___.", sugerida: "My favorite subject is art." },
+          { texto: "There is a ___ in my classroom.", sugerida: "There is a computer in my classroom." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Read aloud',
+        speaking: "Lee tus tres oraciones sobre la escuela en voz alta.",
+        writing: [] }
+    ]
+  },
+
+  "KIDS-A1.2-9": {
+    titulo: "MISSION 9: \"My Hobbies\"",
+    objetivo: "Hablar de pasatiempos.",
+    tema: "My Hobbies",
+    imagen: KIDS_A12_IMG_BASE + '9.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and label",
+        instrucciones: "Escribe el pasatiempo debajo de cada dibujo: read · draw · play soccer · ride a bike · play games.",
+        items: [
+          { texto: "📖=___ 🎨=___ ⚽=___ 🚲=___ 🎮=___",
+            sugerida: "read, draw, play soccer, ride a bike, play games" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con lo que te gusta y lo que no.",
+        items: [
+          { texto: "I like to ___.", sugerida: "I like to draw." },
+          { texto: "I don't like to ___.", sugerida: "I don't like to play soccer." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My hobby',
+        speaking: "Cuenta tu pasatiempo favorito.",
+        writing: [
+          { texto: "My hobby is ___.", sugerida: "My hobby is reading." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-10": {
+    titulo: "MISSION 10: \"Weekend Activities\"",
+    objetivo: "Hablar de actividades de fin de semana.",
+    tema: "Weekend Activities",
+    imagen: KIDS_A12_IMG_BASE + '10.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and choose",
+        instrucciones: "Marca las actividades de fin de semana: go to school · play · relax · read · sleep · do homework.",
+        items: [
+          { texto: "Actividades de fin de semana:", sugerida: "play, relax, read, sleep" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete the conversation",
+        instrucciones: "Completa la conversación.",
+        items: [
+          { texto: "A: What do you do on weekends? B: I ___ and ___.", sugerida: "B: I play and relax." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My answer',
+        speaking: "Responde qué haces los fines de semana.",
+        writing: [
+          { texto: "On weekends, I ___.", sugerida: "On weekends, I play with my sister." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-11": {
+    titulo: "MISSION 11: \"Let's Play!\"",
+    objetivo: "Hacer sugerencias a un amigo.",
+    tema: "Let's Play!",
+    imagen: KIDS_A12_IMG_BASE + '11.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada sugerencia con su actividad: Let's play soccer! · Let's draw! · Let's ride bikes! · Let's play a game!",
+        items: [
+          { texto: "⚽=___ 🎨=___ 🚲=___ 🎮=___",
+            sugerida: "⚽=Let's play soccer!, 🎨=Let's draw!, 🚲=Let's ride bikes!, 🎮=Let's play a game!" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa el diálogo.",
+        items: [
+          { texto: "A: Let's ___. B: Yes, let's!", sugerida: "A: Let's play a game! B: Yes, let's!" }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Make a suggestion',
+        speaking: "Haz una sugerencia a un amigo.",
+        writing: [
+          { texto: "Let's ___.", sugerida: "Let's ride bikes!" }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-12": {
+    titulo: "MISSION 12: \"My Perfect Weekend\"",
+    objetivo: "Describir tu fin de semana ideal.",
+    tema: "My Perfect Weekend",
+    imagen: KIDS_A12_IMG_BASE + '12.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and choose",
+        instrucciones: "Elige dos actividades para sábado y dos para domingo.",
+        items: [
+          { texto: "Saturday: ___ and ___", sugerida: "Saturday: play and watch a movie" },
+          { texto: "Sunday: ___ and ___", sugerida: "Sunday: relax and visit family" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa lo que haces cada día.",
+        items: [
+          { texto: "On Saturday, I ___.", sugerida: "On Saturday, I ride my bike." },
+          { texto: "On Sunday, I ___.", sugerida: "On Sunday, I watch a movie." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My perfect weekend',
+        speaking: "Describe tu fin de semana perfecto.",
+        writing: [
+          { texto: "My perfect weekend has ___.", sugerida: "My perfect weekend has movies and pizza." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-13": {
+    titulo: "MISSION 13: \"Shopping Prices\"",
+    objetivo: "Preguntar y decir precios.",
+    tema: "Shopping Prices",
+    imagen: KIDS_A12_IMG_BASE + '13.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada artículo con su precio.",
+        items: [
+          { texto: "T-shirt=___ cap=___ backpack=___ shoes=___ ($5 · $10 · $15 · $20)",
+            sugerida: "T-shirt=$10, cap=$5, backpack=$20, shoes=$15" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa la conversación sobre precios.",
+        items: [
+          { texto: "A: How much is the ___? B: It's $___.", sugerida: "A: How much is the cap? B: It's $5." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Practice',
+        speaking: "Practica preguntar el precio de un artículo.",
+        writing: [
+          { texto: "How much is the ___? It's $___.", sugerida: "How much is the backpack? It's $20." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-14": {
+    titulo: "MISSION 14: \"I Need a...\"",
+    objetivo: "Hablar de la ropa que necesitas.",
+    tema: "I Need a...",
+    imagen: KIDS_A12_IMG_BASE + '14.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and label",
+        instrucciones: "Escribe la palabra correcta: T-shirt · pants · shoes · jacket · cap.",
+        items: [
+          { texto: "👕=___ 👖=___ 👟=___ 🧥=___ 🧢=___",
+            sugerida: "T-shirt, pants, shoes, jacket, cap" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa lo que necesitas.",
+        items: [
+          { texto: "I need a ___.", sugerida: "I need a T-shirt." },
+          { texto: "I need ___.", sugerida: "I need shoes." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Elige una prenda que necesitas.",
+        writing: [
+          { texto: "I need ___.", sugerida: "I need a jacket." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-15": {
+    titulo: "MISSION 15: \"Color and Size\"",
+    objetivo: "Describir ropa con color y talla.",
+    tema: "Color and Size",
+    imagen: KIDS_A12_IMG_BASE + '15.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona colores y tallas: red · blue · green · small · medium · large.",
+        items: [
+          { texto: "🔴=___ 🔵=___ 🟢=___ S=___ M=___ L=___",
+            sugerida: "red, blue, green, small, medium, large" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa tus elecciones.",
+        items: [
+          { texto: "I want a ___ T-shirt.", sugerida: "I want a blue T-shirt." },
+          { texto: "I want size ___.", sugerida: "I want size medium." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My choice',
+        speaking: "Elige color y talla de una prenda.",
+        writing: [
+          { texto: "I want a ___ ___.", sugerida: "I want a red cap." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-16": {
+    titulo: "MISSION 16: \"At the Store\"",
+    objetivo: "Simular una conversación de compra.",
+    tema: "At the Store",
+    imagen: KIDS_A12_IMG_BASE + '16.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and identify",
+        instrucciones: "Escribe customer o server.",
+        items: [
+          { texto: "Child A: ___ Child B: ___", sugerida: "Child A: customer, Child B: server" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete the conversation",
+        instrucciones: "Completa el diálogo de la tienda.",
+        items: [
+          { texto: "Server: Hello! Can I help you? Customer: I need a ___, please.",
+            sugerida: "Customer: I need a T-shirt, please." },
+          { texto: "Server: What color do you want? Customer: ___ , please.",
+            sugerida: "Customer: Blue, please." },
+          { texto: "Server: Here you are. Customer: ___!",
+            sugerida: "Customer: Thank you!" }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Practice',
+        speaking: "Practica el diálogo cambiando el artículo y el color.",
+        writing: [] }
+    ]
+  },
+
+  "KIDS-A1.2-17": {
+    titulo: "MISSION 17: \"Places in Town\"",
+    objetivo: "Nombrar lugares de la ciudad.",
+    tema: "Places in Town",
+    imagen: KIDS_A12_IMG_BASE + '17.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and label",
+        instrucciones: "Escribe el lugar correcto: park · school · supermarket · hospital · bank.",
+        items: [
+          { texto: "🌳=___ 🏫=___ 🛒=___ 🏥=___ 🏦=___",
+            sugerida: "park, school, supermarket, hospital, bank" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las oraciones.",
+        items: [
+          { texto: "This is the ___.", sugerida: "This is the park." },
+          { texto: "There is a ___ in my town.", sugerida: "There is a supermarket in my town." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My town',
+        speaking: "Menciona un lugar de tu ciudad.",
+        writing: [
+          { texto: "In my town, there is a ___.", sugerida: "In my town, there is a park." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-18": {
+    titulo: "MISSION 18: \"Directions\"",
+    objetivo: "Dar y entender direcciones.",
+    tema: "Directions",
+    imagen: KIDS_A12_IMG_BASE + '18.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada flecha con su dirección: go straight · turn left · turn right.",
+        items: [
+          { texto: "⬆️=___ ⬅️=___ ➡️=___",
+            sugerida: "go straight, turn left, turn right" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las direcciones.",
+        items: [
+          { texto: "Go ___. Turn ___. Turn ___.", sugerida: "Go straight. Turn left. Turn right." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Practice',
+        speaking: "Di dos direcciones en voz alta.",
+        writing: [
+          { texto: "1. ___ 2. ___", sugerida: "1. Go straight. 2. Turn right." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-19": {
+    titulo: "MISSION 19: \"Near My House\"",
+    objetivo: "Describir lugares cerca de tu casa.",
+    tema: "Near My House",
+    imagen: KIDS_A12_IMG_BASE + '19.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and check",
+        instrucciones: "Marca los lugares cerca de la casa en la imagen.",
+        items: [
+          { texto: "Lugares que veo: park · school · bank · supermarket · hospital",
+            sugerida: "park, supermarket, school" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las oraciones.",
+        items: [
+          { texto: "Near my house, there is a ___.", sugerida: "Near my house, there is a park." },
+          { texto: "There is a ___ near my house.", sugerida: "There is a supermarket near my house." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Menciona un lugar cerca de tu casa.",
+        writing: [
+          { texto: "Near my house, there is ___.", sugerida: "Near my house, there is a small store." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-20": {
+    titulo: "MISSION 20: \"My City\"",
+    objetivo: "Describir tu ciudad.",
+    tema: "My City",
+    imagen: KIDS_A12_IMG_BASE + '20.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and choose",
+        instrucciones: "Marca palabras que describan una ciudad: big · small · nice · busy · quiet.",
+        items: [
+          { texto: "Palabras para describir mi ciudad:", sugerida: "big, small, nice, busy, quiet" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Describe tu ciudad.",
+        items: [
+          { texto: "My city is ___.", sugerida: "My city is big." },
+          { texto: "There is a ___.", sugerida: "There is a big park." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My city',
+        speaking: "Di dos oraciones sobre tu ciudad.",
+        writing: [
+          { texto: "My city is ___. I like ___.", sugerida: "My city is busy. I like the park." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-21": {
+    titulo: "MISSION 21: \"I Can!\"",
+    objetivo: "Hablar de habilidades.",
+    tema: "I Can!",
+    imagen: KIDS_A12_IMG_BASE + '21.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and label",
+        instrucciones: "Escribe la acción correcta: swim · run · ride a bike · draw · sing.",
+        items: [
+          { texto: "🏊=___ 🏃=___ 🚲=___ 🎨=___ 🎤=___",
+            sugerida: "swim, run, ride a bike, draw, sing" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con tus habilidades.",
+        items: [
+          { texto: "I can ___.", sugerida: "I can swim." },
+          { texto: "I can't ___.", sugerida: "I can't sing." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My abilities',
+        speaking: "Di una cosa que puedes hacer.",
+        writing: [
+          { texto: "I can ___.", sugerida: "I can ride a bike." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-22": {
+    titulo: "MISSION 22: \"Polite Requests\"",
+    objetivo: "Hacer peticiones corteses.",
+    tema: "Polite Requests",
+    imagen: KIDS_A12_IMG_BASE + '22.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and choose",
+        instrucciones: "Marca la petición cortés: Help me! · Can you help me, please? · Goodbye!",
+        items: [
+          { texto: "La petición cortés es:", sugerida: "Can you help me, please?" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete the conversation",
+        instrucciones: "Completa el diálogo.",
+        items: [
+          { texto: "A: Can you help me, please? B: Yes, ___. / Sorry, I ___.", sugerida: "B: Yes, of course. / Sorry, I can't." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Haz una petición cortés.",
+        writing: [
+          { texto: "Can you ___, please?", sugerida: "Can you repeat, please?" }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-23": {
+    titulo: "MISSION 23: \"My English Abilities\"",
+    objetivo: "Reconocer lo que puedes hacer en inglés.",
+    tema: "My English Abilities",
+    imagen: KIDS_A12_IMG_BASE + '23.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and check",
+        instrucciones: "Marca lo que puedes hacer en inglés: say hello · ask a question · read simple words · ask for help.",
+        items: [
+          { texto: "Lo que ya puedo hacer:", sugerida: "say hello, read simple words, ask for help" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las oraciones.",
+        items: [
+          { texto: "I can speak English. I can understand ___.", sugerida: "I can understand simple words." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My goal',
+        speaking: "Di una meta que tienes con el inglés.",
+        writing: [
+          { texto: "I want to ___.", sugerida: "I want to speak English well." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-24": {
+    titulo: "MISSION 24: \"Help Phrases\"",
+    objetivo: "Pedir ayuda cuando no entiendes.",
+    tema: "Help Phrases",
+    imagen: KIDS_A12_IMG_BASE + '24.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada problema con su frase de ayuda.",
+        items: [
+          { texto: "I don't understand. = ___ / Can you repeat, please? = ___ / Slowly, please. = ___",
+            sugerida: "I don't understand. = Can you help me? / Can you repeat, please? = repetir / Slowly, please. = más despacio" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa el diálogo.",
+        items: [
+          { texto: "A: I don't understand. Can you ___, please? B: Yes.", sugerida: "Can you repeat, please?" }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Choose and write',
+        speaking: "Elige una frase de ayuda que puedas usar en clase.",
+        writing: [
+          { texto: "My help phrase: ___", sugerida: "My help phrase: Can you repeat, please?" }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-25": {
+    titulo: "MISSION 25: \"Yesterday\"",
+    objetivo: "Hablar de ayer con frases simples.",
+    tema: "Yesterday",
+    imagen: KIDS_A12_IMG_BASE + '25.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and choose",
+        instrucciones: "Marca las palabras que hablan de ayer: today · yesterday · last night · tomorrow.",
+        items: [
+          { texto: "Palabras de ayer:", sugerida: "yesterday, last night" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las oraciones sobre ayer.",
+        items: [
+          { texto: "Yesterday was ___.", sugerida: "Yesterday was busy." },
+          { texto: "Yesterday, I ___.", sugerida: "Yesterday, I played soccer." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "Di una oración simple sobre ayer.",
+        writing: [
+          { texto: "Yesterday, I ___.", sugerida: "Yesterday, I watched a movie." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-26": {
+    titulo: "MISSION 26: \"Where Were You?\"",
+    objetivo: "Decir dónde estabas ayer.",
+    tema: "Where Were You?",
+    imagen: KIDS_A12_IMG_BASE + '26.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada persona con un lugar: home · school · park · store.",
+        items: [
+          { texto: "👦=___ 🏫=___ 🌳=___ 🛒=___",
+            sugerida: "home, school, park, store" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa con was o were.",
+        items: [
+          { texto: "I was at ___.", sugerida: "I was at home." },
+          { texto: "He was at ___.", sugerida: "He was at school." },
+          { texto: "They were at ___.", sugerida: "They were at the park." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My answer',
+        speaking: "Responde dónde estabas ayer.",
+        writing: [
+          { texto: "I was at ___.", sugerida: "I was at home yesterday." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-27": {
+    titulo: "MISSION 27: \"Last Weekend\"",
+    objetivo: "Hablar del fin de semana pasado.",
+    tema: "Last Weekend",
+    imagen: KIDS_A12_IMG_BASE + '27.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and order",
+        instrucciones: "Pon en orden las acciones del fin de semana: played · visited · watched · relaxed.",
+        items: [
+          { texto: "1° ___ 2° ___ 3° ___ 4° ___",
+            sugerida: "visited, played, watched, relaxed" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa lo que hiciste el fin de semana pasado.",
+        items: [
+          { texto: "Last weekend, I ___.", sugerida: "Last weekend, I visited my grandma." },
+          { texto: "I also ___.", sugerida: "I also played with my friends." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My weekend',
+        speaking: "Cuenta una cosa que hiciste el fin de semana pasado.",
+        writing: [
+          { texto: "Last weekend, I ___.", sugerida: "Last weekend, I watched a movie." }
+        ] }
+    ]
+  },
+
+  "KIDS-A1.2-28": {
+    titulo: "MISSION 28: \"Review: My World\"",
+    objetivo: "Repasar todo lo aprendido sobre tu mundo.",
+    tema: "Review: My World",
+    imagen: KIDS_A12_IMG_BASE + '28.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and match",
+        instrucciones: "Relaciona cada sección con su tema: school · hobbies · shopping · town · abilities.",
+        items: [
+          { texto: "🏫=___ 🎨=___ 🛒=___ 🏙️=___ 💪=___",
+            sugerida: "school, hobbies, shopping, town, abilities" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete",
+        instrucciones: "Completa las cinco oraciones.",
+        items: [
+          { texto: "My favorite subject is ___.", sugerida: "My favorite subject is English." },
+          { texto: "I like ___.", sugerida: "I like drawing." },
+          { texto: "I need a ___.", sugerida: "I need a backpack." },
+          { texto: "Near my house, there is a ___.", sugerida: "Near my house, there is a park." },
+          { texto: "I can ___.", sugerida: "I can swim." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Read aloud',
+        speaking: "Lee tus cinco oraciones en voz alta.",
+        writing: [] }
+    ]
+  },
+
+  "KIDS-A1.2-29": {
+    titulo: "MISSION 29: \"Project Prep\"",
+    objetivo: "Organizar tus oraciones para el proyecto final.",
+    tema: "Project Prep",
+    imagen: KIDS_A12_IMG_BASE + '29.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and organize",
+        instrucciones: "Numera las secciones de tu proyecto del 1 al 6: school · week · hobbies · town · abilities · last weekend.",
+        items: [
+          { texto: "Orden que elegí: ___ ___ ___ ___ ___ ___",
+            sugerida: "1-6 en el orden que prefieras" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Complete your best sentences",
+        instrucciones: "Completa tus mejores oraciones para el proyecto.",
+        items: [
+          { texto: "My favorite subject is ___.", sugerida: "My favorite subject is art." },
+          { texto: "During the week, I ___.", sugerida: "During the week, I study English." },
+          { texto: "I like ___.", sugerida: "I like playing games." },
+          { texto: "Near my house, there is a ___.", sugerida: "Near my house, there is a supermarket." },
+          { texto: "I can ___.", sugerida: "I can ride a bike." },
+          { texto: "Last weekend, I ___.", sugerida: "Last weekend, I visited my aunt." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Practice',
+        speaking: "Lee 'My English World' completo en voz alta una vez.",
+        writing: [] }
+    ]
+  },
+
+  "KIDS-A1.2-30": {
+    titulo: "MISSION 30: \"My Presentation\"",
+    objetivo: "Presentar tu proyecto final.",
+    tema: "My Presentation",
+    imagen: KIDS_A12_IMG_BASE + '30.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Complete your presentation",
+        instrucciones: "Completa tu presentación final.",
+        items: [
+          { texto: "Hello! My name is ___.", sugerida: "Hello! My name is Ana." },
+          { texto: "My favorite subject is ___.", sugerida: "My favorite subject is art." },
+          { texto: "I like ___.", sugerida: "I like playing soccer." },
+          { texto: "Near my house, there is a ___.", sugerida: "Near my house, there is a park." },
+          { texto: "I can ___.", sugerida: "I can swim." },
+          { texto: "Last weekend, I ___.", sugerida: "Last weekend, I watched a movie." },
+          { texto: "Thank you!", sugerida: "Thank you!" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Check your presentation",
+        instrucciones: "Marca lo que incluiste: school · hobbies · town · abilities · last weekend · Thank you.",
+        items: [
+          { texto: "Lo que incluí:", sugerida: "school, hobbies, town, abilities, last weekend, Thank you" }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Practice aloud',
+        speaking: "Practica tu presentación dos veces en voz alta.",
+        writing: [] }
+    ]
+  },
+
+  "KIDS-A1.2-31": {
+    titulo: "MISSION 31: \"Self Check\"",
+    objetivo: "Revisar todo lo que ya puedes hacer.",
+    tema: "Self Check",
+    imagen: KIDS_A12_IMG_BASE + '31.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and check",
+        instrucciones: "Marca lo que ya puedes hacer: talk about my week · talk about school · talk about hobbies · shop with English · give directions · talk about abilities · ask for help · talk about yesterday.",
+        items: [
+          { texto: "Cosas que ya puedo hacer en inglés:", sugerida: "¡Marca todas las que ya dominas!" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Write",
+        instrucciones: "Escribe sobre tu misión favorita.",
+        items: [
+          { texto: "My favorite mission was Mission ___.", sugerida: "My favorite mission was Mission 12." },
+          { texto: "I liked it because ___.", sugerida: "I liked it because I like weekends." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · Draw',
+        speaking: "Dibuja tu propia insignia de Explorador A1.2.",
+        writing: [] }
+    ]
+  },
+
+  "KIDS-A1.2-32": {
+    titulo: "MISSION 32: \"Celebration Day\"",
+    objetivo: "¡Celebrar tu logro como Growie Explorer A1.2!",
+    tema: "Celebration Day",
+    imagen: KIDS_A12_IMG_BASE + '32.jpg',
+    ejercicios: [
+      { tipo: 'completar', titulo: "Actividad 1 · Look and check",
+        instrucciones: "Revisa tu progreso final y marca lo que lograste.",
+        items: [
+          { texto: "Mi progreso A1.2:", sugerida: "¡Felicidades! Completaste Growie A1.2" }
+        ] },
+      { tipo: 'completar', titulo: "Actividad 2 · Write",
+        instrucciones: "Escribe sobre tu logro.",
+        items: [
+          { texto: "My favorite mission was Mission ___.", sugerida: "My favorite mission was Mission 21." },
+          { texto: "I liked it because ___.", sugerida: "I liked it because I can swim." }
+        ] },
+      { tipo: 'hablar_escribir', titulo: 'Actividad 3 · My English',
+        speaking: "¡Felicidades, Explorer! Preséntate en inglés con orgullo.",
+        writing: [
+          { texto: "I am a Growie Explorer! I can ___ and ___.", sugerida: "I am a Growie Explorer! I can talk about my week and shop in English." }
+        ] }
+    ]
+  }
+
+};
+Object.assign(MISIONES_KIDS_CONTENIDO, MISIONES_KIDS_A12_CONTENIDO);
+  
   Object.assign(LECCIONES_CONTENIDO, MISIONES_KIDS_CONTENIDO);
 
   var MISIONES_KIDS_LISTA = [
@@ -5244,6 +6071,47 @@
     { num: 31, titulo: "Final Adventure", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/31.png" },
     { num: 32, titulo: "Celebration Day", img: "https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/32.png" },
   ];
+  
+// ═══════════════════════════════════════════════════════════════
+//  GROWIE KIDS A1.2 · GROWIE EXPLORERS 2
+//  Portadas en: images/Kids/A1.2/*.jpg
+// ═══════════════════════════════════════════════════════════════
+var KIDS_A12_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/Kids/A1.2/';
+
+var MISIONES_KIDS_A12_LISTA = [
+  { num: 1,  titulo: "Welcome Back!",              img: KIDS_A12_IMG_BASE + '1.jpg'  },
+  { num: 2,  titulo: "Days of the Week",           img: KIDS_A12_IMG_BASE + '2.jpg'  },
+  { num: 3,  titulo: "Order the Days",             img: KIDS_A12_IMG_BASE + '3.jpg'  },
+  { num: 4,  titulo: "How Often?",                 img: KIDS_A12_IMG_BASE + '4.jpg'  },
+  { num: 5,  titulo: "My School Subjects",         img: KIDS_A12_IMG_BASE + '5.jpg'  },
+  { num: 6,  titulo: "Classroom Objects",          img: KIDS_A12_IMG_BASE + '6.jpg'  },
+  { num: 7,  titulo: "Teacher or Classmate?",      img: KIDS_A12_IMG_BASE + '7.jpg'  },
+  { num: 8,  titulo: "School Review",              img: KIDS_A12_IMG_BASE + '8.jpg'  },
+  { num: 9,  titulo: "My Hobbies",                 img: KIDS_A12_IMG_BASE + '9.jpg'  },
+  { num: 10, titulo: "Weekend Activities",         img: KIDS_A12_IMG_BASE + '10.jpg' },
+  { num: 11, titulo: "Let's Play!",                img: KIDS_A12_IMG_BASE + '11.jpg' },
+  { num: 12, titulo: "My Perfect Weekend",         img: KIDS_A12_IMG_BASE + '12.jpg' },
+  { num: 13, titulo: "Shopping Prices",            img: KIDS_A12_IMG_BASE + '13.jpg' },
+  { num: 14, titulo: "I Need a...",                img: KIDS_A12_IMG_BASE + '14.jpg' },
+  { num: 15, titulo: "Color and Size",             img: KIDS_A12_IMG_BASE + '15.jpg' },
+  { num: 16, titulo: "At the Store",               img: KIDS_A12_IMG_BASE + '16.jpg' },
+  { num: 17, titulo: "Places in Town",             img: KIDS_A12_IMG_BASE + '17.jpg' },
+  { num: 18, titulo: "Directions",                 img: KIDS_A12_IMG_BASE + '18.jpg' },
+  { num: 19, titulo: "Near My House",              img: KIDS_A12_IMG_BASE + '19.jpg' },
+  { num: 20, titulo: "My City",                    img: KIDS_A12_IMG_BASE + '20.jpg' },
+  { num: 21, titulo: "I Can!",                     img: KIDS_A12_IMG_BASE + '21.jpg' },
+  { num: 22, titulo: "Polite Requests",            img: KIDS_A12_IMG_BASE + '22.jpg' },
+  { num: 23, titulo: "My English Abilities",       img: KIDS_A12_IMG_BASE + '23.jpg' },
+  { num: 24, titulo: "Help Phrases",               img: KIDS_A12_IMG_BASE + '24.jpg' },
+  { num: 25, titulo: "Yesterday",                  img: KIDS_A12_IMG_BASE + '25.jpg' },
+  { num: 26, titulo: "Where Were You?",            img: KIDS_A12_IMG_BASE + '26.jpg' },
+  { num: 27, titulo: "Last Weekend",               img: KIDS_A12_IMG_BASE + '27.jpg' },
+  { num: 28, titulo: "Review: My World",           img: KIDS_A12_IMG_BASE + '28.jpg' },
+  { num: 29, titulo: "Project Prep",               img: KIDS_A12_IMG_BASE + '29.jpg' },
+  { num: 30, titulo: "My Presentation",            img: KIDS_A12_IMG_BASE + '30.jpg' },
+  { num: 31, titulo: "Self Check",                 img: KIDS_A12_IMG_BASE + '31.jpg' },
+  { num: 32, titulo: "Celebration Day",            img: KIDS_A12_IMG_BASE + '32.jpg' }
+];
 
   var LECCIONES_A12_CONTENIDO = {
     "A1.2-1": {
