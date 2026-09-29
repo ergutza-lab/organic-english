@@ -710,11 +710,32 @@ function toggleEdicionCandidato(idCandidato){
 }
 
 function guardarCambiosCandidato(idCandidato){
-  var estatus = document.getElementById('est-'+idCandidato).value;
-  var resolucion = document.getElementById('res-'+idCandidato).value;
-  var responsable = document.getElementById('resp-'+idCandidato).value.trim();
-  var notas = document.getElementById('notas-'+idCandidato).value.trim();
+  var estatusEl = document.getElementById('est-'+idCandidato);
+  var resEl = document.getElementById('res-'+idCandidato);
+  var respEl = document.getElementById('resp-'+idCandidato);
+  var notasEl = document.getElementById('notas-'+idCandidato);
+
+  if (!estatusEl || !resEl) {
+    alert('No se encontraron los campos del candidato. Recarga la página (F5) e intenta de nuevo.');
+    return;
+  }
+
+  // Si el div de status no existe en el DOM, lo creamos al vuelo y lo
+  // pegamos al final del card del candidato.
   var status = document.getElementById('statusCand-'+idCandidato);
+  if (!status) {
+    status = document.createElement('div');
+    status.id = 'statusCand-' + idCandidato;
+    status.className = 'status-msg';
+    status.style.textAlign = 'left';
+    var card = estatusEl.closest('.cand-card');
+    if (card) card.appendChild(status);
+  }
+
+  var estatus = estatusEl.value;
+  var resolucion = resEl.value;
+  var responsable = respEl ? respEl.value.trim() : '';
+  var notas = notasEl ? notasEl.value.trim() : '';
   status.style.display = 'block'; status.style.color = '#94a3b8'; status.textContent = 'Guardando...';
 
   var datosPersonales = {
