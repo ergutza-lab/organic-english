@@ -528,13 +528,13 @@ function renderizar(){
     return out;
   }
 
-    function renderClubCard(g){
-    var av = avanceMap[g.id];
-    var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
-    // Override manual si está listado arriba
-    if (OVERRIDE_LECCION_CLUB.hasOwnProperty(g.id)) {
-      clubNum = OVERRIDE_LECCION_CLUB[g.id];
-    }
+      function renderClubCard(g){
+    var out='<div class="gcard club" onclick="verAlumnos(\''+g.id+'\',\''+g.nombre.replace(/'/g,"\\'")+'\')" style="cursor:pointer;">';
+    out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:#c084fc;">'+g.nombre+'</span></div>';
+    out+='<div class="gcap" style="opacity:0.75;">Viernes 8:00 PM</div>';
+    out+='</div>';
+    return out;
+  }
     var out='<div class="gcard club" onclick="verAlumnos(\''+g.id+'\',\''+g.nombre.replace(/'/g,"\\'")+'\')" style="cursor:pointer;">';
     out+='<div class="grow"><span class="gid">'+g.id+'</span><span class="gnombre" style="color:#c084fc;">'+g.nombre+'</span></div>';
     if(clubNum !== null){
@@ -636,12 +636,18 @@ function renderMovil(activos, horas, activosSabado, activosClub){
     return card;
   }
 
-   function renderVmClubCard(g){
-    var av = avanceMap[g.id];
-    var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
-    if (OVERRIDE_LECCION_CLUB.hasOwnProperty(g.id)) {
-      clubNum = OVERRIDE_LECCION_CLUB[g.id];
-    }
+     function renderVmClubCard(g){
+    var card=document.createElement('div');
+    card.className='vm-card club';
+    card.innerHTML=
+      '<div class="vm-row">'+
+        '<span class="vm-gid">'+g.id+'</span>'+
+        '<span class="vm-gnom" style="color:#c084fc;">'+ g.nombre+'</span>'+
+      '</div>'+
+      '<div class="vm-gcap" style="opacity:0.75;">Viernes 8:00 PM</div>';
+    card.onclick = (function(id, nombre){ return function(){ verAlumnos(id, nombre); }; })(g.id, g.nombre);
+    return card;
+  }
     var clubTxt = '';
     if(clubNum !== null){
       var clubPad = String(clubNum).length < 2 ? '0' + clubNum : String(clubNum);
@@ -721,16 +727,23 @@ function verAlumnos(idGrupo, nombre){
   if(g){
     var fi=parseFecha(g.fechaInicio);
     if(fi) infoHtml+='<span class="st-badge inicio">📅 Inicio: '+fmtFecha(fi)+'</span>';
-    var av=avanceMap[idGrupo];
-    if(av && av.leccionActual!=null){
-      var leccionPad=String(av.leccionActual).length<2?'0'+av.leccionActual:String(av.leccionActual);
-      if(g.esClub){
-        infoHtml+='<span class="st-badge avance" style="background:rgba(192,132,252,0.12);color:#a855f7;border:1px solid rgba(192,132,252,0.35);">🎙 CHAT CLUB ' + leccionPad + '</span>';
-      } else if(av.bloqueActual!=null){
-        var nivelFmt=formatNivelBloque(g.nivel,av.bloqueActual);
-        var tipoLeccion=esNombreGrupoKids(g.nombre)?'MISSION':'LESSON';
-        infoHtml+='<span class="st-badge avance">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
+        var av=avanceMap[idGrupo];
+    if(g.esClub){
+      // Chat Club: usa el override si existe, para no mostrar el valor
+      // viejo del sistema (ej. 8) cuando el club reinició su conteo.
+      var clubNum = (av && av.leccionActual != null) ? av.leccionActual : null;
+      if (OVERRIDE_LECCION_CLUB.hasOwnProperty(idGrupo)) {
+        clubNum = OVERRIDE_LECCION_CLUB[idGrupo];
       }
+      if (clubNum != null) {
+        var leccionPad = String(clubNum).length<2?'0'+clubNum:String(clubNum);
+        infoHtml+='<span class="st-badge avance" style="background:rgba(192,132,252,0.12);color:#a855f7;border:1px solid rgba(192,132,252,0.35);">🎙 CHAT CLUB ' + leccionPad + '</span>';
+      }
+    } else if(av && av.leccionActual!=null && av.bloqueActual!=null){
+      var leccionPad=String(av.leccionActual).length<2?'0'+av.leccionActual:String(av.leccionActual);
+      var nivelFmt=formatNivelBloque(g.nivel,av.bloqueActual);
+      var tipoLeccion=esNombreGrupoKids(g.nombre)?'MISSION':'LESSON';
+      infoHtml+='<span class="st-badge avance">'+nivelFmt+' '+tipoLeccion+' '+leccionPad+'</span>';
     }
   }
   document.getElementById('stInfo').innerHTML=infoHtml;
