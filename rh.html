@@ -121,11 +121,12 @@
       <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
 
-    <div class="tabs">
+        <div class="tabs">
       <div class="tab" id="tabLista" onclick="cambiarTab('lista')">👥 Candidatos</div>
       <div class="tab" id="tabCapacitacion" onclick="cambiarTab('capacitacion')">🎓 En capacitación</div>
+      <div class="tab" id="tabAceptados" onclick="cambiarTab('aceptados')">✅ Aceptados</div>
       <div class="tab" id="tabRechazados" onclick="cambiarTab('rechazados')">❌ Rechazados</div>
-      <div class="tab" id="tabActivos" onclick="cambiarTab('activos')">✅ Activos</div>
+      <div class="tab" id="tabActivos" onclick="cambiarTab('activos')">🎯 Activos (impartiendo)</div>
       <div class="tab" id="tabNuevo" onclick="cambiarTab('nuevo')">📝 Nuevo candidato</div>
     </div>
 
@@ -207,12 +208,11 @@
         <select id="filtroEstatus" onchange="renderCandidatos()">
           <option value="">Todos los estatus</option>
         </select>
-        <select id="filtroResolucion" onchange="renderCandidatos()">
+                <select id="filtroResolucion" onchange="renderCandidatos()">
           <option value="">Todas las resoluciones</option>
           <option value="Aceptado">Aceptado</option>
           <option value="En capacitación">En capacitación</option>
           <option value="Rechazado">Rechazado</option>
-          <option value="En espera">En espera</option>
           <option value="__ninguna__">Sin resolución aún</option>
         </select>
       </div>
@@ -278,8 +278,9 @@ function logout(){
 
 function cambiarTab(tab){
   tabActual = tab;
-  ['tabLista','tabCapacitacion','tabRechazados','tabActivos','tabNuevo'].forEach(function(tid){
-    document.getElementById(tid).classList.remove('on');
+  ['tabLista','tabCapacitacion','tabAceptados','tabRechazados','tabActivos','tabNuevo'].forEach(function(tid){
+    var el = document.getElementById(tid);
+    if (el) el.classList.remove('on');
   });
   ['vistaNuevo','vistaLista','vistaActivos'].forEach(function(vid){
     document.getElementById(vid).style.display = 'none';
@@ -297,19 +298,26 @@ function cambiarTab(tab){
     return;
   }
 
-  // 'lista', 'capacitacion' y 'rechazados' comparten la misma vista de
-  // candidatos -- solo cambia cual filtro de resolucion queda preseleccionado.
+  // 'lista', 'capacitacion', 'aceptados' y 'rechazados' comparten la misma
+  // vista de candidatos -- solo cambia cual filtro de resolución queda
+  // preseleccionado. Se aplica DESPUÉS de cargar, para garantizar que el
+  // filtro gane sobre cualquier reseteo.
   document.getElementById('vistaLista').style.display = 'block';
+  var filtroDeseado = '';
   if(tab === 'capacitacion'){
     document.getElementById('tabCapacitacion').classList.add('on');
-    document.getElementById('filtroResolucion').value = 'En capacitación';
+    filtroDeseado = 'En capacitación';
+  } else if(tab === 'aceptados'){
+    document.getElementById('tabAceptados').classList.add('on');
+    filtroDeseado = 'Aceptado';
   } else if(tab === 'rechazados'){
     document.getElementById('tabRechazados').classList.add('on');
-    document.getElementById('filtroResolucion').value = 'Rechazado';
+    filtroDeseado = 'Rechazado';
   } else {
     document.getElementById('tabLista').classList.add('on');
-    document.getElementById('filtroResolucion').value = '';
+    filtroDeseado = '';
   }
+  document.getElementById('filtroResolucion').value = filtroDeseado;
   cargarCandidatos();
 }
 
@@ -486,13 +494,17 @@ function construirFiltros(){
 }
 
 function chipClaseEstatus(estatus, resolucion){
-  if(resolucion === 'Aceptado') return 'chip-aceptado';
-  if(resolucion === 'En capacitación') return 'chip-capacitacion';
-  if(resolucion === 'Rechazado') return 'chip-rechazado';
-  if(resolucion === 'En espera') return 'chip-espera';
-  if(estatus === 'Contactado') return 'chip-contactado';
+  var _n = function(s){
+    return (s || '').toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  };
+  var r = _n(resolucion);
+  if(r === 'aceptado')          return 'chip-aceptado';
+  if(r === 'en capacitacion')   return 'chip-capacitacion';
+  if(r === 'rechazado')         return 'chip-rechazado';
+  if(estatus === 'Contactado')          return 'chip-contactado';
   if(estatus === 'Entrevista agendada') return 'chip-entrevista';
-  if(estatus === 'Entrevistado') return 'chip-entrevistado';
+  if(estatus === 'Entrevistado')        return 'chip-entrevistado';
   return 'chip-nuevo';
 }
 
@@ -500,11 +512,20 @@ function renderCandidatos(){
   var filtroPuesto = document.getElementById('filtroPuesto').value;
   var filtroEstatus = document.getElementById('filtroEstatus').value;
   var filtroResolucion = document.getElementById('filtroResolucion').value;
+    // Normaliza texto: minúsculas + quita acentos, para que strings como
+  // "En capacitacion" (sin acento, guardado por error en algún momento)
+  // también hagan match con "En capacitación".
+  function _norm(s){
+    return (s || '').toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
   var lista = candidatosData.filter(function(c){
     if(filtroPuesto && c.puesto !== filtroPuesto) return false;
     if(filtroEstatus && c.estatus !== filtroEstatus) return false;
     if(filtroResolucion === '__ninguna__' && c.resolucion) return false;
-    if(filtroResolucion && filtroResolucion !== '__ninguna__' && c.resolucion !== filtroResolucion) return false;
+    if(filtroResolucion && filtroResolucion !== '__ninguna__'){
+      if(_norm(c.resolucion) !== _norm(filtroResolucion)) return false;
+    }
     return true;
   });
 
@@ -524,7 +545,7 @@ function renderCandidatos(){
     var opcionesEstatus = estatusDisponibles.map(function(e){
       return '<option value="'+e+'"'+(c.estatus===e?' selected':'')+'>'+e+'</option>';
     }).join('');
-    var opcionesResolucion = ['','Aceptado','En capacitación','Rechazado','En espera'].map(function(r){
+        var opcionesResolucion = ['','Aceptado','En capacitación','Rechazado'].map(function(r){
       return '<option value="'+r+'"'+(c.resolucion===r?' selected':'')+'>'+(r||'Sin resolución')+'</option>';
     }).join('');
     var opcionesPuestoEdit = puestosDisponibles.map(function(p){
