@@ -87,7 +87,33 @@
   .btn-guardar{background:linear-gradient(135deg,var(--orange),#ea580c);color:#fff;}
   .btn-eliminar{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;}
 
-  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+    .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+
+  /* ═══ RH — Modales de promoción y baja ═══ */
+  .modal-rh-overlay { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-rh-overlay.visible { display:flex; }
+  .modal-rh-box { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:26px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; }
+  .modal-rh-titulo { font-size:17px; font-weight:800; color:#f1f5f9; margin-bottom:6px; }
+  .modal-rh-sub { font-size:13px; color:var(--muted); margin-bottom:18px; line-height:1.5; }
+  .modal-rh-field { margin-bottom:14px; }
+  .modal-rh-field label { display:block; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .modal-rh-field input, .modal-rh-field select, .modal-rh-field textarea {
+    width:100%; background:#0f172a; border:1px solid var(--border); border-radius:10px;
+    padding:11px 13px; color:#fff; font-size:14px; outline:none; font-family:inherit;
+  }
+  .modal-rh-field textarea { resize:vertical; min-height:80px; }
+  .modal-rh-acciones { display:flex; gap:10px; margin-top:20px; }
+  .btn-rh-primario { flex:1; background:linear-gradient(135deg,var(--orange),#ea580c); color:#fff; border:none; border-radius:100px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-rh-primario:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn-rh-cancelar { flex:1; background:transparent; color:var(--muted); border:1px solid var(--border); border-radius:100px; padding:13px; font-size:14px; cursor:pointer; }
+  .btn-rh-promover { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; margin-right:6px; }
+  .btn-rh-baja { background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.35); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
+  .btn-rh-reactivar { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.35); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
+
+</style>
+</head>
+<body>
+  
 </style>
 </head>
 <body>
@@ -121,12 +147,13 @@
       <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
 
-        <div class="tabs">
+           <div class="tabs">
       <div class="tab" id="tabLista" onclick="cambiarTab('lista')">👥 Candidatos</div>
       <div class="tab" id="tabCapacitacion" onclick="cambiarTab('capacitacion')">🎓 En capacitación</div>
       <div class="tab" id="tabAceptados" onclick="cambiarTab('aceptados')">✅ Aceptados</div>
       <div class="tab" id="tabRechazados" onclick="cambiarTab('rechazados')">❌ Rechazados</div>
-      <div class="tab" id="tabActivos" onclick="cambiarTab('activos')">🎯 Activos (impartiendo)</div>
+      <div class="tab" id="tabActivos" onclick="cambiarTab('activos')">✅ Activos</div>
+      <div class="tab" id="tabBajasRH" onclick="cambiarTab('bajasRH')">📛 Bajas</div>
       <div class="tab" id="tabNuevo" onclick="cambiarTab('nuevo')">📝 Nuevo candidato</div>
     </div>
 
@@ -219,14 +246,22 @@
       <div id="listaCandidatos"><div class="empty">Cargando...</div></div>
     </div>
 
-    <!-- TAB: ACTIVOS (maestros reales de Sheets) -->
+       <!-- TAB: ACTIVOS (maestros reales de Sheets) -->
     <div id="vistaActivos" style="display:none;">
       <div id="listaActivos"><div class="empty">Cargando...</div></div>
     </div>
 
+    <!-- TAB: BAJAS (maestros dados de baja) -->
+    <div id="vistaBajasRH" style="display:none;">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">📛 Maestros dados de baja</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Maestros con estatus inactivo. Puedes reactivarlos para que vuelvan a la lista de Activos.</p>
+        <div id="listaBajasRH"><div class="empty">Cargando...</div></div>
+      </div>
+    </div>
+
   </div>
 </div>
-
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 // Videos y CVs de candidatos RH -- carpeta compartida en el Drive del
