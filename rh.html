@@ -110,9 +110,6 @@
   .btn-rh-baja { background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.35); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
   .btn-rh-reactivar { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.35); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
 
-</style>
-</head>
-<body>
   
 </style>
 </head>
@@ -259,9 +256,68 @@
         <div id="listaBajasRH"><div class="empty">Cargando...</div></div>
       </div>
     </div>
-
   </div>
 </div>
+
+<!-- ═══ Modal: Promover candidato a maestro activo ═══ -->
+<div id="modalPromoverRH" class="modal-rh-overlay" onclick="if(event.target===this)cerrarModalPromoverRH()">
+  <div class="modal-rh-box">
+    <div class="modal-rh-titulo">🎓 Promover a maestro activo</div>
+    <div class="modal-rh-sub">Vas a dar de alta a <strong id="promNombreRH" style="color:#4ade80;"></strong>. Completa los datos que faltan.</div>
+
+    <div class="modal-rh-field">
+      <label>Rol al dar de alta *</label>
+      <select id="promRolRH">
+        <option value="Maestro">👨‍🏫 Maestro</option>
+        <option value="Colocador">📋 Colocador</option>
+        <option value="Maestro y Colocador">🎯 Ambos (Maestro y Colocador)</option>
+      </select>
+    </div>
+
+    <div class="modal-rh-field">
+      <label>Costo por clase (MXN) *</label>
+      <input type="number" id="promCostoRH" value="90" min="1" step="10">
+    </div>
+
+    <div class="modal-rh-field">
+      <label>Información bancaria (opcional)</label>
+      <input type="text" id="promInfoBancRH" placeholder="Cuenta o CLABE">
+    </div>
+
+    <div class="modal-rh-field">
+      <label>Institución bancaria (opcional)</label>
+      <input type="text" id="promInstBancRH" placeholder="BBVA, Banorte, HSBC...">
+    </div>
+
+    <div id="promStatusRH" style="font-size:12px;text-align:center;min-height:18px;margin-bottom:6px;"></div>
+
+    <div class="modal-rh-acciones">
+      <button class="btn-rh-cancelar" onclick="cerrarModalPromoverRH()">Cancelar</button>
+      <button class="btn-rh-primario" id="btnConfirmarPromRH" onclick="confirmarPromoverRH()">✅ Promover</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: Dar de baja maestro activo ═══ -->
+<div id="modalBajaRH" class="modal-rh-overlay" onclick="if(event.target===this)cerrarModalBajaRH()">
+  <div class="modal-rh-box">
+    <div class="modal-rh-titulo" style="color:#f87171;">📛 Dar de baja</div>
+    <div class="modal-rh-sub">Vas a dar de baja a <strong id="bajaNombreRH" style="color:#f87171;"></strong>. Esta acción lo moverá a la pestaña "Bajas".</div>
+
+    <div class="modal-rh-field">
+      <label>Motivo de la baja *</label>
+      <textarea id="bajaMotivoRH" placeholder="Ej. Renuncia voluntaria por motivos personales, terminación de contrato, desempeño insuficiente, etc."></textarea>
+    </div>
+
+    <div id="bajaStatusRH" style="font-size:12px;text-align:center;min-height:18px;margin-bottom:6px;"></div>
+
+    <div class="modal-rh-acciones">
+      <button class="btn-rh-cancelar" onclick="cerrarModalBajaRH()">Cancelar</button>
+      <button class="btn-rh-primario" style="background:linear-gradient(135deg,#ef4444,#dc2626);" id="btnConfirmarBajaRH" onclick="confirmarBajaRH()">📛 Confirmar baja</button>
+    </div>
+  </div>
+</div>
+  
 <script>
 const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 // Videos y CVs de candidatos RH -- carpeta compartida en el Drive del
@@ -313,12 +369,13 @@ function logout(){
 
 function cambiarTab(tab){
   tabActual = tab;
-  ['tabLista','tabCapacitacion','tabAceptados','tabRechazados','tabActivos','tabNuevo'].forEach(function(tid){
+  ['tabLista','tabCapacitacion','tabAceptados','tabRechazados','tabActivos','tabNuevo','tabBajasRH'].forEach(function(tid){
     var el = document.getElementById(tid);
     if (el) el.classList.remove('on');
   });
-  ['vistaNuevo','vistaLista','vistaActivos'].forEach(function(vid){
-    document.getElementById(vid).style.display = 'none';
+  ['vistaNuevo','vistaLista','vistaActivos','vistaBajasRH'].forEach(function(vid){
+    var el = document.getElementById(vid);
+    if (el) el.style.display = 'none';
   });
 
   if(tab === 'nuevo'){
@@ -330,6 +387,12 @@ function cambiarTab(tab){
     document.getElementById('tabActivos').classList.add('on');
     document.getElementById('vistaActivos').style.display = 'block';
     cargarMaestrosActivos();
+    return;
+  }
+  if(tab === 'bajasRH'){
+    document.getElementById('tabBajasRH').classList.add('on');
+    document.getElementById('vistaBajasRH').style.display = 'block';
+    cargarBajasRH();
     return;
   }
 
@@ -628,12 +691,13 @@ function renderCandidatos(){
       + '</div>'
       + '<input type="text" class="cand-notas" style="height:36px;" id="resp-'+c.id+'" placeholder="Responsable (ID)" value="'+esc(c.responsable||'')+'">'
       + '<textarea class="cand-notas" id="notas-'+c.id+'" placeholder="Notas...">'+esc(c.notas||'')+'</textarea>'
-      + '<div class="cand-acciones">'
+            + '<div class="cand-acciones">'
+        + (c.resolucion === 'Aceptado'
+            ? '<button class="btn-rh-promover" onclick="abrirModalPromoverRH(\'' + c.id + '\')">🎓 Promover a activo</button>'
+            : '')
         + '<button class="btn-mini btn-eliminar" onclick="eliminarCandidato(\''+c.id+'\')">🗑️ Eliminar</button>'
         + '<button class="btn-mini btn-guardar" onclick="guardarCambiosCandidato(\''+c.id+'\')">💾 Guardar cambios</button>'
       + '</div>'
-      + '<div class="status-msg" id="statusCand-'+c.id+'" style="display:none;text-align:left;"></div>'
-    + '</div>';
   }).join('');
 }
 
@@ -706,12 +770,15 @@ function renderMaestrosActivos(){
     var fotoHtml = m.foto
       ? '<img src="'+m.foto+'" style="width:44px;height:44px;border-radius:100px;object-fit:cover;flex-shrink:0;">'
       : '<div style="width:44px;height:44px;border-radius:100px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;">'+esc((m.nombre||'?').charAt(0))+'</div>';
-    return '<div class="cand-card" style="display:flex;align-items:center;gap:14px;">'
+    return '<div class="cand-card" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">'
       + fotoHtml
       + '<div style="flex:1;min-width:0;">'
         + '<div class="cand-nombre">'+esc(m.nombre)+' <span class="chip chip-aceptado">Activo</span></div>'
         + '<div class="cand-sub" style="font-family:\'JetBrains Mono\',monospace;">'+m.id+' · '+esc(m.rol||'—')+'</div>'
         + '<div class="cand-sub">📱 '+esc(m.whatsapp||'—')+(m.email?' · ✉️ '+esc(m.email):'')+' · 💵 $'+(m.costoClase||'—')+'/clase</div>'
+      + '</div>'
+      + '<div style="flex-shrink:0;">'
+        + '<button class="btn-rh-baja" onclick="abrirModalBajaRH(\'' + m.id + '\',\'' + esc(m.nombre).replace(/'/g,"\\'") + '\')">📛 Dar de baja</button>'
       + '</div>'
     + '</div>';
   }).join('');
@@ -730,6 +797,212 @@ function eliminarCandidato(idCandidato){
 }
 
 function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  RH — Promover candidato a activo
+// ═══════════════════════════════════════════════════════════════════════
+var _promCandidatoActual = null;
+
+function abrirModalPromoverRH(idCandidato){
+  var cand = candidatosData.filter(function(c){ return c.id === idCandidato; })[0];
+  if (!cand) return;
+  if (cand.resolucion !== 'Aceptado') {
+    alert('Solo se pueden promover candidatos con resolución "Aceptado".');
+    return;
+  }
+  _promCandidatoActual = cand;
+
+  document.getElementById('promNombreRH').textContent = cand.nombre + ' (' + cand.id + ')';
+  document.getElementById('promRolRH').value = 'Maestro';
+  document.getElementById('promCostoRH').value = '90';
+  document.getElementById('promInfoBancRH').value = '';
+  document.getElementById('promInstBancRH').value = '';
+  document.getElementById('promStatusRH').textContent = '';
+  document.getElementById('btnConfirmarPromRH').disabled = false;
+  document.getElementById('btnConfirmarPromRH').textContent = '✅ Promover';
+
+  document.getElementById('modalPromoverRH').classList.add('visible');
+}
+
+function cerrarModalPromoverRH(){
+  document.getElementById('modalPromoverRH').classList.remove('visible');
+  _promCandidatoActual = null;
+}
+
+function confirmarPromoverRH(){
+  if (!_promCandidatoActual) return;
+  var rol = document.getElementById('promRolRH').value;
+  var costo = document.getElementById('promCostoRH').value;
+  var infoBanc = document.getElementById('promInfoBancRH').value.trim();
+  var instBanc = document.getElementById('promInstBancRH').value.trim();
+
+  if (!costo || Number(costo) <= 0) {
+    document.getElementById('promStatusRH').style.color = '#f87171';
+    document.getElementById('promStatusRH').textContent = 'Ingresa un costo válido (mayor a 0).';
+    return;
+  }
+
+  var btn = document.getElementById('btnConfirmarPromRH');
+  btn.disabled = true; btn.textContent = 'Promoviendo...';
+  document.getElementById('promStatusRH').style.color = '#94a3b8';
+  document.getElementById('promStatusRH').textContent = 'Creando alta...';
+
+  var params = new URLSearchParams({
+    action: 'promoverCandidatoAActivoRH',
+    idCandidato: _promCandidatoActual.id,
+    rol: rol,
+    costo: costo,
+    infoBancaria: infoBanc,
+    instBancaria: instBanc,
+    idActor: miId
+  });
+
+  fetch(APPS_SCRIPT + '?' + params.toString(), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) {
+        document.getElementById('promStatusRH').style.color = '#4ade80';
+        document.getElementById('promStatusRH').textContent = '✅ Alta creada. ID: ' + data.id + ' · Clave: ' + data.clave;
+        btn.textContent = 'Listo';
+        setTimeout(function(){
+          cerrarModalPromoverRH();
+          cargarCandidatos();
+        }, 2500);
+      } else {
+        document.getElementById('promStatusRH').style.color = '#f87171';
+        document.getElementById('promStatusRH').textContent = '❌ ' + (data.error || 'Error al promover.');
+        btn.disabled = false; btn.textContent = '✅ Promover';
+      }
+    })
+    .catch(function(){
+      document.getElementById('promStatusRH').style.color = '#f87171';
+      document.getElementById('promStatusRH').textContent = '❌ Error de conexión.';
+      btn.disabled = false; btn.textContent = '✅ Promover';
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  RH — Dar de baja maestro activo
+// ═══════════════════════════════════════════════════════════════════════
+var _bajaMaestroActual = null;
+
+function abrirModalBajaRH(idMaestro, nombreMaestro){
+  _bajaMaestroActual = { id: idMaestro, nombre: nombreMaestro };
+  document.getElementById('bajaNombreRH').textContent = nombreMaestro + ' (' + idMaestro + ')';
+  document.getElementById('bajaMotivoRH').value = '';
+  document.getElementById('bajaStatusRH').textContent = '';
+  document.getElementById('btnConfirmarBajaRH').disabled = false;
+  document.getElementById('btnConfirmarBajaRH').textContent = '📛 Confirmar baja';
+  document.getElementById('modalBajaRH').classList.add('visible');
+}
+
+function cerrarModalBajaRH(){
+  document.getElementById('modalBajaRH').classList.remove('visible');
+  _bajaMaestroActual = null;
+}
+
+function confirmarBajaRH(){
+  if (!_bajaMaestroActual) return;
+  var motivo = document.getElementById('bajaMotivoRH').value.trim();
+  if (!motivo) {
+    document.getElementById('bajaStatusRH').style.color = '#f87171';
+    document.getElementById('bajaStatusRH').textContent = 'Escribe el motivo de la baja.';
+    return;
+  }
+
+  var btn = document.getElementById('btnConfirmarBajaRH');
+  btn.disabled = true; btn.textContent = 'Procesando...';
+  document.getElementById('bajaStatusRH').style.color = '#94a3b8';
+  document.getElementById('bajaStatusRH').textContent = 'Guardando baja...';
+
+  var params = new URLSearchParams({
+    action: 'darDeBajaMaestroRH',
+    idMaestro: _bajaMaestroActual.id,
+    motivo: motivo,
+    idActor: miId
+  });
+
+  fetch(APPS_SCRIPT + '?' + params.toString(), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) {
+        document.getElementById('bajaStatusRH').style.color = '#4ade80';
+        document.getElementById('bajaStatusRH').textContent = '✅ Maestro dado de baja.';
+        btn.textContent = 'Listo';
+        setTimeout(function(){
+          cerrarModalBajaRH();
+          cargarMaestrosActivos();
+        }, 2000);
+      } else {
+        document.getElementById('bajaStatusRH').style.color = '#f87171';
+        document.getElementById('bajaStatusRH').textContent = '❌ ' + (data.error || 'Error.');
+        btn.disabled = false; btn.textContent = '📛 Confirmar baja';
+      }
+    })
+    .catch(function(){
+      document.getElementById('bajaStatusRH').style.color = '#f87171';
+      document.getElementById('bajaStatusRH').textContent = '❌ Error de conexión.';
+      btn.disabled = false; btn.textContent = '📛 Confirmar baja';
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  RH — Ver y reactivar maestros dados de baja
+// ═══════════════════════════════════════════════════════════════════════
+function cargarBajasRH(){
+  var cont = document.getElementById('listaBajasRH');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty">Cargando...</div>';
+
+  fetch(APPS_SCRIPT + '?action=getMaestrosDadosDeBajaRH', { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.success || !data.maestros || !data.maestros.length) {
+        cont.innerHTML = '<div class="empty">No hay maestros dados de baja.</div>';
+        return;
+      }
+      cont.innerHTML = data.maestros.map(function(m){
+        var fecha = m.fechaBaja ? new Date(m.fechaBaja).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+        return '<div class="cand-card" style="border-color:rgba(239,68,68,0.35);">'
+          + '<div class="cand-top">'
+            + '<div>'
+              + '<div class="cand-nombre">' + esc(m.nombre) + ' <span class="chip chip-rechazado">Dado de baja</span></div>'
+              + '<div class="cand-sub">' + (m.rol || '—') + ' · ' + m.id + ' · Baja el ' + fecha + '</div>'
+            + '</div>'
+          + '</div>'
+          + '<div class="cand-sub" style="margin-bottom:10px;">📱 ' + esc(m.whatsapp||'—') + (m.email ? ' · ✉️ ' + esc(m.email) : '') + '</div>'
+          + '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px;margin-bottom:12px;">'
+            + '<div style="font-size:11px;color:#f87171;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Motivo de la baja</div>'
+            + '<div style="font-size:13px;color:#f1f5f9;line-height:1.5;">' + esc(m.motivoBaja || '—') + '</div>'
+          + '</div>'
+          + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+            + '<button class="btn-rh-reactivar" onclick="reactivarMaestroRH(\'' + m.id + '\',\'' + esc(m.nombre).replace(/'/g,"\\'") + '\')">♻️ Reactivar</button>'
+          + '</div>'
+        + '</div>';
+      }).join('');
+    })
+    .catch(function(){
+      cont.innerHTML = '<div class="empty">Error de conexión.</div>';
+    });
+}
+
+function reactivarMaestroRH(idMaestro, nombreMaestro){
+  if (!confirm('¿Reactivar a ' + nombreMaestro + ' (' + idMaestro + ')? Volverá a la lista de Activos.')) return;
+
+  fetch(APPS_SCRIPT + '?action=reactivarMaestroRH&idMaestro=' + encodeURIComponent(idMaestro), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) {
+        alert('✅ ' + nombreMaestro + ' reactivado.');
+        cargarBajasRH();
+      } else {
+        alert('❌ ' + (data.error || 'Error al reactivar.'));
+      }
+    })
+    .catch(function(){ alert('❌ Error de conexión.'); });
+}
+  
 </script>
 
 <!-- ═══ Botones flotantes (Notificaciones, Agenda, Horario) -- apilados en columna ═══ -->
