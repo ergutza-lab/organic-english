@@ -828,8 +828,19 @@ var _promCandidatoActual = null;
 function abrirModalPromoverRH(idCandidato){
   var cand = candidatosData.filter(function(c){ return c.id === idCandidato; })[0];
   if (!cand) return;
-  if (cand.resolucion !== 'Aceptado') {
-    alert('Solo se pueden promover candidatos con resolución "Aceptado".');
+
+  // Normaliza: quita acentos, mayúsculas y espacios invisibles
+  var _norm = function(s){
+    return (s || '').toString()
+      .replace(/\u00A0/g, ' ')      // reemplaza nbsp por espacio normal
+      .replace(/\s+/g, ' ')         // colapsa espacios múltiples
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  };
+
+  if (_norm(cand.resolucion) !== 'aceptado') {
+    alert('Solo se pueden promover candidatos con resolución "Aceptado".\nValor actual detectado: "' + (cand.resolucion || '(vacío)') + '"');
     return;
   }
   _promCandidatoActual = cand;
