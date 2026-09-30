@@ -9468,34 +9468,45 @@ var MISIONES_KIDS_A12_LISTA = [
   }
 
   function verificarEncuestaSatisfaccion(alumno) {
-    var postit = document.getElementById('postitEncuesta');
-    if (!postit) return;
+  var postit = document.getElementById('postitEncuesta');
+  if (!postit) return;
 
-    if (!alumno || !alumno.fechaInscripcion) { postit.style.visibility = 'hidden'; return; }
+  if (!alumno) { postit.style.visibility = 'hidden'; return; }
 
-    var hoy = new Date();
-    var fechaIns = new Date(alumno.fechaInscripcion);
+  // ── Calcular semana dentro del bloque actual (1-8) ──
+  // El post-it debe aparecer SOLO entre la semana 5 y la 8 de cada bloque
+  // (Bloque 1: semanas 5-8 del curso / Bloque 2: semanas 13-16 del curso).
+  var g = alumnoData && alumnoData.grupo;
+  if (!g || !g.fechaInicio) { postit.style.visibility = 'hidden'; return; }
 
-    var g = alumnoData && alumnoData.grupo;
-    var fechaInicioGrupo = g && g.fechaInicio ? new Date(g.fechaInicio) : null;
-    var fechaBase = (fechaInicioGrupo && fechaInicioGrupo > fechaIns) ? fechaInicioGrupo : fechaIns;
+  var hoy = new Date();
+  var inicio = new Date(g.fechaInicio);
+  var diff = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
+  var sem = Math.max(1, Math.min(16, Math.ceil((diff + 1) / 7)));
+  var semEnBloque = sem > 8 ? sem - 8 : sem;
 
-    var diasAntiguedad = Math.floor((hoy - fechaBase) / (1000 * 60 * 60 * 24));
-
-    var LANZAMIENTO_INICIAL_ENCUESTA = true;
-
-    if (diasAntiguedad < 7 || (!LANZAMIENTO_INICIAL_ENCUESTA && diasAntiguedad >= 17)) {
-      if (MODO_DEMO_TODOS_LOS_POSTITS) { mostrarPostitConAnimacion(postit); } else { postit.style.visibility = 'hidden'; }
-      return;
+  // Fuera del rango semana 5-8 del bloque → post-it oculto
+  if (semEnBloque < 5 || semEnBloque > 8) {
+    if (MODO_DEMO_TODOS_LOS_POSTITS) {
+      mostrarPostitConAnimacion(postit);
+    } else {
+      postit.style.visibility = 'hidden';
     }
-
-    fetch(APPS_SCRIPT + '?action=getEstadoEncuestaSatisfaccion&idAlumno=' + encodeURIComponent(alumno.id), { redirect: 'follow' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.success && !data.yaRespondio) { mostrarPostitConAnimacion(postit); } else { postit.style.visibility = 'hidden'; }
-      })
-      .catch(function () { postit.style.visibility = 'hidden'; });
+    return;
   }
+
+  // Dentro del rango: consultar al backend si ya respondió
+  fetch(APPS_SCRIPT + '?action=getEstadoEncuestaSatisfaccion&idAlumno=' + encodeURIComponent(alumno.id), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success && !data.yaRespondio) {
+        mostrarPostitConAnimacion(postit);
+      } else {
+        postit.style.visibility = 'hidden';
+      }
+    })
+    .catch(function () { postit.style.visibility = 'hidden'; });
+}
 
   function abrirEncuestaSatisfaccion() {
     _encuestaCalificacionActual = 0;
