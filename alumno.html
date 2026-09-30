@@ -1385,8 +1385,10 @@
   function cerrarInfoEvaluacion() { document.getElementById('modalInfoEvaluacion').style.display='none'; }
 
  function login() {
-  var id = document.getElementById('inputId').value.trim().toUpperCase();
-  var email = document.getElementById('inputEmail').value.trim();
+  var idRaw = document.getElementById('inputId').value;
+  var emailRaw = document.getElementById('inputEmail').value;
+  var id = idRaw.trim().toUpperCase();
+  var email = emailRaw.trim();
   var err = document.getElementById('errorMsg');
   if (!id || !email) { err.style.display='block'; err.textContent='Completa todos los campos.'; return; }
   err.style.display = 'none';
@@ -1440,8 +1442,9 @@
                 'Si ya realizaste tu pago, envía tu comprobante por WhatsApp y quedará registrado en el sistema al momento.' +
               '</div>' +
             '</div>';
-        } else {
-          err.textContent = data.error || 'ID o correo incorrectos.';
+                } else {
+          // Muestra mensaje de ayuda con instrucciones + botón de WhatsApp
+          err.innerHTML = generarMensajeAyudaLogin_(id, email, idRaw, emailRaw);
         }
       }
     })
@@ -10011,6 +10014,71 @@ function abrirHistorialChallenges() {
 
 function cerrarHistorialChallenges() {
   document.getElementById('modalHistorialChallenges').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Genera un mensaje de ayuda cuando el login falla.
+//  Muestra un botón genérico de WhatsApp SIN destinatario específico
+//  (el alumno elige a qué contacto mandarlo -- ya conoce a su asistente).
+// ═══════════════════════════════════════════════════════════════════════
+function generarMensajeAyudaLogin_(idNorm, emailNorm, idRaw, emailRaw) {
+  var idOriginalLimpio    = String(idRaw || '').trim();
+  var emailOriginalLimpio = String(emailRaw || '').trim();
+  var idCambio    = idOriginalLimpio !== idNorm;
+  var emailCambio = emailOriginalLimpio !== emailNorm;
+
+  var html = '<div style="text-align:left;line-height:1.6;">';
+
+  // Título
+  html += '<div style="font-size:15px;font-weight:700;color:#fb923c;margin-bottom:10px;text-align:center;">🔍 No encontramos tu cuenta</div>';
+
+  // Si hubo autocorrecciones, mostrarlas
+  if (idCambio || emailCambio) {
+    html += '<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#93c5fd;line-height:1.6;">';
+    html += '<strong>✨ Corregimos automáticamente algunos errores:</strong>';
+    if (idCambio) {
+      html += '<br><br><span style="color:#cbd5e1;">ID escrito:</span> <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">' + idOriginalLimpio + '</code>';
+      html += '<br><span style="color:#cbd5e1;">ID corregido:</span> <code style="background:rgba(34,197,94,0.15);padding:2px 6px;border-radius:4px;color:#86efac;">' + idNorm + '</code>';
+    }
+    if (emailCambio) {
+      html += '<br><br><span style="color:#cbd5e1;">Correo escrito:</span> <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">' + emailOriginalLimpio + '</code>';
+      html += '<br><span style="color:#cbd5e1;">Correo corregido:</span> <code style="background:rgba(34,197,94,0.15);padding:2px 6px;border-radius:4px;color:#86efac;">' + emailNorm + '</code>';
+    }
+    html += '</div>';
+  }
+
+  // Instrucciones
+  html += '<div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:12px 14px;margin-bottom:14px;">';
+  html += '<div style="font-size:12px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">📌 Revisa estos puntos:</div>';
+  html += '<div style="font-size:12px;color:#cbd5e1;line-height:1.8;">';
+  html += '• Tu ID debe verse así: <strong style="color:#86efac;">OE-001</strong><br>';
+  html += '• Es la <strong>letra O</strong>, no el <strong>número 0</strong><br>';
+  html += '• El orden es <strong>OE</strong>, no <strong>EO</strong><br>';
+  html += '• Usa el correo con el que te inscribiste<br>';
+  html += '• No pongas espacios al inicio o final';
+  html += '</div>';
+  html += '</div>';
+
+  // Botón genérico de WhatsApp
+  var msg = 'Estoy intentando entrar a mi panel de alumno con los siguientes datos pero no puedo.\n\n'
+    + 'Mi ID es: ' + idNorm + '\n'
+    + 'Mi correo es: ' + emailNorm + '\n\n'
+    + '¿Me puedes ayudar a verificar si son correctos? ¡Gracias!';
+
+  html += '<div style="text-align:center;">';
+  html += '<a href="https://wa.me/?text=' + encodeURIComponent(msg) + '" target="_blank" '
+    + 'style="display:inline-flex;align-items:center;justify-content:center;gap:8px;'
+    + 'background:#16a34a;color:#fff;border-radius:100px;padding:12px 22px;font-size:13px;'
+    + 'font-weight:700;text-decoration:none;">'
+    + '💬 Contactar a mi Asistente CE por WhatsApp'
+    + '</a>';
+  html += '<div style="font-size:11px;color:#64748b;margin-top:8px;line-height:1.4;">'
+    + 'Al abrir WhatsApp, selecciona el chat de tu Asistente CE.'
+    + '</div>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
 }
   
 </script>
