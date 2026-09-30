@@ -1609,12 +1609,24 @@ function seleccionarAlumnoCambio(){
   }
   const nivelBaseActual = nivelBase_(nivel);
 
+    // ── Fecha de "hoy" para comparar si un grupo ya inició ──
+  const hoyCambio = new Date();
+  hoyCambio.setHours(0,0,0,0);
+
   const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>{
     if (g.id===grupoActual) return false;
     if (nivelBaseActual && nivelBase_(g.nivel)!==nivelBaseActual) return false;
     if (nombreGrupo && g.nombre!==nombreGrupo) return false;
     const fechaGrupoObj=parseFechaInicio(g.fecha_inicio);
-    if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj) return false; // nomenclatura anterior -> fuera
+    if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj) {
+      // Regla por defecto: los grupos de nomenclatura ANTERIOR quedan fuera.
+      // EXCEPCIÓN: si el grupo destino TODAVÍA NO HA INICIADO, el alumno
+      // entraría desde el día 1 (sin perderse contenido), así que SÍ se
+      // permite -- por ejemplo, cuando se recorrió una fecha de inicio y
+      // el alumno necesita pasar a un grupo entre semana que aún no arranca.
+      const destinoAunNoInicia = fechaGrupoObj > hoyCambio;
+      if (!destinoAunNoInicia) return false;
+    }
     return true;
   });
 
@@ -1641,10 +1653,12 @@ function seleccionarAlumnoCambio(){
     let etiquetaBloqueo='';
     let etiquetaTipo='';
     if (sinLugares) etiquetaBloqueo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--rojo);background:var(--rojo-10);border-radius:4px;padding:2px 7px;display:inline-block">Sin lugares</div>';
-    if (fechaActualObj && fechaGrupoObj && fechaGrupoObj.getTime()===fechaActualObj.getTime())
+      if (fechaActualObj && fechaGrupoObj && fechaGrupoObj.getTime()===fechaActualObj.getTime())
       etiquetaTipo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:var(--azul);background:var(--azul-50);border-radius:4px;padding:2px 7px;display:inline-block">Misma fecha</div>';
     else if (fechaActualObj && fechaGrupoObj && fechaGrupoObj > fechaActualObj)
       etiquetaTipo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#16a34a;background:#dcfce7;border-radius:4px;padding:2px 7px;display:inline-block">Grupo más reciente</div>';
+    else if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj && fechaGrupoObj > hoyCambio)
+      etiquetaTipo='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#f97316;background:#fff7ed;border-radius:4px;padding:2px 7px;display:inline-block">Por iniciar — cambio permitido</div>';
     if(!sinLugares) gruposCompartirCambio.push(g);
     return `<div class="grupo-opcion ${bloqueado?'go-lleno':''}" data-grupo-id="${g.id}" style="${bloqueado?'opacity:.45;cursor:not-allowed;pointer-events:none;background:var(--gris-50)':'cursor:pointer'}">
       <div class="go-id">${g.id}</div><div class="go-nombre">${g.nombre}</div><div class="go-horario">${g.horario}</div>
