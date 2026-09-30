@@ -89,7 +89,7 @@
 
     .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
 
-/* ═══ Fix: las tarjetas deben tener siempre ancho completo ═══ */
+/* ═══ Fix: contenedores con ancho completo ═══ */
 #listaCandidatos,
 #listaActivos,
 #listaBajasRH {
@@ -98,22 +98,10 @@
   max-width: 100%;
 }
 
-.cand-card {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.cand-card * {
-  max-width: 100%;
-}
-
-.cand-controles,
-.cand-acciones {
-  width: 100%;
-  box-sizing: border-box;
+#listaCandidatos {
+  max-height: 70vh;
+  overflow-y: auto;
+  border-radius: 10px;
 }
 
 /* ═══ Tabla de candidatos (vista de lista) ═══ */
@@ -123,6 +111,10 @@
   font-size: 13px;
 }
 .tabla-candidatos thead th {
+  position: sticky;
+  top: 0;
+  background: #16234a;
+  z-index: 2;
   text-align: left;
   padding: 10px 12px;
   font-size: 10px;
@@ -131,6 +123,24 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border);
+}
+.tabla-candidatos thead th.t-ordenable {
+  cursor: pointer;
+  user-select: none;
+}
+.tabla-candidatos thead th.t-ordenable:hover {
+  color: #f1f5f9;
+}
+.tabla-candidatos thead th .t-flecha {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.tabla-candidatos thead th.t-ordenable.t-orden-activo .t-flecha {
+  opacity: 1;
+  color: #60a5fa;
 }
 .tabla-candidatos tbody tr {
   border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -170,7 +180,10 @@
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.mdc-seccion:last-of-type { border-bottom: none; padding-bottom: 0; }
+.mdc-seccion:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
 .mdc-seccion-titulo {
   font-size: 10px;
   font-weight: 700;
@@ -179,7 +192,8 @@
   letter-spacing: 0.06em;
   margin-bottom: 10px;
 }
-  
+
+ 
   /* ═══ RH — Modales de promoción y baja ═══ */
   .modal-rh-overlay { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; padding:20px; }
   .modal-rh-overlay.visible { display:flex; }
@@ -484,6 +498,7 @@ var puestosDisponibles = [];
 var estatusDisponibles = [];
 var archivoCV = null, archivoVideo = null;
 var tabActual = null;
+var _sortCandidatos = { campo: 'fechaRegistro', asc: false };  
 
 function login(){
   var id = document.getElementById('loginId').value.trim();
@@ -762,6 +777,16 @@ function chipClaseEstatus(estatus, resolucion){
   return 'chip-nuevo';
 }
 
+function ordenarTablaCandidatos(campo){
+  if (_sortCandidatos.campo === campo) {
+    _sortCandidatos.asc = !_sortCandidatos.asc;
+  } else {
+    _sortCandidatos.campo = campo;
+    _sortCandidatos.asc = true;
+  }
+  renderCandidatos();
+}
+
 function renderCandidatos(){
   var filtroPuesto = document.getElementById('filtroPuesto').value;
   var filtroEstatus = document.getElementById('filtroEstatus').value;
@@ -781,16 +806,35 @@ function renderCandidatos(){
     return true;
   });
 
+  // ── Ordenamiento por columna ──
+  var campo = _sortCandidatos.campo;
+  var asc = _sortCandidatos.asc;
+  lista.sort(function(a, b){
+    var va = a[campo]; var vb = b[campo];
+    if (va === undefined || va === null) va = '';
+    if (vb === undefined || vb === null) vb = '';
+    var cmp = String(va).localeCompare(String(vb), 'es', { numeric: true, sensitivity: 'base' });
+    return asc ? cmp : -cmp;
+  });
+
   var cont = document.getElementById('listaCandidatos');
   if(!lista.length){ cont.innerHTML = '<div class="empty">No hay candidatos que coincidan.</div>'; return; }
 
+  function _flech(campo_){
+    if (_sortCandidatos.campo !== campo_) return '⇅';
+    return _sortCandidatos.asc ? '▲' : '▼';
+  }
+  function _cls(campo_){
+    return 't-ordenable' + (_sortCandidatos.campo === campo_ ? ' t-orden-activo' : '');
+  }
+
   var html = '<table class="tabla-candidatos"><thead><tr>'
-    + '<th style="width:100px;">ID</th>'
-    + '<th>Nombre</th>'
-    + '<th style="width:110px;">Puesto</th>'
-    + '<th class="t-col-ciudad" style="width:160px;">Ciudad</th>'
-    + '<th class="t-col-fecha" style="width:110px;">Registro</th>'
-    + '<th style="width:130px;">Estado</th>'
+    + '<th class="'+_cls('id')+'" style="width:100px;" onclick="ordenarTablaCandidatos(\'id\')">ID <span class="t-flecha">'+_flech('id')+'</span></th>'
+    + '<th class="'+_cls('nombre')+'" onclick="ordenarTablaCandidatos(\'nombre\')">Nombre <span class="t-flecha">'+_flech('nombre')+'</span></th>'
+    + '<th class="'+_cls('puesto')+'" style="width:110px;" onclick="ordenarTablaCandidatos(\'puesto\')">Puesto <span class="t-flecha">'+_flech('puesto')+'</span></th>'
+    + '<th class="'+_cls('ciudad')+' t-col-ciudad" style="width:160px;" onclick="ordenarTablaCandidatos(\'ciudad\')">Ciudad <span class="t-flecha">'+_flech('ciudad')+'</span></th>'
+    + '<th class="'+_cls('fechaRegistro')+' t-col-fecha" style="width:110px;" onclick="ordenarTablaCandidatos(\'fechaRegistro\')">Registro <span class="t-flecha">'+_flech('fechaRegistro')+'</span></th>'
+    + '<th class="'+_cls('resolucion')+'" style="width:130px;" onclick="ordenarTablaCandidatos(\'resolucion\')">Estado <span class="t-flecha">'+_flech('resolucion')+'</span></th>'
     + '</tr></thead><tbody>';
 
   lista.forEach(function(c){
