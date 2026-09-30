@@ -115,6 +115,70 @@
   width: 100%;
   box-sizing: border-box;
 }
+
+/* ═══ Tabla de candidatos (vista de lista) ═══ */
+.tabla-candidatos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tabla-candidatos thead th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.tabla-candidatos tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+}
+.tabla-candidatos tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+.tabla-candidatos tbody td {
+  padding: 12px;
+  color: #cbd5e1;
+  vertical-align: middle;
+}
+.tabla-candidatos .t-nombre {
+  color: #60a5fa;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.tabla-candidatos .t-nombre:hover {
+  color: #93c5fd;
+}
+.tabla-candidatos .t-id {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  .tabla-candidatos .t-col-ciudad,
+  .tabla-candidatos .t-col-fecha { display: none; }
+}
+
+/* ═══ Modal de detalle de candidato ═══ */
+.mdc-seccion {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.mdc-seccion:last-of-type { border-bottom: none; padding-bottom: 0; }
+.mdc-seccion-titulo {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
   
   /* ═══ RH — Modales de promoción y baja ═══ */
   .modal-rh-overlay { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; padding:20px; }
@@ -286,6 +350,69 @@
   </div>
 </div>
 
+<!-- ═══ Modal: Detalle de candidato ═══ -->
+<div id="modalDetalleCandidato" class="modal-rh-overlay" onclick="if(event.target===this)cerrarModalDetalleCandidato()">
+  <div class="modal-rh-box" style="max-width:680px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+      <div style="flex:1;min-width:0;">
+        <div id="mdcNombre" style="font-size:19px;font-weight:800;color:#f1f5f9;line-height:1.2;">—</div>
+        <div id="mdcId" style="font-size:12px;color:var(--muted);margin-top:4px;">—</div>
+        <span class="chip" id="mdcChip" style="margin-top:8px;display:inline-block;">—</span>
+      </div>
+      <button onclick="cerrarModalDetalleCandidato()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>
+    </div>
+
+    <div class="mdc-seccion">
+      <div class="mdc-seccion-titulo">Datos personales</div>
+      <div class="grid2">
+        <div class="field"><label>Nombre completo</label><input type="text" id="mdcNombreInput"></div>
+        <div class="field"><label>WhatsApp</label><input type="text" id="mdcWhatsapp"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Email</label><input type="email" id="mdcEmail"></div>
+        <div class="field"><label>Ciudad</label><input type="text" id="mdcCiudad"></div>
+      </div>
+    </div>
+
+    <div class="mdc-seccion">
+      <div class="mdc-seccion-titulo">Postulación</div>
+      <div class="grid2">
+        <div class="field"><label>Puesto</label><select id="mdcPuesto"></select></div>
+        <div class="field"><label>¿Cómo llegó?</label><select id="mdcComoLlego"></select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Nivel de inglés</label><input type="text" id="mdcNivel"></div>
+        <div class="field"><label>Experiencia previa</label><input type="text" id="mdcExperiencia"></div>
+      </div>
+      <div class="field"><label>Disponibilidad</label><input type="text" id="mdcDisponibilidad"></div>
+    </div>
+
+    <div class="mdc-seccion">
+      <div class="mdc-seccion-titulo">Archivos</div>
+      <div id="mdcArchivos" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="mdc-seccion">
+      <div class="mdc-seccion-titulo">Estado del proceso</div>
+      <div class="grid2">
+        <div class="field"><label>Estatus</label><select id="mdcEstatus"></select></div>
+        <div class="field"><label>Resolución</label><select id="mdcResolucion"></select></div>
+      </div>
+      <div class="field"><label>Responsable (ID)</label><input type="text" id="mdcResponsable"></div>
+      <div class="field"><label>Notas</label><textarea id="mdcNotas" rows="3"></textarea></div>
+    </div>
+
+    <div id="mdcStatus" style="font-size:12px;text-align:center;min-height:18px;margin-bottom:10px;"></div>
+
+    <div class="modal-rh-acciones">
+      <button class="btn-rh-cancelar" onclick="cerrarModalDetalleCandidato()">Cerrar</button>
+      <button class="btn-rh-primario" id="mdcBtnGuardar" onclick="guardarCambiosCandidatoModal()">💾 Guardar cambios</button>
+    </div>
+
+    <div id="mdcBotonesExtra" style="display:flex;gap:10px;margin-top:12px;"></div>
+  </div>
+</div>
+  
 <!-- ═══ Modal: Promover candidato a maestro activo ═══ -->
 <div id="modalPromoverRH" class="modal-rh-overlay" onclick="if(event.target===this)cerrarModalPromoverRH()">
   <div class="modal-rh-box">
@@ -639,9 +766,7 @@ function renderCandidatos(){
   var filtroPuesto = document.getElementById('filtroPuesto').value;
   var filtroEstatus = document.getElementById('filtroEstatus').value;
   var filtroResolucion = document.getElementById('filtroResolucion').value;
-    // Normaliza texto: minúsculas + quita acentos, para que strings como
-  // "En capacitacion" (sin acento, guardado por error en algún momento)
-  // también hagan match con "En capacitación".
+
   function _norm(s){
     return (s || '').toString().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -659,77 +784,32 @@ function renderCandidatos(){
   var cont = document.getElementById('listaCandidatos');
   if(!lista.length){ cont.innerHTML = '<div class="empty">No hay candidatos que coincidan.</div>'; return; }
 
-  cont.innerHTML = lista.map(function(c){
+  var html = '<table class="tabla-candidatos"><thead><tr>'
+    + '<th style="width:100px;">ID</th>'
+    + '<th>Nombre</th>'
+    + '<th style="width:110px;">Puesto</th>'
+    + '<th class="t-col-ciudad" style="width:160px;">Ciudad</th>'
+    + '<th class="t-col-fecha" style="width:110px;">Registro</th>'
+    + '<th style="width:130px;">Estado</th>'
+    + '</tr></thead><tbody>';
+
+  lista.forEach(function(c){
     var chipClase = chipClaseEstatus(c.estatus, c.resolucion);
-    var etiquetaChip = c.resolucion || c.estatus;
+    var etiqueta = c.resolucion || c.estatus || 'Nuevo';
     var fecha = c.fechaRegistro ? new Date(c.fechaRegistro).toLocaleDateString('es-MX') : '—';
 
-    var archivos = '';
-    if(c.cvUrl) archivos += '<a class="link-archivo" href="'+c.cvUrl+'" target="_blank">📄 Ver CV</a>';
-    if(c.videoUrl) archivos += '<a class="link-archivo" href="'+c.videoUrl+'" target="_blank">🎥 Ver video</a>';
-    if(!c.cvUrl && !c.videoUrl) archivos = '<span style="font-size:11px;color:var(--muted);">Sin archivos subidos</span>';
+    html += '<tr>'
+      + '<td><span class="t-id">' + esc(c.id) + '</span></td>'
+      + '<td><span class="t-nombre" onclick="abrirModalDetalleCandidato(\'' + c.id + '\')">' + esc(c.nombre) + '</span></td>'
+      + '<td>' + esc(c.puesto || '—') + '</td>'
+      + '<td class="t-col-ciudad">' + esc(c.ciudad || '—') + '</td>'
+      + '<td class="t-col-fecha">' + fecha + '</td>'
+      + '<td><span class="chip ' + chipClase + '">' + etiqueta + '</span></td>'
+      + '</tr>';
+  });
 
-    var opcionesEstatus = estatusDisponibles.map(function(e){
-      return '<option value="'+e+'"'+(c.estatus===e?' selected':'')+'>'+e+'</option>';
-    }).join('');
-        var opcionesResolucion = ['','Aceptado','En capacitación','Rechazado'].map(function(r){
-      return '<option value="'+r+'"'+(c.resolucion===r?' selected':'')+'>'+(r||'Sin resolución')+'</option>';
-    }).join('');
-    var opcionesPuestoEdit = puestosDisponibles.map(function(p){
-      return '<option value="'+p+'"'+(c.puesto===p?' selected':'')+'>'+p+'</option>';
-    }).join('');
-    var opcionesComoLlegoEdit = ['Grupo de WhatsApp','Referido','Redes sociales','Bolsa de trabajo','Otro'].map(function(o){
-      return '<option value="'+o+'"'+(c.comoLlego===o?' selected':'')+'>'+o+'</option>';
-    }).join('');
-
-    return '<div class="cand-card">'
-      + '<div class="cand-top">'
-        + '<div><div class="cand-nombre">'+esc(c.nombre)+'</div>'
-        + '<div class="cand-sub">'+c.puesto+' · '+esc(c.ciudad||'—')+' · Registrado '+fecha+'</div></div>'
-        + '<span class="chip '+chipClase+'">'+etiquetaChip+'</span>'
-      + '</div>'
-      + '<div class="cand-sub" style="margin-bottom:10px;">📱 '+esc(c.whatsapp)+(c.email?' · ✉️ '+esc(c.email):'')
-        + (c.nivelIngles?' · Inglés: '+esc(c.nivelIngles):'')
-        + (c.experienciaPrevia?' · Exp: '+esc(c.experienciaPrevia):'')
-        + (c.disponibilidad?' · Disp: '+esc(c.disponibilidad):'')
-        + (c.comoLlego?' · Vía: '+esc(c.comoLlego):'') + '</div>'
-      + '<div class="cand-archivos">'+archivos+'</div>'
-      + '<button class="btn-mini" onclick="toggleEdicionCandidato(\''+c.id+'\')" id="btnToggleEdit-'+c.id+'" style="margin-bottom:8px;">✏️ Editar datos del candidato</button>'
-      + '<div id="editDatos-'+c.id+'" style="display:none;margin-bottom:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;">'
-        + '<div class="grid2">'
-          + '<div class="field"><label>Nombre completo</label><input type="text" id="edNombre-'+c.id+'" value="'+esc(c.nombre)+'"></div>'
-          + '<div class="field"><label>WhatsApp</label><input type="text" id="edWhatsapp-'+c.id+'" value="'+esc(c.whatsapp)+'"></div>'
-        + '</div>'
-        + '<div class="grid2">'
-          + '<div class="field"><label>Email</label><input type="email" id="edEmail-'+c.id+'" value="'+esc(c.email||'')+'"></div>'
-          + '<div class="field"><label>Ciudad</label><input type="text" id="edCiudad-'+c.id+'" value="'+esc(c.ciudad||'')+'"></div>'
-        + '</div>'
-        + '<div class="grid2">'
-          + '<div class="field"><label>Puesto</label><select id="edPuesto-'+c.id+'">'+opcionesPuestoEdit+'</select></div>'
-          + '<div class="field"><label>¿Cómo llegó?</label><select id="edComoLlego-'+c.id+'">'+opcionesComoLlegoEdit+'</select></div>'
-        + '</div>'
-        + '<div class="grid2">'
-          + '<div class="field"><label>Nivel de inglés</label><input type="text" id="edNivelIngles-'+c.id+'" value="'+esc(c.nivelIngles||'')+'"></div>'
-          + '<div class="field"><label>Experiencia previa</label><input type="text" id="edExperiencia-'+c.id+'" value="'+esc(c.experienciaPrevia||'')+'"></div>'
-        + '</div>'
-        + '<div class="field"><label>Disponibilidad de horario</label><input type="text" id="edDisponibilidad-'+c.id+'" value="'+esc(c.disponibilidad||'')+'"></div>'
-      + '</div>'
-      + '<div class="cand-controles">'
-        + '<select id="est-'+c.id+'">'+opcionesEstatus+'</select>'
-        + '<select id="res-'+c.id+'">'+opcionesResolucion+'</select>'
-      + '</div>'
-      + '<input type="text" class="cand-notas" style="height:36px;" id="resp-'+c.id+'" placeholder="Responsable (ID)" value="'+esc(c.responsable||'')+'">'
-      + '<textarea class="cand-notas" id="notas-'+c.id+'" placeholder="Notas...">'+esc(c.notas||'')+'</textarea>'
-                  + '<div class="cand-acciones">'
-        + (c.resolucion === 'Aceptado'
-    ? '<button class="btn-rh-promover" onclick="abrirModalPromoverRH(\'' + c.id + '\',\'' + (c.resolucion || '').replace(/'/g, "\\'") + '\')">🎓 Promover a activo</button>'
-    : '')
-        + '<button class="btn-mini btn-eliminar" onclick="eliminarCandidato(\''+c.id+'\')">🗑️ Eliminar</button>'
-        + '<button class="btn-mini btn-guardar" onclick="guardarCambiosCandidato(\''+c.id+'\')">💾 Guardar cambios</button>'
-      + '</div>'
-      + '<div class="status-msg" id="statusCand-'+c.id+'" style="display:none;text-align:left;"></div>'
-    + '</div>'
-  }).join('');
+  html += '</tbody></table>';
+  cont.innerHTML = html;
 }
 
 function toggleEdicionCandidato(idCandidato){
@@ -1071,6 +1151,170 @@ function reactivarMaestroRH(idMaestro, nombreMaestro){
       }
     })
     .catch(function(){ alert('❌ Error de conexión.'); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Modal de detalle de candidato
+// ═══════════════════════════════════════════════════════════════════════
+var _mdcCandidatoActual = null;
+
+function abrirModalDetalleCandidato(idCandidato){
+  var c = candidatosData.filter(function(x){ return x.id === idCandidato; })[0];
+  if (!c) { alert('No se encontró el candidato.'); return; }
+  _mdcCandidatoActual = c;
+
+  document.getElementById('mdcNombre').textContent = c.nombre;
+  document.getElementById('mdcId').textContent = c.id + ' · Registrado ' +
+    (c.fechaRegistro ? new Date(c.fechaRegistro).toLocaleDateString('es-MX') : '—');
+
+  var chip = document.getElementById('mdcChip');
+  chip.className = 'chip ' + chipClaseEstatus(c.estatus, c.resolucion);
+  chip.textContent = c.resolucion || c.estatus || 'Nuevo';
+
+  document.getElementById('mdcNombreInput').value = c.nombre || '';
+  document.getElementById('mdcWhatsapp').value = c.whatsapp || '';
+  document.getElementById('mdcEmail').value = c.email || '';
+  document.getElementById('mdcCiudad').value = c.ciudad || '';
+  document.getElementById('mdcNivel').value = c.nivelIngles || '';
+  document.getElementById('mdcExperiencia').value = c.experienciaPrevia || '';
+  document.getElementById('mdcDisponibilidad').value = c.disponibilidad || '';
+  document.getElementById('mdcResponsable').value = c.responsable || '';
+  document.getElementById('mdcNotas').value = c.notas || '';
+
+  _mdcLlenarSelect('mdcPuesto', puestosDisponibles, c.puesto);
+  _mdcLlenarSelect('mdcComoLlego', ['Grupo de WhatsApp','Referido','Redes sociales','Bolsa de trabajo','Otro'], c.comoLlego);
+  _mdcLlenarSelect('mdcEstatus', estatusDisponibles, c.estatus);
+  _mdcLlenarSelect('mdcResolucion', ['','Aceptado','En capacitación','Rechazado'], c.resolucion);
+
+  var archivosHtml = '';
+  if (c.cvUrl) archivosHtml += '<a class="link-archivo" href="'+c.cvUrl+'" target="_blank">📄 Ver CV</a>';
+  if (c.videoUrl) archivosHtml += '<a class="link-archivo" href="'+c.videoUrl+'" target="_blank">🎥 Ver video</a>';
+  if (!archivosHtml) archivosHtml = '<span style="font-size:12px;color:var(--muted);">Sin archivos subidos</span>';
+  document.getElementById('mdcArchivos').innerHTML = archivosHtml;
+
+  var extras = document.getElementById('mdcBotonesExtra');
+  var htmlExtras = '';
+  if (c.resolucion === 'Aceptado') {
+    htmlExtras += '<button class="btn-rh-promover" style="flex:1;padding:12px;font-size:13px;" onclick="promoverDesdeModalDetalle()">🎓 Promover a activo</button>';
+  }
+  htmlExtras += '<button class="btn-rh-baja" style="flex:1;padding:12px;font-size:13px;" onclick="eliminarCandidatoDesdeModal()">🗑️ Eliminar candidato</button>';
+  extras.innerHTML = htmlExtras;
+
+  document.getElementById('mdcStatus').textContent = '';
+  var btnG = document.getElementById('mdcBtnGuardar');
+  btnG.disabled = false;
+  btnG.textContent = '💾 Guardar cambios';
+
+  document.getElementById('modalDetalleCandidato').classList.add('visible');
+}
+
+function _mdcLlenarSelect(id, opciones, valorActual){
+  var sel = document.getElementById(id);
+  if (!sel) return;
+  var html = '';
+  (opciones || []).forEach(function(o){
+    var sel_ = (o === valorActual) ? ' selected' : '';
+    var label = (o === '') ? 'Sin resolución' : o;
+    html += '<option value="' + esc(o) + '"' + sel_ + '>' + label + '</option>';
+  });
+  sel.innerHTML = html;
+}
+
+function cerrarModalDetalleCandidato(){
+  document.getElementById('modalDetalleCandidato').classList.remove('visible');
+  _mdcCandidatoActual = null;
+}
+
+function guardarCambiosCandidatoModal(){
+  if (!_mdcCandidatoActual) return;
+  var id = _mdcCandidatoActual.id;
+  var status = document.getElementById('mdcStatus');
+
+  var datos = {
+    nombre:            document.getElementById('mdcNombreInput').value.trim(),
+    whatsapp:          document.getElementById('mdcWhatsapp').value.trim(),
+    email:             document.getElementById('mdcEmail').value.trim(),
+    ciudad:            document.getElementById('mdcCiudad').value.trim(),
+    puesto:            document.getElementById('mdcPuesto').value,
+    comoLlego:         document.getElementById('mdcComoLlego').value,
+    nivelIngles:       document.getElementById('mdcNivel').value.trim(),
+    experienciaPrevia: document.getElementById('mdcExperiencia').value.trim(),
+    disponibilidad:    document.getElementById('mdcDisponibilidad').value.trim(),
+    estatus:           document.getElementById('mdcEstatus').value,
+    resolucion:        document.getElementById('mdcResolucion').value,
+    responsable:       document.getElementById('mdcResponsable').value.trim(),
+    notas:             document.getElementById('mdcNotas').value.trim()
+  };
+
+  if (!datos.nombre || !datos.whatsapp) {
+    status.style.color = '#f87171';
+    status.textContent = 'Nombre y WhatsApp son obligatorios.';
+    return;
+  }
+
+  var btn = document.getElementById('mdcBtnGuardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  status.style.color = '#94a3b8';
+  status.textContent = 'Guardando...';
+
+  var params = new URLSearchParams(Object.assign({
+    action: 'actualizarCandidatoRH',
+    idCandidato: id,
+    idActor: miId
+  }, datos));
+
+  fetch(APPS_SCRIPT + '?' + params.toString(), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res.success) {
+        status.style.color = '#4ade80';
+        status.textContent = '✅ Cambios guardados.';
+        setTimeout(function(){
+          cerrarModalDetalleCandidato();
+          cargarCandidatos();
+        }, 1200);
+      } else {
+        status.style.color = '#f87171';
+        status.textContent = '❌ ' + (res.error || 'Error');
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar cambios';
+      }
+    })
+    .catch(function(){
+      status.style.color = '#f87171';
+      status.textContent = '❌ Error de conexión.';
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar cambios';
+    });
+}
+
+function eliminarCandidatoDesdeModal(){
+  if (!_mdcCandidatoActual) return;
+  var c = _mdcCandidatoActual;
+  if (!confirm('¿Seguro que quieres eliminar a ' + c.nombre + '?\n\nEsta acción no se puede deshacer.')) return;
+
+  fetch(APPS_SCRIPT + '?action=eliminarCandidatoRH&idCandidato=' + encodeURIComponent(c.id), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res.success) {
+        cerrarModalDetalleCandidato();
+        cargarCandidatos();
+      } else {
+        alert('Error: ' + (res.error || ''));
+      }
+    })
+    .catch(function(){ alert('Error de conexión.'); });
+}
+
+function promoverDesdeModalDetalle(){
+  if (!_mdcCandidatoActual) return;
+  var id = _mdcCandidatoActual.id;
+  var res = _mdcCandidatoActual.resolucion;
+  cerrarModalDetalleCandidato();
+  setTimeout(function(){
+    abrirModalPromoverRH(id, res);
+  }, 150);
 }
   
 </script>
