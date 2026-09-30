@@ -1610,26 +1610,30 @@ function seleccionarAlumnoCambio(){
   const nivelBaseActual = nivelBase_(nivel);
 
     // ── Fecha de "hoy" para comparar si un grupo ya inició ──
-  const hoyCambio = new Date();
+    const hoyCambio = new Date();
   hoyCambio.setHours(0,0,0,0);
+
+  // Normaliza el nombre del grupo quitando el sufijo "-SAT" (sabatino),
+  // para que "ADULTS-SAT" y "ADULTS" se consideren el mismo tipo de grupo.
+  // El cambio de horario (entre semana <-> sabatino) es justamente uno de
+  // los casos de uso principales, así que no debe bloquearse por el sufijo.
+  function nombreBase_(nombre) {
+    return String(nombre || '').toUpperCase().replace(/-SAT$/, '').trim();
+  }
+  const nombreBaseActual = nombreBase_(nombreGrupo);
 
   const todosGruposFiltrados=(datosPanel?.todos_grupos||[]).filter(g=>{
     if (g.id===grupoActual) return false;
     if (nivelBaseActual && nivelBase_(g.nivel)!==nivelBaseActual) return false;
-    if (nombreGrupo && g.nombre!==nombreGrupo) return false;
+    // Comparar nombre base (ignorando -SAT) en vez del nombre literal.
+    if (nombreBaseActual && nombreBase_(g.nombre) !== nombreBaseActual) return false;
     const fechaGrupoObj=parseFechaInicio(g.fecha_inicio);
     if (fechaActualObj && fechaGrupoObj && fechaGrupoObj < fechaActualObj) {
-      // Regla por defecto: los grupos de nomenclatura ANTERIOR quedan fuera.
-      // EXCEPCIÓN: si el grupo destino TODAVÍA NO HA INICIADO, el alumno
-      // entraría desde el día 1 (sin perderse contenido), así que SÍ se
-      // permite -- por ejemplo, cuando se recorrió una fecha de inicio y
-      // el alumno necesita pasar a un grupo entre semana que aún no arranca.
       const destinoAunNoInicia = fechaGrupoObj > hoyCambio;
       if (!destinoAunNoInicia) return false;
     }
     return true;
   });
-
   gruposCompartirCambio=[]; // se llena abajo con los grupos que sí se pueden ofrecer
 
   if(!todosGruposFiltrados.length){contenedor.innerHTML='<p style="font-size:12px;color:var(--gris-400);">No hay grupos del mismo nivel y nombre disponibles de su misma nomenclatura o posteriores.</p>';actualizarBtnCompartirCambio();return;}
