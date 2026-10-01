@@ -1710,17 +1710,27 @@
       .catch(function(){ btn.textContent='Enviar evaluación'; btn.classList.add('activo'); status.textContent='❌ Error de conexión.'; status.className='eval-status err'; });
   }
 
-  function verificarRecordatorio(p) {
+    function verificarRecordatorio(p) {
     var hoy = new Date();
+
+    // Regla de negocio: el recordatorio de pago SOLO se muestra
+    // jueves (día 4) y viernes (día 5) en hora de México.
+    // getDay(): 0=domingo, 1=lunes, 2=martes, 3=miércoles, 4=jueves, 5=viernes, 6=sábado.
+    var diaSemana = hoy.getDay();
+    var esDiaDeRecordatorio = (diaSemana === 4 || diaSemana === 5);
 
     if (p && p.periodoFin) {
       var finVigencia = new Date(p.periodoFin);
       finVigencia.setHours(23, 59, 59, 999);
 
+      // Ventana original (3 días antes y después del fin de vigencia)
       var inicioVentana = new Date(finVigencia); inicioVentana.setHours(0, 0, 0, 0);
       var finVentana = new Date(finVigencia); finVentana.setDate(finVentana.getDate() + 3); finVentana.setHours(23, 59, 59, 999);
 
-      if (hoy >= inicioVentana && hoy <= finVentana) {
+      // Solo mostramos la alerta si:
+      //   1) Estamos dentro de la ventana de fechas del vencimiento, Y
+      //   2) Hoy es jueves o viernes
+      if (hoy >= inicioVentana && hoy <= finVentana && esDiaDeRecordatorio) {
         var sabadoLimite = new Date(finVigencia);
         sabadoLimite.setDate(sabadoLimite.getDate() + 2);
         mostrarAlertaPagoPendiente(sabadoLimite);
@@ -1729,6 +1739,10 @@
     }
 
     if (!p||!p.periodoFin) return;
+
+    // El modal de "pago por vencer" también debe respetar la regla de
+    // días: si no es jueves ni viernes, no se muestra.
+    if (!esDiaDeRecordatorio) return;
 
     var fin2=new Date(p.periodoFin);
     var dias=Math.ceil((fin2-hoy)/(1000*60*60*24));
