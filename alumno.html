@@ -2381,14 +2381,13 @@
   // ═══════════════════════════════════════════════════════════════════════
   var LECCIONES_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/ADULTS/';
 
-  function construirUrlImagenLeccion(subnivel, num) {
+    function construirUrlImagenLeccion(subnivel, num) {
     // num con dos dígitos: 01, 02, ..., 28
     var numStr = num < 10 ? '0' + num : String(num);
-    // El archivo se llama "A2.1 01.jpg" (con espacio, extensión .jpg)
-    var nombreArchivo = subnivel + ' ' + numStr + '.jpg';
-    // Codificamos SOLO el espacio como %20 (el resto de caracteres del
-    // subnivel como "A2.1" no requieren codificación)
-    return LECCIONES_IMG_BASE + nombreArchivo.replace(/ /g, '%20');
+    // Los archivos de Adults/Teens usan extensión .jpeg (NO .jpg).
+    // Se mantiene .jpg como respaldo por si algún archivo quedó en .jpg.
+    var nombreBase = subnivel + ' ' + numStr;
+    return LECCIONES_IMG_BASE + (nombreBase + '.jpeg').replace(/ /g, '%20');
   }
 
   function columnaRangoLecciones(subnivel, desde, hasta) {
@@ -2399,7 +2398,7 @@
       var tituloCorto = leccionData ? extraerTituloCorto(leccionData.titulo) : '';
       var imgUrl = construirUrlImagenLeccion(subnivel, i);
       html += '<div class="mision-kids-card" onclick="abrirLeccion(\'' + subnivel + '\',' + i + ')">' +
-        '<div class="leccion-img-wrap"><img src="' + imgUrl + '" alt="Lesson ' + num + '" onload="this.classList.add(\'loaded\')" onerror="this.parentElement.style.animation=\'none\';this.outerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;&quot;>📖</div>\'"></div>' +
+        '<div class="leccion-img-wrap"><img src="' + imgUrl + '" alt="Lesson ' + num + '" onload="this.classList.add(\'loaded\')" onerror="if(!this.dataset.triedJpg && this.src.indexOf(\'.jpeg\')!==-1){this.dataset.triedJpg=\'1\';this.src=this.src.replace(\'.jpeg\',\'.jpg\');}else{this.parentElement.style.animation=\'none\';this.outerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;&quot;>📖</div>\';}\"></div>' +
         '<div class="mision-kids-num">LESSON ' + num + '</div>' +
         (tituloCorto ? '<div class="mision-kids-titulo">' + tituloCorto + '</div>' : '') +
       '</div>';
