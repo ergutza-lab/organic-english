@@ -4964,20 +4964,15 @@ function renderPanelAsistencia(a) {
   var asistPct = a.asistencia.porcentaje;
   var asistColor = asistPct >= 80 ? '#4ade80' : asistPct >= 70 ? '#facc15' : '#f87171';
 
-  // Mapa rápido fecha -> datos
   var mapa = {};
   cal.forEach(function(d) { mapa[d.fecha] = d; });
 
-  // Rango de fechas del bloque
   var fechas = cal.map(function(d) { return d.fecha; }).sort();
-  var minFecha = fechas[0];
-  var maxFecha = fechas[fechas.length - 1];
-  var pMin = minFecha.split('-');
-  var pMax = maxFecha.split('-');
+  var pMin = fechas[0].split('-');
+  var pMax = fechas[fechas.length - 1].split('-');
   var anioMin = parseInt(pMin[0], 10), mesMin = parseInt(pMin[1], 10) - 1;
   var anioMax = parseInt(pMax[0], 10), mesMax = parseInt(pMax[1], 10) - 1;
 
-  // Lista de meses cubiertos
   var meses = [];
   var anioAct = anioMin, mesAct = mesMin;
   while (anioAct < anioMax || (anioAct === anioMax && mesAct <= mesMax)) {
@@ -4987,96 +4982,86 @@ function renderPanelAsistencia(a) {
   }
 
   var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var DIAS_SEMANA = ['D','L','M','M','J','V','S'];
 
-  // Colores para cada tipo de evaluación
   var colorMap = {
-    1: { bg: 'rgba(239,68,68,0.9)',  border: '#ef4444', txt: '#fff',     label: 'Rojo'     },
-    2: { bg: 'rgba(250,204,21,0.9)', border: '#facc15', txt: '#1a1a1a', label: 'Amarillo' },
-    3: { bg: 'rgba(34,197,94,0.9)',  border: '#22c55e', txt: '#fff',     label: 'Verde'    },
-    4: { bg: 'rgba(59,130,246,0.9)', border: '#3b82f6', txt: '#fff',     label: 'Azul'     }
+    1: { bg: '#ef4444', border: '#b91c1c', label: 'Rojo' },
+    2: { bg: '#facc15', border: '#a16207', label: 'Amarillo' },
+    3: { bg: '#22c55e', border: '#15803d', label: 'Verde' },
+    4: { bg: '#3b82f6', border: '#1d4ed8', label: 'Azul' }
   };
 
   var hoyISO = new Date().toISOString().substring(0, 10);
 
-  // ═══ ENCABEZADO RESUMEN ═══
-  var html = '<div style="margin-top:14px;padding:16px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:10px;">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
-    '<div style="font-size:12px;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.5px;">📅 Asistencia del bloque actual</div>' +
-    '<div style="font-size:12px;color:var(--muted);">' + a.asistencia.presentes + '/' + a.asistencia.totalClases + ' clases · <strong style="color:' + asistColor + ';">' + asistPct + '%</strong></div>' +
+  // Header compacto
+  var html = '<div style="margin-top:14px;padding:12px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:10px;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">' +
+    '<div style="font-size:11px;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.5px;">📅 Asistencia del bloque</div>' +
+    '<div style="font-size:11px;color:var(--muted);">' + a.asistencia.presentes + '/' + a.asistencia.totalClases + ' · <strong style="color:' + asistColor + ';">' + asistPct + '%</strong></div>' +
   '</div>';
 
-  // ═══ CALENDARIO POR MES ═══
-  meses.forEach(function(m, idx) {
+  // Cada mes en fila (uno al lado del otro si hay 2)
+  html += '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">';
+
+  meses.forEach(function(m) {
     var primerDia = new Date(m.anio, m.mes, 1).getDay();
     var diasEnMes = new Date(m.anio, m.mes + 1, 0).getDate();
 
-    html += '<div style="' + (idx > 0 ? 'margin-top:16px;' : '') + 'background:rgba(15,23,42,0.4);border:1px solid rgba(139,92,246,0.15);border-radius:10px;padding:12px;">';
+    html += '<div style="background:rgba(15,23,42,0.4);border:1px solid rgba(139,92,246,0.15);border-radius:8px;padding:8px;min-width:210px;flex:1;max-width:260px;">';
 
-    // Título del mes
-    html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;text-align:center;letter-spacing:.5px;">' +
+    html += '<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-align:center;letter-spacing:.5px;">' +
       MESES[m.mes].toUpperCase() + ' ' + m.anio + '</div>';
 
-    // Encabezado de días de la semana
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;">';
+    // Encabezado días
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px;">';
     DIAS_SEMANA.forEach(function(d) {
-      html += '<div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:4px 0;">' + d + '</div>';
+      html += '<div style="text-align:center;font-size:9px;font-weight:700;color:var(--muted);padding:2px 0;">' + d + '</div>';
     });
     html += '</div>';
 
-    // Cuadrícula de días
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">';
+    // Días
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">';
 
-    // Espacios vacíos antes del día 1
     for (var e = 0; e < primerDia; e++) {
-      html += '<div></div>';
+      html += '<div style="height:24px;"></div>';
     }
 
-    // Días del mes
     for (var d = 1; d <= diasEnMes; d++) {
       var fechaStr = m.anio + '-' + String(m.mes + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
       var data = mapa[fechaStr];
       var esHoy = fechaStr === hoyISO;
-      var ringHoy = esHoy ? 'box-shadow:0 0 0 2px #f97316;' : '';
+      var ringHoy = esHoy ? 'box-shadow:0 0 0 1.5px #f97316;' : '';
 
       if (data) {
         if (data.asistio) {
-          // Día con clase registrada (coloreado)
           var c = colorMap[data.color] || colorMap[3];
           html += '<div title="' + fechaStr + ' · ' + c.label + (data.observacion ? ' · ' + data.observacion.replace(/"/g, '&quot;') : '') + '" ' +
-            'style="aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:8px;color:' + c.txt + ';font-weight:700;font-size:12px;cursor:default;' + ringHoy + '">' +
-            '<span>' + d + '</span>' +
-            '<span style="font-size:8px;opacity:0.9;line-height:1;">✓</span>' +
-          '</div>';
+            'style="height:24px;display:flex;align-items:center;justify-content:center;background:' + c.bg + ';border-radius:4px;color:#fff;font-weight:700;font-size:10px;' + ringHoy + '">' + d + '</div>';
         } else {
-          // Ausente
           html += '<div title="' + fechaStr + ' · Ausente' + (data.observacion ? ' · ' + data.observacion.replace(/"/g, '&quot;') : '') + '" ' +
-            'style="aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(100,116,139,0.15);border:1.5px solid rgba(239,68,68,0.5);border-radius:8px;color:#f87171;font-weight:700;font-size:12px;cursor:default;' + ringHoy + '">' +
-            '<span>' + d + '</span>' +
-            '<span style="font-size:8px;line-height:1;">✗</span>' +
-          '</div>';
+            'style="height:24px;display:flex;align-items:center;justify-content:center;background:rgba(100,116,139,0.2);border:1px solid rgba(239,68,68,0.5);border-radius:4px;color:#94a3b8;font-weight:600;font-size:10px;text-decoration:line-through;' + ringHoy + '">' + d + '</div>';
         }
       } else {
-        // Día sin registro (no hubo clase o es fuera del rango)
-        html += '<div style="aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06);border-radius:8px;color:var(--subtle);font-size:11px;' + ringHoy + '">' + d + '</div>';
+        html += '<div style="height:24px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border-radius:4px;color:var(--subtle);font-size:10px;">' + d + '</div>';
       }
     }
 
-    html += '</div>'; // cerrar grid días
-    html += '</div>'; // cerrar bloque de mes
+    html += '</div></div>';
   });
 
-  // ═══ LEYENDA ═══
-  html += '<div style="display:flex;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);font-size:10px;color:var(--muted);flex-wrap:wrap;justify-content:center;">' +
-    '<span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:4px;background:rgba(239,68,68,0.9);display:inline-block;"></span>Rojo</span>' +
-    '<span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:4px;background:rgba(250,204,21,0.9);display:inline-block;"></span>Amarillo</span>' +
-    '<span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:4px;background:rgba(34,197,94,0.9);display:inline-block;"></span>Verde</span>' +
-    '<span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:4px;background:rgba(59,130,246,0.9);display:inline-block;"></span>Azul</span>' +
-    '<span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:4px;background:rgba(100,116,139,0.15);border:1.5px solid rgba(239,68,68,0.5);display:inline-block;"></span>Ausente</span>' +
-    '<span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);display:inline-block;"></span>Sin clase</span>' +
+  html += '</div>'; // cerrar fila de meses
+
+  // Leyenda compacta
+  html += '<div style="display:flex;gap:10px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:9px;color:var(--muted);flex-wrap:wrap;justify-content:center;">' +
+    '<span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#ef4444;display:inline-block;"></span>Rojo</span>' +
+    '<span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#facc15;display:inline-block;"></span>Amarillo</span>' +
+    '<span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#22c55e;display:inline-block;"></span>Verde</span>' +
+    '<span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#3b82f6;display:inline-block;"></span>Azul</span>' +
+    '<span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:rgba(100,116,139,0.2);border:1px solid rgba(239,68,68,0.5);display:inline-block;"></span>Ausente</span>' +
+    '<span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:rgba(255,255,255,0.02);display:inline-block;"></span>Sin clase</span>' +
   '</div>';
 
-  html += '</div>'; // cerrar panel principal
+  html += '</div>';
   return html;
 }
 
