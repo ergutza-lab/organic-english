@@ -313,7 +313,7 @@
         <button class="btn-sm" style="border-color:rgba(139,92,246,0.35);color:#c4b5fd;" onclick="abrirEvalColocacionNav()">🎓 Evaluaciones de Colocación</button>
         <button class="btn-sm" style="border-color:rgba(249,115,22,0.4);color:#fdba74;" onclick="abrirModalCobertura()">🔁 Clase de Cobertura</button>
         <button class="btn-sm" style="border-color:rgba(239,68,68,0.45);color:#fca5a5;background:rgba(239,68,68,0.06);" onclick="abrirModalBajoRendimiento()">📉 Bajo Rendimiento</button>
-        <button class="btn-sm" style="border-color:rgba(250,204,21,0.45);color:#fde047;background:rgba(250,204,21,0.06);" onclick="abrirModalGrandChallengeFallido()">⚠️ Grand Challenge</button>
+        <button class="btn-sm" style="border-color:rgba(250,204,21,0.45);color:#fde047;background:rgba(250,204,21,0.06);" onclick="abrirModalGrandChallengeFallido()">⚠️ Reprobados</button>
         <div class="avatar" id="avatarInitials">CA</div>
         <button class="btn-logout" onclick="logout()">Salir</button>
       </div>
@@ -4679,8 +4679,8 @@ document.addEventListener('click', function (e) {
   <div style="background:var(--surface);border-radius:16px;width:96%;max-width:1080px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(250,204,21,0.15),rgba(250,204,21,0.04));">
       <div>
-        <h3 style="color:#fde047;margin:0;font-size:16px;">⚠️ Grand Challenge no acreditado</h3>
-        <p style="font-size:12px;color:var(--muted);margin:4px 0 0 0;">Alumnos que terminaron su semana de Grand Challenge sin alcanzar el % para subir de nivel.</p>
+        <h3 style="color:#fde047;margin:0;font-size:16px;">⚠️ Alumnos reprobados</h3>
+        <p style="font-size:12px;color:var(--muted);margin:4px 0 0 0;">Alumnos que no acreditaron el Grand Challenge y requieren apoyo.</p>
       </div>
       <button onclick="cerrarModalGrandChallengeFallido()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:5px 12px;cursor:pointer;font-weight:700;">✕</button>
     </div>
@@ -4750,14 +4750,15 @@ revisarActividadAgenda();
 setInterval(revisarActividadAgenda, 60000);
 
  // ═══════════════════════════════════════════════════════════════════════════
-//  BAJO RENDIMIENTO (< 70%)  y  GRAND CHALLENGE FALLIDO
+//  BAJO RENDIMIENTO (< 70%)  y  REPROBADOS (Grand Challenge fallido)
 // ═══════════════════════════════════════════════════════════════════════════
 
-var bajoRendData = [];       // cache
-var bajoRendVistaActual = 'grupos';  // 'grupos' | 'detalle'
+var bajoRendData = [];
+var bajoRendVistaActual = 'grupos';
+var bajoRendExpansion = {};  // { idAlumno: 'asistencia' | 'evaluaciones' | null }
 
 // ─────────────────────────────────────────────────────────────────
-//  1) MODAL: BAJO RENDIMIENTO
+//  MODAL: BAJO RENDIMIENTO
 // ─────────────────────────────────────────────────────────────────
 function abrirModalBajoRendimiento() {
   document.getElementById('modalBajoRendimiento').style.display = 'flex';
@@ -4774,6 +4775,7 @@ function abrirModalBajoRendimiento() {
       }
       bajoRendData = data.grupos || [];
       bajoRendVistaActual = 'grupos';
+      bajoRendExpansion = {};
       renderBajoRendimientoGrupos();
     })
     .catch(function () {
@@ -4793,30 +4795,52 @@ function renderBajoRendimientoGrupos() {
     return;
   }
 
-  // Ordenar: los que tienen más alumnos con bajo rendimiento primero
-  var gruposOrdenados = bajoRendData.slice().sort(function (a, b) {
-    return (b.alumnos || []).length - (a.alumnos || []).length;
+  // Agrupar por maestro para mostrar encabezado
+  var porMaestro = {};
+  bajoRendData.forEach(function(g) {
+    var key = g.maestroNombre || '(sin maestro)';
+    if (!porMaestro[key]) porMaestro[key] = [];
+    porMaestro[key].push(g);
   });
 
-  var html = '<div style="display:grid;gap:10px;">';
-  gruposOrdenados.forEach(function (g) {
-    var n = (g.alumnos || []).length;
-    var color = n >= 5 ? '#ef4444' : n >= 3 ? '#f59e0b' : '#eab308';
-    html += '<div onclick="verGrupoBajoRendimiento(\'' + g.id + '\')" ' +
-      'style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;cursor:pointer;transition:border-color .15s;display:flex;justify-content:space-between;align-items:center;gap:12px;" ' +
-      'onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\'" ' +
-      'onmouseout="this.style.borderColor=\'var(--border)\'">' +
-      '<div style="flex:1;min-width:0;">' +
-        '<div style="font-size:14px;font-weight:700;color:var(--text);">' + g.id + ' · ' + (g.nombre || g.nivel || '') + '</div>' +
-        '<div style="font-size:11px;color:var(--muted);margin-top:2px;">🕒 ' + (g.horario || '—') + ' &nbsp;·&nbsp; 👨‍🏫 ' + (g.maestroNombre || g.idMaestro || '—') + '</div>' +
-      '</div>' +
-      '<div style="text-align:right;flex-shrink:0;">' +
-        '<div style="font-size:22px;font-weight:800;color:' + color + ';">' + n + '</div>' +
-        '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">alumno' + (n !== 1 ? 's' : '') + ' &lt; 70%</div>' +
-      '</div>' +
-    '</div>';
+  var maestrosOrdenados = Object.keys(porMaestro).sort(function(a, b) {
+    return a.localeCompare(b, 'es');
   });
-  html += '</div>';
+
+  var html = '';
+  maestrosOrdenados.forEach(function(nombreMaestro) {
+    var gruposMae = porMaestro[nombreMaestro];
+
+    html += '<div style="margin-bottom:20px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">' +
+        '<div style="width:32px;height:32px;border-radius:50%;background:rgba(249,115,22,0.15);border:2px solid rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#f97316;">' + (nombreMaestro[0] || 'M') + '</div>' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);">' + nombreMaestro + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);">' + gruposMae.length + ' grupo' + (gruposMae.length !== 1 ? 's' : '') + ' con alumnos en bajo rendimiento</div>' +
+        '</div>' +
+      '</div>';
+
+    gruposMae.forEach(function (g) {
+      var n = (g.alumnos || []).length;
+      var color = n >= 5 ? '#ef4444' : n >= 3 ? '#f59e0b' : '#eab308';
+      html += '<div onclick="verGrupoBajoRendimiento(\'' + g.id + '\')" ' +
+        'style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;cursor:pointer;transition:border-color .15s;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;" ' +
+        'onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\'" ' +
+        'onmouseout="this.style.borderColor=\'var(--border)\'">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);">' + g.id + ' · ' + (g.nombre || g.nivel || '') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">🕒 ' + (g.horario || '—') + ' · 📚 Bloque ' + (g.bloqueActual || 1) + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:22px;font-weight:800;color:' + color + ';">' + n + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">alumno' + (n !== 1 ? 's' : '') + ' &lt; 70%</div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    html += '</div>';
+  });
+
   body.innerHTML = html;
   bajoRendVistaActual = 'grupos';
 }
@@ -4831,15 +4855,26 @@ function verGrupoBajoRendimiento(idGrupo) {
 
   html += '<div style="margin-bottom:14px;padding:12px 16px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);border-radius:10px;">' +
     '<div style="font-size:14px;font-weight:700;color:#fca5a5;">' + g.id + ' · ' + (g.nombre || g.nivel || '') + '</div>' +
-    '<div style="font-size:11px;color:var(--muted);margin-top:2px;">🕒 ' + (g.horario || '—') + ' · 👨‍🏫 ' + (g.maestroNombre || g.idMaestro || '—') + ' · Total alumnos: ' + (g.alumnos || []).length + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:2px;">🕒 ' + (g.horario || '—') + ' · 👨‍🏫 ' + (g.maestroNombre || '—') + ' · 📚 Bloque ' + (g.bloqueActual || 1) + ' · 👥 ' + (g.alumnos || []).length + ' alumno' + ((g.alumnos || []).length !== 1 ? 's' : '') + ' en riesgo</div>' +
   '</div>';
+
+  // Botón único para notificar al maestro con resumen del grupo
+  if (g.whatsappMaestro && (g.alumnos || []).length > 0) {
+    html += '<div style="margin-bottom:16px;display:flex;gap:8px;">' +
+      '<button onclick="notificarMaestroGrupoBajoRendimiento(\'' + g.id + '\')" ' +
+        'style="flex:1;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,0.25);">' +
+        '📲 Notificar al maestro (' + (g.alumnos || []).length + ' alumno' + ((g.alumnos || []).length !== 1 ? 's' : '') + ' en un solo mensaje)' +
+      '</button>' +
+    '</div>';
+  }
 
   (g.alumnos || []).forEach(function (a) {
     var pct = a.porcentajeActual != null ? a.porcentajeActual : 0;
     var pctColor = pct < 50 ? '#ef4444' : pct < 60 ? '#f97316' : '#eab308';
     var evo = a.evolucionSemanal || [];
+    var expandido = bajoRendExpansion[a.idAlumno] || null;
 
-    // Barra de evolución semanal (si hay más de 1 semana)
+    // Barra de evolución semanal
     var evoHtml = '';
     if (evo.length > 0) {
       evoHtml = '<div style="margin-top:10px;">' +
@@ -4859,11 +4894,20 @@ function verGrupoBajoRendimiento(idGrupo) {
       evoHtml += '</div></div>';
     }
 
+    // Panel expandible
+    var panelHtml = '';
+    if (expandido === 'asistencia') {
+      panelHtml = renderPanelAsistencia(a);
+    } else if (expandido === 'evaluaciones') {
+      panelHtml = renderPanelEvaluaciones(a);
+    }
+
     html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
         '<div style="flex:1;min-width:180px;">' +
           '<div style="font-size:14px;font-weight:700;color:var(--text);">' + (a.nombre || '—') + '</div>' +
           '<div style="font-size:11px;color:var(--muted);">' + (a.idAlumno || '') + '</div>' +
+          (a.asistencia ? '<div style="font-size:11px;color:var(--muted);margin-top:2px;">📅 Asistencia bloque: <strong style="color:' + (a.asistencia.porcentaje >= 80 ? '#4ade80' : a.asistencia.porcentaje >= 70 ? '#facc15' : '#f87171') + ';">' + a.asistencia.porcentaje + '%</strong> (' + a.asistencia.presentes + '/' + a.asistencia.totalClases + ')</div>' : '') +
         '</div>' +
         '<div style="text-align:right;">' +
           '<div style="font-size:24px;font-weight:800;color:' + pctColor + ';">' + pct + '%</div>' +
@@ -4872,15 +4916,143 @@ function verGrupoBajoRendimiento(idGrupo) {
       '</div>' +
       evoHtml +
       '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+        '<button onclick="togglePanelBajoRend(\'' + a.idAlumno + '\',\'asistencia\')" ' +
+          'style="flex:1;min-width:140px;background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.4);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;">' +
+          (expandido === 'asistencia' ? '▲ Ocultar asistencia' : '📅 Ver asistencia') +
+        '</button>' +
+        '<button onclick="togglePanelBajoRend(\'' + a.idAlumno + '\',\'evaluaciones\')" ' +
+          'style="flex:1;min-width:140px;background:rgba(59,130,246,0.15);color:#93c5fd;border:1px solid rgba(59,130,246,0.4);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;">' +
+          (expandido === 'evaluaciones' ? '▲ Ocultar evaluaciones' : '📊 Ver evaluaciones') +
+        '</button>' +
         '<button onclick="contactarAlumnoBajoRendimiento(\'' + a.idAlumno + '\',\'' + g.id + '\')" ' +
-          'style="flex:1;min-width:180px;background:rgba(59,130,246,0.15);color:#93c5fd;border:1px solid rgba(59,130,246,0.4);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;">💬 Contactar al alumno</button>' +
-        '<button onclick="contactarMaestroBajoRendimiento(\'' + a.idAlumno + '\',\'' + g.id + '\')" ' +
-          'style="flex:1;min-width:180px;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.4);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;">👨‍🏫 Contactar al maestro</button>' +
+          'style="flex:1;min-width:140px;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.4);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;">💬 Contactar al alumno</button>' +
       '</div>' +
+      panelHtml +
     '</div>';
   });
 
   body.innerHTML = html;
+}
+
+function togglePanelBajoRend(idAlumno, tipo) {
+  if (bajoRendExpansion[idAlumno] === tipo) {
+    bajoRendExpansion[idAlumno] = null;
+  } else {
+    bajoRendExpansion[idAlumno] = tipo;
+  }
+  // Encontrar el grupo del alumno y re-renderizar
+  for (var i = 0; i < bajoRendData.length; i++) {
+    var g = bajoRendData[i];
+    if ((g.alumnos || []).some(function(x) { return x.idAlumno === idAlumno; })) {
+      verGrupoBajoRendimiento(g.id);
+      // Mantener el scroll
+      setTimeout(function() {
+        var el = document.querySelector('#bajoRendimientoBody');
+        if (el && el._scrollTop) el.scrollTop = el._scrollTop;
+      }, 50);
+      return;
+    }
+  }
+}
+
+function renderPanelAsistencia(a) {
+  if (!a.asistencia || !a.asistencia.calendario || !a.asistencia.calendario.length) {
+    return '<div style="margin-top:14px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;text-align:center;color:var(--muted);font-size:12px;">Sin registros de asistencia en el bloque actual.</div>';
+  }
+  var cal = a.asistencia.calendario;
+  var asistPct = a.asistencia.porcentaje;
+  var asistColor = asistPct >= 80 ? '#4ade80' : asistPct >= 70 ? '#facc15' : '#f87171';
+
+  // Construir mini-calendario: agrupar por semana
+  var porSemana = {};
+  cal.forEach(function(d) {
+    if (!porSemana[d.semana]) porSemana[d.semana] = [];
+    porSemana[d.semana].push(d);
+  });
+  var semanas = Object.keys(porSemana).map(Number).sort(function(x,y){return x-y;});
+
+  var html = '<div style="margin-top:14px;padding:14px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:10px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+      '<div style="font-size:12px;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.5px;">📅 Asistencia del bloque ' + (a.asistencia.bloque || '') + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);">' + a.asistencia.presentes + '/' + a.asistencia.totalClases + ' · <strong style="color:' + asistColor + ';">' + asistPct + '%</strong></div>' +
+    '</div>';
+
+  semanas.forEach(function(sem) {
+    var dias = porSemana[sem];
+    var presentes = dias.filter(function(d){return d.asistio;}).length;
+    html += '<div style="margin-bottom:10px;">' +
+      '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Semana ' + sem + ' · ' + presentes + '/' + dias.length + '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    dias.forEach(function(d) {
+      var partes = d.fecha.split('-');
+      var diaTxt = partes[2] + '/' + partes[1];
+      var bgColor, borderColor, txtColor;
+      if (d.asistio) {
+        var cMap = {1: 'rgba(239,68,68,0.2)', 2: 'rgba(250,204,21,0.2)', 3: 'rgba(34,197,94,0.2)', 4: 'rgba(59,130,246,0.2)'};
+        var cBorder = {1: '#ef4444', 2: '#facc15', 3: '#22c55e', 4: '#3b82f6'};
+        var cText = {1: '#fca5a5', 2: '#fde047', 3: '#86efac', 4: '#93c5fd'};
+        bgColor = cMap[d.color] || 'rgba(34,197,94,0.2)';
+        borderColor = cBorder[d.color] || '#22c55e';
+        txtColor = cText[d.color] || '#86efac';
+      } else {
+        bgColor = 'rgba(239,68,68,0.1)';
+        borderColor = 'rgba(239,68,68,0.4)';
+        txtColor = '#f87171';
+      }
+      html += '<div title="' + d.fecha + (d.observacion ? ' · ' + d.observacion.replace(/"/g,'&quot;') : '') + '" ' +
+        'style="min-width:44px;text-align:center;background:' + bgColor + ';border:1px solid ' + borderColor + ';border-radius:6px;padding:6px 4px;">' +
+        '<div style="font-size:11px;font-weight:700;color:' + txtColor + ';">' + diaTxt + '</div>' +
+        '<div style="font-size:10px;color:' + txtColor + ';">' + (d.asistio ? '✓' : '✗') + '</div>' +
+      '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  html += '<div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:10px;color:var(--muted);flex-wrap:wrap;">' +
+    '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444;margin-right:4px;vertical-align:middle;"></span>Rojo</span>' +
+    '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#facc15;margin-right:4px;vertical-align:middle;"></span>Amarillo</span>' +
+    '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px;vertical-align:middle;"></span>Verde</span>' +
+    '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px;vertical-align:middle;"></span>Azul</span>' +
+  '</div>';
+
+  html += '</div>';
+  return html;
+}
+
+function renderPanelEvaluaciones(a) {
+  if (!a.evaluacionesSemanas || !a.evaluacionesSemanas.length) {
+    return '<div style="margin-top:14px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;text-align:center;color:var(--muted);font-size:12px;">Sin evaluaciones registradas en el bloque actual.</div>';
+  }
+
+  var html = '<div style="margin-top:14px;padding:14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.25);border-radius:10px;">' +
+    '<div style="font-size:12px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">📊 Evaluaciones del bloque actual</div>' +
+    '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="border-bottom:1px solid rgba(59,130,246,0.3);">' +
+        '<th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase;">Semana</th>' +
+        '<th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase;">%</th>' +
+        '<th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase;">Presentes</th>' +
+        '<th style="text-align:center;padding:6px 8px;color:#ef4444;font-size:10px;text-transform:uppercase;">🔴</th>' +
+        '<th style="text-align:center;padding:6px 8px;color:#facc15;font-size:10px;text-transform:uppercase;">🟡</th>' +
+        '<th style="text-align:center;padding:6px 8px;color:#22c55e;font-size:10px;text-transform:uppercase;">🟢</th>' +
+        '<th style="text-align:center;padding:6px 8px;color:#3b82f6;font-size:10px;text-transform:uppercase;">🔵</th>' +
+      '</tr></thead><tbody>';
+
+  a.evaluacionesSemanas.forEach(function(sem) {
+    var pct = sem.porcentaje;
+    var color = pct < 60 ? '#ef4444' : pct < 70 ? '#facc15' : '#4ade80';
+    html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">' +
+      '<td style="padding:7px 8px;color:var(--text);font-weight:600;">Semana ' + sem.semana + '</td>' +
+      '<td style="padding:7px 8px;text-align:center;font-size:14px;font-weight:800;color:' + color + ';">' + pct + '%</td>' +
+      '<td style="padding:7px 8px;text-align:center;color:var(--muted);">' + sem.presentes + '/' + sem.total + '</td>' +
+      '<td style="padding:7px 8px;text-align:center;color:#ef4444;">' + (sem.colores[1] || 0) + '</td>' +
+      '<td style="padding:7px 8px;text-align:center;color:#facc15;">' + (sem.colores[2] || 0) + '</td>' +
+      '<td style="padding:7px 8px;text-align:center;color:#22c55e;">' + (sem.colores[3] || 0) + '</td>' +
+      '<td style="padding:7px 8px;text-align:center;color:#3b82f6;">' + (sem.colores[4] || 0) + '</td>' +
+    '</tr>';
+  });
+
+  html += '</tbody></table></div></div>';
+  return html;
 }
 
 function contactarAlumnoBajoRendimiento(idAlumno, idGrupo) {
@@ -4901,23 +5073,26 @@ function contactarAlumnoBajoRendimiento(idAlumno, idGrupo) {
   window.open('https://wa.me/' + cleanWA(a.whatsapp) + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
-function contactarMaestroBajoRendimiento(idAlumno, idGrupo) {
+// ─────────────────────────────────────────────────────────────────
+//  Notificar al MAESTRO — UN mensaje por grupo con todos los alumnos
+// ─────────────────────────────────────────────────────────────────
+function notificarMaestroGrupoBajoRendimiento(idGrupo) {
   var g = bajoRendData.filter(function (x) { return x.id === idGrupo; })[0];
-  var a = g && g.alumnos ? g.alumnos.filter(function (x) { return x.idAlumno === idAlumno; })[0] : null;
-  if (!g || !a) { alert('No se encontró el alumno.'); return; }
+  if (!g) { alert('No se encontró el grupo.'); return; }
+  if (!g.whatsappMaestro) { alert('El maestro de este grupo no tiene WhatsApp registrado.'); return; }
+  if (!g.alumnos || !g.alumnos.length) { alert('No hay alumnos en bajo rendimiento en este grupo.'); return; }
 
-  // Buscar WhatsApp del maestro en maestrosData (fuente confiable)
-  var m = (maestrosData || []).filter(function (x) { return x.id === g.idMaestro; })[0];
-  var waMae = (m && m.whatsapp) || g.whatsappMaestro || '';
-  if (!waMae) { alert('El maestro de este grupo no tiene WhatsApp registrado.'); return; }
+  var lineas = g.alumnos.map(function(a) {
+    return '• *' + (a.nombre || '') + '* (' + (a.idAlumno || '') + ') — ' + (a.porcentajeActual != null ? a.porcentajeActual : '—') + '%';
+  }).join('\n');
 
-  var pct = a.porcentajeActual != null ? a.porcentajeActual : '—';
-  var msg = 'Hola ' + (m && m.nombre ? m.nombre : 'maestro(a)') + ', te contactamos de Coordinación Académica de Organic English. 📚\n\n' +
-    'Hemos notificado al alumno *' + a.nombre + '* (' + idAlumno + ') del grupo *' + idGrupo + '* sobre su bajo rendimiento actual (' + pct + '%, por debajo del 70% mínimo).\n\n' +
-    'Le pedimos que se ponga en contacto contigo para que juntos revisen cómo mejorar su desempeño. 🙏\n\n' +
-    'Por favor, cuando lo contacte, dedica unos minutos para ver qué temas necesita reforzar y armen juntos un plan de mejora. Gracias por tu apoyo.';
+  var msg = 'Hola ' + (g.maestroNombre || 'maestro(a)') + ', te contactamos de Coordinación Académica de Organic English. 📚\n\n' +
+    'En tu grupo *' + g.id + ' · ' + (g.nombre || '') + '* (' + (g.horario || '') + ') tenemos los siguientes alumnos con bajo rendimiento (promedio menor al 70%):\n\n' +
+    lineas + '\n\n' +
+    'Ya notificamos a cada uno por WhatsApp para que se pongan en contacto contigo. 🙏\n\n' +
+    'Por favor, cuando lo hagan, dedica unos minutos a cada uno para revisar qué temas necesitan reforzar y armen juntos un plan de mejora. Gracias por tu apoyo.';
 
-  window.open('https://wa.me/' + cleanWA(waMae) + '?text=' + encodeURIComponent(msg), '_blank');
+  window.open('https://wa.me/' + cleanWA(g.whatsappMaestro) + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 // ─────────────────────────────────────────────────────────────────
