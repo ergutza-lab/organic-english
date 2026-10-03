@@ -314,6 +314,7 @@
         <button class="btn-sm" style="border-color:rgba(249,115,22,0.4);color:#fdba74;" onclick="abrirModalCobertura()">🔁 Clase de Cobertura</button>
         <button class="btn-sm" style="border-color:rgba(250,204,21,0.5);color:#fde047;background:rgba(250,204,21,0.08);" onclick="abrirModalBajoRendimiento()">📉 Bajo Rendimiento</button>
         <button class="btn-sm" style="border-color:rgba(239,68,68,0.5);color:#fca5a5;background:rgba(239,68,68,0.08);" onclick="abrirModalGrandChallengeFallido()">🚫 Reprobados</button>
+        <button class="btn-sm" style="border-color:rgba(139,92,246,0.5);color:#c4b5fd;background:rgba(139,92,246,0.08);" onclick="abrirModalAuditoriaRegistros()">🔍 Auditoría</button>
         <div class="avatar" id="avatarInitials">CA</div>
         <button class="btn-logout" onclick="logout()">Salir</button>
       </div>
@@ -4579,6 +4580,137 @@ function formatFechaCA(iso){
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  AUDITORÍA DE REGISTROS DE ASISTENCIA
+// ═══════════════════════════════════════════════════════════════════════════
+var auditoriaRegistrosData = [];
+
+function abrirModalAuditoriaRegistros() {
+  document.getElementById('modalAuditoriaRegistros').style.display = 'flex';
+  var body = document.getElementById('auditoriaRegistrosBody');
+  body.innerHTML = '<div class="empty-state">Analizando registros de todos los grupos... puede tardar unos segundos.</div>';
+
+  fetch(APPS_SCRIPT + '?action=getReporteDiasSinRegistro', { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data || !data.success) {
+        body.innerHTML = '<div class="empty-state" style="color:#f87171;">' + ((data && data.error) || 'Error al cargar.') + '</div>';
+        return;
+      }
+      auditoriaRegistrosData = data.grupos || [];
+      renderAuditoriaRegistros();
+    })
+    .catch(function(){
+      body.innerHTML = '<div class="empty-state" style="color:#f87171;">Error de conexión.</div>';
+    });
+}
+
+function cerrarModalAuditoriaRegistros() {
+  document.getElementById('modalAuditoriaRegistros').style.display = 'none';
+  auditoriaRegistrosData = [];
+}
+
+function renderAuditoriaRegistros() {
+  var body = document.getElementById('auditoriaRegistrosBody');
+  if (!auditoriaRegistrosData.length) {
+    body.innerHTML = '<div class="empty-state">✅ Todos los grupos tienen registro completo en sus días hábiles.</div>';
+    return;
+  }
+
+  var totalGrupos = auditoriaRegistrosData.length;
+  var totalDiasFaltantes = auditoriaRegistrosData.reduce(function(s, g){ return s + g.totalDiasFaltantes; }, 0);
+  var peorGrupo = auditoriaRegistrosData[0];
+
+  var html = '';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">' +
+    '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px;">' +
+      '<div style="font-size:22px;font-weight:800;color:#f87171;">' + totalGrupos + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Grupos afectados</div>' +
+    '</div>' +
+    '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:12px;">' +
+      '<div style="font-size:22px;font-weight:800;color:#fde047;">' + totalDiasFaltantes + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Días sin registro total</div>' +
+    '</div>' +
+    '<div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px;">' +
+      '<div style="font-size:22px;font-weight:800;color:#93c5fd;">' + peorGrupo.id + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Más afectado (' + peorGrupo.totalDiasFaltantes + ' días)</div>' +
+    '</div>' +
+  '</div>';
+
+  html += '<div style="margin-bottom:16px;">' +
+    '<button onclick="exportarAuditoriaRegistros()" style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">⬇ Exportar CSV</button>' +
+  '</div>';
+
+  auditoriaRegistrosData.forEach(function(g) {
+    var color = g.totalDiasFaltantes >= 5 ? '#ef4444' : g.totalDiasFaltantes >= 3 ? '#f59e0b' : '#eab308';
+
+    var diasTxt = g.diasFaltantes.map(function(iso) {
+      var p = iso.split('-');
+      return p[2] + '/' + p[1];
+    }).join(', ');
+
+    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);">' + g.id + ' · ' + (g.nombre || g.nivel || '') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">🕒 ' + (g.horario || '—') + ' · 👨‍🏫 ' + (g.maestroNombre || '—') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">📅 Inició: ' + g.fechaInicio + ' · ' + g.totalDiasConRegistro + '/' + g.totalDiasEsperados + ' días con registro (' + g.porcentajeCompletitud + '%)</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:24px;font-weight:800;color:' + color + ';">' + g.totalDiasFaltantes + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">sin registro</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="margin-top:10px;padding:8px 10px;background:rgba(239,68,68,0.06);border-left:3px solid ' + color + ';border-radius:0 6px 6px 0;font-size:11px;color:#cbd5e1;line-height:1.5;word-break:break-word;">' +
+        '<strong style="color:' + color + ';">Fechas faltantes:</strong> ' + diasTxt +
+      '</div>' +
+    '</div>';
+  });
+
+  body.innerHTML = html;
+}
+
+function exportarAuditoriaRegistros() {
+  if (!auditoriaRegistrosData.length) return;
+
+  var rows = [['Grupo', 'Nombre', 'Nivel', 'Horario', 'Maestro', 'Fecha Inicio', 'Días Esperados', 'Días con Registro', 'Días Faltantes', '% Completitud', 'Fechas Faltantes']];
+
+  auditoriaRegistrosData.forEach(function(g) {
+    rows.push([
+      g.id,
+      g.nombre,
+      g.nivel,
+      g.horario,
+      g.maestroNombre,
+      g.fechaInicio,
+      g.totalDiasEsperados,
+      g.totalDiasConRegistro,
+      g.totalDiasFaltantes,
+      g.porcentajeCompletitud + '%',
+      g.diasFaltantes.join(' | ')
+    ]);
+  });
+
+  var csv = rows.map(function(r) {
+    return r.map(function(c) {
+      var s = String(c == null ? '' : c);
+      if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }).join(',');
+  }).join('\n');
+
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'auditoria_registros_' + new Date().toISOString().substring(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+ 
 </script>
 
 <style>
@@ -4680,6 +4812,22 @@ document.addEventListener('click', function (e) {
   </div>
 </div>
 
+<!-- ═══ MODAL: AUDITORÍA DE REGISTROS ═══ -->
+<div id="modalAuditoriaRegistros" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.78);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border-radius:16px;width:96%;max-width:1100px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(139,92,246,0.04));">
+      <div>
+        <h3 style="color:#c4b5fd;margin:0;font-size:16px;">🔍 Auditoría de registros de asistencia</h3>
+        <p style="font-size:12px;color:var(--muted);margin:4px 0 0 0;">Grupos con días hábiles sin ningún registro en REGISTRO_DIARIO.</p>
+      </div>
+      <button onclick="cerrarModalAuditoriaRegistros()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:5px 12px;cursor:pointer;font-weight:700;">✕</button>
+    </div>
+    <div id="auditoriaRegistrosBody" style="padding:20px 24px;overflow-y:auto;flex:1;">
+      <div class="empty-state">Cargando...</div>
+    </div>
+  </div>
+</div>
+ 
 <!-- ═══ MODAL: GRAND CHALLENGE FALLIDO ═══ -->
 <div id="modalGrandChallengeFallido" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.78);align-items:center;justify-content:center;padding:16px;">
   <div style="background:var(--surface);border-radius:16px;width:96%;max-width:1080px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;">
