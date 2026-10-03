@@ -1257,7 +1257,7 @@ function lenteSVG_color(pct){
 function renderMaestrosBurbujas(){
   var grid=document.getElementById('maestrosGrid');
   if(!maestrosData.length){grid.innerHTML='<div class="empty-state">Sin maestros registrados</div>';return;}
-  var maestrosFiltrados=maestrosData.filter(function(m){return m.id!=='VID';});
+    var maestrosFiltrados=maestrosData.filter(function(m){return m.id!=='VID' && m.activo;});
   var buscarEl = document.getElementById('buscarMaestro');
   var q = buscarEl ? (buscarEl.value||'').trim().toLowerCase() : '';
   if (q) {
@@ -5310,28 +5310,7 @@ function verGrupoReprobados(idGrupo) {
       panelHtml = renderPanelAsistencia(a);
     }
 
-    // Grupo propuesto
-    var propuesta = a.grupoPropuesto;
-    var propuestaHtml = '';
-    if (propuesta) {
-      propuestaHtml =
-        '<div style="margin-top:12px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px 14px;">' +
-          '<div style="font-size:10px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🎯 Grupo sugerido para repetir el bloque</div>' +
-          '<div style="font-size:13px;font-weight:700;color:var(--text);">' + propuesta.id + ' · ' + (propuesta.nombre || '') + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">🕒 ' + (propuesta.horario || '—') + ' · 📅 Inicia: ' + (propuesta.fechaInicio || '—') + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">👨‍🏫 ' + (propuesta.maestroNombre || propuesta.idMaestro || '—') + ' · 👥 ' + (propuesta.inscritos || 0) + ' inscritos</div>' +
-          '<button onclick="moverAlumnoGrupoPropuesto(\'' + a.idAlumno + '\',\'' + g.id + '\',\'' + propuesta.id + '\')" ' +
-            'style="margin-top:10px;width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">' +
-            '➡️ Mover a este grupo' +
-          '</button>' +
-        '</div>';
-    } else {
-      propuestaHtml =
-        '<div style="margin-top:12px;background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.3);border-radius:10px;padding:10px 14px;font-size:12px;color:#fde047;">' +
-          '⚠️ No se encontró un grupo disponible para repetir el bloque. Contacta al alumno para informarle.' +
-        '</div>';
-    }
-
+    
     html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
         '<div style="flex:1;min-width:180px;">' +
@@ -5354,7 +5333,7 @@ function verGrupoReprobados(idGrupo) {
         '<button onclick="contactarAlumnoReprobado(\'' + a.idAlumno + '\')" ' +
           'style="flex:1;min-width:160px;background:rgba(59,130,246,0.15);color:#93c5fd;border:1px solid rgba(59,130,246,0.4);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;">💬 Contactar al alumno</button>' +
       '</div>' +
-      propuestaHtml +
+      
       panelHtml +
     '</div>';
   });
@@ -5388,19 +5367,11 @@ function contactarAlumnoReprobado(idAlumno) {
   if (!a.whatsapp) { alert('Este alumno no tiene WhatsApp registrado.'); return; }
 
   var pct = a.porcentajeBloqueReprobado != null ? a.porcentajeBloqueReprobado : '—';
-  var propuesta = a.grupoPropuesto;
-  var textoPropuesta = propuesta
-    ? '\n\n🎯 Te proponemos unirte al grupo *' + propuesta.id + '* (' + (propuesta.nombre || '') + ') ' +
-      'con horario *' + (propuesta.horario || '—') + '*, que inicia el *' + (propuesta.fechaInicio || '—') + '*, ' +
-      'para volver a cursar el Bloque ' + a.bloqueReprobado + ' y afianzar los temas.'
-    : '\n\nEn breve te contactaremos para darte una opción de grupo para repetir el bloque.';
-
     var nombreBloque = a.nombreBloqueReprobado || ('Bloque ' + a.bloqueReprobado);
   var msg = 'Hola ' + (a.nombre || '') + ', te saludamos de Coordinación Académica de Organic English. 👋\n\n' +
     'Revisando tu desempeño, encontramos que en *' + nombreBloque + '* obtuviste *' + pct + '%*, ' +
-    'por debajo del 70% mínimo requerido. ¡No te desanimes! 💪' +
-    textoPropuesta +
-    '\n\n¿Nos confirmas si te gustaría incorporarte a este grupo para reforzar y avanzar con todo?';
+    'por debajo del 70% mínimo requerido. Por eso necesitas volver a cursar ese bloque. 💪\n\n' +
+    'Control Escolar se pondrá en contacto contigo para definir, junto contigo, el grupo y horario que mejor te acomoden para repetir el bloque.';
 
   window.open('https://wa.me/' + cleanWA(a.whatsapp) + '?text=' + encodeURIComponent(msg), '_blank');
 }
@@ -5420,7 +5391,7 @@ function notificarMaestroReprobados(idGrupo) {
     'En tu grupo *' + g.id + ' · ' + (g.nombre || '') + '* (' + (g.horario || '') + ') tenemos los siguientes alumnos que ' +
     '*no alcanzaron el 70% mínimo* en *' + nombreBloque + '*:\n\n' +
     lineas + '\n\n' +
-    'Estos alumnos necesitan volver a cursar ese bloque. Vamos a estar en contacto con cada uno para moverlos al grupo correspondiente. Gracias.';
+        'Estos alumnos necesitan volver a cursar ese bloque. Control Escolar se coordinará con cada uno para asignarles el grupo y horario correspondiente. Gracias.';
   window.open('https://wa.me/' + cleanWA(g.whatsappMaestro) + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
