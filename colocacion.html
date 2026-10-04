@@ -359,6 +359,29 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+
+  // ── Helper: formatear nivel+bloque+lección tipo "A1.2 LESSON 24" ──
+  function formatNivelBloqueColoc_(nivelRaw, bloqueActual) {
+    var nivel = String(nivelRaw || '').trim();
+    var m = nivel.match(/([A-Za-z]+\d+)/);
+    var base = m ? m[1].toUpperCase() : nivel;
+    if (bloqueActual === 1 || bloqueActual === 2) return base + '.' + bloqueActual;
+    return base;
+  }
+  function esNombreGrupoKidsColoc_(nombre) {
+    var n = String(nombre || '').trim().toUpperCase();
+    return n === 'KIDS' || n === 'KIDS JR';
+  }
+  function formatearAvanceGrupo_(g) {
+    if (!g || g.bloqueActual == null || g.leccionActual == null) return '';
+    var nivelFmt = formatNivelBloqueColoc_(g.nivel, g.bloqueActual);
+    var leccionPad = String(g.leccionActual).length < 2 ? '0' + g.leccionActual : String(g.leccionActual);
+    var tipoLeccion = esNombreGrupoKidsColoc_(g.nombre) ? 'MISSION' : 'LESSON';
+    return nivelFmt + ' ' + tipoLeccion + ' ' + leccionPad;
+  }
+
+  function cleanWA(p){
+ 
   function cleanWA(p){
     var n=(p||'').toString().replace(/\D/g,'');
     if(!n) return n;
@@ -610,7 +633,7 @@
           '<div><div class="g-id"><span style="background:' + colorNivel + ';color:#fff;border-radius:100px;padding:2px 10px;font-weight:700;">' + g.idGrupo + '</span> — <span style="color:' + colorNombre + ';font-weight:700;">' + g.nombre + '</span></div><div class="g-horario">' + g.horario + ' · Lun a Jue</div></div>' +
           '<div class="g-estado">Asistente CE:<br><span>' + (g.asistente || '—') + '</span></div>' +
           '<div class="g-estado">Maestro:<br><span>' + (g.maestro || '—') + '</span></div>' +
-          '<div class="g-estado">' + (g.estado || '') + '</div>' +
+                    '<div class="g-estado" style="font-weight:700;color:#fbbf24;">📘 ' + (formatearAvanceGrupo_(g) || '—') + '</div>' +
           '<div class="g-plazas' + (pocas ? ' pocas' : '') + '"><span class="num">' + g.lugares + '</span><span class="label">plazas</span></div>' +
         '</div>';
       });
@@ -745,8 +768,9 @@ function toggleNivel(id, btn) {
           '<span class="go-id">' + g.idGrupo + ' — ' + g.nombre + '</span>' +
           '<span class="go-plazas' + (pocas ? ' pocas' : '') + '">' + g.lugares + ' plazas</span>' +
         '</div>' +
-        '<div class="go-detalle">' + g.horario + ' · <span style="color:#fff;font-weight:700;">' + g.nivel + '</span></div>' +
-        '<div class="go-estado">' + (g.estado||'') + ' · CE: ' + (g.asistente||'—') + ' · Maestro: ' + (g.maestro||'—') + '</div>' +
+                '<div class="go-detalle">' + g.horario + ' · <span style="color:#fff;font-weight:700;">' + g.nivel + '</span></div>' +
+        '<div class="go-detalle" style="margin-top:4px;font-weight:700;color:#fbbf24;">📘 ' + (formatearAvanceGrupo_(g) || '—') + '</div>' +
+        '<div class="go-estado">CE: ' + (g.asistente||'—') + ' · Maestro: ' + (g.maestro||'—') + '</div>' +
       '</div>';
     }).join('');
   }
