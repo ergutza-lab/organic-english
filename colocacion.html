@@ -830,21 +830,30 @@ function toggleNivel(id, btn) {
       '&idColocador=' + encodeURIComponent(colocadorData.id))
       .then(r => r.json())
       .then(data => {
-        btn.textContent = 'Confirmar asignación';
-        cerrarModalAsignacion();
-        if (data.success) {
-          notifData = data;
-          if (!notifData.alumnoWA) notifData.alumnoWA = alumnoWAActual;
-          document.getElementById('modalNotifTitulo').textContent = 'Asignación completada';
-          document.getElementById('modalNotifMensaje').textContent =
-            'Envía los 3 avisos. Puedes hacerlo en cualquier orden, pero no cierres hasta enviar los 3.';
-          resetBotonesNotif();
-          document.getElementById('modalNotificacion').classList.add('active');
-          cargarDatos(); // refresca listas con id incluido
-        } else {
-          alert('Error: ' + (data.error || 'Intenta de nuevo.'));
-        }
-      })
+  btn.textContent = 'Confirmar asignación';
+  cerrarModalAsignacion();
+  if (data.success) {
+    notifData = data;
+    if (!notifData.alumnoWA) notifData.alumnoWA = alumnoWAActual;
+
+    // ══════════ ALERTA DE CORREO ══════════
+    if (data.correoEnviado === false) {
+      alert('⚠️ El grupo se asignó correctamente, PERO el correo de bienvenida NO se pudo enviar.\n\n' +
+            'Motivo del sistema: ' + (data.correoError || 'desconocido') + '\n\n' +
+            'Avisa a sistemas o reenvíalo manualmente desde "Mis alumnos" (módulo del asesor).');
+    }
+    // ══════════════════════════════════════
+
+    document.getElementById('modalNotifTitulo').textContent = 'Asignación completada';
+    document.getElementById('modalNotifMensaje').textContent =
+      'Envía los 3 avisos. Puedes hacerlo en cualquier orden, pero no cierres hasta enviar los 3.';
+    resetBotonesNotif();
+    document.getElementById('modalNotificacion').classList.add('active');
+    cargarDatos();
+  } else {
+    alert('Error: ' + (data.error || 'Intenta de nuevo.'));
+  }
+})
       .catch(() => {
         btn.textContent = 'Confirmar asignación'; btn.disabled = false;
         alert('Error de conexión.');
