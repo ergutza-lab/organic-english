@@ -10294,18 +10294,46 @@ function renderDetalleEvalIzq(d) {
 }
 
 // Helper: calcula la fecha real de un día del calendario
-function _fechaDiaCalendario_(fechaInicioISO, sem, diaIdx) {
-  if (!fechaInicioISO) return null;
-  var inicio = new Date(fechaInicioISO);
-  if (isNaN(inicio.getTime())) return null;
+function _fechaDiaCalendario_(fechaInicioRaw, sem, diaIdx) {
+  if (!fechaInicioRaw) return null;
+  var inicio = null;
+
+  // Acepta Date nativo
+  if (fechaInicioRaw instanceof Date) {
+    if (isNaN(fechaInicioRaw.getTime())) return null;
+    inicio = new Date(fechaInicioRaw.getFullYear(), fechaInicioRaw.getMonth(), fechaInicioRaw.getDate());
+  } else {
+    var s = String(fechaInicioRaw).trim();
+
+    // Formato yyyy-MM-dd
+    var m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    // Formato dd/MM/yyyy o dd-MM-yyyy
+    var m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+
+    if (m1) {
+      inicio = new Date(parseInt(m1[1], 10), parseInt(m1[2], 10) - 1, parseInt(m1[3], 10));
+    } else if (m2) {
+      inicio = new Date(parseInt(m2[3], 10), parseInt(m2[2], 10) - 1, parseInt(m2[1], 10));
+    } else {
+      var d = new Date(s);
+      if (isNaN(d.getTime())) return null;
+      inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+  }
+
+  inicio.setHours(0, 0, 0, 0);
+
+  // Lunes de la semana 1 (la semana donde cae fechaInicio)
   var dow = inicio.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
   var diasAlLunes = (dow === 0) ? -6 : (1 - dow);
   var lunesSem1 = new Date(inicio);
   lunesSem1.setDate(inicio.getDate() + diasAlLunes);
   lunesSem1.setHours(0, 0, 0, 0);
+
   var offset = (sem - 1) * 7 + diaIdx;
   var fecha = new Date(lunesSem1);
   fecha.setDate(lunesSem1.getDate() + offset);
+  fecha.setHours(0, 0, 0, 0);
   return fecha;
 }
 
@@ -10333,7 +10361,7 @@ function renderDetalleEvalDer(d) {
   html += '<div style="font-size:10px;color:#94a3b8;">' + (esSabatino ? '1 clase por semana (Sábado)' : '4 clases por semana (Lun–Jue)') + '</div>';
   html += '</div>';
 
-  // ═══ LEYENDA ACTUALIZADA ═══
+  // Leyenda
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;"></span> Azul</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Verde</span>';
@@ -10347,7 +10375,6 @@ function renderDetalleEvalDer(d) {
   var colorMap = { 1: '#ef4444', 2: '#facc15', 3: '#22c55e', 4: '#3b82f6' };
   var diasNombres = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-  // Días activos según tipo
   var diasActivos = esSabatino ? [5] : [0, 1, 2, 3];
   function esDiaActivo_(idx) { return diasActivos.indexOf(idx) !== -1; }
 
@@ -10385,33 +10412,36 @@ function renderDetalleEvalDer(d) {
 
     html += '<div style="display:flex;gap:6px;align-items:center;background:' + bgColor + ';border:1px solid ' + bordeColor + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
 
-    // Etiqueta semana
     html += '<div style="width:70px;flex-shrink:0;font-size:11px;font-weight:700;color:' + textoColor + ';line-height:1.15;">';
     html += 'Sem ' + s;
     if (esMini)  html += '<br><span style="font-size:9px;">⭐ Mini</span>';
     if (esGrand) html += '<br><span style="font-size:9px;">🏆 Grand</span>';
     html += '</div>';
 
-    // 7 columnas
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
       var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di);
-      var esFuturo = fechaDia ? (fechaDia.getTime() > hoy.getTime()) : false;
-      var esHoy    = fechaDia ? (fechaDia.getTime() === hoy.getTime()) : false;
+
+      // ═══ FIX CLAVE: si NO hay fecha calculable, NUNCA marcar X ═══
+      // Solo se marca X si tenemos una fecha válida Y esa fecha ya pasó.
+      var hayFechaValida = !!(fechaDia && !isNaN(fechaDia.getTime()));
+      var esFuturo = hayFechaValida ? (fechaDia.getTime() > hoy.getTime()) : true;   // sin fecha → tratar como futuro
+      var esHoy    = hayFechaValida ? (fechaDia.getTime() === hoy.getTime()) : false;
+      var esPasado = hayFechaValida && (fechaDia.getTime() < hoy.getTime());
 
       if (!activo) {
         // Día no activo para este tipo de grupo
         html += '<div title="' + diasNombres[di] + ' — sin clase" style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
 
       } else if (!rec) {
-        if (esFuturo || esHoy) {
-          // Día activo pero aún no pasa (o es hoy) → vacío
-          html += '<div title="' + diasNombres[di] + ' — pendiente" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
-        } else {
-          // Día activo pasado SIN registro → ERROR del maestro (X roja)
-          var fechaTxt = fechaDia ? (fechaDia.getDate() + '/' + (fechaDia.getMonth() + 1)) : diasNombres[di];
+        if (esPasado) {
+          // Día activo, ya pasó, sin registro → ERROR del maestro (X roja)
+          var fechaTxt = fechaDia.getDate() + '/' + (fechaDia.getMonth() + 1);
           html += '<div title="' + fechaTxt + ' · SIN REGISTRO (revisar con el maestro)" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#f87171;">✕</div>';
+        } else {
+          // Día futuro, hoy, o sin fecha calculable → vacío (aún puede registrarse)
+          html += '<div title="' + diasNombres[di] + ' — pendiente" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
         }
 
       } else if (rec.asistio === false || rec.color == null) {
@@ -10434,7 +10464,7 @@ function renderDetalleEvalDer(d) {
 
   html += '</div>';
 
-  // ═══ OBSERVACIONES RECIENTES ═══
+  // Observaciones
   html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;">';
   html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">💬 Observaciones recientes del maestro</div>';
   var obs = d.observaciones || [];
