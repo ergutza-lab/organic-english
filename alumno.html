@@ -10351,13 +10351,9 @@ function renderDetalleEvalDer(d) {
     }
   }
 
-  var semanaActualBloque = parseInt(d.semanaEnBloque, 10);
-  if (isNaN(semanaActualBloque) || semanaActualBloque < 1) semanaActualBloque = 1;
-  if (semanaActualBloque > 8) semanaActualBloque = 8;
-
+  var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
   var hoy = new Date();
-  var dowHoy = hoy.getDay();
-  if (dowHoy === 0) dowHoy = 7;
+  hoy.setHours(0, 0, 0, 0);
 
   html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
@@ -10418,8 +10414,10 @@ function renderDetalleEvalDer(d) {
     else if (esGrand) { bordeColor = 'rgba(239,68,68,0.5)';  bgColor = 'rgba(239,68,68,0.12)';  textoColor = '#f87171'; }
     else              { bordeColor = 'rgba(255,255,255,0.06)'; bgColor = 'rgba(255,255,255,0.03)'; textoColor = '#94a3b8'; }
 
-    var esSemanaFutura  = s > semanaActualBloque;
-    var esSemanaPasada  = s < semanaActualBloque;
+    var esSemanaFutura  = s > (parseInt(d.semanaEnBloque, 10) || 1);
+    var esSemanaPasada  = s < (parseInt(d.semanaEnBloque, 10) || 1);
+    var dowHoy = hoy.getDay();
+    if (dowHoy === 0) dowHoy = 7;
 
     html += '<div style="display:flex;gap:6px;align-items:center;background:' + bgColor + ';border:1px solid ' + bordeColor + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
 
@@ -10432,17 +10430,24 @@ function renderDetalleEvalDer(d) {
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
+      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di);
+      var diaNum = fechaDia ? fechaDia.getDate() : '';
 
       if (!activo) {
-        html += '<div title="' + diasNombres[di] + ' — sin clase" style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
+        html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
 
       } else if (rec) {
         if (rec.asistio === false || rec.color == null) {
-          html += '<div title="' + (rec.fecha || '') + ' · Falta' + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g, '&quot;') : '') + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#cbd5e1;">F</div>';
+          // F de Falta, con día del mes
+          html += '<div title="' + (rec.fecha || '') + ' · Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#cbd5e1;gap:3px;">' +
+            (diaNum ? '<span style="opacity:0.55;font-size:9px;">' + diaNum + '</span>' : '') +
+            '<span>F</span></div>';
         } else {
           var col = colorMap[rec.color] || '#94a3b8';
           var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
-          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g, '&quot;') : '') + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>';
+          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+            (diaNum ? '<span style="color:rgba(255,255,255,0.9);font-size:11px;font-weight:800;">' + diaNum + '</span>' : '') +
+          '</div>';
         }
 
       } else {
@@ -10456,9 +10461,14 @@ function renderDetalleEvalDer(d) {
 
         if (mostrarX) {
           totalSinRegistro++;
-          html += '<div title="Sin registro (revisar con el maestro)" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#f87171;">✕</div>';
+          html += '<div title="' + (fechaDia ? Utilities_formatDate_(fechaDia) : '') + ' · Sin registro" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;">' +
+            (diaNum ? '<span style="color:#f87171;font-size:10px;font-weight:700;opacity:0.8;">' + diaNum + '</span>' : '') +
+            '<span style="color:#f87171;font-size:14px;font-weight:900;">✕</span>' +
+          '</div>';
         } else {
-          html += '<div title="' + diasNombres[di] + ' — pendiente" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
+          html += '<div title="' + diasNombres[di] + ' — pendiente" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;">' +
+            (diaNum ? '<span style="color:#475569;font-size:10px;">' + diaNum + '</span>' : '') +
+          '</div>';
         }
       }
     }
@@ -10469,16 +10479,13 @@ function renderDetalleEvalDer(d) {
     html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  //  NOTA CONDICIONAL: solo si hay al menos 1 ✕ en el calendario
-  // ═══════════════════════════════════════════════════════════════════
+  // Nota condicional
   if (totalSinRegistro > 0) {
     html += '<div style="margin-top:12px;padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:10px;display:flex;gap:10px;align-items:flex-start;">';
     html += '<div style="font-size:20px;line-height:1;flex-shrink:0;">✕</div>';
     html += '<div style="flex:1;font-size:12px;line-height:1.5;color:#e2e8f0;">';
     html += '<strong style="color:#f87171;">Detectamos ' + totalSinRegistro + ' día' + (totalSinRegistro !== 1 ? 's' : '') + ' sin registro de tu evaluación.</strong><br>';
-    html += 'Esto puede ser un error del sistema, o que tu maestro no registró la clase de ese día. ';
-    html += 'Te pedimos <strong style="color:#fbbf24;">comunicarte con tu maestro</strong> para revisarlo juntos y que se corrija la evaluación. 🙏';
+    html += 'Te pedimos <strong style="color:#fbbf24;">comunicarte con tu maestro</strong> para revisar esos días. Los números dentro de cada cuadro indican el día del mes. 🙏';
     html += '</div></div>';
   }
 
@@ -10502,6 +10509,13 @@ function renderDetalleEvalDer(d) {
   html += '</div>';
 
   document.getElementById('detalleEvalDer').innerHTML = html;
+}
+
+// Helper: formatear fecha como "15 oct"
+function Utilities_formatDate_(d) {
+  if (!d || isNaN(d.getTime())) return '';
+  var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return d.getDate() + ' ' + meses[d.getMonth()];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
