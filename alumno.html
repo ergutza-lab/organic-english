@@ -10351,20 +10351,13 @@ function renderDetalleEvalDer(d) {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  //  SEMANA ACTUAL DEL BLOQUE (1-8). Es el dato maestro que decide si
-  //  una semana es pasada, actual o futura. Más confiable que calcular
-  //  fechas exactas día por día.
-  // ═══════════════════════════════════════════════════════════════════
   var semanaActualBloque = parseInt(d.semanaEnBloque, 10);
   if (isNaN(semanaActualBloque) || semanaActualBloque < 1) semanaActualBloque = 1;
   if (semanaActualBloque > 8) semanaActualBloque = 8;
 
-  // Día de la semana de HOY (1=Lun ... 7=Dom) para saber si dentro de la
-  // semana actual, el día específico ya pasó o no.
   var hoy = new Date();
-  var dowHoy = hoy.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
-  if (dowHoy === 0) dowHoy = 7; // Domingo → 7
+  var dowHoy = hoy.getDay();
+  if (dowHoy === 0) dowHoy = 7;
 
   html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
@@ -10388,8 +10381,7 @@ function renderDetalleEvalDer(d) {
 
   var diasActivos = esSabatino ? [5] : [0, 1, 2, 3];
   function esDiaActivo_(idx) { return diasActivos.indexOf(idx) !== -1; }
-  // Número de día de la semana (1=Lun ... 7=Dom) que corresponde a cada columna
-  function diaSemanaDeCol_(idx) { return idx + 1; } // 0→1 (Lun), 1→2 (Mar), ..., 5→6 (Sáb), 6→7 (Dom)
+  function diaSemanaDeCol_(idx) { return idx + 1; }
 
   // Agrupar registros por semana/día
   var semanas = {};
@@ -10404,6 +10396,9 @@ function renderDetalleEvalDer(d) {
       if (dia >= 1 && dia <= 4) semanas[sem][dia - 1] = c;
     }
   });
+
+  // ═══ Contador de ✕ para la nota final ═══
+  var totalSinRegistro = 0;
 
   // Header de días
   html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
@@ -10423,7 +10418,6 @@ function renderDetalleEvalDer(d) {
     else if (esGrand) { bordeColor = 'rgba(239,68,68,0.5)';  bgColor = 'rgba(239,68,68,0.12)';  textoColor = '#f87171'; }
     else              { bordeColor = 'rgba(255,255,255,0.06)'; bgColor = 'rgba(255,255,255,0.03)'; textoColor = '#94a3b8'; }
 
-    // ═══ ¿Esta semana ya pasó, es la actual, o es futura? ═══
     var esSemanaFutura  = s > semanaActualBloque;
     var esSemanaPasada  = s < semanaActualBloque;
 
@@ -10440,13 +10434,10 @@ function renderDetalleEvalDer(d) {
       var rec = semanas[s][di];
 
       if (!activo) {
-        // Día no activo → rayado muy tenue
         html += '<div title="' + diasNombres[di] + ' — sin clase" style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
 
       } else if (rec) {
-        // Hay registro
         if (rec.asistio === false || rec.color == null) {
-          // Falta
           html += '<div title="' + (rec.fecha || '') + ' · Falta' + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g, '&quot;') : '') + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#cbd5e1;">F</div>';
         } else {
           var col = colorMap[rec.color] || '#94a3b8';
@@ -10455,22 +10446,16 @@ function renderDetalleEvalDer(d) {
         }
 
       } else {
-        // Sin registro — decidir si corresponde ✕ o vacío
         var mostrarX = false;
-
         if (esSemanaPasada) {
-          // Semana pasada completa → si no hay registro, es error del maestro
           mostrarX = true;
         } else if (!esSemanaFutura) {
-          // Semana actual: solo marcar ✕ si el día concreto ya pasó
-          var diaCol = diaSemanaDeCol_(di); // 1=Lun ... 7=Dom
-          if (diaCol < dowHoy) {
-            mostrarX = true;
-          }
+          var diaCol = diaSemanaDeCol_(di);
+          if (diaCol < dowHoy) mostrarX = true;
         }
-        // esSemanaFutura → nunca X
 
         if (mostrarX) {
+          totalSinRegistro++;
           html += '<div title="Sin registro (revisar con el maestro)" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#f87171;">✕</div>';
         } else {
           html += '<div title="' + diasNombres[di] + ' — pendiente" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
@@ -10482,6 +10467,19 @@ function renderDetalleEvalDer(d) {
 
   if (cal.length === 0) {
     html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  NOTA CONDICIONAL: solo si hay al menos 1 ✕ en el calendario
+  // ═══════════════════════════════════════════════════════════════════
+  if (totalSinRegistro > 0) {
+    html += '<div style="margin-top:12px;padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:10px;display:flex;gap:10px;align-items:flex-start;">';
+    html += '<div style="font-size:20px;line-height:1;flex-shrink:0;">✕</div>';
+    html += '<div style="flex:1;font-size:12px;line-height:1.5;color:#e2e8f0;">';
+    html += '<strong style="color:#f87171;">Detectamos ' + totalSinRegistro + ' día' + (totalSinRegistro !== 1 ? 's' : '') + ' sin registro de tu evaluación.</strong><br>';
+    html += 'Esto puede ser un error del sistema, o que tu maestro no registró la clase de ese día. ';
+    html += 'Te pedimos <strong style="color:#fbbf24;">comunicarte con tu maestro</strong> para revisarlo juntos y que se corrija la evaluación. 🙏';
+    html += '</div></div>';
   }
 
   html += '</div>';
