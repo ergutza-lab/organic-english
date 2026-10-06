@@ -10293,11 +10293,27 @@ function renderDetalleEvalIzq(d) {
   document.getElementById('detalleEvalIzq').innerHTML = html;
 }
 
+// Helper: calcula la fecha real de un día del calendario
+function _fechaDiaCalendario_(fechaInicioISO, sem, diaIdx) {
+  if (!fechaInicioISO) return null;
+  var inicio = new Date(fechaInicioISO);
+  if (isNaN(inicio.getTime())) return null;
+  var dow = inicio.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+  var diasAlLunes = (dow === 0) ? -6 : (1 - dow);
+  var lunesSem1 = new Date(inicio);
+  lunesSem1.setDate(inicio.getDate() + diasAlLunes);
+  lunesSem1.setHours(0, 0, 0, 0);
+  var offset = (sem - 1) * 7 + diaIdx;
+  var fecha = new Date(lunesSem1);
+  fecha.setDate(lunesSem1.getDate() + offset);
+  return fecha;
+}
+
 function renderDetalleEvalDer(d) {
   var html = '';
   var cal = d.calendario || [];
 
-  // Detectar si el grupo es sabatino
+  // Detectar grupo sabatino
   var esSabatino = false;
   if (alumnoData && alumnoData.grupo) {
     var tipo = String(alumnoData.grupo.tipoHorario || '').toLowerCase();
@@ -10307,78 +10323,65 @@ function renderDetalleEvalDer(d) {
     }
   }
 
+  var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
+  var hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
   html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
-  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque||1) + '</div>';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque || 1) + '</div>';
   html += '<div style="font-size:10px;color:#94a3b8;">' + (esSabatino ? '1 clase por semana (Sábado)' : '4 clases por semana (Lun–Jue)') + '</div>';
   html += '</div>';
 
-  // Leyenda
+  // ═══ LEYENDA ACTUALIZADA ═══
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Amarillo</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Verde</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;"></span> Azul</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#334155;border-radius:2px;vertical-align:middle;"></span> Ausente</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Verde</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Amarillo</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">F</span> Falta</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);color:#f87171;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">✕</span> Sin registro</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;"></span> Sin clase</span>';
   html += '</div>';
 
-  var colorMap = {1:'#ef4444', 2:'#facc15', 3:'#22c55e', 4:'#3b82f6'};
+  var colorMap = { 1: '#ef4444', 2: '#facc15', 3: '#22c55e', 4: '#3b82f6' };
   var diasNombres = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-  // Definir días activos según tipo
-  // Indices: 0=Lun, 1=Mar, 2=Mié, 3=Jue, 4=Vie, 5=Sáb, 6=Dom
-  var diasActivos;
-  if (esSabatino) {
-    diasActivos = [5]; // solo Sábado
-  } else {
-    diasActivos = [0, 1, 2, 3]; // Lun-Jue
-  }
+  // Días activos según tipo
+  var diasActivos = esSabatino ? [5] : [0, 1, 2, 3];
   function esDiaActivo_(idx) { return diasActivos.indexOf(idx) !== -1; }
 
-  // Agrupar registros por semana y día
-  // semanas[sem] = [null×7]
+  // Agrupar registros por semana/día
   var semanas = {};
   for (var s = 1; s <= 8; s++) semanas[s] = [null, null, null, null, null, null, null];
-  cal.forEach(function(c) {
+  cal.forEach(function (c) {
     var sem = c.semana;
     if (sem < 1 || sem > 8) return;
     if (esSabatino) {
-      semanas[sem][5] = c; // todos los registros sabatinos van a la columna Sábado
+      semanas[sem][5] = c;
     } else {
       var dia = c.dia;
-      if (dia >= 1 && dia <= 4) semanas[sem][dia - 1] = c; // Lun-Jue → idx 0-3
+      if (dia >= 1 && dia <= 4) semanas[sem][dia - 1] = c;
     }
   });
 
-  // Header de días (arriba del calendario)
+  // Header de días
   html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
-  html += '<div style="width:70px;flex-shrink:0;"></div>'; // hueco para "Sem N"
+  html += '<div style="width:70px;flex-shrink:0;"></div>';
   for (var di = 0; di < 7; di++) {
-    var activo = esDiaActivo_(di);
-    html += '<div style="flex:1;text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:' + (activo ? '#94a3b8' : '#475569') + ';">' + diasNombres[di] + '</div>';
+    var activoH = esDiaActivo_(di);
+    html += '<div style="flex:1;text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:' + (activoH ? '#94a3b8' : '#475569') + ';">' + diasNombres[di] + '</div>';
   }
   html += '</div>';
 
-  // Filas de semanas
+  // Filas
   for (var s = 1; s <= 8; s++) {
     var esMini = s === 4;
     var esGrand = s === 8;
-
     var bordeColor, bgColor, textoColor;
-    if (esMini) {
-      bordeColor = 'rgba(251,191,36,0.45)';
-      bgColor    = 'rgba(251,191,36,0.12)';
-      textoColor = '#fbbf24';
-    } else if (esGrand) {
-      bordeColor = 'rgba(239,68,68,0.5)';
-      bgColor    = 'rgba(239,68,68,0.12)';
-      textoColor = '#f87171';
-    } else {
-      bordeColor = 'rgba(255,255,255,0.06)';
-      bgColor    = 'rgba(255,255,255,0.03)';
-      textoColor = '#94a3b8';
-    }
+    if (esMini)       { bordeColor = 'rgba(251,191,36,0.45)'; bgColor = 'rgba(251,191,36,0.12)'; textoColor = '#fbbf24'; }
+    else if (esGrand) { bordeColor = 'rgba(239,68,68,0.5)';  bgColor = 'rgba(239,68,68,0.12)';  textoColor = '#f87171'; }
+    else              { bordeColor = 'rgba(255,255,255,0.06)'; bgColor = 'rgba(255,255,255,0.03)'; textoColor = '#94a3b8'; }
 
     html += '<div style="display:flex;gap:6px;align-items:center;background:' + bgColor + ';border:1px solid ' + bordeColor + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
 
@@ -10389,25 +10392,37 @@ function renderDetalleEvalDer(d) {
     if (esGrand) html += '<br><span style="font-size:9px;">🏆 Grand</span>';
     html += '</div>';
 
-    // 7 columnas (Lun-Dom)
+    // 7 columnas
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
+      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di);
+      var esFuturo = fechaDia ? (fechaDia.getTime() > hoy.getTime()) : false;
+      var esHoy    = fechaDia ? (fechaDia.getTime() === hoy.getTime()) : false;
 
       if (!activo) {
-        // Día no activo para este tipo de grupo → gris claro
+        // Día no activo para este tipo de grupo
         html += '<div title="' + diasNombres[di] + ' — sin clase" style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
+
       } else if (!rec) {
-        // Día activo pero sin registro → gris oscuro
-        html += '<div title="' + diasNombres[di] + ' — sin clase registrada" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
+        if (esFuturo || esHoy) {
+          // Día activo pero aún no pasa (o es hoy) → vacío
+          html += '<div title="' + diasNombres[di] + ' — pendiente" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
+        } else {
+          // Día activo pasado SIN registro → ERROR del maestro (X roja)
+          var fechaTxt = fechaDia ? (fechaDia.getDate() + '/' + (fechaDia.getMonth() + 1)) : diasNombres[di];
+          html += '<div title="' + fechaTxt + ' · SIN REGISTRO (revisar con el maestro)" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#f87171;">✕</div>';
+        }
+
       } else if (rec.asistio === false || rec.color == null) {
-        // Ausente
-        html += '<div title="' + (rec.fecha || diasNombres[di]) + ' · Ausente" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;font-weight:700;">—</div>';
+        // Registrado como AUSENTE → F de Falta
+        html += '<div title="' + (rec.fecha || '') + ' · Falta' + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g, '&quot;') : '') + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#cbd5e1;">F</div>';
+
       } else {
-        // Asistió → color correspondiente
+        // Asistió con color
         var col = colorMap[rec.color] || '#94a3b8';
-        var labelCol = {1:'Rojo',2:'Amarillo',3:'Verde',4:'Azul'}[rec.color] || '';
-        html += '<div title="' + (rec.fecha||'') + ' · ' + labelCol + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g,'&quot;') : '') + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>';
+        var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
+        html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g, '&quot;') : '') + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>';
       }
     }
     html += '</div>';
@@ -10426,7 +10441,7 @@ function renderDetalleEvalDer(d) {
   if (!obs.length) {
     html += '<div style="font-size:12px;color:#64748b;text-align:center;padding:12px;">Sin observaciones registradas aún.</div>';
   } else {
-    obs.slice(-3).reverse().forEach(function(o) {
+    obs.slice(-3).reverse().forEach(function (o) {
       html += '<div style="display:flex;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);">';
       html += '<span style="font-size:11px;color:#94a3b8;flex-shrink:0;padding-top:1px;font-weight:700;">' + o.fecha + '</span>';
       html += '<span style="font-size:12px;color:#f1f5f9;line-height:1.5;">' + o.texto + '</span>';
