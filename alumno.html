@@ -10185,6 +10185,27 @@ function renderDetalleEvalIzq(d) {
   html += '<div style="font-size:26px;font-weight:800;color:' + posColor + ';">' + d.positivos + '%</div>';
   html += '</div>';
 
+  // ═══ NUEVO: Distribución de colores (movida aquí) ═══
+  var total = d.totalClases || 1;
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
+  html += '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🎨 Distribución de colores</div>';
+  var colores = [
+    { n: 'Rojo',     count: d.colores ? (d.colores[1]||0) : 0, color: '#ef4444' },
+    { n: 'Amarillo', count: d.colores ? (d.colores[2]||0) : 0, color: '#facc15' },
+    { n: 'Verde',    count: d.colores ? (d.colores[3]||0) : 0, color: '#22c55e' },
+    { n: 'Azul',     count: d.colores ? (d.colores[4]||0) : 0, color: '#3b82f6' }
+  ];
+  colores.forEach(function(c) {
+    var pct = total > 0 ? Math.round((c.count / total) * 100) : 0;
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+    html += '<div style="width:56px;font-size:11px;color:#94a3b8;font-weight:700;">' + c.n + '</div>';
+    html += '<div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">';
+    html += '<div style="width:' + pct + '%;height:100%;background:' + c.color + ';border-radius:4px;transition:width .4s;"></div></div>';
+    html += '<div style="width:50px;text-align:right;font-size:11px;font-weight:700;color:' + c.color + ';">' + pct + '% <span style="font-size:9px;color:#64748b;">(' + c.count + ')</span></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
   document.getElementById('detalleEvalIzq').innerHTML = html;
 }
 
@@ -10224,13 +10245,27 @@ function renderDetalleEvalDer(d) {
   for (var s = 1; s <= 8; s++) {
     var esMini = s === 4;
     var esGrand = s === 8;
-    var bg = (esMini || esGrand) ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.03)';
-    var bord = (esMini || esGrand) ? '1px solid rgba(251,191,36,0.45)' : '1px solid rgba(255,255,255,0.06)';
 
-    html += '<div style="display:flex;gap:6px;align-items:center;background:' + bg + ';border:' + bord + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
+    // ═══ NUEVO: semana 4 en amarillo, semana 8 en rojo ═══
+    var bordeColor, bgColor, textoColor;
+    if (esMini) {
+      bordeColor = 'rgba(251,191,36,0.45)';   // amarillo
+      bgColor    = 'rgba(251,191,36,0.12)';
+      textoColor = '#fbbf24';
+    } else if (esGrand) {
+      bordeColor = 'rgba(239,68,68,0.5)';     // rojo
+      bgColor    = 'rgba(239,68,68,0.12)';
+      textoColor = '#f87171';
+    } else {
+      bordeColor = 'rgba(255,255,255,0.06)';
+      bgColor    = 'rgba(255,255,255,0.03)';
+      textoColor = '#94a3b8';
+    }
+
+    html += '<div style="display:flex;gap:6px;align-items:center;background:' + bgColor + ';border:1px solid ' + bordeColor + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
 
     // Etiqueta de semana
-    html += '<div style="width:70px;flex-shrink:0;font-size:11px;font-weight:700;color:' + ((esMini||esGrand) ? '#fbbf24' : '#94a3b8') + ';line-height:1.15;">';
+    html += '<div style="width:70px;flex-shrink:0;font-size:11px;font-weight:700;color:' + textoColor + ';line-height:1.15;">';
     html += 'Sem ' + s;
     if (esMini)  html += '<br><span style="font-size:9px;">⭐ Mini</span>';
     if (esGrand) html += '<br><span style="font-size:9px;">🏆 Grand</span>';
@@ -10257,27 +10292,6 @@ function renderDetalleEvalDer(d) {
     html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
   }
 
-  html += '</div>';
-
-  // ═══ DISTRIBUCIÓN DE COLORES ═══
-  var total = d.totalClases || 1;
-  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
-  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:12px;">🎨 Distribución de colores</div>';
-  var colores = [
-    { n: 'Rojo',     count: d.colores ? (d.colores[1]||0) : 0, color: '#ef4444' },
-    { n: 'Amarillo', count: d.colores ? (d.colores[2]||0) : 0, color: '#facc15' },
-    { n: 'Verde',    count: d.colores ? (d.colores[3]||0) : 0, color: '#22c55e' },
-    { n: 'Azul',     count: d.colores ? (d.colores[4]||0) : 0, color: '#3b82f6' }
-  ];
-  colores.forEach(function(c) {
-    var pct = total > 0 ? Math.round((c.count / total) * 100) : 0;
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">';
-    html += '<div style="width:70px;font-size:11px;color:#94a3b8;font-weight:700;">' + c.n + '</div>';
-    html += '<div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">';
-    html += '<div style="width:' + pct + '%;height:100%;background:' + c.color + ';border-radius:4px;transition:width .4s;"></div></div>';
-    html += '<div style="width:55px;text-align:right;font-size:12px;font-weight:700;color:' + c.color + ';">' + pct + '% <span style="font-size:9px;color:#64748b;">(' + c.count + ')</span></div>';
-    html += '</div>';
-  });
   html += '</div>';
 
   // ═══ OBSERVACIONES RECIENTES ═══
