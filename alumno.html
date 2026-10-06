@@ -10508,15 +10508,25 @@ function renderDetalleEvalDer(d) {
         }
 
       } else {
-        // Sin registro — decidir si mostrar X o celda neutra
+                // Sin registro — decidir si mostrar X o celda neutra
         var mostrarX = false;
 
         if (alumnoYaEmpezó) {
-          if (esSemanaPasada) {
-            mostrarX = true;
-          } else if (!esSemanaFutura) {
-            var diaCol = diaSemanaDeCol_(di);
-            if (diaCol < dowHoy) mostrarX = true;
+          if (fechaDiaNorm) {
+            // Lógica principal: comparar fecha exacta del día contra hoy
+            // Si la fecha ya pasó (strictamente anterior a hoy) → X
+            // Si es hoy o futuro → no marcar (aún puede registrarse)
+            if (fechaDiaNorm.getTime() < hoy.getTime()) {
+              mostrarX = true;
+            }
+          } else {
+            // Respaldo por si no se pudo calcular la fecha exacta
+            if (esSemanaPasada) {
+              mostrarX = true;
+            } else if (!esSemanaFutura) {
+              var diaCol = diaSemanaDeCol_(di);
+              if (diaCol < dowHoy) mostrarX = true;
+            }
           }
         }
         // Si NO había empezado → nunca X
