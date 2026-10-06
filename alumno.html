@@ -644,6 +644,21 @@
   box-shadow: 0 2px 3px rgba(0,0,0,0.5);
 }
 .post-it-amarillo { background: #fef08a; color: #713f12; }
+.post-it-alerta {
+  background: #fbbf24;
+  color: #422006;
+  border: 3px solid #f59e0b;
+  animation: postItAlertaPulse 1.5s ease-in-out infinite;
+}
+@keyframes postItAlertaPulse {
+  0%, 100% { box-shadow: 3px 4px 10px rgba(0,0,0,0.35), 0 0 0 0 rgba(251,191,36,0.7); }
+  50%      { box-shadow: 3px 4px 10px rgba(0,0,0,0.35), 0 0 0 14px rgba(251,191,36,0); }
+}
+
+/* Responsive del modal de Detalle de evaluación */
+@media (max-width: 700px) {
+  #detalleEvalContenido { grid-template-columns: 1fr !important; }
+}
 .post-it-naranja  { background: #f97316; color: #ffffff; }
 .post-it-morado   { background: #e9d5ff; color: #581c87; }
 .post-it-azul     { background: #bfdbfe; color: #1e3a8a; }
@@ -989,6 +1004,7 @@
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             <div id="gemaInline" style="display:flex;align-items:center;gap:4px;"></div>
+            <button onclick="abrirDetalleEvaluacion()" class="btn-pill-naranja" style="padding:4px 6px;font-size:10px;white-space:normal;line-height:1.15;width:66px;flex-shrink:0;text-align:center;background:linear-gradient(135deg,#7c3aed,#6d28d9);">📊 Detalles</button>
             <button onclick="abrirInfoEvaluacion()" class="btn-pill-naranja" style="padding:4px 6px;font-size:10px;white-space:normal;line-height:1.15;width:66px;flex-shrink:0;text-align:center;">💎 ¿Cómo me evalúan?</button>
           </div>
         </div>
@@ -1114,6 +1130,10 @@
             <div id="postitFaltaTexto">—</div>
             <div class="post-it-cta">Dale clic aquí!!</div>
           </div>
+          <div class="post-it post-it-alerta" id="postitBajoRend" style="visibility:hidden;cursor:pointer;" onclick="irAEvaluar()">
+  <div id="postitBajoRendTexto">⚠️ Tu promedio está por debajo del 70%. ¡Necesitas mejorar!</div>
+  <div class="post-it-cta">Dale clic aquí!!</div>
+</div>
           <div class="post-it post-it-naranja" id="postitEncuesta" style="visibility:hidden;" onclick="abrirEncuestaSatisfaccion()">
             <div>⭐ ¿Cómo va tu experiencia en Organic English? Cuéntanos con 5 estrellitas.</div>
             <div class="post-it-cta">Dale clic aquí!!</div>
@@ -9631,6 +9651,7 @@ var MISIONES_KIDS_A12_LISTA = [
 
 function renderEvaluacionAlumno(d) {
   var html = '';
+    window._evalDataActual = d;  // ← NUEVO: guardar para el modal de Detalles
   var kidsTheme   = !!(alumnoData && alumnoData._esKids);
     var kLabel      = kidsTheme ? '#475569' : 'rgba(255,255,255,0.85)';
   var kSub        = kidsTheme ? '#64748b' : 'rgba(255,255,255,0.7)';
@@ -9851,7 +9872,11 @@ function renderEvaluacionAlumno(d) {
   window._challengesHistoricos = challengesHistoricos;
   html += '<div style="font-size:10px;color:'+kSub+';text-align:center;margin-top:10px;">'+d.totalClases+' clases registradas en el bloque</div>';
 
-  document.getElementById('evaluacionAlumno').innerHTML = html;
+    document.getElementById('evaluacionAlumno').innerHTML = html;
+
+  // ═══ NUEVO: verificar bajo rendimiento y mostrar post-it amarillo ═══
+  var pcActual = enBloque2 ? d.promedioNivel : pcBloqueActual;
+  verificarBajoRendimiento(pcActual);
 }
  
   var COLORES_NIVEL = {
@@ -10092,6 +10117,265 @@ function generarMensajeAyudaLogin_(idNorm, emailNorm, idRaw, emailRaw) {
 
   html += '</div>';
   return html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MODAL DETALLE DE EVALUACIÓN (joya grande + calendario 8 semanas + observaciones)
+// ═══════════════════════════════════════════════════════════════════════════
+function abrirDetalleEvaluacion() {
+  var d = window._evalDataActual;
+  if (!d) { alert('Aún se están cargando tus datos. Intenta en un momento.'); return; }
+
+  var bloqueActual = d.bloque || 1;
+  var nivelTxt = (alumnoData && alumnoData.grupo && alumnoData.grupo.nivel) ? alumnoData.grupo.nivel : '';
+  document.getElementById('detalleEvalSub').textContent = nivelTxt + ' · Bloque ' + bloqueActual + ' · ' + (d.totalClases||0) + ' clases registradas';
+
+  renderDetalleEvalIzq(d);
+  renderDetalleEvalDer(d);
+  document.getElementById('modalDetalleEvaluacion').classList.add('visible');
+}
+
+function cerrarDetalleEvaluacion() {
+  document.getElementById('modalDetalleEvaluacion').classList.remove('visible');
+}
+
+function renderDetalleEvalIzq(d) {
+  var pc = d.porcentajeGlobal || 0;
+  var enBloque2 = d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null;
+  if (enBloque2) pc = d.promedioNivel;
+
+  var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
+
+  var gemSVG = '<svg width="150" height="170" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 18px ' + gemaColor + ');">'
+    + '<defs><linearGradient id="gFDet" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="' + gemaColor + '" stop-opacity="0"/></linearGradient></defs>'
+    + '<polygon points="30,4 44,18 30,14 16,18" fill="url(#gFDet)" stroke="' + gemaColor + '" stroke-width="0.5"/>'
+    + '<polygon points="30,4 16,18 8,18 18,4" fill="' + gemaColor + '" opacity="0.75" stroke="' + gemaColor + '" stroke-width="0.5"/>'
+    + '<polygon points="30,4 44,18 52,18 42,4" fill="' + gemaColor + '" opacity="0.85" stroke="' + gemaColor + '" stroke-width="0.5"/>'
+    + '<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="' + gemaColor + '" opacity="0.6" stroke="' + gemaColor + '" stroke-width="0.4"/>'
+    + '<polygon points="8,22 30,22 30,63" fill="' + gemaColor + '" opacity="0.95" stroke="' + gemaColor + '" stroke-width="0.5"/>'
+    + '<polygon points="52,22 30,22 30,63" fill="' + gemaColor + '" opacity="0.7" stroke="' + gemaColor + '" stroke-width="0.5"/>'
+    + '<polygon points="8,22 16,20 30,63" fill="url(#gFDet)" opacity="0.3"/>'
+    + '<polygon points="52,22 44,20 30,63" fill="url(#gFDet)" opacity="0.2"/>'
+    + '<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
+    + '<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
+    + '</svg>';
+
+  var html = '';
+
+  // Joya + % global
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:20px 14px;text-align:center;">';
+  html += gemSVG;
+  html += '<div style="font-size:38px;font-weight:800;color:' + gemaColor + ';margin-top:6px;line-height:1;">' + pc + '%</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-top:6px;">Evaluación Global</div>';
+  html += '</div>';
+
+  // Asistencia
+  var asiColor = d.asistencia >= 80 ? '#4ade80' : d.asistencia >= 70 ? '#facc15' : '#f87171';
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
+  html += '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📅 Asistencia</div>';
+  html += '<div style="display:flex;align-items:baseline;gap:6px;">';
+  html += '<span style="font-size:26px;font-weight:800;color:' + asiColor + ';">' + d.asistencia + '%</span>';
+  html += '<span style="font-size:11px;color:#64748b;">(' + (d.presentes||0) + '/' + (d.totalClases||0) + ')</span>';
+  html += '</div></div>';
+
+  // Positivos
+  var posColor = d.positivos >= 70 ? '#4ade80' : d.positivos >= 60 ? '#facc15' : '#f87171';
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
+  html += '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">✅ Verde + Azul</div>';
+  html += '<div style="font-size:26px;font-weight:800;color:' + posColor + ';">' + d.positivos + '%</div>';
+  html += '</div>';
+
+  document.getElementById('detalleEvalIzq').innerHTML = html;
+}
+
+function renderDetalleEvalDer(d) {
+  var html = '';
+  var cal = d.calendario || d.asistenciaPorDia || [];
+
+  // ═══ CALENDARIO 8 SEMANAS ═══
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque||1) + '</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;">4 clases por semana (Lun–Jue)</div>';
+  html += '</div>';
+
+  // Leyenda
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Amarillo</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Verde</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;"></span> Azul</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#334155;border-radius:2px;vertical-align:middle;"></span> Ausente</span>';
+  html += '</div>';
+
+  var colorMap = {1:'#ef4444', 2:'#facc15', 3:'#22c55e', 4:'#3b82f6'};
+
+  // Agrupar por semana/día
+  var semanas = {};
+  for (var s = 1; s <= 8; s++) semanas[s] = [null, null, null, null];
+  cal.forEach(function(c) {
+    var sem = c.semana != null ? c.semana : c.week;
+    var dia = c.dia != null ? c.dia : c.day;
+    if (sem >= 1 && sem <= 8 && dia >= 1 && dia <= 4) {
+      semanas[sem][dia - 1] = c;
+    }
+  });
+
+  for (var s = 1; s <= 8; s++) {
+    var esMini = s === 4;
+    var esGrand = s === 8;
+    var bg = (esMini || esGrand) ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.03)';
+    var bord = (esMini || esGrand) ? '1px solid rgba(251,191,36,0.45)' : '1px solid rgba(255,255,255,0.06)';
+
+    html += '<div style="display:flex;gap:6px;align-items:center;background:' + bg + ';border:' + bord + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
+
+    // Etiqueta de semana
+    html += '<div style="width:70px;flex-shrink:0;font-size:11px;font-weight:700;color:' + ((esMini||esGrand) ? '#fbbf24' : '#94a3b8') + ';line-height:1.15;">';
+    html += 'Sem ' + s;
+    if (esMini)  html += '<br><span style="font-size:9px;">⭐ Mini</span>';
+    if (esGrand) html += '<br><span style="font-size:9px;">🏆 Grand</span>';
+    html += '</div>';
+
+    // 4 días
+    for (var di = 0; di < 4; di++) {
+      var rec = semanas[s][di];
+      if (!rec) {
+        html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);"></div>';
+      } else if (rec.asistio === false || rec.color == null) {
+        html += '<div title="' + (rec.fecha||'Ausente') + ' · Ausente" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;font-weight:700;">—</div>';
+      } else {
+        var col = colorMap[rec.color] || '#94a3b8';
+        var labelCol = {1:'Rojo',2:'Amarillo',3:'Verde',4:'Azul'}[rec.color] || '';
+        html += '<div title="' + (rec.fecha||'') + ' · ' + labelCol + (rec.observacion ? ' · ' + rec.observacion.replace(/"/g,'&quot;') : '') + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>';
+      }
+    }
+    html += '</div>';
+  }
+
+  // Si no hay datos de calendario, mostrar aviso
+  if (cal.length === 0) {
+    html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
+  }
+
+  html += '</div>';
+
+  // ═══ DISTRIBUCIÓN DE COLORES ═══
+  var total = d.totalClases || 1;
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:12px;">🎨 Distribución de colores</div>';
+  var colores = [
+    { n: 'Rojo',     count: d.colores ? (d.colores[1]||0) : 0, color: '#ef4444' },
+    { n: 'Amarillo', count: d.colores ? (d.colores[2]||0) : 0, color: '#facc15' },
+    { n: 'Verde',    count: d.colores ? (d.colores[3]||0) : 0, color: '#22c55e' },
+    { n: 'Azul',     count: d.colores ? (d.colores[4]||0) : 0, color: '#3b82f6' }
+  ];
+  colores.forEach(function(c) {
+    var pct = total > 0 ? Math.round((c.count / total) * 100) : 0;
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">';
+    html += '<div style="width:70px;font-size:11px;color:#94a3b8;font-weight:700;">' + c.n + '</div>';
+    html += '<div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">';
+    html += '<div style="width:' + pct + '%;height:100%;background:' + c.color + ';border-radius:4px;transition:width .4s;"></div></div>';
+    html += '<div style="width:55px;text-align:right;font-size:12px;font-weight:700;color:' + c.color + ';">' + pct + '% <span style="font-size:9px;color:#64748b;">(' + c.count + ')</span></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // ═══ OBSERVACIONES RECIENTES ═══
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">💬 Observaciones recientes del maestro</div>';
+  var obs = d.observaciones || [];
+  if (!obs.length) {
+    html += '<div style="font-size:12px;color:#64748b;text-align:center;padding:12px;">Sin observaciones registradas aún.</div>';
+  } else {
+    obs.slice(-3).reverse().forEach(function(o) {
+      html += '<div style="display:flex;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+      html += '<span style="font-size:11px;color:#94a3b8;flex-shrink:0;padding-top:1px;font-weight:700;">' + o.fecha + '</span>';
+      html += '<span style="font-size:12px;color:#f1f5f9;line-height:1.5;">' + o.texto + '</span>';
+      html += '</div>';
+    });
+    html += '<div style="font-size:10px;color:#64748b;text-align:center;margin-top:4px;">Mostrando las últimas 3 observaciones</div>';
+  }
+  html += '</div>';
+
+  document.getElementById('detalleEvalDer').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  POST-IT ALERTA BAJO RENDIMIENTO (< 70%)
+// ═══════════════════════════════════════════════════════════════════════════
+var _postitBajoRendYaAnimado = false;
+
+function verificarBajoRendimiento(pc) {
+  var postit = document.getElementById('postitBajoRend');
+  if (!postit) return;
+
+  if (pc == null || pc >= 70) {
+    postit.style.visibility = 'hidden';
+    return;
+  }
+
+  // Actualizar texto dinámico
+  var texto = document.getElementById('postitBajoRendTexto');
+  if (texto) {
+    var msg = '⚠️ Tu promedio actual es ' + pc + '%. Está por debajo del 70%. ¡Habla con tu maestro para mejorar!';
+    texto.textContent = msg;
+  }
+
+  mostrarPostitBajoRendimiento(postit);
+}
+
+function mostrarPostitBajoRendimiento(postitReal) {
+  if (_postitBajoRendYaAnimado) {
+    postitReal.style.visibility = 'visible';
+    return;
+  }
+  _postitBajoRendYaAnimado = true;
+
+  var overlay = document.getElementById('postitVolandoOverlay');
+  var card = document.getElementById('postitVolandoCard');
+  if (!overlay || !card) { postitReal.style.visibility = 'visible'; return; }
+
+  // Guardar contenido original
+  var originalClass = card.className;
+  var originalHTML  = card.innerHTML;
+
+  card.className = 'post-it post-it-alerta';
+  card.innerHTML = postitReal.querySelector('div').innerHTML;
+
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var anchoGrande = Math.min(380, vw - 40);
+  var altoGrande = 180;
+  card.style.transition = 'none';
+  card.style.width = anchoGrande + 'px';
+  card.style.height = altoGrande + 'px';
+  card.style.left = (vw / 2 - anchoGrande / 2) + 'px';
+  card.style.top = (vh / 2 - altoGrande / 2) + 'px';
+  card.style.fontSize = '26px';
+  card.style.transform = 'scale(1)';
+  card.style.opacity = '1';
+  overlay.style.display = 'block';
+
+  // Después de 4 segundos, animar hacia su posición en el panel
+  setTimeout(function () {
+    var destino = postitReal.getBoundingClientRect();
+    var fuenteDestino = window.getComputedStyle(postitReal).fontSize;
+    card.style.transition = 'all 0.7s cubic-bezier(.2,.8,.2,1)';
+    card.style.left = destino.left + 'px';
+    card.style.top = destino.top + 'px';
+    card.style.width = destino.width + 'px';
+    card.style.height = destino.height + 'px';
+    card.style.fontSize = fuenteDestino;
+    card.style.transform = 'scale(1)';
+
+    setTimeout(function () {
+      postitReal.style.visibility = 'visible';
+      overlay.style.display = 'none';
+      // Restaurar card
+      card.className = originalClass;
+      card.innerHTML = originalHTML;
+      card.style.fontSize = '';
+    }, 720);
+  }, 4000);
 }
   
 </script>
@@ -10485,6 +10769,23 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+<!-- MODAL: DETALLE DE EVALUACIÓN (joya + calendario 8 semanas) -->
+<div id="modalDetalleEvaluacion" class="modal-eval-overlay" onclick="if(event.target===this)cerrarDetalleEvaluacion()">
+  <div class="modal-eval-box" style="max-width:980px;width:100%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#f1f5f9;">📊 Mi evaluación a detalle</div>
+        <div id="detalleEvalSub" style="font-size:12px;color:#64748b;margin-top:3px;">—</div>
+      </div>
+      <button onclick="cerrarDetalleEvaluacion()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700;">✕</button>
+    </div>
+    <div id="detalleEvalContenido" style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start;">
+      <div id="detalleEvalIzq"></div>
+      <div id="detalleEvalDer"></div>
+    </div>
+  </div>
+</div>
+  
 <!-- MODAL: HISTORIAL COMPLETO DE CHALLENGES -->
 <div id="modalHistorialChallenges" class="modal-video-overlay" onclick="if(event.target===this)cerrarHistorialChallenges()">
   <div class="modal-video-box" style="max-width:520px;">
