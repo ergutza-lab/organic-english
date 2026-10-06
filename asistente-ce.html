@@ -1178,9 +1178,10 @@ function abrirModalEliminarComprobantePorFila(fila) {
     p.nombre,
     p.monto || 0,
     p.fila,
-    p.comprobante_url || ''
+    p.comprobante_url || '',
+    p.idPago || ''           // ← NUEVO: el ID único del pago
   );
-}  
+} 
 
 function renderNuevos(){
   const cont=document.getElementById('lista-nuevos');
@@ -2204,25 +2205,30 @@ function abrirModalCancelarPago(idAlumno, fechaIso, nombre, monto) {
 // ══════════════════════════════════════════════════════════════════════
 var eliminarComprobanteActivo = null;
 
-function abrirModalEliminarComprobante(idAlumno, fechaPago, nombre, monto, fila, comprobanteUrl) {
+function abrirModalEliminarComprobante(idAlumno, fechaPago, nombre, monto, fila, comprobanteUrl, idPago) {
   if (!idAlumno || !fechaPago) {
     mostrarToast('No se pudo identificar este comprobante. Cierra y vuelve a abrir el panel.', 'error');
     return;
   }
-  // Guardamos los datos clave que necesita el backend para buscar la fila
+  if (!fila || !idPago) {
+    mostrarToast('Este comprobante no tiene ID de pago. Actualiza el panel con el botón 🔄 Actualizar y vuelve a intentar.', 'error');
+    return;
+  }
   eliminarComprobanteActivo = {
     idAlumno: idAlumno,
     fechaPago: fechaPago,
     nombre: nombre,
     monto: monto,
-    fila: fila, // solo informativo
+    fila: fila,               // ← AHORA SÍ se usa
+    idPago: idPago,           // ← AHORA SÍ se usa
     comprobanteUrl: comprobanteUrl || ''
   };
 
   var montoStr = monto && Number(monto) > 0 ? ' · $' + monto : '';
   document.getElementById('eliminar-comprobante-info').innerHTML =
     '<strong>' + nombre + '</strong> <span style="color:var(--gris-400);">' + idAlumno + '</span><br>' +
-    '<span style="font-size:12px;color:var(--gris-500);">Enviado el ' + fechaPago + montoStr + '</span>';
+    '<span style="font-size:12px;color:var(--gris-500);">Enviado el ' + fechaPago + montoStr + '</span><br>' +
+    '<span style="font-size:11px;color:#818cf8;font-family:\'JetBrains Mono\',monospace;">ID pago: ' + idPago + ' · Fila: ' + fila + '</span>';
 
   document.getElementById('eliminar-comprobante-motivo').value = '';
   document.getElementById('eliminar-comprobante-status').style.display = 'none';
@@ -2233,7 +2239,6 @@ function abrirModalEliminarComprobante(idAlumno, fechaPago, nombre, monto, fila,
 
   document.getElementById('modal-eliminar-comprobante').classList.add('open');
 }
-
 function cerrarModalEliminarComprobante() {
   document.getElementById('modal-eliminar-comprobante').classList.remove('open');
   eliminarComprobanteActivo = null;
@@ -2262,11 +2267,13 @@ function ejecutarEliminarComprobante() {
   // (monto=0, sin validar, sin vigencia, status=Pendiente). NO necesitamos
   // mandar la URL ni el número de fila -- es mucho más robusto así.
   var url = APPS_SCRIPT
-    + '?action=eliminarComprobantePendienteCE'
-    + '&idAlumno='    + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
-    + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : '')
-    + '&motivo='      + encodeURIComponent(motivo)
-    + '&fechaPago='   + encodeURIComponent(eliminarComprobanteActivo.fechaPago || '');
+  + '?action=eliminarComprobantePendienteCE'
+  + '&idAlumno='    + encodeURIComponent(eliminarComprobanteActivo.idAlumno)
+  + '&idAsistente=' + encodeURIComponent(asistente ? asistente.id : '')
+  + '&motivo='      + encodeURIComponent(motivo)
+  + '&fechaPago='   + encodeURIComponent(eliminarComprobanteActivo.fechaPago || '')
+  + '&fila='        + encodeURIComponent(eliminarComprobanteActivo.fila || '')
+  + '&idPago='      + encodeURIComponent(eliminarComprobanteActivo.idPago || '');
 
   console.log('[Eliminar] Llamando:', url);
 
