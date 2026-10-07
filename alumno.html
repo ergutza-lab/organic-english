@@ -10410,30 +10410,25 @@ function renderDetalleEvalDer(d) {
   var bloqueActualAl = parseInt(d.bloque, 10) || 1;
   var offsetSemanasAl = (bloqueActualAl - 1) * 8;
 
-    // Agrupar registros por semana/día — SIN depender de "semana" del backend
-  // (el backend a veces calcula mal la semana; aquí usamos la FECHA REAL)
+     // Agrupar registros por semana/día — USANDO los campos que ya calcula el backend
   var semanas = {};
   for (var s = 1; s <= 8; s++) semanas[s] = [null, null, null, null, null, null, null];
   cal.forEach(function (c) {
-    if (!c.fecha) return;
-    var fechaReal = _parseFechaLocal_(c.fecha);
-    if (!fechaReal) return;
-
-    // Calcular semana del BLOQUE a partir de la fecha real
-    var semanasDelBloque = calcularSemanaDelBloque_(fechaReal, fechaInicioGrupo, bloqueActualAl);
-    if (semanasDelBloque < 1 || semanasDelBloque > 8) return;
-
-    // Calcular día de la semana (1=Lun ... 7=Dom)
-    var dow = fechaReal.getDay();
-    if (dow === 0) dow = 7;
-
-    // Verificar que sea día activo del grupo
+    var sem = parseInt(c.semana, 10);
+    if (isNaN(sem) || sem < 1 || sem > 8) return;
     if (esSabatino) {
-      if (dow !== 6) return;
-      semanas[semanasDelBloque][5] = c;
+      semanas[sem][5] = c;
     } else {
-      if (dow < 1 || dow > 4) return;
-      semanas[semanasDelBloque][dow - 1] = c;
+      var dia = parseInt(c.dia, 10);
+      if (dia >= 1 && dia <= 4) {
+        // Si ya hay un registro en esa celda, conservar el que NO sea "Migrado"
+        var existente = semanas[sem][dia - 1];
+        var esMigradoNuevo = (String(c.observacion || '').indexOf('Migrado') !== -1);
+        var esMigradoViejo = existente ? (String(existente.observacion || '').indexOf('Migrado') !== -1) : false;
+        if (!existente || (esMigradoViejo && !esMigradoNuevo)) {
+          semanas[sem][dia - 1] = c;
+        }
+      }
     }
   });
 
