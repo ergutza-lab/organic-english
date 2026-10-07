@@ -10429,13 +10429,25 @@ function renderDetalleEvalDer(d) {
     if (!primerRegistroAl || f < primerRegistroAl) primerRegistroAl = f;
   });
 
+    // ═══════════════════════════════════════════════════════════════════
+  //  Fecha de referencia: SIEMPRE el primer registro real del alumno.
+  //  Solo si nunca tiene registros, se cae a la fecha de inscripción.
+  //  Con esto, días previos a su primera clase NO cuentan (ni X ni F).
+  // ═══════════════════════════════════════════════════════════════════
   var fechaReferencia = null;
-  if (fechaInscripcionAl && fechaInicioGrupoAl && fechaInscripcionAl <= fechaInicioGrupoAl) {
-    fechaReferencia = fechaInicioGrupoAl;
-  } else if (primerRegistroAl) {
+  if (primerRegistroAl) {
     fechaReferencia = primerRegistroAl;
+    // Nunca puede ser anterior al inicio del grupo
+    if (fechaInicioGrupoAl && fechaReferencia.getTime() < fechaInicioGrupoAl.getTime()) {
+      fechaReferencia = fechaInicioGrupoAl;
+    }
   } else if (fechaInscripcionAl) {
     fechaReferencia = fechaInscripcionAl;
+    if (fechaInicioGrupoAl && fechaReferencia.getTime() < fechaInicioGrupoAl.getTime()) {
+      fechaReferencia = fechaInicioGrupoAl;
+    }
+  } else if (fechaInicioGrupoAl) {
+    fechaReferencia = fechaInicioGrupoAl;
   }
 
   // Header de días
