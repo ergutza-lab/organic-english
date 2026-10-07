@@ -10393,17 +10393,30 @@ function renderDetalleEvalDer(d) {
   var bloqueActualAl = parseInt(d.bloque, 10) || 1;
   var offsetSemanasAl = (bloqueActualAl - 1) * 8;
 
-  // Agrupar registros por semana/día
+    // Agrupar registros por semana/día — SIN depender de "semana" del backend
+  // (el backend a veces calcula mal la semana; aquí usamos la FECHA REAL)
   var semanas = {};
   for (var s = 1; s <= 8; s++) semanas[s] = [null, null, null, null, null, null, null];
   cal.forEach(function (c) {
-    var sem = c.semana;
-    if (sem < 1 || sem > 8) return;
+    if (!c.fecha) return;
+    var fechaReal = _parseFechaLocal_(c.fecha);
+    if (!fechaReal) return;
+
+    // Calcular semana del BLOQUE a partir de la fecha real
+    var semanasDelBloque = calcularSemanaDelBloque_(fechaReal, fechaInicioGrupo, bloqueActualAl);
+    if (semanasDelBloque < 1 || semanasDelBloque > 8) return;
+
+    // Calcular día de la semana (1=Lun ... 7=Dom)
+    var dow = fechaReal.getDay();
+    if (dow === 0) dow = 7;
+
+    // Verificar que sea día activo del grupo
     if (esSabatino) {
-      semanas[sem][5] = c;
+      if (dow !== 6) return;
+      semanas[semanasDelBloque][5] = c;
     } else {
-      var dia = c.dia;
-      if (dia >= 1 && dia <= 4) semanas[sem][dia - 1] = c;
+      if (dow < 1 || dow > 4) return;
+      semanas[semanasDelBloque][dow - 1] = c;
     }
   });
 
@@ -10698,6 +10711,8 @@ function mostrarPostitBajoRendimiento(postitReal) {
     }, 720);
   }, 4000);
 }
+
+
   
 </script>
 <div id="modalVideoChallenge" class="modal-video-overlay">
@@ -11083,6 +11098,26 @@ function _parseFechaLocal_(str) {
   var d = new Date(s);
   if (isNaN(d.getTime())) return null;
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// Calcula la semana del bloque (1-8) a partir de una fecha real
+function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
+  if (!fecha || !fechaInicioGrupo) return 0;
+  var inicio = _parseFechaLocal_(fechaInicioGrupo);
+  if (!inicio) return 0;
+
+  // Días transcurridos desde el inicio del curso
+  var unDia = 1000 * 60 * 60 * 24;
+  var diasCurso = Math.floor((fecha.getTime() - inicio.getTime()) / unDia);
+
+  // Semana del curso (1-indexed)
+  var semanaCurso = Math.floor(diasCurso / 7) + 1;
+
+  // Ajustar al bloque actual
+  var bloq = parseInt(bloque, 10) || 1;
+  var semanaDelBloque = semanaCurso - (bloq - 1) * 8;
+
+  return semanaDelBloque;
 }
   
 </script>
