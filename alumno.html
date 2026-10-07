@@ -10433,11 +10433,18 @@ function renderDetalleEvalDer(d) {
     var fg = _parseFechaLocal_(alumnoData.grupo.fechaInicio);
     if (fg && !isNaN(fg.getTime())) fechaInicioGrupoAl = fg;
   }
-    var primerRegistroAl = null;
+     var primerRegistroAl = null;
   cal.forEach(function (c) {
     if (!c.fecha) return;
     var f = _parseFechaLocal_(c.fecha);
     if (!f || isNaN(f.getTime())) return;
+    // ═══════════════════════════════════════════════════════════════════
+    //  NUEVO: solo considerar registros a partir del inicio del grupo
+    //  actual. Si el alumno estudió antes en otro grupo, sus registros
+    //  viejos no deben contar como "el primer registro" — eso haría que
+    //  las semanas anteriores aparezcan con X.
+    // ═══════════════════════════════════════════════════════════════════
+    if (fechaInicioGrupoAl && f.getTime() < fechaInicioGrupoAl.getTime()) return;
     if (!primerRegistroAl || f < primerRegistroAl) primerRegistroAl = f;
   });
 
