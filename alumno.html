@@ -10336,7 +10336,6 @@ function renderDetalleEvalDer(d) {
   var html = '';
   var cal = d.calendario || [];
 
-  // Detectar grupo sabatino
   var esSabatino = false;
   if (alumnoData && alumnoData.grupo) {
     var tipo = String(alumnoData.grupo.tipoHorario || '').toLowerCase();
@@ -10347,14 +10346,9 @@ function renderDetalleEvalDer(d) {
   }
 
   var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
-      var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
-  var fechaInicioReferencia = fechaInicioGrupo;
-  var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
-  var fechaInicioReferencia = fechaInicioGrupo;
   var hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-      // ═══ Festivos oficiales — SOLO los que la academia no da clases ═══
   var FERIADOS_MX = {
     '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
     '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
@@ -10375,16 +10369,14 @@ function renderDetalleEvalDer(d) {
   html += '<div style="font-size:10px;color:#94a3b8;">' + (esSabatino ? '1 clase por semana (Sábado)' : '4 clases por semana (Lun–Jue)') + '</div>';
   html += '</div>';
 
-  // Leyenda
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;"></span> Azul</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Verde</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Amarillo</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
   html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">F</span> Falta</span>';
-  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);color:#f87171;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">✕</span> Sin registro</span>';
   html += '<span><span style="display:inline-block;width:14px;height:14px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);border-radius:2px;vertical-align:middle;"></span> Festivo</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;"></span> Sin clase / antes de inscripción</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;"></span> Sin clase / pendiente</span>';
   html += '</div>';
 
   var colorMap = { 1: '#ef4444', 2: '#facc15', 3: '#22c55e', 4: '#3b82f6' };
@@ -10393,11 +10385,10 @@ function renderDetalleEvalDer(d) {
   var diasActivos = esSabatino ? [5] : [0, 1, 2, 3];
   function esDiaActivo_(idx) { return diasActivos.indexOf(idx) !== -1; }
 
-  // Offset del bloque: Bloque 1 → 0, Bloque 2 → 8, Bloque 3 → 16
   var bloqueActualAl = parseInt(d.bloque, 10) || 1;
   var offsetSemanasAl = (bloqueActualAl - 1) * 8;
 
-     // Agrupar registros por semana/día — USANDO los campos que ya calcula el backend
+  // Agrupar registros por semana/día usando el campo "semana" del backend
   var semanas = {};
   for (var s = 1; s <= 8; s++) semanas[s] = [null, null, null, null, null, null, null];
   cal.forEach(function (c) {
@@ -10408,7 +10399,6 @@ function renderDetalleEvalDer(d) {
     } else {
       var dia = parseInt(c.dia, 10);
       if (dia >= 1 && dia <= 4) {
-        // Si ya hay un registro en esa celda, conservar el que NO sea "Migrado"
         var existente = semanas[sem][dia - 1];
         var esMigradoNuevo = (String(c.observacion || '').indexOf('Migrado') !== -1);
         var esMigradoViejo = existente ? (String(existente.observacion || '').indexOf('Migrado') !== -1) : false;
@@ -10419,10 +10409,8 @@ function renderDetalleEvalDer(d) {
     }
   });
 
-  var totalSinRegistro = 0;
-
-  // Fecha de referencia del alumno
-    var fechaInscripcionAl = null;
+  // Fecha de referencia (desde cuándo el alumno debe tener registros)
+  var fechaInscripcionAl = null;
   if (alumnoData && alumnoData.alumno && alumnoData.alumno.fechaInscripcion) {
     var fi = _parseFechaLocal_(alumnoData.alumno.fechaInscripcion);
     if (fi && !isNaN(fi.getTime())) fechaInscripcionAl = fi;
@@ -10432,38 +10420,25 @@ function renderDetalleEvalDer(d) {
     var fg = _parseFechaLocal_(alumnoData.grupo.fechaInicio);
     if (fg && !isNaN(fg.getTime())) fechaInicioGrupoAl = fg;
   }
-     var primerRegistroAl = null;
+  var primerRegistroAl = null;
   cal.forEach(function (c) {
     if (!c.fecha) return;
     var f = _parseFechaLocal_(c.fecha);
     if (!f || isNaN(f.getTime())) return;
-    // ═══════════════════════════════════════════════════════════════════
-    //  NUEVO: solo considerar registros a partir del inicio del grupo
-    //  actual. Si el alumno estudió antes en otro grupo, sus registros
-    //  viejos no deben contar como "el primer registro" — eso haría que
-    //  las semanas anteriores aparezcan con X.
-    // ═══════════════════════════════════════════════════════════════════
-    if (fechaInicioGrupoAl && f.getTime() < fechaInicioGrupoAl.getTime()) return;
     if (!primerRegistroAl || f < primerRegistroAl) primerRegistroAl = f;
   });
 
-    // ═══════════════════════════════════════════════════════════════════
-  //  Fecha de referencia: SIEMPRE el primer registro real del alumno.
-  //  Solo si nunca tiene registros, se cae a la fecha de inscripción.
-  //  Con esto, días previos a su primera clase NO cuentan (ni X ni F).
+  // ═══════════════════════════════════════════════════════════════════
+  //  Fecha de referencia: la más temprana entre inscripción y primer registro.
+  //  Antes de esa fecha el alumno no cuenta (no aplicaba).
   // ═══════════════════════════════════════════════════════════════════
   var fechaReferencia = null;
-  if (primerRegistroAl) {
-    fechaReferencia = primerRegistroAl;
-    // Nunca puede ser anterior al inicio del grupo
-    if (fechaInicioGrupoAl && fechaReferencia.getTime() < fechaInicioGrupoAl.getTime()) {
-      fechaReferencia = fechaInicioGrupoAl;
-    }
+  if (fechaInscripcionAl && primerRegistroAl) {
+    fechaReferencia = fechaInscripcionAl < primerRegistroAl ? fechaInscripcionAl : primerRegistroAl;
   } else if (fechaInscripcionAl) {
     fechaReferencia = fechaInscripcionAl;
-    if (fechaInicioGrupoAl && fechaReferencia.getTime() < fechaInicioGrupoAl.getTime()) {
-      fechaReferencia = fechaInicioGrupoAl;
-    }
+  } else if (primerRegistroAl) {
+    fechaReferencia = primerRegistroAl;
   } else if (fechaInicioGrupoAl) {
     fechaReferencia = fechaInicioGrupoAl;
   }
@@ -10477,7 +10452,7 @@ function renderDetalleEvalDer(d) {
   }
   html += '</div>';
 
-  // Filas
+  // Filas de semanas
   for (var s = 1; s <= 8; s++) {
     var esMini = s === 4;
     var esGrand = s === 8;
@@ -10497,11 +10472,10 @@ function renderDetalleEvalDer(d) {
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
-            var fechaDia = _fechaDiaCalendario_(fechaInicioReferencia, s, di, offsetSemanasAl);
+      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di, offsetSemanasAl);
       var diaNum = fechaDia ? fechaDia.getDate() : '';
       var mesStr = fechaDia ? mesCortoAl_(fechaDia) : '';
 
-      // Detectar festivo
       var esFestivo = false;
       var festivoInfo = null;
       if (fechaDia) {
@@ -10519,19 +10493,13 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
-      // Festivo sin registro → emoji con día/mes
-            if (esFestivo && !rec) {
-        // Si es bandera de México, usar SVG (Windows no renderiza el emoji)
+      // Festivo siempre se muestra con emoji
+      if (esFestivo) {
         var iconoHtml;
         if (festivoInfo.esBandera) {
-          iconoHtml = '<svg width="20" height="12" viewBox="0 0 30 18" style="display:block;">' +
-            '<rect x="0" y="0" width="10" height="18" fill="#006847"/>' +
-            '<rect x="10" y="0" width="10" height="18" fill="#ffffff"/>' +
-            '<rect x="20" y="0" width="10" height="18" fill="#ce1126"/>' +
-            '<circle cx="15" cy="9" r="2.3" fill="#8b5a2b" opacity="0.85"/>' +
-          '</svg>';
+          iconoHtml = '<img src="https://flagcdn.com/w40/mx.png" alt="MX" style="width:22px;height:14px;border-radius:2px;display:block;box-shadow:0 1px 2px rgba(0,0,0,0.2);" />';
         } else {
-          iconoHtml = '<span style="font-size:14px;">' + festivoInfo.emoji + '</span>';
+          iconoHtml = '<span style="font-size:14px;line-height:1;">' + festivoInfo.emoji + '</span>';
         }
         html += '<div title="' + festivoInfo.nombre + ' · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
           iconoHtml +
@@ -10540,27 +10508,19 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
-            var fechaDiaNorm = null;
+      var fechaDiaNorm = null;
       if (fechaDia && !isNaN(fechaDia.getTime())) {
         fechaDiaNorm = new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate());
       }
 
-      var alumnoYaEmpezó = true;
+      var esFuturo = fechaDiaNorm ? (fechaDiaNorm.getTime() > hoy.getTime()) : false;
+      var esHoy = fechaDiaNorm ? (fechaDiaNorm.getTime() === hoy.getTime()) : false;
+      var yaEmpezó = true;
       if (fechaReferencia && fechaDiaNorm) {
-        alumnoYaEmpezó = fechaDiaNorm.getTime() >= fechaReferencia.getTime();
+        yaEmpezó = fechaDiaNorm.getTime() >= fechaReferencia.getTime();
       }
 
-      // ═══ DEBUG TEMPORAL ═══
-      if (s === 1 && (di === 0 || di === 1)) {
-        console.log('═══ DEBUG Celda', 'Sem', s, 'Día', di, '═══');
-        console.log('  fechaDia:', fechaDia ? fechaDia.toISOString().substring(0, 10) : 'null');
-        console.log('  fechaDiaNorm:', fechaDiaNorm ? fechaDiaNorm.toISOString().substring(0, 10) : 'null');
-        console.log('  fechaReferencia:', fechaReferencia ? fechaReferencia.toISOString().substring(0, 10) : 'null');
-        console.log('  alumnoYaEmpezó:', alumnoYaEmpezó);
-        console.log('  rec:', rec ? JSON.stringify(rec) : 'null');
-      }
-      // ═══ FIN DEBUG ═══
-      
+      // Si hay registro → mostrar color o F
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
           html += '<div title="' + (rec.fecha || '') + ' · Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
@@ -10575,25 +10535,32 @@ function renderDetalleEvalDer(d) {
             '<span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span>' +
           '</div>';
         }
-      } else {
-        var mostrarX = false;
-        if (alumnoYaEmpezó && fechaDiaNorm) {
-          if (fechaDiaNorm.getTime() < hoy.getTime()) mostrarX = true;
-        }
+        continue;
+      }
 
-        if (mostrarX) {
-          totalSinRegistro++;
-          html += '<div title="' + (fechaDia ? Utilities_formatDate_(fechaDia) : '') + ' · Sin registro" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
-            '<span style="color:#f87171;font-size:12px;font-weight:900;">✕</span>' +
-            '<span style="color:#f87171;font-size:7px;margin-top:1px;opacity:0.85;">' + diaNum + ' ' + mesStr + '</span>' +
-          '</div>';
-        } else {
-          var tooltip = (alumnoYaEmpezó ? diasNombres[di] + ' — pendiente' : diasNombres[di] + ' — antes de tu inicio') + ' · ' + diaNum + ' ' + mesStr;
-          html += '<div title="' + tooltip + '" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
-            '<span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span>' +
-            '<span style="color:#475569;font-size:7px;">' + mesStr + '</span>' +
-          '</div>';
-        }
+      // Sin registro
+      if (esFuturo || esHoy) {
+        // Día futuro o hoy → celda neutra pendiente
+        html += '<div title="' + diasNombres[di] + ' — pendiente · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+          '<span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span>' +
+          '<span style="color:#475569;font-size:7px;">' + mesStr + '</span>' +
+        '</div>';
+      } else if (!yaEmpezó) {
+        // Antes de la inscripción del alumno → no aplicaba
+        html += '<div title="Antes de tu inscripción · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+          '<span style="color:#475569;font-size:10px;">' + diaNum + '</span>' +
+          '<span style="color:#334155;font-size:7px;">' + mesStr + '</span>' +
+        '</div>';
+      } else {
+        // ═══════════════════════════════════════════════════════════════
+        //  Día de clase pasado, sin registro → F (falta)
+        //  NO se muestra vacío ni X. Regla: si hubo clase y no hay
+        //  evaluación, el alumno faltó.
+        // ═══════════════════════════════════════════════════════════════
+        html += '<div title="Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+          '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
+          '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
+        '</div>';
       }
     }
     html += '</div>';
@@ -10601,15 +10568,6 @@ function renderDetalleEvalDer(d) {
 
   if (cal.length === 0) {
     html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
-  }
-
-  if (totalSinRegistro > 0) {
-    html += '<div style="margin-top:12px;padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:10px;display:flex;gap:10px;align-items:flex-start;">';
-    html += '<div style="font-size:20px;line-height:1;flex-shrink:0;">✕</div>';
-    html += '<div style="flex:1;font-size:12px;line-height:1.5;color:#e2e8f0;">';
-    html += '<strong style="color:#f87171;">Detectamos ' + totalSinRegistro + ' día' + (totalSinRegistro !== 1 ? 's' : '') + ' sin registro de tu evaluación.</strong><br>';
-    html += 'Te pedimos <strong style="color:#fbbf24;">comunicarte con tu maestro</strong> para revisar esos días. 🙏';
-    html += '</div></div>';
   }
 
   html += '</div>';
