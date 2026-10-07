@@ -10410,22 +10410,21 @@ function renderDetalleEvalDer(d) {
   var totalSinRegistro = 0;
 
   // Fecha de referencia del alumno
-  var fechaInscripcionAl = null;
+    var fechaInscripcionAl = null;
   if (alumnoData && alumnoData.alumno && alumnoData.alumno.fechaInscripcion) {
-    var fi = new Date(alumnoData.alumno.fechaInscripcion);
-    if (!isNaN(fi.getTime())) { fi.setHours(0, 0, 0, 0); fechaInscripcionAl = fi; }
+    var fi = _parseFechaLocal_(alumnoData.alumno.fechaInscripcion);
+    if (fi && !isNaN(fi.getTime())) fechaInscripcionAl = fi;
   }
   var fechaInicioGrupoAl = null;
   if (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) {
-    var fg = new Date(alumnoData.grupo.fechaInicio);
-    if (!isNaN(fg.getTime())) { fg.setHours(0, 0, 0, 0); fechaInicioGrupoAl = fg; }
+    var fg = _parseFechaLocal_(alumnoData.grupo.fechaInicio);
+    if (fg && !isNaN(fg.getTime())) fechaInicioGrupoAl = fg;
   }
-  var primerRegistroAl = null;
+    var primerRegistroAl = null;
   cal.forEach(function (c) {
     if (!c.fecha) return;
-    var f = new Date(c.fecha);
-    if (isNaN(f.getTime())) return;
-    f.setHours(0, 0, 0, 0);
+    var f = _parseFechaLocal_(c.fecha);
+    if (!f || isNaN(f.getTime())) return;
     if (!primerRegistroAl || f < primerRegistroAl) primerRegistroAl = f;
   });
 
@@ -10522,10 +10521,9 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
-      var fechaDiaNorm = null;
+            var fechaDiaNorm = null;
       if (fechaDia && !isNaN(fechaDia.getTime())) {
-        fechaDiaNorm = new Date(fechaDia);
-        fechaDiaNorm.setHours(0, 0, 0, 0);
+        fechaDiaNorm = new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate());
       }
 
       var alumnoYaEmpezó = true;
@@ -11063,6 +11061,30 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+  // Parser de fecha como LOCAL (evita bugs de zona horaria)
+function _parseFechaLocal_(str) {
+  if (!str) return null;
+  if (str instanceof Date) {
+    if (isNaN(str.getTime())) return null;
+    return new Date(str.getFullYear(), str.getMonth(), str.getDate());
+  }
+  var s = String(str).trim();
+  // Formato yyyy-MM-dd
+  var m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m1) {
+    return new Date(parseInt(m1[1], 10), parseInt(m1[2], 10) - 1, parseInt(m1[3], 10));
+  }
+  // Formato dd/MM/yyyy o dd-MM-yyyy
+  var m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m2) {
+    return new Date(parseInt(m2[3], 10), parseInt(m2[2], 10) - 1, parseInt(m2[1], 10));
+  }
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+  
 </script>
 
 <div id="postitVolandoOverlay" style="display:none;position:fixed;inset:0;z-index:999998;pointer-events:none;">
