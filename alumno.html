@@ -10350,6 +10350,21 @@ function renderDetalleEvalDer(d) {
   var hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
+      // ═══ Festivos oficiales — SOLO los que la academia no da clases ═══
+  var FERIADOS_MX = {
+    '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
+    '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
+    '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia' },
+    '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
+    '12-25': { emoji: '🎄', nombre: 'Navidad' }
+  };
+
+  function mesCortoAl_(fecha) {
+    if (!fecha) return '';
+    var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return m[fecha.getMonth()];
+  }
+
   html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
   html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque || 1) + '</div>';
@@ -10364,6 +10379,7 @@ function renderDetalleEvalDer(d) {
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
   html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">F</span> Falta</span>';
   html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);color:#f87171;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">✕</span> Sin registro</span>';
+  html += '<span><span style="display:inline-block;width:14px;height:14px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);border-radius:2px;vertical-align:middle;"></span> Festivo</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;"></span> Sin clase / antes de inscripción</span>';
   html += '</div>';
 
@@ -10373,10 +10389,7 @@ function renderDetalleEvalDer(d) {
   var diasActivos = esSabatino ? [5] : [0, 1, 2, 3];
   function esDiaActivo_(idx) { return diasActivos.indexOf(idx) !== -1; }
 
-  // ═══════════════════════════════════════════════════════════════════
-  //  OFFSET del bloque — Sem 1 del Bloque 2 corresponde a Sem 9 del curso
-  //  Bloque 1 → offset 0 | Bloque 2 → offset 8 | Bloque 3 → offset 16
-  // ═══════════════════════════════════════════════════════════════════
+  // Offset del bloque: Bloque 1 → 0, Bloque 2 → 8, Bloque 3 → 16
   var bloqueActualAl = parseInt(d.bloque, 10) || 1;
   var offsetSemanasAl = (bloqueActualAl - 1) * 8;
 
@@ -10396,25 +10409,17 @@ function renderDetalleEvalDer(d) {
 
   var totalSinRegistro = 0;
 
-  // ═══ Fecha de referencia del alumno ═══
+  // Fecha de referencia del alumno
   var fechaInscripcionAl = null;
   if (alumnoData && alumnoData.alumno && alumnoData.alumno.fechaInscripcion) {
     var fi = new Date(alumnoData.alumno.fechaInscripcion);
-    if (!isNaN(fi.getTime())) {
-      fi.setHours(0, 0, 0, 0);
-      fechaInscripcionAl = fi;
-    }
+    if (!isNaN(fi.getTime())) { fi.setHours(0, 0, 0, 0); fechaInscripcionAl = fi; }
   }
-
   var fechaInicioGrupoAl = null;
   if (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) {
     var fg = new Date(alumnoData.grupo.fechaInicio);
-    if (!isNaN(fg.getTime())) {
-      fg.setHours(0, 0, 0, 0);
-      fechaInicioGrupoAl = fg;
-    }
+    if (!isNaN(fg.getTime())) { fg.setHours(0, 0, 0, 0); fechaInicioGrupoAl = fg; }
   }
-
   var primerRegistroAl = null;
   cal.forEach(function (c) {
     if (!c.fecha) return;
@@ -10462,13 +10467,34 @@ function renderDetalleEvalDer(d) {
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
-
-      // Fecha real del día — CON offset del bloque
       var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di, offsetSemanasAl);
       var diaNum = fechaDia ? fechaDia.getDate() : '';
+      var mesStr = fechaDia ? mesCortoAl_(fechaDia) : '';
+
+      // Detectar festivo
+      var esFestivo = false;
+      var festivoInfo = null;
+      if (fechaDia) {
+        var mm = String(fechaDia.getMonth() + 1).padStart(2, '0');
+        var dd = String(fechaDia.getDate()).padStart(2, '0');
+        var claveFest = mm + '-' + dd;
+        if (FERIADOS_MX[claveFest]) {
+          esFestivo = true;
+          festivoInfo = FERIADOS_MX[claveFest];
+        }
+      }
 
       if (!activo) {
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
+        continue;
+      }
+
+      // Festivo sin registro → emoji con día/mes
+      if (esFestivo && !rec) {
+        html += '<div title="' + festivoInfo.nombre + ' · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+          '<span style="font-size:14px;">' + festivoInfo.emoji + '</span>' +
+          '<span style="font-size:7px;color:#93c5fd;font-weight:700;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
+        '</div>';
         continue;
       }
 
@@ -10485,37 +10511,35 @@ function renderDetalleEvalDer(d) {
 
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
-          html += '<div title="' + (rec.fecha || '') + ' · Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#cbd5e1;gap:3px;">' +
-            (diaNum ? '<span style="opacity:0.55;font-size:9px;">' + diaNum + '</span>' : '') +
-            '<span>F</span></div>';
+          html += '<div title="' + (rec.fecha || '') + ' · Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+            '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
+            '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
+          '</div>';
         } else {
           var col = colorMap[rec.color] || '#94a3b8';
           var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
-          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
-            (diaNum ? '<span style="color:rgba(255,255,255,0.9);font-size:11px;font-weight:800;">' + diaNum + '</span>' : '') +
+          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + ' · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+            '<span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span>' +
+            '<span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span>' +
           '</div>';
         }
-
       } else {
-        // Sin registro — X solo si la fecha YA PASÓ (strictamente antes de hoy)
         var mostrarX = false;
-
         if (alumnoYaEmpezó && fechaDiaNorm) {
-          if (fechaDiaNorm.getTime() < hoy.getTime()) {
-            mostrarX = true;
-          }
+          if (fechaDiaNorm.getTime() < hoy.getTime()) mostrarX = true;
         }
 
         if (mostrarX) {
           totalSinRegistro++;
-          html += '<div title="' + (fechaDia ? Utilities_formatDate_(fechaDia) : '') + ' · Sin registro" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;">' +
-            (diaNum ? '<span style="color:#f87171;font-size:10px;font-weight:700;opacity:0.8;">' + diaNum + '</span>' : '') +
-            '<span style="color:#f87171;font-size:14px;font-weight:900;">✕</span>' +
+          html += '<div title="' + (fechaDia ? Utilities_formatDate_(fechaDia) : '') + ' · Sin registro" style="flex:1;height:34px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.55);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+            '<span style="color:#f87171;font-size:12px;font-weight:900;">✕</span>' +
+            '<span style="color:#f87171;font-size:7px;margin-top:1px;opacity:0.85;">' + diaNum + ' ' + mesStr + '</span>' +
           '</div>';
         } else {
-          var tooltip = alumnoYaEmpezó ? (diasNombres[di] + ' — pendiente') : (diasNombres[di] + ' — antes de tu inicio en el grupo');
-          html += '<div title="' + tooltip + '" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;">' +
-            (diaNum ? '<span style="color:#475569;font-size:10px;">' + diaNum + '</span>' : '') +
+          var tooltip = (alumnoYaEmpezó ? diasNombres[di] + ' — pendiente' : diasNombres[di] + ' — antes de tu inicio') + ' · ' + diaNum + ' ' + mesStr;
+          html += '<div title="' + tooltip + '" style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+            '<span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span>' +
+            '<span style="color:#475569;font-size:7px;">' + mesStr + '</span>' +
           '</div>';
         }
       }
