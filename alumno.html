@@ -10293,23 +10293,17 @@ function renderDetalleEvalIzq(d) {
   document.getElementById('detalleEvalIzq').innerHTML = html;
 }
 
-// Helper: calcula la fecha real de un día del calendario
-function _fechaDiaCalendario_(fechaInicioRaw, sem, diaIdx) {
+function _fechaDiaCalendario_(fechaInicioRaw, sem, diaIdx, offsetSemanas) {
   if (!fechaInicioRaw) return null;
   var inicio = null;
 
-  // Acepta Date nativo
   if (fechaInicioRaw instanceof Date) {
     if (isNaN(fechaInicioRaw.getTime())) return null;
     inicio = new Date(fechaInicioRaw.getFullYear(), fechaInicioRaw.getMonth(), fechaInicioRaw.getDate());
   } else {
     var s = String(fechaInicioRaw).trim();
-
-    // Formato yyyy-MM-dd
     var m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    // Formato dd/MM/yyyy o dd-MM-yyyy
     var m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-
     if (m1) {
       inicio = new Date(parseInt(m1[1], 10), parseInt(m1[2], 10) - 1, parseInt(m1[3], 10));
     } else if (m2) {
@@ -10323,16 +10317,17 @@ function _fechaDiaCalendario_(fechaInicioRaw, sem, diaIdx) {
 
   inicio.setHours(0, 0, 0, 0);
 
-  // Lunes de la semana 1 (la semana donde cae fechaInicio)
-  var dow = inicio.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+  // Lunes de la semana donde arranca el CURSO (no el bloque)
+  var dow = inicio.getDay();
   var diasAlLunes = (dow === 0) ? -6 : (1 - dow);
-  var lunesSem1 = new Date(inicio);
-  lunesSem1.setDate(inicio.getDate() + diasAlLunes);
-  lunesSem1.setHours(0, 0, 0, 0);
+  var lunesSem1Curso = new Date(inicio);
+  lunesSem1Curso.setDate(inicio.getDate() + diasAlLunes);
+  lunesSem1Curso.setHours(0, 0, 0, 0);
 
-  var offset = (sem - 1) * 7 + diaIdx;
-  var fecha = new Date(lunesSem1);
-  fecha.setDate(lunesSem1.getDate() + offset);
+  // OFFSET: Bloque 1 → 0, Bloque 2 → 8, Bloque 3 → 16, etc.
+  var offset = ((sem - 1) + (offsetSemanas || 0)) * 7 + diaIdx;
+  var fecha = new Date(lunesSem1Curso);
+  fecha.setDate(lunesSem1Curso.getDate() + offset);
   fecha.setHours(0, 0, 0, 0);
   return fecha;
 }
@@ -10446,8 +10441,13 @@ function renderDetalleEvalDer(d) {
     html += '<div style="flex:1;text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:' + (activoH ? '#94a3b8' : '#475569') + ';">' + diasNombres[di] + '</div>';
   }
   html += '</div>';
-
-  // Filas
+  
+  // ═══ OFFSET de bloque para el cálculo de fechas ═══
+  var bloqueActualAl = d.bloque || 1;
+  var offsetSemanasAl = (bloqueActualAl - 1) * 8;
+  // ══════════════════════════════════════════════════
+  
+    // Filas
   for (var s = 1; s <= 8; s++) {
     var esMini = s === 4;
     var esGrand = s === 8;
