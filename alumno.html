@@ -10347,6 +10347,25 @@ function renderDetalleEvalDer(d) {
   }
 
   var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
+    // ═══════════════════════════════════════════════════════════════════════
+  //  INICIO DE REFERENCIA DEL CALENDARIO
+  //  Si el alumno tiene registros en grupos anteriores, el calendario
+  //  debe comenzar desde el PRIMER registro real (aunque sea de otro grupo)
+  //  — no desde el inicio del grupo actual. Así el alumno ve TODAS sus
+  //  clases del bloque alineadas, sin importar por dónde pasó.
+  // ═══════════════════════════════════════════════════════════════════════
+  var primerRegistroGlobal = null;
+  (cal || []).forEach(function (c) {
+    if (!c.fecha) return;
+    var f = _parseFechaLocal_(c.fecha);
+    if (!f || isNaN(f.getTime())) return;
+    if (!primerRegistroGlobal || f < primerRegistroGlobal) primerRegistroGlobal = f;
+  });
+
+  var fechaInicioGrupo = (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) || null;
+  var fechaInicioReferencia = primerRegistroGlobal
+    ? Utilities_formatDate_(primerRegistroGlobal)
+    : fechaInicioGrupo;
   var hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
@@ -10498,7 +10517,7 @@ function renderDetalleEvalDer(d) {
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
-      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di, offsetSemanasAl);
+            var fechaDia = _fechaDiaCalendario_(fechaInicioReferencia, s, di, offsetSemanasAl);
       var diaNum = fechaDia ? fechaDia.getDate() : '';
       var mesStr = fechaDia ? mesCortoAl_(fechaDia) : '';
 
