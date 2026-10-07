@@ -10372,7 +10372,13 @@ function renderDetalleEvalDer(d) {
 
   var diasActivos = esSabatino ? [5] : [0, 1, 2, 3];
   function esDiaActivo_(idx) { return diasActivos.indexOf(idx) !== -1; }
-  function diaSemanaDeCol_(idx) { return idx + 1; }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  OFFSET del bloque — Sem 1 del Bloque 2 corresponde a Sem 9 del curso
+  //  Bloque 1 → offset 0 | Bloque 2 → offset 8 | Bloque 3 → offset 16
+  // ═══════════════════════════════════════════════════════════════════
+  var bloqueActualAl = parseInt(d.bloque, 10) || 1;
+  var offsetSemanasAl = (bloqueActualAl - 1) * 8;
 
   // Agrupar registros por semana/día
   var semanas = {};
@@ -10388,15 +10394,9 @@ function renderDetalleEvalDer(d) {
     }
   });
 
-  // ═══ Contador de ✕ para la nota final ═══
   var totalSinRegistro = 0;
 
-  // ═══════════════════════════════════════════════════════════════════
-  //  FECHA DE REFERENCIA DEL ALUMNO
-  //  - Si se inscribió ANTES del arranque del grupo → cuenta desde el inicio del grupo
-  //  - Si se integró DESPUÉS (colocación, fusión, etc.) → cuenta desde su primer registro
-  //  - Respaldo: si nunca tiene registro → cuenta desde su inscripción
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══ Fecha de referencia del alumno ═══
   var fechaInscripcionAl = null;
   if (alumnoData && alumnoData.alumno && alumnoData.alumno.fechaInscripcion) {
     var fi = new Date(alumnoData.alumno.fechaInscripcion);
@@ -10441,13 +10441,8 @@ function renderDetalleEvalDer(d) {
     html += '<div style="flex:1;text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:' + (activoH ? '#94a3b8' : '#475569') + ';">' + diasNombres[di] + '</div>';
   }
   html += '</div>';
-  
-  // ═══ OFFSET de bloque para el cálculo de fechas ═══
-  var bloqueActualAl = d.bloque || 1;
-  var offsetSemanasAl = (bloqueActualAl - 1) * 8;
-  // ══════════════════════════════════════════════════
-  
-    // Filas
+
+  // Filas
   for (var s = 1; s <= 8; s++) {
     var esMini = s === 4;
     var esGrand = s === 8;
@@ -10455,12 +10450,6 @@ function renderDetalleEvalDer(d) {
     if (esMini)       { bordeColor = 'rgba(251,191,36,0.45)'; bgColor = 'rgba(251,191,36,0.12)'; textoColor = '#fbbf24'; }
     else if (esGrand) { bordeColor = 'rgba(239,68,68,0.5)';  bgColor = 'rgba(239,68,68,0.12)';  textoColor = '#f87171'; }
     else              { bordeColor = 'rgba(255,255,255,0.06)'; bgColor = 'rgba(255,255,255,0.03)'; textoColor = '#94a3b8'; }
-
-    var semanaActual = parseInt(d.semanaEnBloque, 10) || 1;
-    var esSemanaFutura = s > semanaActual;
-    var esSemanaPasada = s < semanaActual;
-    var dowHoy = hoy.getDay();
-    if (dowHoy === 0) dowHoy = 7;
 
     html += '<div style="display:flex;gap:6px;align-items:center;background:' + bgColor + ';border:1px solid ' + bordeColor + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
 
@@ -10473,7 +10462,9 @@ function renderDetalleEvalDer(d) {
     for (var di = 0; di < 7; di++) {
       var activo = esDiaActivo_(di);
       var rec = semanas[s][di];
-      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di);
+
+      // Fecha real del día — CON offset del bloque
+      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di, offsetSemanasAl);
       var diaNum = fechaDia ? fechaDia.getDate() : '';
 
       if (!activo) {
@@ -10481,7 +10472,6 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
-      // Comparar contra la fecha de referencia
       var fechaDiaNorm = null;
       if (fechaDia && !isNaN(fechaDia.getTime())) {
         fechaDiaNorm = new Date(fechaDia);
@@ -10494,7 +10484,6 @@ function renderDetalleEvalDer(d) {
       }
 
       if (rec) {
-        // Hay registro
         if (rec.asistio === false || rec.color == null) {
           html += '<div title="' + (rec.fecha || '') + ' · Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#cbd5e1;gap:3px;">' +
             (diaNum ? '<span style="opacity:0.55;font-size:9px;">' + diaNum + '</span>' : '') +
@@ -10508,28 +10497,14 @@ function renderDetalleEvalDer(d) {
         }
 
       } else {
-                // Sin registro — decidir si mostrar X o celda neutra
+        // Sin registro — X solo si la fecha YA PASÓ (strictamente antes de hoy)
         var mostrarX = false;
 
-        if (alumnoYaEmpezó) {
-          if (fechaDiaNorm) {
-            // Lógica principal: comparar fecha exacta del día contra hoy
-            // Si la fecha ya pasó (strictamente anterior a hoy) → X
-            // Si es hoy o futuro → no marcar (aún puede registrarse)
-            if (fechaDiaNorm.getTime() < hoy.getTime()) {
-              mostrarX = true;
-            }
-          } else {
-            // Respaldo por si no se pudo calcular la fecha exacta
-            if (esSemanaPasada) {
-              mostrarX = true;
-            } else if (!esSemanaFutura) {
-              var diaCol = diaSemanaDeCol_(di);
-              if (diaCol < dowHoy) mostrarX = true;
-            }
+        if (alumnoYaEmpezó && fechaDiaNorm) {
+          if (fechaDiaNorm.getTime() < hoy.getTime()) {
+            mostrarX = true;
           }
         }
-        // Si NO había empezado → nunca X
 
         if (mostrarX) {
           totalSinRegistro++;
@@ -10552,7 +10527,6 @@ function renderDetalleEvalDer(d) {
     html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
   }
 
-  // Nota condicional
   if (totalSinRegistro > 0) {
     html += '<div style="margin-top:12px;padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:10px;display:flex;gap:10px;align-items:flex-start;">';
     html += '<div style="font-size:20px;line-height:1;flex-shrink:0;">✕</div>';
