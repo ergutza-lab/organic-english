@@ -10438,30 +10438,33 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
     var esMiniSab  = (idxSab === 3 && tieneMiniActual);
     var esGrandSab = (idxSab === 7 && tieneGrandActual);
     
-    // ─── Estilos especiales del contenedor del sábado ───
-    var bordeIzq = '1px solid rgba(255,255,255,0.08)';
-    var bordeIzqColor = '';
+        // ─── Estilos del contenedor del sábado (mismo look que entre semana) ───
+    var bordeCompleto = 'border:1px solid rgba(255,255,255,0.08);';
     if (esMiniSab) {
-      bordeIzq = '1px solid rgba(250,204,21,0.5)';
-      bordeIzqColor = 'border-left:4px solid #facc15;';
+      bordeCompleto = 'border:2px solid rgba(250,204,21,0.55);';
     } else if (esGrandSab) {
-      bordeIzq = '1px solid rgba(239,68,68,0.5)';
-      bordeIzqColor = 'border-left:4px solid #ef4444;';
+      bordeCompleto = 'border:2px solid rgba(239,68,68,0.55);';
     }
 
     // ─── Contenedor del sábado ───
-    html += '<div style="background:rgba(255,255,255,0.03);border:' + bordeIzq + ';' + bordeIzqColor + 'border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (esFuturoSabado ? 'opacity:0.55;' : '') + '">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-    html += '<div style="font-size:11px;font-weight:800;color:#f1f5f9;text-transform:uppercase;letter-spacing:0.6px;">SÁBADO ' + (idxSab + 1) + ' · ' + fechaTxt + '</div>';
+    // Los sábados con Mini o Grand NUNCA se atenúan, aunque sean futuros.
+    var atenuar = esFuturoSabado && !esMiniSab && !esGrandSab;
+    html += '<div style="background:rgba(255,255,255,0.03);' + bordeCompleto + 'border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (atenuar ? 'opacity:0.55;' : '') + '">';
 
-    // ─── Badge de Challenge o "Por venir" ───
+    // Header: label izquierda (con sub-badge si es Mini/Grand) + POR VENIR derecha
+    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">';
+    html += '<div>';
+    html += '<div style="font-size:11px;font-weight:800;color:#f1f5f9;text-transform:uppercase;letter-spacing:0.6px;">SÁBADO ' + (idxSab + 1) + ' · ' + fechaTxt + '</div>';
     if (esMiniSab) {
-      html += '<div style="background:rgba(250,204,21,0.18);border:1px solid rgba(250,204,21,0.6);color:#fde047;font-size:9px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:0.4px;">⭐ MINI CHALLENGE</div>';
+      html += '<div style="font-size:10px;font-weight:800;color:#fde047;letter-spacing:0.3px;margin-top:3px;">⭐ Mini</div>';
     } else if (esGrandSab) {
-      html += '<div style="background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.6);color:#fca5a5;font-size:9px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:0.4px;">🏆 GRAND CHALLENGE</div>';
-    } else if (esFuturoSabado) {
-      html += '<div style="font-size:9px;color:#64748b;font-weight:700;">POR VENIR</div>';
+      html += '<div style="font-size:10px;font-weight:800;color:#fca5a5;letter-spacing:0.3px;margin-top:3px;">🏆 Grand</div>';
     }
+    html += '</div>';
+    if (atenuar) {
+      html += '<div style="font-size:9px;color:#64748b;font-weight:700;flex-shrink:0;">POR VENIR</div>';
+    }
+    html += '</div>';
 
     html += '</div>';
 
