@@ -10397,9 +10397,30 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
     });
   }
 
-  var hoy = new Date();
+    var hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   var labelColor = {1:'Rojo', 2:'Amarillo', 3:'Verde', 4:'Azul'};
+
+  // ─── Extraer fechas de Mini y Grand Challenge del bloque actual ───
+  var miniFechaISO = '';
+  var grandFechaISO = '';
+  (d.challenges || []).forEach(function(ch) {
+    if (!ch.fecha) return;
+    var fechaObj = new Date(ch.fecha);
+    if (isNaN(fechaObj.getTime())) return;
+    var tipoLow = String(ch.tipo || '').toLowerCase();
+    var fechaISO = Utilities.formatDate(fechaObj, 'America/Mexico_City', 'yyyy-MM-dd');
+    if (tipoLow.indexOf('mini') === 0) miniFechaISO = fechaISO;
+    if (tipoLow.indexOf('grand') === 0 || tipoLow.indexOf('gran') === 0) grandFechaISO = fechaISO;
+  });
+
+  // Helper: ¿la fecha del challenge cae dentro del sábado dado?
+  function _coincideSabado_(fechaChallengeISO, sabadoISO) {
+    if (!fechaChallengeISO || !sabadoISO) return false;
+    var fc = new Date(fechaChallengeISO + 'T12:00:00').getTime();
+    var fs = new Date(sabadoISO + 'T12:00:00').getTime();
+    return Math.abs(fc - fs) <= 3 * 24 * 60 * 60 * 1000;
+  }
 
   // ─── Renderizar cada sábado ───
   sabados.forEach(function(sabadoObj, idxSab) {
@@ -10410,17 +10431,41 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
     var dd = String(sabadoObj.getDate()).padStart(2, '0');
     sabadoISO = y + '-' + m + '-' + dd;
 
-    var esFuturoSabado = sabadoObj.getTime() > hoy.getTime();
+        var esFuturoSabado = sabadoObj.getTime() > hoy.getTime();
     var regsSabado = porSabado[sabadoISO] || {};
 
     var mesCorto = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][sabadoObj.getMonth()];
     var fechaTxt = sabadoObj.getDate() + ' ' + mesCorto;
 
+    // ─── Detectar si este sábado coincide con Mini o Grand Challenge ───
+    var esMiniSab = _coincideSabado_(miniFechaISO, sabadoISO);
+    var esGrandSab = _coincideSabado_(grandFechaISO, sabadoISO);
+
+    // ─── Estilos especiales del contenedor del sábado ───
+    var bordeIzq = '1px solid rgba(255,255,255,0.08)';
+    var bordeIzqColor = '';
+    if (esMiniSab) {
+      bordeIzq = '1px solid rgba(250,204,21,0.5)';
+      bordeIzqColor = 'border-left:4px solid #facc15;';
+    } else if (esGrandSab) {
+      bordeIzq = '1px solid rgba(239,68,68,0.5)';
+      bordeIzqColor = 'border-left:4px solid #ef4444;';
+    }
+
     // ─── Contenedor del sábado ───
-    html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (esFuturoSabado ? 'opacity:0.55;' : '') + '">';
+    html += '<div style="background:rgba(255,255,255,0.03);border:' + bordeIzq + ';' + bordeIzqColor + 'border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (esFuturoSabado ? 'opacity:0.55;' : '') + '">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
     html += '<div style="font-size:11px;font-weight:800;color:#f1f5f9;text-transform:uppercase;letter-spacing:0.6px;">SÁBADO ' + (idxSab + 1) + ' · ' + fechaTxt + '</div>';
-    if (esFuturoSabado) html += '<div style="font-size:9px;color:#64748b;font-weight:700;">POR VENIR</div>';
+
+    // ─── Badge de Challenge o "Por venir" ───
+    if (esMiniSab) {
+      html += '<div style="background:rgba(250,204,21,0.18);border:1px solid rgba(250,204,21,0.6);color:#fde047;font-size:9px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:0.4px;">⭐ MINI CHALLENGE</div>';
+    } else if (esGrandSab) {
+      html += '<div style="background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.6);color:#fca5a5;font-size:9px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:0.4px;">🏆 GRAND CHALLENGE</div>';
+    } else if (esFuturoSabado) {
+      html += '<div style="font-size:9px;color:#64748b;font-weight:700;">POR VENIR</div>';
+    }
+
     html += '</div>';
 
     // ─── 4 mini-celdas horizontales (C1, C2, C3, C4) ───
