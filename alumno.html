@@ -10332,9 +10332,185 @@ function _fechaDiaCalendario_(fechaInicioRaw, sem, diaIdx, offsetSemanas) {
   return fecha;
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  RENDER SABATINO -- Layout horizontal con 4 mini-celdas por sábado.
+//  Cada fila = 1 sábado, cada mini-celda = 1 clase (C1, C2, C3, C4).
+//  El backend ya nos manda `claseNum` (1-4) por cada registro.
+// ═══════════════════════════════════════════════════════════════════════
+function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
+  var html = '';
+
+  // ─── Header ───
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque || 1) + '</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;">1 clase por semana (Sábado) · 4 evaluaciones por sábado</div>';
+  html += '</div>';
+
+  // ─── Leyenda de colores ───
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;"></span> Azul</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Verde</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Amarillo</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">F</span> Falta</span>';
+  html += '<span><span style="display:inline-block;width:14px;height:14px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;"></span> Sin registro</span>';
+  html += '</div>';
+
+  // ─── Agrupar registros por sábado y por claseNum ───
+  // Estructura: porSabado[fechaISO] = { c1: reg, c2: reg, c3: reg, c4: reg }
+  var porSabado = {};
+  cal.forEach(function(c) {
+    var fecha = c.fecha;
+    if (!fecha) return;
+    if (!porSabado[fecha]) porSabado[fecha] = {};
+    var cn = parseInt(c.claseNum, 10) || 1;
+    // Si ya hay un registro para esta clase, conservar el que tenga color
+    // (caso raro de duplicados).
+    var existe = porSabado[fecha][cn];
+    if (!existe || (c.color && !existe.color)) {
+      porSabado[fecha][cn] = c;
+    }
+  });
+
+  // ─── Calcular las 8 fechas de sábado del bloque ───
+  // Fecha de inicio del grupo = sábado 1. Luego sábado + 7 * (n-1).
+  var fechaInicioGrupo = null;
+  if (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) {
+    fechaInicioGrupo = _parseFechaLocal_(alumnoData.grupo.fechaInicio);
+  }
+
+  var sabados = [];
+  if (fechaInicioGrupo) {
+    for (var s = 0; s < 8; s++) {
+      var sab = new Date(fechaInicioGrupo);
+      sab.setDate(sab.getDate() + s * 7);
+      sabados.push(sab);
+    }
+  }
+
+  // Si por alguna razón no tenemos fecha de inicio, deducir de los registros
+  if (!sabados.length) {
+    var fechasUnicas = Object.keys(porSabado).sort();
+    fechasUnicas.slice(0, 8).forEach(function(f) {
+      sabados.push(_parseFechaLocal_(f));
+    });
+  }
+
+  var hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  var labelColor = {1:'Rojo', 2:'Amarillo', 3:'Verde', 4:'Azul'};
+
+  // ─── Renderizar cada sábado ───
+  sabados.forEach(function(sabadoObj, idxSab) {
+    var sabadoISO = Utilities_formatDate_ ? null : null;
+    // Formatear fecha ISO
+    var y = sabadoObj.getFullYear();
+    var m = String(sabadoObj.getMonth() + 1).padStart(2, '0');
+    var dd = String(sabadoObj.getDate()).padStart(2, '0');
+    sabadoISO = y + '-' + m + '-' + dd;
+
+    var esFuturoSabado = sabadoObj.getTime() > hoy.getTime();
+    var regsSabado = porSabado[sabadoISO] || {};
+
+    var mesCorto = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][sabadoObj.getMonth()];
+    var fechaTxt = sabadoObj.getDate() + ' ' + mesCorto;
+
+    // ─── Contenedor del sábado ───
+    html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (esFuturoSabado ? 'opacity:0.55;' : '') + '">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    html += '<div style="font-size:11px;font-weight:800;color:#f1f5f9;text-transform:uppercase;letter-spacing:0.6px;">SÁBADO ' + (idxSab + 1) + ' · ' + fechaTxt + '</div>';
+    if (esFuturoSabado) html += '<div style="font-size:9px;color:#64748b;font-weight:700;">POR VENIR</div>';
+    html += '</div>';
+
+    // ─── 4 mini-celdas horizontales (C1, C2, C3, C4) ───
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+
+    for (var cn = 1; cn <= 4; cn++) {
+      var reg = regsSabado[cn];
+
+      // Número de lección global (ej. 1, 5, 9, 13...)
+      var lessonNum = (idxSab * 4) + cn;
+
+      var cajaHtml = '';
+      if (reg) {
+        if (reg.asistio === false || reg.color == null) {
+          // Falta o sin color → mostrar F
+          cajaHtml =
+            '<div style="background:#334155;border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" title="' + reg.fecha + ' · Falta">' +
+              '<div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div>' +
+              '<div style="color:#cbd5e1;font-size:14px;font-weight:900;">F</div>' +
+              '<div style="font-size:8px;color:#94a3b8;">Lesson ' + lessonNum + '</div>' +
+            '</div>';
+        } else {
+          // Color válido
+          var col = colorMap[reg.color] || '#94a3b8';
+          var labelCol = labelColor[reg.color] || '';
+          cajaHtml =
+            '<div style="background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 6px rgba(0,0,0,0.25);" title="' + reg.fecha + ' · ' + labelCol + '">' +
+              '<div style="font-size:9px;color:rgba(255,255,255,0.85);font-weight:700;">C' + cn + '</div>' +
+              '<div style="color:rgba(255,255,255,0.98);font-size:14px;font-weight:800;">' + lessonNum + '</div>' +
+              '<div style="font-size:8px;color:rgba(255,255,255,0.75);">Lesson</div>' +
+            '</div>';
+        }
+      } else {
+        // Sin registro
+        cajaHtml =
+          '<div style="background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">' +
+            '<div style="font-size:9px;color:#64748b;font-weight:700;">C' + cn + '</div>' +
+            '<div style="color:#475569;font-size:14px;font-weight:800;">—</div>' +
+            '<div style="font-size:8px;color:#475569;">Lesson ' + lessonNum + '</div>' +
+          '</div>';
+      }
+      html += cajaHtml;
+    }
+
+    html += '</div>'; // cierre grid
+    html += '</div>'; // cierre sabado
+  });
+
+  if (cal.length === 0) {
+    html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado aparecerá cuando tu maestro registre las clases.</div>';
+  }
+
+  html += '</div>'; // cierre card grande
+
+  // ─── Observaciones ───
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">💬 Observaciones recientes del maestro</div>';
+  var obs = d.observaciones || [];
+  if (!obs.length) {
+    html += '<div style="font-size:12px;color:#64748b;text-align:center;padding:12px;">Sin observaciones registradas aún.</div>';
+  } else {
+    obs.slice(-3).reverse().forEach(function (o) {
+      html += '<div style="display:flex;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+      html += '<span style="font-size:11px;color:#94a3b8;flex-shrink:0;padding-top:1px;font-weight:700;">' + o.fecha + '</span>';
+      html += '<span style="font-size:12px;color:#f1f5f9;line-height:1.5;">' + o.texto + '</span>';
+      html += '</div>';
+    });
+    html += '<div style="font-size:10px;color:#64748b;text-align:center;margin-top:4px;">Mostrando las últimas 3 observaciones</div>';
+  }
+  html += '</div>';
+
+  document.getElementById('detalleEvalDer').innerHTML = html;
+}
+  
 function renderDetalleEvalDer(d) {
   var html = '';
   var cal = d.calendario || [];
+
+  // ─── Detectar si es sabatino (usa el campo que ahora manda el backend) ───
+  var esSabatino = (d.esSabatino === true);
+
+  // Si es sabatino, renderizar layout distinto y salir temprano
+  if (esSabatino) {
+    var colorMapSab = { 1: '#ef4444', 2: '#facc15', 3: '#22c55e', 4: '#3b82f6' };
+    var diasNombresSab = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    renderDetalleEvalDerSabatino_(d, cal, diasNombresSab, colorMapSab);
+    return;
+  }
+
+  // ─── A partir de aquí, el código actual para grupos entre semana ───
 
   var esSabatino = false;
   if (alumnoData && alumnoData.grupo) {
