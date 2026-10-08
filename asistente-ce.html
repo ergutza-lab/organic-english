@@ -665,6 +665,27 @@
   </div>
 </div>
 
+<!-- MODAL NOTIFICACIÓN DE FUSIÓN POR WHATSAPP -->
+<div class="modal-comp-overlay" id="modal-notif-fusion">
+  <div class="modal-comp-box" style="max-width:600px;">
+    <div class="modal-comp-header">
+      <h3 class="modal-comp-titulo">✅ Fusión creada</h3>
+      <button class="modal-cerrar" onclick="cerrarModalNotifFusion()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--gris-600);margin-bottom:14px;">
+      La fusión se realizó correctamente. Puedes avisarle al alumno por WhatsApp con el siguiente mensaje pre-armado.
+    </p>
+    <div style="background:var(--gris-50);border:1px solid var(--gris-200);border-radius:10px;padding:14px;margin-bottom:16px;max-height:320px;overflow-y:auto;">
+      <div style="font-size:11px;color:var(--gris-500);font-weight:700;text-transform:uppercase;margin-bottom:8px;">Vista previa</div>
+      <pre id="fusion-msg-preview" style="white-space:pre-wrap;font-family:'Segoe UI',Arial,sans-serif;font-size:12.5px;color:var(--gris-800);line-height:1.6;margin:0;"></pre>
+    </div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px;">
+      <button class="btn-validar" id="btn-notif-wa-fusion" style="background:#25D366;width:100%;" onclick="notificarFusionWhatsApp()">📱 Enviar por WhatsApp</button>
+      <button class="btn-confirm-cancel" style="width:100%;" onclick="cerrarModalNotifFusion()">Cerrar sin notificar</button>
+    </div>
+  </div>
+</div>
+  
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2031,10 +2052,11 @@ async function confirmarSinCosto(){
     const resp = await fetch(url);
     const data = await resp.json();
 
-    if (data.success) {
+        if (data.success) {
       mostrarToast('🔀 Fusión creada: ' + data.idGrupoOrigen + ' → ' + data.idGrupoDestino, 'success');
       cerrarModalSinCosto();
       await cargarDatos();
+      abrirModalNotifFusion(data);
     } else {
       mostrarToast(data.error || 'Error al crear la fusión', 'error');
       btn.disabled = false;
@@ -2047,6 +2069,69 @@ async function confirmarSinCosto(){
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  MODAL DE NOTIFICACIÓN DE FUSIÓN POR WHATSAPP
+// ═══════════════════════════════════════════════════════════════════════
+var _fusionDataActual = null;
+
+function abrirModalNotifFusion(data) {
+  _fusionDataActual = data;
+  var msg = construirMensajeFusion(data);
+  document.getElementById('fusion-msg-preview').textContent = msg;
+  document.getElementById('modal-notif-fusion').classList.add('open');
+}
+
+function cerrarModalNotifFusion() {
+  document.getElementById('modal-notif-fusion').classList.remove('open');
+  _fusionDataActual = null;
+}
+
+function construirMensajeFusion(data) {
+  // Primer nombre del alumno (para el saludo)
+  var primerNombre = String(data.nombreAlumno || '').trim().split(/\s+/)[0] || 'estudiante';
+
+  var lineas = [];
+  lineas.push('Hola ' + primerNombre + ' 👋');
+  lineas.push('');
+  lineas.push('Esperamos que estés muy bien 🌱');
+  lineas.push('');
+  lineas.push('Te escribimos porque estamos haciendo un ajuste en los grupos y queremos que estés al tanto desde el principio.');
+  lineas.push('');
+  lineas.push('A partir del *' + data.coberturaInicio + '* te incorporas al grupo *' + data.idGrupoDestino + '*. Sabemos que los cambios pueden sentirse extraños, así que te explicamos qué va a pasar y cómo lo vamos a manejar.');
+  lineas.push('');
+  lineas.push('💚 Del *' + data.coberturaInicio + '* al *' + data.coberturaFin + '* estarás en un período de repaso: verás clases con contenido que ya dominas, podrás participar con total normalidad y sin ninguna presión.');
+  lineas.push('');
+
+  if (data.esBecado) {
+    lineas.push('Tus evaluaciones anteriores se conservan tal cual. No se reinician ni se borran, y durante este período no recibirás nuevas calificaciones.');
+    lineas.push('');
+    lineas.push('Cuando tu grupo llegue a la clase *' + data.proximaLeccion + '*, que es la siguiente que te corresponde, retomamos las evaluaciones.');
+  } else {
+    lineas.push('Tus evaluaciones anteriores se conservan tal cual. No se reinician ni se borran, y durante este período no recibirás nuevas calificaciones. Tampoco tendrás que cubrir colegiatura durante estos días.');
+    lineas.push('');
+    lineas.push('Cuando tu grupo llegue a la clase *' + data.proximaLeccion + '*, que es la siguiente que te corresponde, retomamos las evaluaciones y también el pago de tus colegiaturas.');
+  }
+
+  lineas.push('');
+  lineas.push('Cualquier duda, aquí estamos para ti.');
+  lineas.push('— ' + data.nombreAsistente);
+
+  return lineas.join('\n');
+}
+
+function notificarFusionWhatsApp() {
+  if (!_fusionDataActual) return;
+  var msg = construirMensajeFusion(_fusionDataActual);
+  var wa = cleanWA(_fusionDataActual.whatsappAlumno);
+  if (!wa) {
+    mostrarToast('Este alumno no tiene WhatsApp registrado', 'error');
+    return;
+  }
+  var url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  cerrarModalNotifFusion();
+}
+  
 async function validarDesdeModal(){
   if(!pagoActivoId)return;
   const monto=document.getElementById('input-monto-validar').value.trim();
