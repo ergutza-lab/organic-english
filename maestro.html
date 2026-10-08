@@ -1027,7 +1027,7 @@ function actualizarEstadoFecha(fechaStr) {
   }
 
   // ── REGISTRO DIARIO ────────────────────────────────────────────────
-  function renderRegistro() {
+    function renderRegistro() {
     var alumnos=grupoActual.alumnos||[];
     var lista=document.getElementById('listaAlumnosRegistro');
     if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>'; return; }
@@ -1065,40 +1065,119 @@ function actualizarEstadoFecha(fechaStr) {
 
     var COLORES_LABEL = {1:'Rojo — Mejorable', 2:'Amarillo — En proceso', 3:'Verde — Adecuado', 4:'Azul — Destacado'};
 
+    var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
+
     lista.innerHTML=alumnos.map(function(a){
-      var btns=COLORES_EVAL.map(function(c){
-        return '<button class="sem-btn" id="eval-'+c.val+'-'+a.id+'" onclick="selColor(\''+a.id+'\','+c.val+');abrirModalObs(\''+a.id+'\','+c.val+')" title="'+c.label+'">'+c.emoji+'</button>';
+      // ─── Calcular si el alumno está bloqueado por fusión ───
+      var enFusion = !!a.enFusion;
+      var ultimaEval = a.ultimaLeccionEvaluada;
+      // El alumno puede evaluarse si:
+      //   - No está en fusión, o
+      //   - No tiene evaluaciones previas (null/undefined), o
+      //   - La lección actual del grupo ya superó su última evaluada
+      var puedeEvaluar = !enFusion
+        || ultimaEval === null
+        || ultimaEval === undefined
+        || leccionActualGrupo > ultimaEval;
+
+      var bloqueadoPorFusion = enFusion && !puedeEvaluar;
+
+      // ─── Construir badge de estado de fusión ───
+      var badgeFusion = '';
+      var infoFusion = '';
+      var claseAlumnoFusion = '';
+
+      if (enFusion) {
+        if (bloqueadoPorFusion) {
+          // Badge amarillo: en repaso, no evaluable aún
+          badgeFusion = '<div style="background:rgba(250,204,21,0.2);border:1.5px solid rgba(250,204,21,0.6);color:#fde047;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-top:6px;">🔄 En repaso</div>';
+          infoFusion =
+            '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.35);border-radius:8px;padding:10px 12px;margin-top:10px;">' +
+              '<div style="font-size:11px;color:#fde047;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">🔄 Alumno en período de repaso</div>' +
+              '<div style="font-size:12px;color:rgba(255,255,255,0.95);line-height:1.6;">' +
+                'Última evaluada: <strong>Lesson ' + ultimaEval + '</strong> · ' +
+                'Grupo va en <strong>Lesson ' + leccionActualGrupo + '</strong><br>' +
+                '<span style="color:#fde047;">Podrás evaluarlo a partir de Lesson ' + (ultimaEval + 1) + '</span>' +
+              '</div>' +
+              (a.periodoFusion ?
+                '<div style="text-align:right;font-size:10px;color:rgba(255,255,255,0.55);margin-top:8px;">' +
+                  a.periodoFusion.idPeriodo + ' · ' + (a.periodoFusion.inicio || '') +
+                '</div>' : '') +
+            '</div>';
+          claseAlumnoFusion = ' alumno-en-fusion-bloqueado';
+        } else {
+          // Badge verde: ya es evaluable
+          badgeFusion = '<div style="background:rgba(34,197,94,0.2);border:1.5px solid rgba(34,197,94,0.6);color:#86efac;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-top:6px;">✅ Ya es evaluable</div>';
+          infoFusion =
+            '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;color:rgba(255,255,255,0.9);line-height:1.5;">' +
+              'Grupo en <strong>Lesson ' + leccionActualGrupo + '</strong> · Última evaluada: <strong>Lesson ' + ultimaEval + '</strong><br>' +
+              '<span style="color:#86efac;">Alumno listo para ser evaluado ✓</span>' +
+              (a.periodoFusion ?
+                '<div style="text-align:right;font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;">' +
+                  a.periodoFusion.idPeriodo +
+                '</div>' : '') +
+            '</div>';
+        }
+      }
+
+      // ─── Construir botones de color (deshabilitados si bloqueado) ───
+      var btns = COLORES_EVAL.map(function(c){
+        var disabledAttr = bloqueadoPorFusion ? ' disabled style="opacity:0.35;cursor:not-allowed;pointer-events:none;"' : '';
+        var onclick = bloqueadoPorFusion ? '' : ' onclick="selColor(\''+a.id+'\','+c.val+');abrirModalObs(\''+a.id+'\','+c.val+')"';
+        return '<button class="sem-btn" id="eval-'+c.val+'-'+a.id+'"' + onclick + disabledAttr + ' title="'+c.label+'">'+c.emoji+'</button>';
       }).join('');
 
+      // ─── Input de nota adicional (deshabilitado si bloqueado) ───
+      var inputNota = bloqueadoPorFusion
+        ? '<input type="text" id="obs-'+a.id+'-nota" disabled placeholder="No disponible durante el repaso" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.4);font-size:12px;outline:none;box-sizing:border-box;cursor:not-allowed;" />'
+        : '<input type="text" id="obs-'+a.id+'-nota" placeholder="Escribe una nota adicional..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;box-sizing:border-box;" />';
+
+      // ─── Observación seleccionada (oculta si bloqueado) ───
+      var obsDisplay = bloqueadoPorFusion
+        ? '<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.4);font-size:12px;min-height:36px;">Sin evaluación durante el período de repaso</div>'
+        : '<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.6);font-size:12px;min-height:36px;">— Selecciona un color para ver opciones —</div>';
+
       var colorSolidoReg = colorPorNivel(grupoActual.nivel);
-      return '<div class="alumno-registro" style="background:'+colorSolidoReg+';border:1px solid rgba(255,255,255,0.15);">'
+      var bordeExtra = bloqueadoPorFusion ? 'border:2px solid rgba(250,204,21,0.6);' : 'border:1px solid rgba(255,255,255,0.15);';
+
+      return '<div class="alumno-registro" style="background:'+colorSolidoReg+';'+bordeExtra+'">'
 
         +'<div class="alumno-reg-header" style="border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:10px;margin-bottom:12px;">'
           +'<span class="alumno-reg-nombre">'+a.nombre+'</span>'
           +'<span class="alumno-reg-id">'+a.id+'</span>'
         +'</div>'
 
-        +'<div style="margin-bottom:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">'
-          +'<span style="font-size:14px;">ℹ️</span>'
-          +'<span style="font-size:11px;color:rgba(255,255,255,0.85);">Si registras una calificación el alumno se marcará como <strong style="color:#4ade80;">Presente</strong>. Si no registras nada, quedará como <strong style="color:#f87171;">Ausente</strong>.</span>'
-        +'</div>'
+        + badgeFusion
 
-        +'<div style="margin-bottom:12px;">'
+        + infoFusion
+
+        +(!bloqueadoPorFusion ?
+          '<div style="margin-top:12px;margin-bottom:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">'
+            +'<span style="font-size:14px;">ℹ️</span>'
+            +'<span style="font-size:11px;color:rgba(255,255,255,0.85);">Si registras una calificación el alumno se marcará como <strong style="color:#4ade80;">Presente</strong>. Si no registras nada, quedará como <strong style="color:#f87171;">Ausente</strong>.</span>'
+          +'</div>'
+          : '')
+
+        +'<div style="margin-bottom:12px;margin-top:10px;">'
           +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Evaluación del día</div>'
           +'<div class="semaforo">'+btns+'</div>'
         +'</div>'
 
         +'<div style="margin-bottom:8px;">'
           +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Observación seleccionada</div>'
-          +'<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.6);font-size:12px;min-height:36px;">— Selecciona un color para ver opciones —</div>'
+          + obsDisplay
           +'<input type="hidden" id="obs-'+a.id+'" value="" />'
         +'</div>'
 
         +'<div id="nota-wrap-'+a.id+'" style="display:none;">'
           +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Nota adicional (opcional)</div>'
-          +'<input type="text" id="obs-'+a.id+'-nota" placeholder="Escribe una nota adicional..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;box-sizing:border-box;" />'
+          + inputNota
         +'</div>'
-        +'<button onclick="toggleNota(\''+a.id+'\')" style="background:transparent;border:none;color:rgba(255,255,255,0.75);font-size:11px;cursor:pointer;margin-top:6px;padding:0;">+ Agregar nota adicional</button>'
+
+        +(!bloqueadoPorFusion
+          ? '<button onclick="toggleNota(\''+a.id+'\')" style="background:transparent;border:none;color:rgba(255,255,255,0.75);font-size:11px;cursor:pointer;margin-top:6px;padding:0;">+ Agregar nota adicional</button>'
+          : '')
+
       +'</div>';
     }).join('');
   }
@@ -1158,12 +1237,24 @@ function actualizarEstadoFecha(fechaStr) {
     var alumnos=grupoActual.alumnos||[];
     var btn=document.getElementById('btnGuardar');
     var bw=calcularBloqueySemana();
+        var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
+
     var registros=alumnos.map(function(a){
+      // Detectar si este alumno está bloqueado por fusión
+      var enFusion = !!a.enFusion;
+      var ultimaEval = a.ultimaLeccionEvaluada;
+      var puedeEvaluar = !enFusion
+        || ultimaEval === null
+        || ultimaEval === undefined
+        || leccionActualGrupo > ultimaEval;
+      var bloqueadoPorFusion = enFusion && !puedeEvaluar;
+
       return {
         idAlumno:      a.id,
-        asistencia:    getAsistencia(a.id),
-        color:         getColorVal(a.id),
-        observacion: (function(){
+        enPractica:    bloqueadoPorFusion,
+        asistencia:    bloqueadoPorFusion ? false : getAsistencia(a.id),
+        color:         bloqueadoPorFusion ? 0 : getColorVal(a.id),
+        observacion: bloqueadoPorFusion ? '' : (function(){
           var hidden = document.getElementById('obs-'+a.id);
           var base = hidden ? hidden.value : '';
           var notaEl = document.getElementById('obs-'+a.id+'-nota');
