@@ -377,6 +377,20 @@
         <div id="listaMaterial"><div class="loading">Cargando material...</div></div>
       </div>
 
+<!-- MODAL: DETALLE DE EVALUACIÓN (CALENDARIO) -->
+<div id="modalDetalleEvalMaestro" class="modal-eval-overlay" onclick="if(event.target===this)cerrarDetalleEvalMaestro()" style="z-index:9500;">
+  <div class="modal-eval-box" style="max-width:980px;width:100%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#f1f5f9;">📅 Mi evaluación a detalle</div>
+        <div id="detalleEvalMaestroSub" style="font-size:12px;color:#64748b;margin-top:3px;">—</div>
+      </div>
+      <button onclick="cerrarDetalleEvalMaestro()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700;">✕</button>
+    </div>
+    <div id="detalleEvalMaestroContenido"></div>
+  </div>
+</div>
+      
 <div class="toast" id="toast"></div>
 </div><!-- cierre de #vistaDetalle -->
 
@@ -899,9 +913,10 @@ function renderPatronMaestro(patron) {
     grupoActual._mapaData = null;
     fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
       .then(r=>r.json())
-      .then(function(d){
+            .then(function(d){
         if(d.success) {
           grupoActual._mapaData = d.resultados || [];
+          grupoActual._esSabatino = d.esSabatino || false;   // ← NUEVO
           grupoActual.linkZoom  = d.linkZoom  || '';
           grupoActual.linkWhats = d.linkWhats || '';
           btnWa.textContent    = '💬 Invitar a la clase';
@@ -1348,7 +1363,8 @@ function actualizarEstadoFecha(fechaStr) {
       .then(r => r.json())
       .then(data => {
         if (!data.success) { lista.innerHTML='<div class="empty-state"><p>Error al cargar.</p></div>'; return; }
-        grupoActual._mapaData = data.resultados || [];
+                grupoActual._mapaData = data.resultados || [];
+        grupoActual._esSabatino = data.esSabatino || false;   // ← NUEVO
         grupoActual.linkZoom  = data.linkZoom  || grupoActual.linkZoom  || '';
         grupoActual.linkWhats = data.linkWhats || grupoActual.linkWhats || '';
         renderMapas(grupoActual._mapaData);
@@ -1604,12 +1620,15 @@ function renderMapas(resultados) {
     var colorSolidoCard = colorPorNivel(grupoActual.nivel);
     return '<div class="mapa-card" style="padding:18px;background:'+colorSolidoCard+';border:1px solid rgba(255,255,255,0.15);">'
 
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+           +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;">'
         +'<div>'
           +'<div style="font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.alumno.nombre+'</div>'
           +'<div style="font-size:11px;color:rgba(255,255,255,0.85);">'+r.alumno.id+' · '+r.totalClases+' clases · Bloque '+r.bloque+'</div>'
         +'</div>'
-        +'<div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.estado+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.estado+'</div>'
+          +'<button onclick="abrirDetalleEvalMaestro(\''+r.alumno.id+'\')" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:100px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📊 Detalles</button>'
+        +'</div>'
       +'</div>'
 
       +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">'
