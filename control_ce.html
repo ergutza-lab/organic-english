@@ -3086,5 +3086,321 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
   })();
 </script>
 
+<script>
+var grupoActual = null;
+var alumnoData = null;
+
+function abrirDetalleEvalMaestro(idAlumno, idGrupo) {
+  if (!idAlumno || !idGrupo) return;
+  grupoActual = (estado.grupos || []).find(function(g){ return g.id === idGrupo; });
+  var alumno = (estado.todosAlumnos || []).find(function(a){ return a.idAlumno === idAlumno; });
+  alumnoData = { grupo: grupoActual, alumno: alumno || { id: idAlumno } };
+  document.getElementById('detalleEvalMaestroSub').textContent = 'Cargando...';
+  document.getElementById('detalleEvalIzq').innerHTML = '';
+  document.getElementById('detalleEvalDer').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">Cargando evaluación...</div>';
+  document.getElementById('modalDetalleEvalMaestro').classList.add('visible');
+  fetch(APPS_SCRIPT_URL + '?action=getEvaluacionAlumno&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.success) {
+        document.getElementById('detalleEvalDer').innerHTML = '<div style="text-align:center;padding:40px;color:#f87171;">No se pudo cargar la evaluación.</div>';
+        return;
+      }
+      document.getElementById('detalleEvalMaestroSub').textContent =
+        (grupoActual && grupoActual.nivel || '') + ' · Bloque ' + (d.bloque || 1) + ' · ' + (d.totalClases || 0) + ' clases registradas';
+      renderDetalleEvalIzq(d);
+      renderDetalleEvalDer(d);
+    })
+    .catch(function(){
+      document.getElementById('detalleEvalDer').innerHTML = '<div style="text-align:center;padding:40px;color:#f87171;">Error de conexión.</div>';
+    });
+}
+
+function cerrarDetalleEvalMaestro() {
+  document.getElementById('modalDetalleEvalMaestro').classList.remove('visible');
+  grupoActual = null;
+  alumnoData = null;
+}
+
+function _parseFechaLocal_(str) {
+  if (!str) return null;
+  if (str instanceof Date) {
+    if (isNaN(str.getTime())) return null;
+    return new Date(str.getFullYear(), str.getMonth(), str.getDate());
+  }
+  var s = String(str).trim();
+  var m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m1) return new Date(parseInt(m1[1],10), parseInt(m1[2],10)-1, parseInt(m1[3],10));
+  var m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m2) return new Date(parseInt(m2[3],10), parseInt(m2[2],10)-1, parseInt(m2[1],10));
+  var dd = new Date(s);
+  if (isNaN(dd.getTime())) return null;
+  return new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
+}
+
+function _fechaDiaCalendario_(fechaInicioRaw, sem, diaIdx, offsetSemanas) {
+  if (!fechaInicioRaw) return null;
+  var inicio = _parseFechaLocal_(fechaInicioRaw);
+  if (!inicio) return null;
+  inicio.setHours(0, 0, 0, 0);
+  var dow = inicio.getDay();
+  var diasAlLunes = (dow === 0) ? -6 : (1 - dow);
+  var lunesSem1 = new Date(inicio);
+  lunesSem1.setDate(inicio.getDate() + diasAlLunes);
+  lunesSem1.setHours(0, 0, 0, 0);
+  var offset = ((sem - 1) + (offsetSemanas || 0)) * 7 + diaIdx;
+  var fecha = new Date(lunesSem1);
+  fecha.setDate(lunesSem1.getDate() + offset);
+  fecha.setHours(0, 0, 0, 0);
+  return fecha;
+}
+
+function renderDetalleEvalIzq(d) {
+  var pc = d.porcentajeGlobal || 0;
+  if (d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null) pc = d.promedioNivel;
+  var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
+  var html = '';
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:20px 14px;text-align:center;">';
+  html += '<div style="font-size:60px;">💎</div>';
+  html += '<div style="font-size:38px;font-weight:800;color:' + gemaColor + ';">' + pc + '%</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;">Evaluación Global</div>';
+  html += '</div>';
+  var asiColor = d.asistencia >= 80 ? '#4ade80' : d.asistencia >= 70 ? '#facc15' : '#f87171';
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
+  html += '<div style="font-size:11px;color:#94a3b8;">📅 Asistencia</div>';
+  html += '<div style="font-size:26px;font-weight:800;color:' + asiColor + ';">' + d.asistencia + '%</div>';
+  html += '</div>';
+  var posColor = d.positivos >= 70 ? '#4ade80' : d.positivos >= 60 ? '#facc15' : '#f87171';
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
+  html += '<div style="font-size:11px;color:#94a3b8;">✅ Verde + Azul</div>';
+  html += '<div style="font-size:26px;font-weight:800;color:' + posColor + ';">' + d.positivos + '%</div>';
+  html += '</div>';
+  var total = d.totalClases || 1;
+  html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
+  html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;">🎨 Distribución</div>';
+  var colores = [
+    { n: 'Rojo',     count: (d.colores && d.colores[1]) || 0, color: '#ef4444' },
+    { n: 'Amarillo', count: (d.colores && d.colores[2]) || 0, color: '#facc15' },
+    { n: 'Verde',    count: (d.colores && d.colores[3]) || 0, color: '#22c55e' },
+    { n: 'Azul',     count: (d.colores && d.colores[4]) || 0, color: '#3b82f6' }
+  ];
+  colores.forEach(function(c){
+    var pct = total > 0 ? Math.round((c.count / total) * 100) : 0;
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+    html += '<div style="width:56px;font-size:11px;color:#94a3b8;font-weight:700;">' + c.n + '</div>';
+    html += '<div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">';
+    html += '<div style="width:' + pct + '%;height:100%;background:' + c.color + ';border-radius:4px;"></div></div>';
+    html += '<div style="width:52px;text-align:right;font-size:11px;font-weight:700;color:' + c.color + ';">' + pct + '%</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('detalleEvalIzq').innerHTML = html;
+}
+
+function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
+  var html = '';
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque || 1) + '</div>';
+  html += '</div>';
+  var porSabado = {};
+  cal.forEach(function(c) {
+    if (!c.fecha) return;
+    if (!porSabado[c.fecha]) porSabado[c.fecha] = {};
+    var cn = parseInt(c.claseNum, 10) || 1;
+    var existe = porSabado[c.fecha][cn];
+    if (!existe || (c.color && !existe.color)) porSabado[c.fecha][cn] = c;
+  });
+  var fechaInicioGrupo = null;
+  if (grupoActual && grupoActual.fechaInicio) {
+    fechaInicioGrupo = _parseFechaLocal_(grupoActual.fechaInicio);
+  }
+  var sabados = [];
+  if (fechaInicioGrupo) {
+    for (var s = 0; s < 8; s++) {
+      var sab = new Date(fechaInicioGrupo);
+      sab.setDate(sab.getDate() + s * 7);
+      sabados.push(sab);
+    }
+  }
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var bloqueActualSab = parseInt(d.bloque, 10) || 1;
+  var tieneMiniActual = (d.challenges || []).some(function(ch) {
+    return String(ch.tipo||'').toLowerCase().indexOf('mini') === 0 && (parseInt(ch.bloque,10)||1) === bloqueActualSab;
+  });
+  sabados.forEach(function(sabadoObj, idxSab) {
+    var y = sabadoObj.getFullYear();
+    var m = String(sabadoObj.getMonth() + 1).padStart(2, '0');
+    var dd = String(sabadoObj.getDate()).padStart(2, '0');
+    var sabadoISO = y + '-' + m + '-' + dd;
+    var esFuturoSabado = sabadoObj.getTime() > hoy.getTime();
+    var regsSabado = porSabado[sabadoISO] || {};
+    var mesCorto = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][sabadoObj.getMonth()];
+    var esMiniSab  = (idxSab === 3 && tieneMiniActual);
+    var esGrandSab = (idxSab === 7);
+    var bgSab = 'rgba(255,255,255,0.03)', bordeSab = '1px solid rgba(255,255,255,0.08)', colorTituloSab = '#f1f5f9';
+    if (esMiniSab) { bgSab='rgba(251,191,36,0.12)'; bordeSab='1px solid rgba(251,191,36,0.45)'; colorTituloSab='#fbbf24'; }
+    else if (esGrandSab) { bgSab='rgba(239,68,68,0.12)'; bordeSab='1px solid rgba(239,68,68,0.5)'; colorTituloSab='#f87171'; }
+    var atenuar = esFuturoSabado && !esMiniSab && !esGrandSab;
+    html += '<div style="background:' + bgSab + ';border:' + bordeSab + ';border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (atenuar?'opacity:0.55;':'') + '">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div>';
+    html += '<div style="font-size:11px;font-weight:800;color:' + colorTituloSab + ';">SÁBADO ' + (idxSab + 1) + ' · ' + sabadoObj.getDate() + ' ' + mesCorto + '</div>';
+    if (esMiniSab) html += '<div style="font-size:10px;color:#fbbf24;font-weight:800;">⭐ Mini</div>';
+    if (esGrandSab) html += '<div style="font-size:10px;color:#f87171;font-weight:800;">🏆 Grand</div>';
+    html += '</div>';
+    if (atenuar) html += '<div style="font-size:9px;color:#64748b;">POR VENIR</div>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+    for (var cn = 1; cn <= 4; cn++) {
+      var reg = regsSabado[cn];
+      var lessonNum = (idxSab * 4) + cn;
+      if (reg && reg.asistio !== false && reg.color) {
+        var col = colorMap[reg.color] || '#94a3b8';
+        html += '<div style="background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:rgba(255,255,255,0.85);font-weight:700;">C' + cn + '</div><div style="color:#fff;font-size:14px;font-weight:800;">' + lessonNum + '</div></div>';
+      } else if (reg) {
+        html += '<div style="background:#334155;border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div><div style="color:#cbd5e1;font-size:14px;font-weight:900;">F</div></div>';
+      } else {
+        html += '<div style="background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:#64748b;">C' + cn + '</div><div style="color:#475569;font-size:14px;">—</div></div>';
+      }
+    }
+    html += '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('detalleEvalDer').innerHTML = html;
+}
+
+function renderDetalleEvalDer(d) {
+  var cal = d.calendario || [];
+  var esSabatino = (d.esSabatino === true);
+  if (esSabatino) {
+    renderDetalleEvalDerSabatino_(d, cal, ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'});
+    return;
+  }
+  var html = '';
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var fechaInicioGrupo = (grupoActual && grupoActual.fechaInicio) || null;
+  var FERIADOS_MX = {
+    '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
+    '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
+    '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia', esBandera: true },
+    '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
+    '12-25': { emoji: '🎄', nombre: 'Navidad' }
+  };
+  function mesCortoAl_(f) { if (!f) return ''; return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][f.getMonth()]; }
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:14px;">';
+  html += '<div style="display:flex;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (d.bloque || 1) + '</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;">4 clases por semana (Lun–Jue)</div>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
+  html += '<span>🔵 Azul</span><span>🟢 Verde</span><span>🟡 Amarillo</span><span>🔴 Rojo</span><span>F Falta</span>';
+  html += '</div>';
+  var colorMap = { 1:'#ef4444', 2:'#facc15', 3:'#22c55e', 4:'#3b82f6' };
+  var diasNombres = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  var bloqueActualAl = parseInt(d.bloque, 10) || 1;
+  var offsetSemanasAl = (bloqueActualAl - 1) * 8;
+  var semanas = {};
+  for (var s = 1; s <= 8; s++) semanas[s] = [null,null,null,null,null,null,null];
+  cal.forEach(function (c) {
+    var sem = parseInt(c.semana, 10);
+    if (isNaN(sem) || sem < 1 || sem > 8) return;
+    var dia = parseInt(c.dia, 10);
+    if (dia >= 1 && dia <= 4) {
+      var existente = semanas[sem][dia - 1];
+      var esMigNuevo = (String(c.observacion||'').indexOf('Migrado') !== -1);
+      var esMigViejo = existente ? (String(existente.observacion||'').indexOf('Migrado') !== -1) : false;
+      if (!existente || (esMigViejo && !esMigNuevo)) semanas[sem][dia - 1] = c;
+    }
+  });
+  var primerReg = null;
+  cal.forEach(function (c) {
+    if (!c.fecha) return;
+    var f = _parseFechaLocal_(c.fecha);
+    if (!f || isNaN(f.getTime())) return;
+    if (!primerReg || f < primerReg) primerReg = f;
+  });
+  var fechaRef = primerReg || (fechaInicioGrupo ? _parseFechaLocal_(fechaInicioGrupo) : null);
+  html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;"><div style="width:70px;flex-shrink:0;"></div>';
+  for (var di = 0; di < 7; di++) {
+    var actH = di <= 3;
+    html += '<div style="flex:1;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:' + (actH?'#94a3b8':'#475569') + ';">' + diasNombres[di] + '</div>';
+  }
+  html += '</div>';
+  for (var s = 1; s <= 8; s++) {
+    var esMini = s === 4, esGrand = s === 8;
+    var bC, bBg, bTxt;
+    if (esMini)       { bC='rgba(251,191,36,0.45)'; bBg='rgba(251,191,36,0.12)'; bTxt='#fbbf24'; }
+    else if (esGrand) { bC='rgba(239,68,68,0.5)';  bBg='rgba(239,68,68,0.12)';  bTxt='#f87171'; }
+    else              { bC='rgba(255,255,255,0.06)'; bBg='rgba(255,255,255,0.03)'; bTxt='#94a3b8'; }
+    html += '<div style="display:flex;gap:6px;align-items:center;background:' + bBg + ';border:1px solid ' + bC + ';border-radius:10px;padding:7px 9px;margin-bottom:5px;">';
+    html += '<div style="width:70px;flex-shrink:0;font-size:11px;font-weight:700;color:' + bTxt + ';line-height:1.15;">Sem ' + s;
+    if (esMini)  html += '<br><span style="font-size:9px;">⭐ Mini</span>';
+    if (esGrand) html += '<br><span style="font-size:9px;">🏆 Grand</span>';
+    html += '</div>';
+    for (var di = 0; di < 7; di++) {
+      var activo = di <= 3;
+      var rec = semanas[s][di];
+      var fechaDia = _fechaDiaCalendario_(fechaInicioGrupo, s, di, offsetSemanasAl);
+      var diaNum = fechaDia ? fechaDia.getDate() : '';
+      var mesStr = fechaDia ? mesCortoAl_(fechaDia) : '';
+      var esFest = false, festInfo = null;
+      if (fechaDia) {
+        var mm = String(fechaDia.getMonth()+1).padStart(2,'0');
+        var dd = String(fechaDia.getDate()).padStart(2,'0');
+        if (FERIADOS_MX[mm+'-'+dd]) { esFest = true; festInfo = FERIADOS_MX[mm+'-'+dd]; }
+      }
+      if (!activo) {
+        html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
+        continue;
+      }
+      if (esFest) {
+        var ic = festInfo.esBandera
+          ? '<img src="https://flagcdn.com/w40/mx.png" alt="MX" style="width:22px;height:14px;border-radius:2px;display:block;" />'
+          : '<span style="font-size:14px;line-height:1;">' + festInfo.emoji + '</span>';
+        html += '<div title="' + festInfo.nombre + '" style="flex:1;height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' + ic + '<span style="font-size:7px;color:#93c5fd;font-weight:700;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        continue;
+      }
+      var fNorm = fechaDia ? new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate()) : null;
+      var esFuturo = fNorm ? (fNorm.getTime() > hoy.getTime()) : false;
+      var esHoy = fNorm ? (fNorm.getTime() === hoy.getTime()) : false;
+      var yaEmpezó = true;
+      if (fechaRef && fNorm) yaEmpezó = fNorm.getTime() >= fechaRef.getTime();
+      if (rec) {
+        if (rec.asistio === false || rec.color == null) {
+          html += '<div title="Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        } else {
+          var col = colorMap[rec.color] || '#94a3b8';
+          html += '<div style="flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span><span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span></div>';
+        }
+        continue;
+      }
+      if (esFuturo || esHoy) {
+        html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span><span style="color:#475569;font-size:7px;">' + mesStr + '</span></div>';
+      } else if (!yaEmpezó) {
+        html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#475569;font-size:10px;">' + diaNum + '</span><span style="color:#334155;font-size:7px;">' + mesStr + '</span></div>';
+      } else {
+        html += '<div title="Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+      }
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">💬 Observaciones recientes del maestro</div>';
+  var obs = d.observaciones || [];
+  if (!obs.length) {
+    html += '<div style="font-size:12px;color:#64748b;text-align:center;padding:12px;">Sin observaciones registradas aún.</div>';
+  } else {
+    obs.slice(-3).reverse().forEach(function (o) {
+      html += '<div style="display:flex;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+      html += '<span style="font-size:11px;color:#94a3b8;flex-shrink:0;font-weight:700;">' + o.fecha + '</span>';
+      html += '<span style="font-size:12px;color:#f1f5f9;line-height:1.5;">' + o.texto + '</span>';
+      html += '</div>';
+    });
+  }
+  html += '</div>';
+  document.getElementById('detalleEvalDer').innerHTML = html;
+}
+</script>
+  
 </body>
 </html>
