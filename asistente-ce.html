@@ -464,29 +464,38 @@
   </div>
 </div>
 
-<!-- MODAL OTORGAR PERIODO SIN COSTO -->
+<!-- MODAL OTORGAR PERIODO SIN COSTO (fusión de grupo) -->
 <div class="modal-comp-overlay" id="modal-sin-costo">
   <div class="modal-comp-box">
     <div class="modal-comp-header">
-      <h3 class="modal-comp-titulo">🎁 Periodo sin costo</h3>
+      <h3 class="modal-comp-titulo">🔀 Fusión de grupo</h3>
       <button class="modal-cerrar" onclick="cerrarModalSinCosto()">✕</button>
     </div>
     <div class="modal-alumno-data" id="sin-costo-alumno-info"></div>
-    <p style="font-size:12px;color:var(--gris-500);padding:0 4px;margin:4px 0 12px;">Úsalo cuando el alumno acepta un cambio a un grupo más nuevo por fusión — el periodo de repaso que ese cambio le genera no se le cobra. Esto registra un pago de $0 ya validado, cubriendo exactamente las semanas que elijas.</p>
+    <p style="font-size:12px;color:var(--gris-500);padding:0 4px;margin:4px 0 12px;">El alumno pasa al grupo destino y entra en un <strong>periodo de práctica sin costo</strong>. No se le evaluará hasta que el grupo nuevo llegue a una lección que él no tenga registrada.</p>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:var(--gris-500);font-weight:600;display:block;margin-bottom:6px;">Grupo destino *</label>
+      <select id="fusion-grupo-destino" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-200);border-radius:var(--r-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;outline:none;color:var(--gris-800);background:#fff;box-sizing:border-box;">
+        <option value="">— Selecciona el grupo destino —</option>
+      </select>
+    </div>
+
     <div class="cal-cobertura">
-      <span class="cal-cobertura-label">¿Qué semana(s) cubre el periodo sin costo?</span>
+      <span class="cal-cobertura-label">¿Qué semana(s) cubre el periodo de práctica?</span>
       <div id="cal-sin-costo"></div>
     </div>
+
     <div class="monto-field">
       <label>Motivo (opcional)</label>
       <input type="text" id="input-motivo-sin-costo" placeholder="Ej. Fusión con grupo K04" />
     </div>
+
     <div class="modal-actions">
-      <button class="btn-validar" style="flex:1;background:#f97316" onclick="confirmarSinCosto()">🎁 Otorgar periodo sin costo</button>
+      <button class="btn-validar" id="btn-confirmar-fusion" style="flex:1;background:#f97316" onclick="confirmarSinCosto()">🔀 Crear fusión</button>
     </div>
   </div>
 </div>
-
 <!-- MODAL DETALLE GRUPO -->
 <div class="modal-overlay" id="modal-grupo" onclick="cerrarModalGrupoClick(event)">
   <div class="modal-box" id="modal-grupo-box">
@@ -1940,11 +1949,46 @@ function cerrarModalComp(){
 
 // ── PERIODO SIN COSTO (fusión de grupo) ──
 function abrirModalSinCosto(){
-  if(!alumnoSeleccionadoCambio){mostrarToast('Selecciona un alumno primero','error');return;}
-  document.getElementById('sin-costo-alumno-info').innerHTML=`
-    <div class="row"><span>Alumno</span><span>${alumnoSeleccionadoCambio.nombre} (${alumnoSeleccionadoCambio.id})</span></div>
-    <div class="row"><span>Grupo actual</span><span>${alumnoSeleccionadoCambio.grupo_actual||'—'}</span></div>`;
+  if(!alumnoSeleccionadoCambio){
+    mostrarToast('Selecciona un alumno primero','error');
+    return;
+  }
+  document.getElementById('sin-costo-alumno-info').innerHTML =
+    '<div class="row"><span>Alumno</span><span>' + alumnoSeleccionadoCambio.nombre + ' (' + alumnoSeleccionadoCambio.id + ')</span></div>' +
+    '<div class="row"><span>Grupo actual</span><span>' + (alumnoSeleccionadoCambio.grupo_actual || '—') + '</span></div>';
   document.getElementById('input-motivo-sin-costo').value='';
+
+  // Poblar el dropdown con todos los grupos (menos el actual del alumno)
+  var select = document.getElementById('fusion-grupo-destino');
+  select.innerHTML = '<option value="">— Selecciona el grupo destino —</option>';
+
+  var grupos = (datosPanel && datosPanel.todos_grupos) ? datosPanel.todos_grupos : [];
+  var grupoActualAlumno = alumnoSeleccionadoCambio.grupo_actual || '';
+
+  grupos.forEach(function(g){
+    if (g.id === grupoActualAlumno) return;   // no tiene sentido fusionar al mismo grupo
+
+    var nivelBase = String(g.nivel || '').replace(/^NIVEL\s+/i, '').trim();
+    var leccionTxt = g.leccionActual ? ('Lesson ' + g.leccionActual) : 'Sin lección';
+    var plazasTxt;
+    if (!g.tieneLugar) {
+      plazasTxt = '⛔ LLENO';
+    } else {
+      plazasTxt = g.plazasLibres + ' plaza' + (g.plazasLibres === 1 ? '' : 's');
+    }
+
+    var label = g.id + ' — ' + nivelBase + ' · ' + leccionTxt + ' · ' + plazasTxt;
+
+    var opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = label;
+    if (!g.tieneLugar) {
+      opt.disabled = true;
+      opt.style.color = '#94a3b8';
+    }
+    select.appendChild(opt);
+  });
+
   document.getElementById('modal-sin-costo').classList.add('open');
   calInit('cal-sin-costo', !!alumnoSeleccionadoCambio.esSabatino);
   document.body.style.overflow='hidden';
@@ -1956,29 +2000,50 @@ function cerrarModalSinCosto(){
 }
 
 async function confirmarSinCosto(){
-  if(!alumnoSeleccionadoCambio)return;
-  const cal=calendarios['cal-sin-costo'];
-  if(!cal||!cal.inicio||!cal.fin){
-    mostrarToast('Selecciona la semana (o semanas) que cubre este periodo sin costo','error');
+  if(!alumnoSeleccionadoCambio) return;
+
+  var grupoDestino = document.getElementById('fusion-grupo-destino').value;
+  if (!grupoDestino) {
+    mostrarToast('Selecciona el grupo destino','error');
     return;
   }
-  const motivo=document.getElementById('input-motivo-sin-costo').value.trim();
-  try{
-    let url=`${APPS_SCRIPT}?action=otorgarPeriodoSinCostoCE&idAlumno=${encodeURIComponent(alumnoSeleccionadoCambio.id)}&idAsistente=${encodeURIComponent(asistente.id)}`;
-    url+=`&coberturaInicio=${encodeURIComponent(cal.inicio.toISOString())}`;
-    url+=`&coberturaFin=${encodeURIComponent(cal.fin.toISOString())}`;
-    if(motivo) url+=`&motivo=${encodeURIComponent(motivo)}`;
-    const resp=await fetch(url);
-    const data=await resp.json();
-    if(data.success){
-      mostrarToast('🎁 Periodo sin costo otorgado correctamente','success');
+
+  const cal = calendarios['cal-sin-costo'];
+  if (!cal || !cal.inicio || !cal.fin) {
+    mostrarToast('Selecciona la semana (o semanas) del periodo de práctica','error');
+    return;
+  }
+
+  const motivo = document.getElementById('input-motivo-sin-costo').value.trim();
+  const btn = document.getElementById('btn-confirmar-fusion');
+  btn.disabled = true;
+  btn.textContent = 'Creando fusión...';
+
+  try {
+    var url = APPS_SCRIPT + '?action=crearFusionCompleta'
+      + '&idAlumno='        + encodeURIComponent(alumnoSeleccionadoCambio.id)
+      + '&idGrupoDestino='  + encodeURIComponent(grupoDestino)
+      + '&idAsistente='     + encodeURIComponent(asistente.id)
+      + '&coberturaInicio=' + encodeURIComponent(cal.inicio.toISOString())
+      + '&coberturaFin='    + encodeURIComponent(cal.fin.toISOString());
+    if (motivo) url += '&motivo=' + encodeURIComponent(motivo);
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data.success) {
+      mostrarToast('🔀 Fusión creada: ' + data.idGrupoOrigen + ' → ' + data.idGrupoDestino, 'success');
       cerrarModalSinCosto();
       await cargarDatos();
     } else {
-      mostrarToast(data.error||'Error al otorgar el periodo sin costo','error');
+      mostrarToast(data.error || 'Error al crear la fusión', 'error');
+      btn.disabled = false;
+      btn.textContent = '🔀 Crear fusión';
     }
-  }catch(e){
-    mostrarToast('Error de conexión','error');
+  } catch(e) {
+    mostrarToast('Error de conexión', 'error');
+    btn.disabled = false;
+    btn.textContent = '🔀 Crear fusión';
   }
 }
 
