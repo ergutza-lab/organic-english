@@ -220,6 +220,31 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 @keyframes girar { to { transform: rotate(360deg); } }
 .vacio { text-align: center; padding: 2.5rem 1rem; color: var(--gris); font-size: .88rem; }
 
+/* ═══ MODAL DETALLE DE EVALUACIÓN (calendario del alumno) ═══ */
+.modal-eval-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9500;
+  padding: 20px;
+}
+.modal-eval-overlay.visible { display: flex; }
+.modal-eval-box {
+  background: #1e2a4a;
+  border-radius: 22px;
+  border: 1px solid rgba(245,158,11,0.35);
+  padding: 24px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 0 50px rgba(245,158,11,0.15);
+}
+@media (max-width: 700px) {
+  #detalleEvalContenido { grid-template-columns: 1fr !important; }
+}
+  
 /* ASISTENTES */
 .asistentes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem; }
 .asistente-card { border: 1.5px solid var(--borde); border-radius: 10px; padding: 1rem; display: flex; align-items: center; gap: .75rem; }
@@ -580,14 +605,14 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
         <div class="tabla-wrap">
           <table>
             <thead>
-              <tr>
-                <th>ID Alumno</th><th>Nombre</th><th>Grupo</th><th>Estatus</th>
-                <th>Pago hasta</th><th>Situación</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-seguimiento">
-              <tr><td colspan="7" class="cargando">Cargando...</td></tr>
-            </tbody>
+  <tr>
+    <th>ID Alumno</th><th>Nombre</th><th>Grupo</th><th>Detalles</th><th>Estatus</th>
+    <th>Pago hasta</th><th>Situación</th><th>Acciones</th>
+  </tr>
+</thead>
+<tbody id="tbody-seguimiento">
+  <tr><td colspan="8" class="cargando">Cargando...</td></tr>
+</tbody>
           </table>
         </div>
       </div>
@@ -1170,7 +1195,7 @@ function renderSeguimiento(filtroTexto, filtroSit) {
   }
   if (filtroSit) { lista = lista.filter(function(a){ return calcularSituacion(a).clave===filtroSit; }); }
   var tbody = document.getElementById('tbody-seguimiento');
-  if (!lista.length) { tbody.innerHTML='<tr><td colspan="7" class="vacio">Sin alumnos con ese criterio</td></tr>'; return; }
+  if (!lista.length) { tbody.innerHTML='<tr><td colspan="8" class="vacio">Sin alumnos con ese criterio</td></tr>'; return; }
   tbody.innerHTML = lista.map(function(a) {
     var sit = calcularSituacion(a);
     var esBecado = sit.clave === 'becado';
@@ -1215,10 +1240,11 @@ function renderSeguimiento(filtroTexto, filtroSit) {
       + btnEstatus
       + '</div>';
 
-    return '<tr>'+
+        return '<tr>'+
       '<td><span class="chip chip-azul">'+esc(a.idAlumno)+'</span></td>'+
       '<td><strong style="cursor:pointer;color:var(--azul);text-decoration:underline dotted;" onclick="abrirFichaAlumno(\''+escJs(a.idAlumno)+'\')">'+esc(a.nombre)+'</strong>'+(a.observaciones?'<span title="'+esc(a.observaciones)+'" style="margin-left:5px;cursor:help;font-size:.75rem;background:rgba(251,146,60,0.15);color:#fb923c;border-radius:4px;padding:1px 5px;font-weight:700;" >nota</span>':'')+'</td>'+
       '<td><span class="chip chip-gris">'+esc(a.idGrupo)+'</span></td>'+
+      '<td><button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;" onclick="event.stopPropagation();abrirDetalleEvalMaestro(\''+escJs(a.idAlumno)+'\',\''+escJs(a.idGrupo)+'\')">📊 Detalles</button></td>'+
       '<td>'+chipEstatus+'</td>'+
       '<td style="font-size:.82rem;color:var(--gris)">'+pagoHasta+'</td>'+
       '<td>'+chipSit+'</td>'+
