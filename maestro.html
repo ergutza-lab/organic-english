@@ -1580,7 +1580,12 @@ function actualizarEstadoFecha(fechaStr) {
 }
 function renderMapas(resultados) {
   var lista = document.getElementById('listaMapas');
+  grupoActual._pcPorAlumno = {};                                        // ← NUEVO
   lista.innerHTML = resultados.map(function(r) {
+    grupoActual._pcPorAlumno[r.alumno.id] = {                            // ← NUEVO
+      pc: r.porcentajeGlobal || 0,
+      color: (r.porcentajeGlobal >= 90 ? '#06b6d4' : r.porcentajeGlobal >= 80 ? '#22c55e' : r.porcentajeGlobal >= 70 ? '#facc15' : r.porcentajeGlobal >= 60 ? '#f97316' : '#ef4444')
+    };
     var pc        = r.porcentajeGlobal || 0;
     var gemaColor = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
     var gemaLabel = pc>=90?'Excelente':pc>=80?'Bueno':pc>=70?'Regular':pc>=60?'Atención':'Crítico';
@@ -3301,10 +3306,19 @@ function Utilities_formatDate_(d) {
 }
 
 function renderDetalleEvalIzq(d) {
-  var pc = d.porcentajeGlobal || 0;
-  if (d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null) pc = d.promedioNivel;
-  var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
-
+  var pc, gemaColor;
+  // Si tenemos el % de la tarjeta (mismo que ve el maestro arriba), lo usamos.
+  // Solo caemos al cálculo propio si por alguna razón no está disponible.
+  if (alumnoData && alumnoData._pcTarjeta) {
+    pc = alumnoData._pcTarjeta.pc;
+    gemaColor = alumnoData._pcTarjeta.color;
+  } else {
+    pc = d.porcentajeGlobal || 0;
+    if (d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null) {
+      pc = d.promedioNivel;
+    }
+    gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
+  }
   var html = '';
   html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:20px 14px;text-align:center;">';
   html += '<div style="font-size:60px;">💎</div>';
@@ -3357,6 +3371,10 @@ function abrirDetalleEvalMaestro(idAlumno) {
     }
   }
   alumnoData = { grupo: grupoActual, alumno: alumno || { id: idAlumno } };
+    // Adjuntar el % y color exactos que muestra la tarjeta de evaluación
+  if (grupoActual._pcPorAlumno && grupoActual._pcPorAlumno[idAlumno]) {
+    alumnoData._pcTarjeta = grupoActual._pcPorAlumno[idAlumno];
+  }
 
   document.getElementById('detalleEvalMaestroSub').textContent = 'Cargando...';
   document.getElementById('detalleEvalIzq').innerHTML = '';
