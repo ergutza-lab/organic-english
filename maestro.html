@@ -1580,9 +1580,9 @@ function actualizarEstadoFecha(fechaStr) {
 }
 function renderMapas(resultados) {
   var lista = document.getElementById('listaMapas');
-  grupoActual._pcPorAlumno = {};                                        // ← NUEVO
+ 
   lista.innerHTML = resultados.map(function(r) {
-    grupoActual._pcPorAlumno[r.alumno.id] = {                            // ← NUEVO
+
       pc: r.porcentajeGlobal || 0,
       color: (r.porcentajeGlobal >= 90 ? '#06b6d4' : r.porcentajeGlobal >= 80 ? '#22c55e' : r.porcentajeGlobal >= 70 ? '#facc15' : r.porcentajeGlobal >= 60 ? '#f97316' : '#ef4444')
     };
@@ -3306,19 +3306,11 @@ function Utilities_formatDate_(d) {
 }
 
 function renderDetalleEvalIzq(d) {
-  var pc, gemaColor;
-  // Si tenemos el % de la tarjeta (mismo que ve el maestro arriba), lo usamos.
-  // Solo caemos al cálculo propio si por alguna razón no está disponible.
-  if (alumnoData && alumnoData._pcTarjeta) {
-    pc = alumnoData._pcTarjeta.pc;
-    gemaColor = alumnoData._pcTarjeta.color;
-  } else {
-    pc = d.porcentajeGlobal || 0;
-    if (d.bloque === 2 && d.promedioNivel !== undefined && d.promedioNivel !== null) {
-      pc = d.promedioNivel;
-    }
-    gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
-  }
+  // Ya no usamos promedioNivel aquí porque el modal ya recibió los datos
+  // EXACTOS de la tarjeta (getMapaGrupo) desde abrirDetalleEvalMaestro().
+  // Así garantizamos que el % y el color de la joya coincidan siempre.
+  var pc = d.porcentajeGlobal || 0;
+  var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
   var html = '';
   html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:20px 14px;text-align:center;">';
   html += '<div style="font-size:60px;">💎</div>';
@@ -3362,7 +3354,7 @@ function renderDetalleEvalIzq(d) {
 }
 
 function abrirDetalleEvalMaestro(idAlumno) {
-  if (typeof grupoActual === 'undefined' || !grupoActual || !idAlumno) return;
+  if (!grupoActual || !idAlumno) return;
 
   var alumno = null;
   if (grupoActual.alumnos) {
@@ -3371,33 +3363,77 @@ function abrirDetalleEvalMaestro(idAlumno) {
     }
   }
   alumnoData = { grupo: grupoActual, alumno: alumno || { id: idAlumno } };
-    // Adjuntar el % y color exactos que muestra la tarjeta de evaluación
-  if (grupoActual._pcPorAlumno && grupoActual._pcPorAlumno[idAlumno]) {
-    alumnoData._pcTarjeta = grupoActual._pcPorAlumno[idAlumno];
-  }
 
   document.getElementById('detalleEvalMaestroSub').textContent = 'Cargando...';
   document.getElementById('detalleEvalIzq').innerHTML = '';
   document.getElementById('detalleEvalDer').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">Cargando evaluación...</div>';
   document.getElementById('modalDetalleEvalMaestro').classList.add('visible');
 
-  fetch(APPS_SCRIPT + '?action=getEvaluacionAlumno&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (!d.success) {
-        document.getElementById('detalleEvalDer').innerHTML = '<div style="text-align:center;padding:40px;color:#f87171;">No se pudo cargar la evaluación.</div>';
-        return;
-      }
-      document.getElementById('detalleEvalMaestroSub').textContent =
-        (grupoActual.nivel || '') + ' · Bloque ' + (d.bloque || 1) + ' · ' + (d.totalClases || 0) + ' clases registradas';
-      renderDetalleEvalIzq(d);
-      renderDetalleEvalDer(d);
-    })
-    .catch(function(){
-      document.getElementById('detalleEvalDer').innerHTML = '<div style="text-align:center;padding:40px;color:#f87171;">Error de conexión.</div>';
-    });
-}
+  // Pedimos DOS endpoints en paralelo:
+  //  1) getMapaGrupo         → de aquí tomamos el % EXACTO que muestra la tarjeta
+  //  2) getEvaluacionAlumno  → de aquí tomamos calendario, observaciones, etc.
+  Promise.all([
+    fetch(APPS_SCRIPT + '?action=getMapaGrupo&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return { success: false, resultados: [] }; }),
+    fetch(APPS_SCRIPT + '?action=getEvaluacionAlumno&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return { success: false }; })
+  ]).then(function(results){
+    var mapaData = results[0];
+    var d        = results[1];
 
+    // Buscar la fila de este alumno en el mapa del grupo (mismo dato que la tarjeta)
+    var fila = null;
+    if (mapaData && mapaData.resultados) {
+      fila = mapaData.resultados.find(function(x){ return x.alumno && x.alumno.id === idAlumno; });
+    }
+
+    console.log('🔍 [MODAL] fila de getMapaGrupo:', fila ? {
+      porcentajeGlobal: fila.porcentajeGlobal,
+      asistencia:       fila.asistencia,
+      positivos:        fila.positivos,
+      bloque:           fila.bloque
+    } : 'NO ENCONTRADA');
+
+    console.log('🔍 [MODAL] datos de getEvaluacionAlumno:', {
+      porcentajeGlobal: d.porcentajeGlobal,
+      promedioNivel:    d.promedioNivel,
+      asistencia:       d.asistencia,
+      positivos:        d.positivos,
+      bloque:           d.bloque
+    });
+
+    if (!d.success) {
+      document.getElementById('detalleEvalDer').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#f87171;">No se pudo cargar la evaluación.</div>';
+      return;
+    }
+
+    // ═══ SOBREESCRIBIR con los datos de la tarjeta ═══
+    // El modal SIEMPRE debe mostrar los mismos valores que la tarjeta.
+    if (fila) {
+      d.porcentajeGlobal = fila.porcentajeGlobal;
+      d.asistencia       = fila.asistencia;
+      d.positivos        = fila.positivos;
+      d.colores          = fila.colores;
+      d.totalClases      = fila.totalClases;
+      d.bloque           = fila.bloque;
+      // Eliminar promedioNivel para que renderDetalleEvalIzq NO lo use
+      delete d.promedioNivel;
+    }
+
+    document.getElementById('detalleEvalMaestroSub').textContent =
+      (grupoActual.nivel || '') + ' · Bloque ' + (d.bloque || 1) + ' · ' + (d.totalClases || 0) + ' clases registradas';
+    renderDetalleEvalIzq(d);
+    renderDetalleEvalDer(d);
+  }).catch(function(err){
+    console.error('Error en abrirDetalleEvalMaestro:', err);
+    document.getElementById('detalleEvalDer').innerHTML =
+      '<div style="text-align:center;padding:40px;color:#f87171;">Error de conexión.</div>';
+  });
+}
+  
 function cerrarDetalleEvalMaestro() {
   document.getElementById('modalDetalleEvalMaestro').classList.remove('visible');
   alumnoData = null;
