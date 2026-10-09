@@ -1404,6 +1404,38 @@ function actualizarEstadoFecha(fechaStr) {
     return {color:SEM_COLORS[4],label:SEM_LABELS[4],emoji:SEM_EMOJIS[4]};
   }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  Función ÚNICA para construir la gema pequeña.
+//  La usan TANTO la tarjeta (renderMapas) COMO el modal (renderDetalleEvalIzq),
+//  así garantizamos que la joya se vea IDÉNTICA en los dos lugares.
+// ═══════════════════════════════════════════════════════════════════════
+function construirGemaSVG(pc, sufijoId, ancho, alto) {
+  pc = pc || 0;
+  sufijoId = sufijoId || 'X';
+  var w = ancho || 60;
+  var h = alto  || 68;
+
+  var gemaColor = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
+  var gid = 'gF' + sufijoId;
+
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
+    + '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1">'
+    +   '<stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>'
+    +   '<stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/>'
+    + '</linearGradient></defs>'
+    + '<polygon points="30,4 44,18 30,14 16,18" fill="url(#'+gid+')" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="30,4 44,18 52,18 42,4" fill="'+gemaColor+'" opacity="0.85" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="'+gemaColor+'" opacity="0.6" stroke="'+gemaColor+'" stroke-width="0.4"/>'
+    + '<polygon points="8,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="52,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
+    + '<polygon points="8,22 16,20 30,63" fill="url(#'+gid+')" opacity="0.3"/>'
+    + '<polygon points="52,22 44,20 30,63" fill="url(#'+gid+')" opacity="0.2"/>'
+    + '<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
+    + '<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
+    + '</svg>';
+}
+  
   function gemaSVG(porcentaje, tieneMini, tieneGran) {
   var gc, gm, gl, label;
   if (porcentaje >= 90)      { gc='#38bdf8'; gm='#0369a1'; gl='#7dd3fc'; label='Excelente'; }
@@ -1586,20 +1618,8 @@ function renderMapas(resultados) {
     var gemaColor = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
     var gemaLabel = pc>=90?'Excelente':pc>=80?'Bueno':pc>=70?'Regular':pc>=60?'Atención':'Crítico';
 
-    var gemSVG = '<svg width="60" height="68" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
-      +'<defs><linearGradient id="gF'+r.alumno.id+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/></linearGradient></defs>'
-      +'<polygon points="30,4 44,18 30,14 16,18" fill="url(#gF'+r.alumno.id+')" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-      +'<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-      +'<polygon points="30,4 44,18 52,18 42,4" fill="'+gemaColor+'" opacity="0.85" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-      +'<polygon points="8,18 16,18 30,14 44,18 52,18 52,22 44,20 30,22 16,20 8,22" fill="'+gemaColor+'" opacity="0.6" stroke="'+gemaColor+'" stroke-width="0.4"/>'
-      +'<polygon points="8,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.95" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-      +'<polygon points="52,22 30,22 30,63" fill="'+gemaColor+'" opacity="0.7" stroke="'+gemaColor+'" stroke-width="0.5"/>'
-      +'<polygon points="8,22 16,20 30,63" fill="url(#gF'+r.alumno.id+')" opacity="0.3"/>'
-      +'<polygon points="52,22 44,20 30,63" fill="url(#gF'+r.alumno.id+')" opacity="0.2"/>'
-      +'<polygon points="16,20 30,14 30,22" fill="#fff" opacity="0.42"/>'
-      +'<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
-      +'</svg>';
-
+        var gemSVG = construirGemaSVG(pc, r.alumno.id, 60, 68);
+      
     var bloqueActual = r.bloque || 1;
     var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado; });
     var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===bloqueActual && c.aprobado; });
@@ -3302,33 +3322,36 @@ function Utilities_formatDate_(d) {
 }
 
 function renderDetalleEvalIzq(d) {
-  // Ya no usamos promedioNivel aquí porque el modal ya recibió los datos
-  // EXACTOS de la tarjeta (getMapaGrupo) desde abrirDetalleEvalMaestro().
-  // Así garantizamos que el % y el color de la joya coincidan siempre.
+  // Mismos datos que la tarjeta: usamos d.porcentajeGlobal (que ya fue
+  // sobreescrito con el valor de getMapaGrupo al abrir el modal).
   var pc = d.porcentajeGlobal || 0;
-  var gemaColor = pc >= 90 ? '#06b6d4' : pc >= 80 ? '#22c55e' : pc >= 70 ? '#facc15' : pc >= 60 ? '#f97316' : '#ef4444';
+  var gemaColor = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
+
+  // ═══ MISMA FUNCIÓN QUE USA LA TARJETA — la joya se ve idéntica ═══
+  var gemSVG = construirGemaSVG(pc, (alumnoData && alumnoData.alumno && alumnoData.alumno.id ? alumnoData.alumno.id : 'M'), 150, 170);
+
   var html = '';
   html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:20px 14px;text-align:center;">';
-  html += '<div style="font-size:60px;">💎</div>';
-  html += '<div style="font-size:38px;font-weight:800;color:' + gemaColor + ';">' + pc + '%</div>';
-  html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;">Evaluación Global</div>';
+  html += gemSVG;
+  html += '<div style="font-size:38px;font-weight:800;color:' + gemaColor + ';margin-top:6px;line-height:1;">' + pc + '%</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-top:6px;">Evaluación Global</div>';
   html += '</div>';
 
   var asiColor = d.asistencia >= 80 ? '#4ade80' : d.asistencia >= 70 ? '#facc15' : '#f87171';
   html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
-  html += '<div style="font-size:11px;color:#94a3b8;">📅 Asistencia</div>';
+  html += '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📅 Asistencia</div>';
   html += '<div style="font-size:26px;font-weight:800;color:' + asiColor + ';">' + d.asistencia + '%</div>';
   html += '</div>';
 
   var posColor = d.positivos >= 70 ? '#4ade80' : d.positivos >= 60 ? '#facc15' : '#f87171';
   html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
-  html += '<div style="font-size:11px;color:#94a3b8;">✅ Verde + Azul</div>';
+  html += '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">✅ Verde + Azul</div>';
   html += '<div style="font-size:26px;font-weight:800;color:' + posColor + ';">' + d.positivos + '%</div>';
   html += '</div>';
 
   var total = d.totalClases || 1;
   html += '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:14px 16px;margin-top:12px;">';
-  html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;">🎨 Distribución</div>';
+  html += '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🎨 Distribución de colores</div>';
   var colores = [
     { n: 'Rojo',     count: (d.colores && d.colores[1]) || 0, color: '#ef4444' },
     { n: 'Amarillo', count: (d.colores && d.colores[2]) || 0, color: '#facc15' },
@@ -3348,7 +3371,6 @@ function renderDetalleEvalIzq(d) {
 
   document.getElementById('detalleEvalIzq').innerHTML = html;
 }
-
 function abrirDetalleEvalMaestro(idAlumno) {
   if (!grupoActual || !idAlumno) return;
 
