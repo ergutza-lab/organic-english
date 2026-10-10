@@ -1843,31 +1843,16 @@ function verEvalGrupo(idGrupo, nombreGrupo){
   window._grupoEvalIdActual=idGrupo;
   window._grupoEvalNombreActual=nombreGrupo||'';
 
-  Promise.all([
-    fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
-    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA_GRUPO&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false, alumnos:[]};})
-  ])
-    .then(function(resultados){
-      var data = resultados[0];
-      var historialGrupo = resultados[1];
-
+  fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
       if(!data.success||!data.resultados||!data.resultados.length){
         body.innerHTML='<div class="empty-state">Sin registros de evaluación.</div>';return;
       }
 
-      var mapaHistorialPorAlumno = {};
-      (historialGrupo.alumnos||[]).forEach(function(x){ mapaHistorialPorAlumno[x.idAlumno] = x; });
-           
-      function valorOrden_(r){
-        var histAl = mapaHistorialPorAlumno[r.alumno.id];
-        if (histAl && histAl.historial) {
-          var chAl = (r.challenges||[]).concat(histAl.challenges||[]);
-          return calcularNotasBloquesAlumno_(histAl.historial, chAl).promedio;
-        }
-        var enB2=r.bloque===2 && r.promedioNivel!==undefined && r.promedioNivel!==null;
-        return enB2 ? r.promedioNivel : (r.porcentajeGlobal||0);
-      }
-      data.resultados.sort(function(a,b){ return valorOrden_(b)-valorOrden_(a); });
+      data.resultados.sort(function(a,b){
+        return (b.porcentajeARenderizar||0) - (a.porcentajeARenderizar||0);
+      });
       window._grupoEvalDataActual=data.resultados;
 
       var dirGuardado=localStorage.getItem('oe_pdf_director')||'Arnold Villa O.';
@@ -1904,25 +1889,13 @@ function verEvalGrupo(idGrupo, nombreGrupo){
         '</tr></thead><tbody>';
 
       data.resultados.forEach(function(r){
-        var histAlumno = mapaHistorialPorAlumno[r.alumno.id];
-        var notas, mini, grand, gp, tot;
-        if (histAlumno && histAlumno.historial) {
-          var chAl = (r.challenges||[]).concat(histAlumno.challenges||[]);
-          notas = calcularNotasBloquesAlumno_(histAlumno.historial, chAl);
-          mini = notas.b1.mini || notas.b2.mini;
-          grand = notas.b1.grand || notas.b2.grand;
-          var bActual = (r.bloque===2) ? notas.b2 : notas.b1;
-          gp = bActual.pct;
-          tot = bActual.tot;
-        } else {
-          notas = { promedio: (r.bloque===2 && r.promedioNivel!=null) ? r.promedioNivel : (r.porcentajeGlobal||0) };
-          tot = r.totalClases||1;
-          gp = function(c){return tot>0?Math.round(((r.colores[c]||0)/tot)*100):0;};
-          mini = r.challenges&&r.challenges.some(function(c){return c.tipo==='Mini'&&c.aprobado;});
-          grand = r.challenges&&r.challenges.some(function(c){return(c.tipo==='Grand'||c.tipo==='Gran')&&c.aprobado;});
-        }
-        var pc = notas.promedio;
-        var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
+        var pc = (r.porcentajeARenderizar != null) ? r.porcentajeARenderizar : (r.porcentajeGlobal || 0);
+        var tot = r.totalClases || 1;
+        var gp = function(c){ return tot>0 ? Math.round(((r.colores[c]||0)/tot)*100) : 0; };
+        var mini  = (r.challenges||[]).some(function(c){ return c.tipo==='Mini' && c.aprobado; });
+        var grand = (r.challenges||[]).some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
+
+        var gc = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
         var nombreEsc=String(r.alumno.nombre||'').replace(/'/g,"\\'");
         html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">'+
           '<td style="padding:6px 5px;"><div style="font-size:12px;font-weight:600;color:var(--text);">'+r.alumno.nombre+'</div><div style="font-size:10px;color:var(--muted);">'+r.alumno.id+(r.alumno.email?' · '+r.alumno.email:'')+'</div></td>'+
@@ -1963,34 +1936,18 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
     .then(function(data){
       if(!data.success){alert('No se pudo cargar el historial de este alumno.');resetBtn();return;}
 
-      var alumno={id:idAlumno,nombre:nombreAlumno,email:(data.alumno&&data.alumno.email)||'',fechaInscripcion:(data.alumno&&data.alumno.fechaInscripcion)||'—'};
-      var grupo=data.grupo||{};
-      var historial=data.historial||[];
-      var challenges=data.challenges||[];
-      var maestro=data.maestro||'—';
+      var alumno = data.alumno || {id:idAlumno,nombre:nombreAlumno,email:'',fechaInscripcion:'—'};
+      var grupo  = data.grupo || {};
+      var maestro = data.maestro || '—';
 
-      var challengesConBloque=((resumenGlobal&&resumenGlobal.challenges)||[]).concat(challenges||[]);
+      // Datos canónicos por bloque (vienen del backend ya calculados)
+      var b1 = (data.porBloque && data.porBloque[1]) ? data.porBloque[1] : null;
+      var b2 = (data.porBloque && data.porBloque[2]) ? data.porBloque[2] : null;
+      if (!b1) b1 = {nota:null,asistencia:null,colores:null,total:0,presentes:0,miniAprobado:false,grandAprobado:false,tieneRegistros:false,esColocacion:false};
+      if (!b2) b2 = {nota:null,asistencia:null,colores:null,total:0,presentes:0,miniAprobado:false,grandAprobado:false,tieneRegistros:false,esColocacion:false};
 
-      var notas = calcularNotasBloquesAlumno_(historial, challengesConBloque);
-      var b1 = notas.b1, b2 = notas.b2;
-
-      var totCombinado=(b1.tot||0)+(b2.tot||0);
-      var asistGlobal = totCombinado>0
-        ? (((b1.presentes||0)+(b2.presentes||0))/totCombinado*100).toFixed(2)
-        : '0.00';
-      var pctGlobal = totCombinado>0
-        ? (((b1.positivos||0)+(b2.positivos||0))/totCombinado*100).toFixed(2)
-        : '0.00';
-
-      var evaluacionFinalPct = (notas.promedio != null) ? notas.promedio.toFixed(2) : '—';
-      var evaluacionFinalNum = notas.promedio != null ? parseFloat(evaluacionFinalPct) : 0;
-      var asistGlobalNum = parseFloat(asistGlobal);
-      var estadoTxt;
-      if (notas.promedio == null) estadoTxt = 'En curso';
-      else if(evaluacionFinalNum>=80 && asistGlobalNum>=80) estadoTxt='Pase asegurado';
-      else if(evaluacionFinalNum>=70 && asistGlobalNum>=80) estadoTxt='Pase con refuerzo';
-      else if(evaluacionFinalNum>=60 || asistGlobalNum>=75) estadoTxt='Pendiente';
-      else estadoTxt='No acredita';
+      var evaluacionFinalPct = (data.promedioFinal != null) ? data.promedioFinal.toFixed(2) : '—';
+      var estadoTxt = data.estado || 'En curso';
 
       function formatNivelDisplay_(nivelRaw){
         var s=String(nivelRaw||'');
@@ -2048,7 +2005,6 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
           +'<polygon points="25,14 26.5,18.5 31.5,18.5 27.5,21.2 29,25.7 25,23 21,25.7 22.5,21.2 18.5,18.5 23.5,18.5" fill="#fff" opacity="0.85"/>'
           +'</svg>';
       }
-
       function medallaHtml(aprobado, tipo){
         if(!aprobado) return '';
         var icono=tipo==='mini'?medalSVGReporte_():trophySVGReporte_();
@@ -2060,27 +2016,33 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       }
 
       function bloqueColHtml(titulo, sub, b){
-        var colorRows=b.esColocacion
+        var total = b.total || 0;
+        var col   = b.colores || {1:0,2:0,3:0,4:0};
+        var pctC  = function(c){ return total>0 ? Math.round((col[c]||0)/total*100) : 0; };
+
+        var colorRows = b.esColocacion
           ? '<div style="background:#f1f5f9;border-radius:10px;padding:9px 11px;font-size:9.5px;color:#64748b;line-height:1.5;">Ingreso directo a Bloque 2 por evaluación de colocación — nivel de Bloque 1 acreditado con base 100%.</div>'
           : [1,2,3,4].map(function(c){
               return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">'+
                 '<span style="width:11px;height:11px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;box-shadow:0 0 0 3px '+colorHex[c]+'22;"></span>'+
-                '<div style="flex:1;background:#eef1f6;border-radius:20px;height:11px;overflow:hidden;"><div style="width:'+b.pct(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
-                '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+b.pct(c)+'%</span>'+
+                '<div style="flex:1;background:#eef1f6;border-radius:20px;height:11px;overflow:hidden;"><div style="width:'+pctC(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
+                '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+pctC(c)+'%</span>'+
               '</div>';
             }).join('');
-                var esSinRegistros = b.notaBloque==null;
-        var pctColor=esSinRegistros?'#94a3b8':(b.notaBloque>=80?'#16a34a':b.notaBloque>=60?'#ca8a04':'#dc2626');
-        var medallas=medallaHtml(b.mini,'mini')+medallaHtml(b.grand,'grand');
+
+        var esSinRegistros = (b.nota == null);
+        var pctColor = esSinRegistros?'#94a3b8':(b.nota>=80?'#16a34a':b.nota>=60?'#ca8a04':'#dc2626');
+        var medallas = medallaHtml(b.miniAprobado,'mini')+medallaHtml(b.grandAprobado,'grand');
         var subTexto = esSinRegistros
           ? (sub + ' · Sin registros aún')
-          : (sub + (b.esColocacion?'':(' · Asistencia '+b.asistPct+'%')));
+          : (sub + (b.esColocacion?'':(' · Asistencia '+b.asistencia+'%')));
+
         return '<div style="flex:1;min-width:230px;">'+
           '<div style="height:4px;width:40px;border-radius:4px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:7px;"></div>'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px;">'+
             '<div><div style="font-size:15px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
             '<div style="font-size:9px;color:#94a3b8;">'+subTexto+'</div></div>'+
-            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+(esSinRegistros?'—':b.notaBloque+'%')+'</div>'+
+            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+(esSinRegistros?'—':b.nota+'%')+'</div>'+
           '</div>'+
           colorRows+
           (medallas?('<div style="display:flex;gap:10px;justify-content:center;margin-top:9px;">'+medallas+'</div>'):'')+
@@ -2088,7 +2050,9 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       }
 
       var primerNombre=String(alumno.nombre||'').trim().split(' ')[0]||'Alumno(a)';
-      var obsDefault='¡Felicidades, '+primerNombre+'! Concluiste el nivel '+nivelDisplay+' con '+pctGlobal+'% de desempeño y '+asistGlobal+'% de asistencia — se nota tu esfuerzo y tu constancia en cada bloque. Sigue así, vas muy bien en tu camino con el inglés 🌟';
+      var pctGlobalTxt = (data.promedioFinal != null) ? data.promedioFinal : '—';
+      var asistGlobalTxt = (data.resumen && data.resumen.asistenciaPct != null) ? data.resumen.asistenciaPct : '—';
+      var obsDefault='¡Felicidades, '+primerNombre+'! Concluiste el nivel '+nivelDisplay+' con '+pctGlobalTxt+'% de desempeño y '+asistGlobalTxt+'% de asistencia — se nota tu esfuerzo y tu constancia en cada bloque. Sigue así, vas muy bien en tu camino con el inglés 🌟';
 
       var fechaHoy=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
       var folio=idGrupo+'-'+idAlumno+'-'+hoyISO();
@@ -2134,8 +2098,8 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       '</div>';
 
       html+='<div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:16px;">'+
-        bloqueColHtml('Bloque 1',b1.esColocacion?'Colocación':'Semanas 1-8',b1)+
-        bloqueColHtml('Bloque 2','Semanas 9-16',b2)+
+        bloqueColHtml('Bloque 1', b1.esColocacion?'Colocación':'Semanas 1-8', b1)+
+        bloqueColHtml('Bloque 2','Semanas 9-16', b2)+
       '</div>';
 
       html+='<div style="margin-bottom:14px;">'+
@@ -2169,7 +2133,6 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
     })
     .catch(function(){ alert('Error de conexión al generar el reporte.'); resetBtn(); });
 }
-
 function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
   var coordNombre=(document.getElementById('pdfCoordinadorNombre')||{}).value||(caData&&caData.nombre)||'';
@@ -2272,8 +2235,7 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var historial=data.historial||[];
       var challenges=data.challenges||[];
 
-      var notas = calcularNotasBloquesAlumno_(historial, challenges||[]);
-      var evaluacionFinalPct = notas.promedio;
+      var evaluacionFinalPct = (data.promedioFinal != null) ? data.promedioFinal : 0;
       var promedioSobre10=(evaluacionFinalPct/10).toFixed(1);
 
       function formatNivelDisplay_(nivelRaw){
@@ -2703,49 +2665,25 @@ function cargarReporteGrupo(){
   var tbody=document.getElementById('reporteBody');
   tbody.innerHTML='<tr><td colspan="13" class="empty-state">Cargando...</td></tr>';
 
-  Promise.all([
-    fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}),
-    fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA_GRUPO&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {success:false, alumnos:[]};})
-  ])
-    .then(function(resultados){
-      var data = resultados[0];
-      var historialGrupo = resultados[1];
+  fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(data){
       if(!data.success||!data.resultados||!data.resultados.length){
         tbody.innerHTML='<tr><td colspan="13" class="empty-state">Sin registros para este grupo.</td></tr>';return;
       }
-      var mapaHistorialPorAlumno = {};
-      (historialGrupo.alumnos||[]).forEach(function(x){ mapaHistorialPorAlumno[x.idAlumno] = x; });
 
-      function valorOrdenReporte_(r){
-        var histAl = mapaHistorialPorAlumno[r.alumno.id];
-        if (histAl && histAl.historial) {
-          var chAl = (r.challenges||[]).concat(histAl.challenges||[]);
-          return calcularNotasBloquesAlumno_(histAl.historial, chAl).promedio;
-        }
-        var enB2=r.bloque===2 && r.promedioNivel!==undefined && r.promedioNivel!==null;
-        return enB2 ? r.promedioNivel : (r.porcentajeGlobal||0);
-      }
-      data.resultados.sort(function(a,b){ return valorOrdenReporte_(b)-valorOrdenReporte_(a); });
+      data.resultados.sort(function(a,b){
+        return (b.porcentajeARenderizar||0) - (a.porcentajeARenderizar||0);
+      });
+
       tbody.innerHTML=data.resultados.map(function(r){
-        var histAl = mapaHistorialPorAlumno[r.alumno.id];
-        var notas, mini, grand, gp, tot;
-        if (histAl && histAl.historial) {
-          var chAl = (r.challenges||[]).concat(histAl.challenges||[]);
-          notas = calcularNotasBloquesAlumno_(histAl.historial, chAl);
-          mini = notas.b1.mini || notas.b2.mini;
-          grand = notas.b1.grand || notas.b2.grand;
-          var bAct = (r.bloque===2)?notas.b2:notas.b1;
-          gp = bAct.pct;
-          tot = bAct.tot;
-        } else {
-          notas = { promedio: (r.bloque===2 && r.promedioNivel!=null) ? r.promedioNivel : (r.porcentajeGlobal||0) };
-          tot = r.totalClases||1;
-          gp = function(c){return tot>0?Math.round(((r.colores[c]||0)/tot)*100):0;};
-          mini = r.challenges&&r.challenges.some(function(c){return c.tipo==='Mini'&&c.aprobado;});
-          grand = r.challenges&&r.challenges.some(function(c){return(c.tipo==='Grand'||c.tipo==='Gran')&&c.aprobado;});
-        }
-        var pc = notas.promedio;
-        var gc=pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
+        var pc = (r.porcentajeARenderizar != null) ? r.porcentajeARenderizar : (r.porcentajeGlobal || 0);
+        var tot = r.totalClases || 1;
+        var gp = function(c){ return tot>0 ? Math.round(((r.colores[c]||0)/tot)*100) : 0; };
+        var mini  = (r.challenges||[]).some(function(c){ return c.tipo==='Mini' && c.aprobado; });
+        var grand = (r.challenges||[]).some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && c.aprobado; });
+        var gc = pc>=90?'#06b6d4':pc>=80?'#22c55e':pc>=70?'#facc15':pc>=60?'#f97316':'#ef4444';
+
         return '<tr>'+
           '<td>'+r.alumno.id+'</td>'+
           '<td style="font-size:11px;color:var(--muted);">'+(r.alumno.email||'—')+'</td>'+
@@ -2765,7 +2703,6 @@ function cargarReporteGrupo(){
     })
     .catch(function(){tbody.innerHTML='<tr><td colspan="13" class="empty-state">Error al cargar.</td></tr>';});
 }
-
 function enviarReportePorCorreo(){
   var idGrupo=document.getElementById('reporteGrupoSelect').value;
   var email=document.getElementById('reporteEmail').value.trim();
