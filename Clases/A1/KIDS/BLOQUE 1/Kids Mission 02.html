@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Growie Kids — Mission 2 — Where are you from?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1c2b5e;
+  --navy-dark:#111c40;
+  --orange:#f97316;
+  --orange-light:#fdba74;
+  --green:#22c55e;
+  --green-dark:#15803d;
+  --cream:#fef3e2;
+  --yellow:#fbbf24;
+  --white:#ffffff;
+  --shadow:0 18px 40px rgba(28,43,94,.35);
+}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--navy-dark);}
+h1,h2,h3,.font-baloo{font-family:'Baloo 2',cursive;}
+
+/* ══════════ ESTRUCTURA DE SLIDES ══════════ */
+.stage{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transform:translateX(40px);
+  transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  background-size:cover;background-position:center;
+}
+.slide.active{
+  opacity:1;visibility:visible;transform:translateX(0);
+  transition:opacity .45s ease, transform .45s ease;
+  z-index:2;
+}
+.slide.prevslide{transform:translateX(-40px)}
+
+/* ── Slide 1: Portada ── */
+.slide-cover{background:none;}
+.cover-blur-bg{
+  position:absolute;inset:0;z-index:0;
+  background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2002/PORTADA.jpg');
+  background-size:cover;background-position:center;
+  filter:blur(28px) brightness(.55) saturate(1.1);
+  transform:scale(1.15);
+}
+.cover-img{
+  position:absolute;inset:0;z-index:1;
+  width:100%;height:100%;object-fit:contain;
+}
+
+.slide-content{align-items:flex-start}
+.slide-content{background-image:url('https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2001/FONDO%20SLIDES%20KIDS.webp');}
+.mission-badge{
+  position:absolute;top:22px;left:22px;z-index:5;
+  background:var(--orange);color:#fff;font-weight:700;font-size:13px;
+  padding:8px 16px;border-radius:100px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:8px;
+}
+.mission-badge .leaf-spin{display:inline-block;animation:spin 3s linear infinite}
+
+.slide-grid{
+  display:grid;grid-template-columns:1fr 1.15fr;align-items:start;gap:36px;
+  max-width:1280px;width:92vw;padding:96px 40px 28px;
+}
+.col-text{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.slide-emoji{
+  align-self:center;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(80px,12vw,136px);height:clamp(80px,12vw,136px);line-height:1;
+  opacity:0;transform:scale(.3) rotate(-15deg);
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.25));
+  cursor:default;
+}
+.slide.active .slide-emoji{animation:popBounce .6s cubic-bezier(.34,1.56,.64,1) 0s forwards}
+.slide-emoji.settled{
+  opacity:1;transform:scale(1) rotate(0deg);
+  transition:transform .2s ease, filter .2s ease;
+}
+.slide-emoji.settled:hover{
+  transform:scale(1.18) rotate(10deg);
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.35));
+}
+.slide-title{
+  font-size:clamp(30px,4vw,48px);font-weight:800;line-height:1.05;color:var(--navy);
+  text-shadow:0 0 14px rgba(255,255,255,.85), 0 2px 0 rgba(0,0,0,.12);
+  background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%);
+  padding:10px 24px;border-radius:20px;box-shadow:0 10px 24px rgba(0,0,0,.25);
+  opacity:0;transform:translateY(-18px) scale(.9);
+  cursor:default;
+}
+.slide.active .slide-title{animation:popDrop .55s cubic-bezier(.34,1.56,.64,1) .05s forwards}
+.slide-title.settled{
+  opacity:1;transform:translateY(0) scale(1);
+  transition:transform .22s ease, box-shadow .22s ease, filter .22s ease;
+}
+.slide-title.settled:hover{
+  transform:scale(1.06) rotate(-1deg);
+  box-shadow:0 14px 30px rgba(0,0,0,.35), 0 0 0 4px rgba(255,255,255,.5);
+  filter:brightness(1.12) saturate(1.15);
+}
+
+.phrase-col{display:flex;flex-direction:column;gap:12px;width:100%}
+.phrase-card{
+  font-family:'Baloo 2',cursive;font-weight:700;
+  font-size:clamp(18px,2.3vw,26px);color:#fff;
+  padding:14px 22px;border-radius:18px;
+  box-shadow:0 10px 22px rgba(0,0,0,.22);
+  opacity:0;transform:translateX(-40px) scale(.85);
+  width:fit-content;max-width:100%;
+  cursor:pointer;
+}
+.slide.active .phrase-card{animation:popIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.phrase-card.settled{
+  opacity:1;transform:translateX(0) scale(1);
+  transition:transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.phrase-card.settled:hover{
+  transform:scale(1.1) rotate(-2deg);
+  box-shadow:0 16px 32px rgba(0,0,0,.32), 0 0 0 4px rgba(255,255,255,.6);
+  filter:brightness(1.15) saturate(1.2);
+}
+.phrase-card.c0{background:linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%)}
+.phrase-card.c1{background:linear-gradient(135deg, var(--orange) 0%, #ea580c 100%)}
+.phrase-card.c2{background:linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)}
+.phrase-card.c3{background:linear-gradient(135deg, var(--yellow) 0%, #d97706 100%);color:var(--navy);text-shadow:none}
+.phrase-card.c4{background:linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)}
+.phrase-card.c5{background:linear-gradient(135deg, #fb7185 0%, #e11d48 100%)}
+
+.col-image{display:flex;align-items:center;justify-content:center;align-self:center}
+.slide-img-wrap{
+  border-radius:28px;overflow:hidden;box-shadow:var(--shadow);
+  border:7px solid #fff;background:#fff;line-height:0;
+  max-width:100%;max-height:78vh;
+  animation:floatY 4.5s ease-in-out infinite;
+}
+.slide-img-wrap img{display:block;width:100%;height:100%;object-fit:contain;max-height:78vh}
+
+@keyframes popIn{
+  0%{opacity:0;transform:translateX(-40px) scale(.85)}
+  60%{opacity:1;transform:translateX(6px) scale(1.04)}
+  100%{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes popBounce{
+  0%{opacity:0;transform:scale(.3) rotate(-15deg)}
+  50%{opacity:1;transform:scale(1.15) rotate(6deg)}
+  75%{transform:scale(.95) rotate(-3deg)}
+  100%{opacity:1;transform:scale(1) rotate(0deg)}
+}
+@keyframes popDrop{
+  0%{opacity:0;transform:translateY(-18px) scale(.9)}
+  60%{opacity:1;transform:translateY(4px) scale(1.03)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes floatY{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-14px)}
+}
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+
+/* ══════════ NAVEGACIÓN ══════════ */
+.nav-controls{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:20;
+  display:flex;align-items:center;gap:14px;
+  background:rgba(17,28,64,.85);backdrop-filter:blur(6px);
+  padding:10px 18px;border-radius:100px;box-shadow:0 10px 26px rgba(0,0,0,.35);
+}
+.nav-btn{
+  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--orange);color:#fff;font-size:18px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s, opacity .15s;
+}
+.nav-btn:hover:not(:disabled){transform:scale(1.1)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.dots{display:flex;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:all .2s;border:none;padding:0}
+.dot.active{background:var(--orange);width:22px;border-radius:6px}
+.dot:hover{background:rgba(255,255,255,.6)}
+.slide-counter{color:#fff;font-size:12px;font-weight:600;min-width:38px;text-align:center}
+
+/* ══════════ PANEL DE NOTAS DEL PROFESOR ══════════ */
+.notes-toggle{
+  position:fixed;top:22px;right:22px;z-index:25;
+  background:var(--navy);color:#fff;border:none;border-radius:100px;
+  padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;
+  font-family:'DM Sans',sans-serif;transition:transform .15s;
+}
+.notes-toggle:hover{transform:scale(1.04)}
+.notes-panel{
+  position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);
+  background:#fff;z-index:30;box-shadow:-16px 0 40px rgba(0,0,0,.35);
+  transform:translateX(100%);transition:transform .3s ease;
+  overflow-y:auto;padding:24px 22px 40px;
+}
+.notes-panel.open{transform:translateX(0)}
+.notes-close{
+  position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;
+  width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--navy);
+}
+.notes-header{
+  font-weight:800;font-size:20px;color:var(--navy);margin:6px 0 2px;padding-right:40px;
+}
+.notes-sub{color:var(--orange);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:18px}
+.notes-block{margin-bottom:16px}
+.notes-label{
+  font-size:11px;font-weight:800;color:#fff;background:var(--navy);
+  display:inline-block;padding:3px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:6px;
+}
+.notes-text{font-size:14px;color:#334155;line-height:1.55;white-space:pre-line}
+.notes-overlay{
+  position:fixed;inset:0;background:rgba(17,28,64,.4);z-index:29;
+  opacity:0;visibility:hidden;transition:opacity .3s;
+}
+.notes-overlay.open{opacity:1;visibility:visible}
+
+/* ══════════ RESPONSIVE ══════════ */
+@media(max-width:900px){
+  .slide-grid{grid-template-columns:1fr;padding:78px 18px 16px;gap:16px;width:94vw}
+  .col-image{order:2}
+  .col-text{order:1;align-items:center;text-align:center}
+  .slide-emoji{font-size:clamp(56px,16vw,90px);height:clamp(56px,16vw,90px)}
+  .slide-title{font-size:22px;padding:8px 20px;text-align:center}
+  .phrase-col{align-items:center}
+  .phrase-card{font-size:16px;padding:10px 18px;width:auto}
+  .slide-img-wrap{max-height:38vh;animation:none}
+  .slide-img-wrap img{max-height:38vh}
+  .mission-badge{font-size:11px;padding:6px 12px;top:14px;left:14px}
+  .notes-toggle{padding:8px 12px;font-size:11px;top:14px;right:14px}
+  .nav-controls{padding:7px 12px;gap:8px}
+  .nav-btn{width:32px;height:32px;font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+
+<button class="notes-toggle" id="notesToggle">🧑‍🏫 <span>Teacher Notes:</span></button>
+
+<div class="nav-controls">
+  <button class="nav-btn" id="prevBtn" aria-label="Anterior">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="nav-btn" id="nextBtn" aria-label="Siguiente">›</button>
+</div>
+<div class="slide-counter" id="counter" style="position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:20;"></div>
+
+<div class="notes-overlay" id="notesOverlay"></div>
+<aside class="notes-panel" id="notesPanel">
+  <button class="notes-close" id="notesClose">✕</button>
+  <div class="notes-header" id="notesTitle"></div>
+  <div class="notes-sub" id="notesStage"></div>
+  <div id="notesBody"></div>
+</aside>
+
+
+
+<script>
+const IMG_BASE = "https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/Kids/Mission%2002/";
+const PORTADA = IMG_BASE + "PORTADA.jpg";
+const slideImg = n => IMG_BASE + "SLIDE%20" + n + ".jpg";
+
+const SLIDES = [
+  {
+    n:1, cover:true,
+    notes:{
+      STAGE:"Mission Start / Cover Image",
+      TIMING:"5 minutes",
+      "WHAT TO DO":"Welcome students warmly using the cover image as the emotional entrance to the mission. Do not read slide text because there is no text on the slide. Use the image to create curiosity. Connect Mission 1 with Mission 2 by reminding students that Growie made new friends, and now he wants to learn where they are from.",
+      SAY:"Welcome back, Explorers! · Look at Growie. · Growie has a Magic World Map. · Last mission, Growie made new friends. · Today, Growie wants to know where his friends are from. · Are you ready for Mission 2?",
+      "INSTRUCTIONS FOR STUDENTS":"Look at the map. · Listen. · Point to Growie. · Say: I'm ready!",
+      "WHAT NOT TO DO":"Do not show any text on this slide. Do not explain grammar. Do not start with a vocabulary list. Do not ask students to produce the full question immediately. Do not make the opening feel like a test.",
+      FOCUS:"Curiosity, story continuity and emotional connection.",
+      "PEDAGOGICAL INTENTION":"Students enter the mission through visual storytelling before working with the target language.",
+      "KEY UPGRADE":"The cover becomes a cinematic adventure image, not a traditional title slide.",
+      "CRITICAL ERROR":"Do not add text to the cover. The user requested only the image for the cover.",
+      "PRO TIP":"Use the Magic World Map as the hook. Point to different parts of the map and say: Where? Where? Where?",
+      "FINAL CHECKLIST":"Students are welcomed. · Students understand Growie has a new mission. · Students are curious about the Magic World Map. · The slide has no visible text."
+    }
+  },
+  {
+    n:2, title:"Hello, Explorers!", emoji:"👋",
+    phrases:["Hello, Explorers!","Hello!","Hi!","I'm ___.","Nice to meet you!"],
+    notes:{
+      STAGE:"Warm-up Game / Review",
+      TIMING:"5 minutes",
+      "WHAT TO DO":"Review the key language from Mission 1 through movement and quick greetings. Students wave, say hello, say their name and repeat Nice to meet you. Keep it fast, playful and confidence-building.",
+      SAY:"Hello, Explorers! · Wave and say: Hello! · Say: I'm ___. · Say: Nice to meet you! · High five! · Thumbs up! · Great! Mission 1 is back!",
+      "INSTRUCTIONS FOR STUDENTS":"Wave. · Repeat. · Say your name. · Move with me. · Say: Nice to meet you.",
+      "WHAT NOT TO DO":"Do not spend too much time reviewing. Do not correct pronunciation too much. Do not introduce countries yet. Do not make students sit silently.",
+      FOCUS:"Activate previous language before adding the new question.",
+      "PEDAGOGICAL INTENTION":"Students feel successful with familiar phrases before learning Where are you from?",
+      "KEY UPGRADE":"Mission 2 starts by connecting to the success of Mission 1.",
+      "CRITICAL ERROR":"Do not skip the review. Students need a familiar bridge before the new language.",
+      "PRO TIP":"Use different voices: big hello, tiny hello, robot hello, happy hello.",
+      "FINAL CHECKLIST":"Students said Hello. · Students said I'm ___. · Students said Nice to meet you. · Students are ready for new language."
+    }
+  },
+  {
+    n:3, title:"The Magic World Map", emoji:"📖",
+    phrases:["Hello! I'm Growie.","Where are you from?","I'm from Mexico.","I'm from Canada.","Nice to meet you!"],
+    notes:{
+      STAGE:"Story Time",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Tell the story using expression and gestures. Students listen first. Then have them repeat only the key lines. Use the map visually to make from understandable without translation.",
+      SAY:"Growie has a Magic World Map. · Growie asks Leo. · Where are you from? · Leo says: I'm from Mexico. · Growie asks Mia. · Where are you from? · Mia says: I'm from Canada. · Now repeat with me.",
+      "INSTRUCTIONS FOR STUDENTS":"Look. · Listen. · Point to the map. · Repeat Growie. · Repeat Leo. · Repeat Mia.",
+      "WHAT NOT TO DO":"Do not translate line by line. Do not explain from with grammar. Do not ask students to read before listening. Do not add too many countries in the story.",
+      FOCUS:"Understanding Where are you from? and I'm from ___ in context.",
+      "PEDAGOGICAL INTENTION":"Students hear the target language naturally inside the adventure before analyzing it.",
+      "KEY UPGRADE":"The map gives meaning visually, so the language feels intuitive.",
+      "CRITICAL ERROR":"Do not turn the story into a grammar explanation.",
+      "PRO TIP":"Point to yourself when saying I'm, then point to the map when saying from Mexico.",
+      "FINAL CHECKLIST":"Students understood Growie asked about origin. · Students heard Where are you from? · Students repeated I'm from Mexico. · Students repeated I'm from Canada."
+    }
+  },
+  {
+    n:4, title:"Let's Discover", emoji:"🔍",
+    phrases:["Find: Hello","Find: I'm ___.","Find: Where are you from?","Find: I'm from ___."],
+    notes:{
+      STAGE:"Guided Discovery",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Guide students to find the important phrases in the story. Ask questions first, then confirm. Students point, repeat and connect each phrase to a function.",
+      SAY:"Look at the story again. · Find the greeting. · Yes: Hello! · Find the name phrase. · Yes: I'm Leo. · Find the question. · Yes: Where are you from? · Find the answer. · Yes: I'm from Mexico. · Excellent, Explorers!",
+      "INSTRUCTIONS FOR STUDENTS":"Look. · Point. · Find. · Say it. · Repeat.",
+      "WHAT NOT TO DO":"Do not explain Where are you from? word by word. Do not give all answers immediately. Do not remove the dialogue. Do not add extra structures like She is from yet.",
+      FOCUS:"Students discover useful language from context.",
+      "PEDAGOGICAL INTENTION":"Students notice how the question and answer work before controlled practice.",
+      "KEY UPGRADE":"The discovery stage feels like finding clues on a map.",
+      "CRITICAL ERROR":"Do not overcomplicate the discovery stage.",
+      "PRO TIP":"Use gestures: open hands for Where?, point to map for from, point to self for I'm.",
+      "FINAL CHECKLIST":"Students found Hello. · Students found I'm ___. · Students found Where are you from? · Students found I'm from ___. · Students repeated the phrases."
+    }
+  },
+  {
+    n:5, title:"Where? From?", emoji:"✨",
+    phrases:["Where are you from?","I'm from Mexico.","I'm from Canada.","I'm from Brazil.","I'm from Japan.","I'm from Italy."],
+    notes:{
+      STAGE:"Visual Focus",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Use the map and cards to clarify the question and answer. Have students repeat the question and then say each country answer together. Keep it oral, visual and rhythmic.",
+      SAY:"Look at the map. · Question: Where are you from? · Repeat: Where are you from? · Answer: I'm from Mexico. · I'm from Canada. · I'm from Brazil. · I'm from Japan. · I'm from Italy. · Now, ask me: Where are you from?",
+      "INSTRUCTIONS FOR STUDENTS":"Look at the cards. · Repeat. · Point to a country. · Say: I'm from ___.",
+      "WHAT NOT TO DO":"Do not introduce nationality words like Mexican, Canadian or Brazilian. Do not explain grammar. Do not add many countries. Do not ask students to memorize all countries perfectly.",
+      FOCUS:"Question-answer pattern with countries.",
+      "PEDAGOGICAL INTENTION":"Students connect visual country markers with the language pattern I'm from ___.",
+      "KEY UPGRADE":"The language pattern is supported by a clear Magic World Map, not a grammar chart.",
+      "CRITICAL ERROR":"Do not teach I am Mexican in this mission. Keep the objective focused on I'm from ___.",
+      "PRO TIP":"Let students point to the country card before speaking. Physical pointing helps confidence.",
+      "FINAL CHECKLIST":"Students repeated the question. · Students repeated the answer frame. · Students practiced five country options. · Students understand the map supports the answer."
+    }
+  },
+  {
+    n:6, title:"Practice with Growie!", emoji:"🤝",
+    phrases:["Growie: Where are you from?","I'm from Mexico.","I'm from Canada.","Everyone participates!"],
+    notes:{
+      STAGE:"Group Practice",
+      TIMING:"6 minutes",
+      "WHAT TO DO":"Lead whole-class practice. Teacher plays Growie first. Students answer using country cards on the slide. Then individual students answer with support. Make sure everyone participates.",
+      SAY:"Now, practice with Growie! · I am Growie. · I ask: Where are you from? · You answer: I'm from Mexico. · Again: Where are you from? · Answer: I'm from Canada. · Great! Everyone repeats.",
+      "INSTRUCTIONS FOR STUDENTS":"Listen. · Repeat. · Answer together. · Use the slide. · Everyone participates.",
+      "WHAT NOT TO DO":"Do not send students to breakout rooms yet. Do not ask only confident students. Do not remove the answer support. Do not correct every mistake.",
+      FOCUS:"Controlled oral practice with full class support.",
+      "PEDAGOGICAL INTENTION":"Students practice the question and answer safely before producing with classmates.",
+      "KEY UPGRADE":"The group practice feels like a team mission.",
+      "CRITICAL ERROR":"Do not skip the group model before pair work.",
+      "PRO TIP":"Use a rhythm: Question, clap clap, answer. This helps students remember the structure.",
+      "FINAL CHECKLIST":"Students asked Where are you from? · Students answered I'm from ___. · All students participated. · Students are ready for personalized speaking."
+    }
+  },
+  {
+    n:7, title:"Your Turn", emoji:"🎤",
+    phrases:["Hello! I'm ___.","Where are you from?","I'm from ___.","Nice to meet you!"],
+    notes:{
+      STAGE:"Free Production",
+      TIMING:"8 minutes",
+      "WHAT TO DO":"Students use the model to create their own short conversation. They should use their real name and a real or teacher-approved country answer. If students are uncomfortable, allow them to choose from the country cards. The teacher monitors and supports.",
+      SAY:"Now it's your turn. · Meet an explorer. · Say: Hello! I'm ___. · Ask: Where are you from? · Answer: I'm from ___. · Say: Nice to meet you. · Change roles. · Use the slide. Simple is okay.",
+      "INSTRUCTIONS FOR STUDENTS":"Talk to your partner. · Use your name. · Ask the question. · Answer. · Say nice to meet you. · Change roles.",
+      "WHAT NOT TO DO":"Do not demand memorization. Do not remove the support slide. Do not correct constantly during production. Do not pressure shy students to perform without support. Do not force students to say a country if they are confused; give options.",
+      FOCUS:"Personalized communication.",
+      "PEDAGOGICAL INTENTION":"Students use the language with a real classmate and connect it to their own identity.",
+      "KEY UPGRADE":"Students become the explorers on the Magic World Map.",
+      "CRITICAL ERROR":"Do not make the production feel like an exam.",
+      "PRO TIP":"Accept reading from the slide. Communication is more important than memorization.",
+      "FINAL CHECKLIST":"Students introduced themselves. · Students asked Where are you from? · Students answered I'm from ___. · Students used Nice to meet you. · Students changed roles."
+    }
+  },
+  {
+    n:8, title:"Mission Complete!", emoji:"🏆",
+    phrases:["Where are you from?","I'm from ___.","Great job, Explorers!","You helped Growie use the Magic World Map!"],
+    notes:{
+      STAGE:"Feedback / Mission Complete",
+      TIMING:"5 minutes",
+      "WHAT TO DO":"Give positive feedback first. Celebrate what students were able to say. Correct only one or two patterns if necessary, without naming students.",
+      SAY:"Great job, Explorers! · You helped Growie! · I heard: Where are you from? · I heard: I'm from Mexico. · I heard: I'm from Canada. · I heard: Nice to meet you. · Mission complete!",
+      "INSTRUCTIONS FOR STUDENTS":"Listen. · Repeat the good phrases. · Celebrate. · Say: Mission complete!",
+      "WHAT NOT TO DO":"Do not focus on mistakes. Do not embarrass students. Do not correct too much. Do not introduce new language. Do not compare students.",
+      FOCUS:"Positive feedback and confidence.",
+      "PEDAGOGICAL INTENTION":"Students finish the production stage feeling successful and capable.",
+      "KEY UPGRADE":"Feedback becomes part of the adventure reward.",
+      "CRITICAL ERROR":"Do not make feedback negative.",
+      "PRO TIP":"Correct patterns, not people. For example: Let's say: I'm from Mexico. Not: You said it wrong.",
+      "FINAL CHECKLIST":"Students received positive feedback. · Students repeated the key phrases. · The second Magic Leaf was activated. · The mission feels completed."
+    }
+  },
+  {
+    n:9, title:"Magic Leaf", emoji:"🍃",
+    phrases:["How do you feel?","I can do it!","I need more practice.","Can you help me?"],
+    notes:{
+      STAGE:"Reflection",
+      TIMING:"4 minutes",
+      "WHAT TO DO":"Ask students to self-evaluate using reactions, fingers, chat or voice. Normalize needing practice or help.",
+      SAY:"Growie recovered another Magic Leaf! · Now, how do you feel? · Choose one. · I can do it. · I need more practice. · Can you help me? · More practice is okay.",
+      "INSTRUCTIONS FOR STUDENTS":"Choose one. · Use your fingers. · Use the chat. · Be honest.",
+      "WHAT NOT TO DO":"Do not pressure students to choose I can do it. Do not turn reflection into another test. Do not add new content. Do not make students feel bad for needing help.",
+      FOCUS:"Self-awareness and emotional safety.",
+      "PEDAGOGICAL INTENTION":"Students identify their confidence level and the teacher sees who needs support.",
+      "KEY UPGRADE":"Reflection is connected to the Magic Leaf reward.",
+      "CRITICAL ERROR":"Do not shame students for needing help.",
+      "PRO TIP":"Say: English grows with practice.",
+      "FINAL CHECKLIST":"Students reflected. · Students chose an option. · Teacher identified confidence levels. · Growie recovered the second Magic Leaf."
+    }
+  },
+  {
+    n:10, title:"See You Next Mission!", emoji:"👋",
+    phrases:["You can ask and answer where someone is from!","Next Mission: How are you?","Bye, Growie!"],
+    notes:{
+      STAGE:"Celebration / Closing",
+      TIMING:"4 minutes",
+      "WHAT TO DO":"Close positively. Repeat the achievement statement. Preview the next mission briefly without teaching the next content in detail.",
+      SAY:"Great job today! · You helped Growie use the Magic World Map. · You can ask and answer where someone is from in English. · Next mission: How are you? · Bye, Growie! · See you next mission!",
+      "INSTRUCTIONS FOR STUDENTS":"Say bye. · Wave. · Repeat: Bye, Growie! · See you next mission!",
+      "WHAT NOT TO DO":"Do not introduce the next mission content in detail. Do not correct at the end. Do not add a long summary. Do not use the word lesson.",
+      FOCUS:"Achievement, celebration and continuity.",
+      "PEDAGOGICAL INTENTION":"Students leave motivated to return for the next mission.",
+      "KEY UPGRADE":"The closing connects today's success with the next adventure.",
+      "CRITICAL ERROR":"Do not end abruptly.",
+      "PRO TIP":"End with the same goodbye routine every mission.",
+      "FINAL CHECKLIST":"Achievement statement was repeated. · Students said goodbye. · Next mission was previewed. · The class ended with celebration."
+    }
+  }
+];
+
+let current = 1;
+const total = SLIDES.length;
+
+function buildSlideEl(s){
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.dataset.n = s.n;
+
+  if (s.cover) {
+    el.classList.add('slide-cover');
+    el.innerHTML = `
+      <div class="cover-blur-bg"></div>
+      <img class="cover-img" src="${PORTADA}" alt="Growie Kids Mission 2">`;
+  } else {
+    el.classList.add('slide-content');
+    const colorClasses = ['c0','c1','c2','c3','c4','c5'];
+    const chips = (s.phrases||[]).map((p,i) => `<div class="phrase-card ${colorClasses[i % colorClasses.length]}" style="animation-delay:${0.15 + i*0.12}s">${p}</div>`).join('');
+    el.innerHTML = `
+      <div class="mission-badge"><span class="leaf-spin">🍃</span> Mission 2 · Slide ${s.n} / ${total}</div>
+      <div class="slide-grid">
+        <div class="col-text">
+          <div class="slide-emoji">${s.emoji}</div>
+          <div class="slide-title">${s.title}</div>
+          <div class="phrase-col">${chips}</div>
+        </div>
+        <div class="col-image">
+          <div class="slide-img-wrap"><img src="${slideImg(s.n)}" alt="${s.title}"></div>
+        </div>
+      </div>`;
+  }
+  return el;
+}
+
+function initStage(){
+  const stage = document.getElementById('stage');
+  SLIDES.forEach(s => stage.appendChild(buildSlideEl(s)));
+
+  const dotsWrap = document.getElementById('dots');
+  SLIDES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'dot';
+    b.setAttribute('aria-label', 'Slide ' + s.n);
+    b.onclick = () => goTo(s.n);
+    dotsWrap.appendChild(b);
+  });
+}
+
+function goTo(n){
+  if (n < 1 || n > total) return;
+  const prev = current;
+  current = n;
+  document.querySelectorAll('.slide').forEach(el => {
+    const en = parseInt(el.dataset.n, 10);
+    const isActive = en === n;
+    el.classList.toggle('active', isActive);
+    if (!isActive) {
+      el.querySelectorAll('.phrase-card, .slide-title, .slide-emoji').forEach(box => {
+        box.classList.remove('settled');
+        box.style.animation = '';
+      });
+    }
+  });
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === n-1));
+  document.getElementById('prevBtn').disabled = n === 1;
+  document.getElementById('nextBtn').disabled = n === total;
+  document.getElementById('counter').textContent = n + ' / ' + total;
+  renderNotes(n);
+}
+
+document.addEventListener('animationend', e => {
+  if (e.target.matches('.phrase-card, .slide-title, .slide-emoji')) {
+    e.target.style.animation = 'none';
+    e.target.classList.add('settled');
+  }
+});
+
+function renderNotes(n){
+  const s = SLIDES.find(x => x.n === n);
+  document.getElementById('notesTitle').textContent = 'Slide ' + n + (s.title ? ' — ' + s.title : '');
+  document.getElementById('notesStage').textContent = s.notes.STAGE + ' · ' + s.notes.TIMING;
+  const order = ["WHAT TO DO","SAY","INSTRUCTIONS FOR STUDENTS","WHAT NOT TO DO","FOCUS","PEDAGOGICAL INTENTION","KEY UPGRADE","CRITICAL ERROR","PRO TIP","FINAL CHECKLIST"];
+  const body = document.getElementById('notesBody');
+  body.innerHTML = order.map(k => `
+    <div class="notes-block">
+      <div class="notes-label">${k}</div>
+      <div class="notes-text">${s.notes[k]}</div>
+    </div>`).join('');
+}
+
+document.getElementById('prevBtn').onclick = () => goTo(current - 1);
+document.getElementById('nextBtn').onclick = () => goTo(current + 1);
+
+const notesPanel = document.getElementById('notesPanel');
+const notesOverlay = document.getElementById('notesOverlay');
+document.getElementById('notesToggle').onclick = () => {
+  notesPanel.classList.add('open');
+  notesOverlay.classList.add('open');
+};
+function closeNotes(){
+  notesPanel.classList.remove('open');
+  notesOverlay.classList.remove('open');
+}
+document.getElementById('notesClose').onclick = closeNotes;
+notesOverlay.onclick = closeNotes;
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+  if (e.key === 'Escape') closeNotes();
+});
+
+initStage();
+goTo(1);
+</script>
+</body>
+</html>
