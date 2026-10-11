@@ -1365,18 +1365,58 @@ function gvizJSONP(sheet, callback) {
   var cbName = 'gvcb_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
   window[cbName] = function(resp) {
     delete window[cbName];
-    var grupos = resp.table.rows.map(function(r) { return {
-      id:       r.c[0]?.v || '',
-      nombre:   r.c[1]?.v || '',
-      horario:  r.c[2]?.v || '',
-      fechaObj: parseFechaGVis(r.c[3]),
-      nivel:    String(r.c[4]?.v || '').trim(),
-      libres:   r.c[7]?.v ?? 0,
-      estado:   r.c[8]?.v || '',
-      tipoHorario: String(r.c[18]?.v || '').trim().toLowerCase(),
-      costoClaseAlumno:  Number(r.c[20]?.v) || 0,
-      costoClaseMaestro: Number(r.c[21]?.v) || 0
-    }; });
+
+    // ── Construir un mapa nombre-de-columna → índice ──
+    // Así encontramos "Tipo_Horario" por su NOMBRE en vez de depender de
+    // que esté exactamente en la posición 18. Si mañana se inserta una
+    // columna nueva en medio, esto sigue funcionando sin tocar código.
+    var mapaCols = {};
+    (resp.table.cols || []).forEach(function(col, idx) {
+      var nombre = String(col.label || col.id || '').trim().toUpperCase()
+        .replace(/\s+/g, '_');
+      if (nombre) mapaCols[nombre] = idx;
+    });
+
+    function idxCol() {
+      var nombres = Array.prototype.slice.call(arguments);
+      for (var i = 0; i < nombres.length; i++) {
+        var k = String(nombres[i]).toUpperCase().replace(/\s+/g, '_');
+        if (mapaCols[k] !== undefined) return mapaCols[k];
+      }
+      return -1;
+    }
+
+    var iTipoHorario = idxCol('Tipo_Horario', 'TIPO_HORARIO', 'TIPOHORARIO', 'TIPO DE HORARIO');
+    // Fallback: si no encuentra la columna por nombre, cae al índice 18 (S)
+    if (iTipoHorario === -1) iTipoHorario = 18;
+
+    var grupos = resp.table.rows.map(function(r) {
+      function celda(idx) { return r.c[idx] ? r.c[idx].v : ''; }
+
+      var nombreGrupo = String(celda(1) || '').trim();
+      var tipoHorarioCrudo = String(celda(iTipoHorario) || '').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quita acentos: "sábado" → "sabado"
+
+      // Fallback: si tipoHorario quedó vacío pero el nombre termina en
+      // -SAT, lo tratamos como sabatino de todos modos.
+      if (!tipoHorarioCrudo && /-SAT$/i.test(nombreGrupo)) {
+        tipoHorarioCrudo = 'sabado';
+      }
+
+      return {
+        id:       celda(0),
+        nombre:   nombreGrupo,
+        horario:  celda(2),
+        fechaObj: parseFechaGVis(r.c[3]),
+        nivel:    String(celda(4) || '').trim(),
+        libres:   r.c[7]?.v ?? 0,
+        estado:   celda(8),
+        tipoHorario: tipoHorarioCrudo || 'entre_semana',
+        costoClaseAlumno:  Number(celda(20)) || 0,
+        costoClaseMaestro: Number(celda(21)) || 0
+      };
+    });
+
     callback(grupos);
   };
   var s = document.createElement('script');
