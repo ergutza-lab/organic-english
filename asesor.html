@@ -1788,10 +1788,20 @@ function niActualizarBloqueCobertura() {
     document.getElementById('ni-nota-personalizado').style.display = 'none';
   }
 
-  // El calendario debe usar las reglas de sabado (un solo dia) o de entre
+    // El calendario debe usar las reglas de sabado (un solo dia) o de entre
   // semana (lunes-jueves) segun el grupo elegido -- Personalizado usa el
   // mismo estilo que entre semana salvo que se indique lo contrario.
-  calSetTipoHorario('cal-ni', grupoSel ? grupoSel.tipoHorario : 'entre_semana');
+  var tipoHorarioEfectivo = 'entre_semana';
+  if (grupoSel) {
+    if (grupoSel.tipoHorario === 'sabado') {
+      tipoHorarioEfectivo = 'sabado';
+    } else if (/-SAT$/i.test(String(grupoSel.nombre || ''))) {
+      tipoHorarioEfectivo = 'sabado';
+    } else if (grupoSel.tipoHorario === 'personalizado') {
+      tipoHorarioEfectivo = 'personalizado';
+    }
+  }
+  calSetTipoHorario('cal-ni', tipoHorarioEfectivo);
 }
 
 function niToggleCoberturaPorGrupo() {
