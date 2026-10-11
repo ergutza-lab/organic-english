@@ -399,6 +399,7 @@
     <div class="tab" onclick="cambiarTab('pagos',this)">Pagos por validar <span class="tab-badge cero" id="badge-pagos">0</span></div>
     <div class="tab" onclick="cambiarTab('nuevos',this)">Nuevos <span class="tab-badge cero" id="badge-nuevos">0</span></div>
     <div class="tab" onclick="cambiarTab('alertas',this)">Sin Pago <span class="tab-badge cero" id="badge-alertas">0</span></div>
+    <div class="tab" onclick="cambiarTab('ausencias',this)">🚨 Inasistencias <span class="tab-badge cero" id="badge-ausencias">0</span></div>
     <div class="tab" onclick="cambiarTab('bajas',this)">Bajas <span class="tab-badge cero" id="badge-bajas">0</span></div>
     <div class="tab" onclick="cambiarTab('cambios',this)">Cambios de Grupo</div>
   </div>
@@ -429,7 +430,16 @@
       <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">La baja automática ocurre el lunes a las 11:59 PM después del fin de su vigencia (solo grupos H en adelante). Listado informativo para dar seguimiento.</p>
       <div id="lista-alertas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
     </div>
-
+    <div id="sec-ausencias" class="section">
+      <div class="sec-header">
+        <h2 class="sec-title">Alumnos con inasistencias consecutivas</h2>
+      </div>
+      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">
+        Alumnos que faltaron 2 o más clases seguidas. Los más urgentes (3+ faltas) aparecen primero.
+      </p>
+      <div id="lista-ausencias"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
+    </div>
+    
     <div id="sec-bajas" class="section">
       <div class="sec-header"><h2 class="sec-title">Alumnos dados de baja</h2></div>
       <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">Solo de tus grupos. Si un alumno te manda su comprobante para reactivarse, valida su pago aquí — se reactiva y se le manda su correo automáticamente.</p>
@@ -880,6 +890,7 @@ async function cargarDatos(){
     const resp=await fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(asistente.id)}`);
     datosPanel=await resp.json();
     renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderBajas();renderCambios();
+    renderAusencias();
   }catch(e){mostrarToast('Error al cargar datos.','error');}
 }
 
@@ -2997,6 +3008,116 @@ function generarReportePDF(idGrupo) {
   ventana.document.close();
   setTimeout(function(){ ventana.print(); }, 400);
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  TAB "INASISTENCIAS" — alumnos con 2+ faltas consecutivas
+// ═══════════════════════════════════════════════════════════════════════
+function renderAusencias() {
+  var cont = document.getElementById('lista-ausencias');
+  if (!cont) return;
+
+  fetch(APPS_SCRIPT + '?action=getAlumnosConInasistencias&idAsistente=' + encodeURIComponent(asistente.id))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) {
+        cont.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Error al cargar</h3><p>' + (data.error || '') + '</p></div>';
+        return;
+      }
+      var alumnos = data.alumnos || [];
+      var badge = document.getElementById('badge-ausencias');
+      badge.textContent = alumnos.length;
+      badge.className = 'tab-badge' + (alumnos.length ? '' : ' cero');
+      renderAusenciasLista(alumnos);
+    })
+    .catch(function () {
+      cont.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><h3>Error de conexión</h3></div>';
+    });
+}
+
+function renderAusenciasLista(alumnos) {
+  var cont = document.getElementById('lista-ausencias');
+  if (!alumnos.length) {
+    cont.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><h3>Sin inasistencias consecutivas</h3><p>Todos tus alumnos están asistiendo con regularidad.</p></div>';
+    return;
+  }
+
+  // Agrupar por grupo (respetando el orden que ya trae el backend)
+  var porGrupo = {};
+  var ordenGrupos = [];
+  alumnos.forEach(function (a) {
+    if (!porGrupo[a.idGrupo]) {
+      porGrupo[a.idGrupo] = { id: a.idGrupo, nombre: a.grupoNombre, horario: a.grupoHorario, alumnos: [] };
+      ordenGrupos.push(a.idGrupo);
+    }
+    porGrupo[a.idGrupo].alumnos.push(a);
+  });
+
+  var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var html = '';
+
+  ordenGrupos.forEach(function (idG) {
+    var g = porGrupo[idG];
+    html += '<div style="margin-bottom:18px;">';
+    html += '<div style="background:var(--azul);color:#fff;border-radius:8px 8px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">';
+    html += '<div><strong style="font-family:\'JetBrains Mono\',monospace;font-size:13px;">' + g.id + '</strong> <span style="font-size:12px;opacity:.85;">' + g.nombre + '</span></div>';
+    html += '<div style="font-size:11px;opacity:.75;">' + g.horario + '</div>';
+    html += '</div>';
+    html += '<div style="background:#fff;border:1px solid var(--borde);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">';
+
+    g.alumnos.forEach(function (a) {
+      var esCritico = a.racha >= 3;
+      var colorBorde = esCritico ? '#dc2626' : '#d97706';
+      var colorIcono = esCritico ? '#dc2626' : '#d97706';
+      var icono = esCritico ? '🔴' : '🟠';
+
+      var fechaTxt = a.fechaUltimaFalta || '';
+      if (fechaTxt && fechaTxt.split('-').length === 3) {
+        var partes = fechaTxt.split('-');
+        fechaTxt = parseInt(partes[2], 10) + ' ' + meses[parseInt(partes[1], 10) - 1];
+      }
+
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--borde);border-left:4px solid ' + colorBorde + ';">';
+      html += '<div style="font-size:20px;flex-shrink:0;">' + icono + '</div>';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:13px;font-weight:700;color:var(--gris-800);">' + esc(a.nombre) + '</div>';
+      html += '<div style="font-size:11px;color:var(--gris-400);margin-top:2px;">';
+      html += '<span style="font-family:\'JetBrains Mono\',monospace;">' + a.idAlumno + '</span>';
+      html += ' · <strong style="color:' + colorIcono + ';">' + a.racha + ' falta(s) seguidas</strong>';
+      if (fechaTxt) html += ' · última: ' + fechaTxt;
+      html += '</div>';
+      html += '</div>';
+      if (a.whatsapp) {
+        html += '<button onclick="contactarAlumnoInasistencia(\'' + escJs(a.idAlumno) + '\',\'' + escJs(a.nombre) + '\',\'' + escJs(a.whatsapp) + '\',' + a.racha + ')" ';
+        html += 'style="background:#25d366;color:#fff;border:none;border-radius:var(--r-md);padding:8px 14px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:5px;">';
+        html += '📱 Contactar</button>';
+      } else {
+        html += '<span style="font-size:11px;color:var(--gris-400);flex-shrink:0;">Sin WhatsApp</span>';
+      }
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  cont.innerHTML = html;
+}
+
+function contactarAlumnoInasistencia(idAlumno, nombre, whatsapp, racha) {
+  var primerNombre = String(nombre).split(' ')[0];
+  var nombreAsistente = (asistente && asistente.nombre) ? asistente.nombre.split(' ')[0] : '';
+  var firma = nombreAsistente ? '\n\n— ' + nombreAsistente : '';
+
+  var mensaje =
+    '¡Hola ' + primerNombre + '! 👋\n\n' +
+    'Te extrañamos en clase y queremos saber cómo estás.\n\n' +
+    'Notamos que no has podido asistir a tus últimas *' + racha + ' clases seguidas*. Nos interesa mucho saber el motivo, y si hay algo en lo que podamos apoyarte para que puedas retomar tus clases, con gusto lo hacemos.\n\n' +
+    'Recuerda que contamos con un *sistema de reposición de faltas* para que esto no afecte demasiado tu promedio.\n\n' +
+    'Cuando puedas, cuéntame qué está pasando. Estamos para ayudarte 🙏' +
+    firma;
+
+  window.open('https://wa.me/' + cleanWA(whatsapp) + '?text=' + encodeURIComponent(mensaje), '_blank');
+}
+  
 </script>
 
 <!-- MODAL VALIDAR PAGO CE -->
