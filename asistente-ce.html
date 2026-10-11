@@ -3014,23 +3014,47 @@ function generarReportePDF(idGrupo) {
 // ═══════════════════════════════════════════════════════════════════════
 function renderAusencias() {
   var cont = document.getElementById('lista-ausencias');
-  if (!cont) return;
+  if (!cont) {
+    console.warn('No existe #lista-ausencias en el DOM');
+    return;
+  }
+  if (!asistente || !asistente.id) {
+    cont.innerHTML = '<div class="empty-state"><div class="empty-icon">🔐</div><h3>Sin sesión</h3></div>';
+    return;
+  }
 
-  fetch(APPS_SCRIPT + '?action=getAlumnosConInasistencias&idAsistente=' + encodeURIComponent(asistente.id))
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
+  var url = APPS_SCRIPT + '?action=getAlumnosConInasistencias&idAsistente=' + encodeURIComponent(asistente.id);
+  console.log('Llamando:', url);
+
+  fetch(url, { redirect: 'follow' })
+    .then(function (r) {
+      console.log('HTTP status:', r.status);
+      return r.text();
+    })
+    .then(function (texto) {
+      console.log('Respuesta cruda (primeros 300 chars):', texto.substring(0, 300));
+      var data;
+      try { data = JSON.parse(texto); }
+      catch (e) {
+        cont.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Respuesta inválida del servidor</h3><p style="font-size:11px;word-break:break-all;">' + texto.substring(0, 200) + '</p></div>';
+        return;
+      }
+
       if (!data.success) {
         cont.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Error al cargar</h3><p>' + (data.error || '') + '</p></div>';
         return;
       }
       var alumnos = data.alumnos || [];
       var badge = document.getElementById('badge-ausencias');
-      badge.textContent = alumnos.length;
-      badge.className = 'tab-badge' + (alumnos.length ? '' : ' cero');
+      if (badge) {
+        badge.textContent = alumnos.length;
+        badge.className = 'tab-badge' + (alumnos.length ? '' : ' cero');
+      }
       renderAusenciasLista(alumnos);
     })
-    .catch(function () {
-      cont.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><h3>Error de conexión</h3></div>';
+    .catch(function (err) {
+      console.error('Error en renderAusencias:', err);
+      cont.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><h3>Error de conexión</h3><p style="font-size:11px;">' + (err.message || 'revisa la consola F12') + '</p></div>';
     });
 }
 
@@ -3065,10 +3089,10 @@ function renderAusenciasLista(alumnos) {
     html += '<div style="background:#fff;border:1px solid var(--borde);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">';
 
     g.alumnos.forEach(function (a) {
-      var esCritico = a.racha >= 3;
-      var colorBorde = esCritico ? '#dc2626' : '#d97706';
-      var colorIcono = esCritico ? '#dc2626' : '#d97706';
-      var icono = esCritico ? '🔴' : '🟠';
+      var emoji, colorBorde;
+      if (a.racha >= 5)      { emoji = '🔴'; colorBorde = '#dc2626'; }
+      else if (a.racha >= 3) { emoji = '🟠'; colorBorde = '#ea580c'; }
+      else                   { emoji = '🟡'; colorBorde = '#ca8a04'; }
 
       var fechaTxt = a.fechaUltimaFalta || '';
       if (fechaTxt && fechaTxt.split('-').length === 3) {
@@ -3077,12 +3101,12 @@ function renderAusenciasLista(alumnos) {
       }
 
       html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--borde);border-left:4px solid ' + colorBorde + ';">';
-      html += '<div style="font-size:20px;flex-shrink:0;">' + icono + '</div>';
+      html += '<div style="font-size:20px;flex-shrink:0;">' + emoji + '</div>';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-size:13px;font-weight:700;color:var(--gris-800);">' + esc(a.nombre) + '</div>';
       html += '<div style="font-size:11px;color:var(--gris-400);margin-top:2px;">';
       html += '<span style="font-family:\'JetBrains Mono\',monospace;">' + a.idAlumno + '</span>';
-      html += ' · <strong style="color:' + colorIcono + ';">' + a.racha + ' falta(s) seguidas</strong>';
+      html += ' · <strong style="color:' + colorBorde + ';">' + a.racha + ' falta(s) seguidas</strong>';
       if (fechaTxt) html += ' · última: ' + fechaTxt;
       html += '</div>';
       html += '</div>';
