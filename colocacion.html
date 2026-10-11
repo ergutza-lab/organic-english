@@ -758,16 +758,18 @@ function toggleNivel(id, btn) {
       document.getElementById('modalGruposLista').innerHTML = '<div class="empty-state"><p>No hay grupos con plazas para este nivel.</p></div>';
       return;
     }
-    document.getElementById('modalGruposLista').innerHTML = lista.map(function(g) {
+       document.getElementById('modalGruposLista').innerHTML = lista.map(function(g) {
       var pocas = g.lugares <= 3;
       var colorNivel = colorPorNivel(g.nivel);
       var nivelRgb = hexARgb_(colorNivel);
+      // ── NUEVO: etiqueta de días (Sábado vs Lun a Jue) ──
+      var etiquetaDias = (g.tipoHorario === 'sabado' || /-SAT$/i.test(String(g.nombre||''))) ? 'Sábado' : 'Lun a Jue';
       return '<div class="grupo-opcion" style="background:linear-gradient(135deg,rgba(' + nivelRgb + ',0.28),rgba(' + nivelRgb + ',0.08));border:1px solid rgba(' + nivelRgb + ',0.45);" onclick="seleccionarGrupo(\'' + g.idGrupo + '\', this)">' +
         '<div class="go-header">' +
           '<span class="go-id">' + g.idGrupo + ' — ' + g.nombre + '</span>' +
           '<span class="go-plazas' + (pocas ? ' pocas' : '') + '">' + g.lugares + ' plazas</span>' +
         '</div>' +
-                '<div class="go-detalle">' + g.horario + ' · <span style="color:#fff;font-weight:700;">' + g.nivel + '</span></div>' +
+                '<div class="go-detalle">' + g.horario + ' · ' + etiquetaDias + ' · <span style="color:#fff;font-weight:700;">' + g.nivel + '</span></div>' +
         '<div class="go-detalle" style="margin-top:4px;font-weight:700;color:#fbbf24;">📘 ' + (formatearAvanceGrupo_(g) || '—') + '</div>' +
         '<div class="go-estado">CE: ' + (g.asistente||'—') + ' · Maestro: ' + (g.maestro||'—') + '</div>' +
       '</div>';
