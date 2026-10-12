@@ -2333,10 +2333,12 @@ function cambiarTab(seccion, boton) {
   document.getElementById('sec-'+seccion).classList.add('activa');
 }
 function irATab(seccion) {
-  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'colocacion-pendiente':7,'pagos-alumnos':8};
+  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'colocacion-pendiente':7,'pagos-alumnos':8,fusiones:9};
   var tabs=document.querySelectorAll('.tab'); var idx=mapa[seccion]; if(idx===undefined) return;
   tabs.forEach(function(t){t.classList.remove('activo');}); document.querySelectorAll('.seccion').forEach(function(s){s.classList.remove('activa');});
-  tabs[idx].classList.add('activo'); document.getElementById('sec-'+seccion).classList.add('activa');
+  if (tabs[idx]) tabs[idx].classList.add('activo');
+  var sec = document.getElementById('sec-'+seccion);
+  if (sec) sec.classList.add('activa');
 }
 function irATabFiltrado(seccion, situacion) {
   irATab(seccion);
@@ -2579,6 +2581,154 @@ function confirmarCambioEstatus() {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  FUSIONES — Listado de candidatos + recomendaciones de destino
+// ═══════════════════════════════════════════════════════════════════════
+
+function cargarFusiones() {
+  var tbody = document.getElementById('tbody-fusiones');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="cargando">Cargando grupos candidatos...</td></tr>';
+
+  fetch(APPS_SCRIPT_URL + '?action=getGruposCandidatosFusion', { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) {
+        tbody.innerHTML = '<tr><td colspan="7" class="vacio">Error: ' + (data.error || 'desconocido') + '</td></tr>';
+        return;
+      }
+      renderFusiones(data.grupos || []);
+      var tab = document.getElementById('tab-fusiones');
+      if (tab) tab.textContent = '🔀 Fusiones (' + (data.grupos || []).length + ')';
+    })
+    .catch(function (err) {
+      tbody.innerHTML = '<tr><td colspan="7" class="vacio">Error de conexión: ' + err + '</td></tr>';
+    });
+}
+
+function renderFusiones(grupos) {
+  var tbody = document.getElementById('tbody-fusiones');
+  if (!tbody) return;
+  if (!grupos.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="vacio">No hay grupos candidatos a fusión (con 4 alumnos o menos y que ya hayan iniciado clases) en este momento.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = grupos.map(function (g) {
+    var colorNivel = (function (n) {
+      var base = String(n || '').toUpperCase().replace(/^NIVEL\s*/, '').replace(/-BLOQUE.*/i, '').replace(/\.\d+$/, '').trim();
+      var mapa = { 'PRE-A1': '#64748b', 'A1': '#1e3a6e', 'A2': '#0891b2', 'B1': '#16a34a', 'B2': '#ea580c', 'C1': '#7c3aed', 'C2': '#db2777' };
+      return mapa[base] || '#94a3b8';
+    })(g.nivel);
+
+    var etiquetaDias = (g.tipoHorario === 'sabado' || /-SAT$/i.test(g.nombre || '')) ? 'Sábado' : 'Lun a Jue';
+    var claseActual = g.leccionActual != null ? (g.nivelBase + '.' + g.bloqueActual + ' · Lección ' + g.leccionActual) : '—';
+    var numAlumnosTxt = g.numAlumnos + ' alumno' + (g.numAlumnos > 1 ? 's' : '');
+
+    return '<tr style="cursor:pointer;" onclick="abrirModalFusion(\'' + g.idGrupo + '\')" title="Ver recomendaciones de fusión">' +
+      '<td><strong style="font-family:\'DM Mono\',monospace;font-size:.8rem">' + g.idGrupo + '</strong> <span style="color:' + colorNivel + ';font-weight:700;">' + g.nombre + '</span></td>' +
+      '<td><span class="chip chip-azul">' + g.nivelBase + '</span></td>' +
+      '<td style="font-size:.82rem">' + g.horario + ' · <span style="color:var(--gris-500);">' + etiquetaDias + '</span></td>' +
+      '<td style="font-size:.82rem;font-weight:600;color:#f59e0b;">' + claseActual + '</td>' +
+      '<td><span class="chip chip-naranja">' + numAlumnosTxt + '</span></td>' +
+      '<td style="font-size:.82rem">' + (g.nombreMaestro || '<span class="chip chip-gris">Sin asignar</span>') + '</td>' +
+      '<td style="font-size:.82rem">' + (g.nombreAsistente || '<span class="chip chip-gris">—</span>') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function abrirModalFusion(idGrupoOrigen) {
+  var modal = document.getElementById('modal-fusion-recomendaciones');
+  if (!modal) return;
+
+  document.getElementById('fusion-titulo').textContent = 'Cargando...';
+  document.getElementById('fusion-sub').textContent = '';
+  document.getElementById('fusion-datos-grupo').innerHTML = '';
+  document.getElementById('fusion-recomendaciones-lista').innerHTML =
+    '<div style="text-align:center;padding:30px;color:var(--gris-400);">Calculando mejores destinos...</div>';
+
+  modal.classList.add('abierto');
+
+  fetch(APPS_SCRIPT_URL + '?action=getRecomendacionesFusion&idGrupoOrigen=' + encodeURIComponent(idGrupoOrigen), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) {
+        document.getElementById('fusion-recomendaciones-lista').innerHTML =
+          '<div style="color:#ef4444;padding:16px;">' + (data.error || 'Error desconocido') + '</div>';
+        return;
+      }
+      renderModalFusion(data.grupoOrigen, data.recomendaciones || []);
+    })
+    .catch(function (err) {
+      document.getElementById('fusion-recomendaciones-lista').innerHTML =
+        '<div style="color:#ef4444;padding:16px;">Error de conexión: ' + err + '</div>';
+    });
+}
+
+function renderModalFusion(origen, recomendaciones) {
+  var etiquetaDiasOrigen = (origen.tipoHorario === 'sabado') ? 'Sábado' : 'Lun a Jue';
+
+  document.getElementById('fusion-titulo').textContent = origen.idGrupo + ' — ' + origen.nombre;
+  document.getElementById('fusion-sub').textContent = origen.nivel + ' · ' + origen.horario + ' · ' + etiquetaDiasOrigen;
+
+  document.getElementById('fusion-datos-grupo').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;font-size:.82rem;">' +
+      '<div><div style="color:var(--gris-400);font-size:.7rem;font-weight:700;text-transform:uppercase;">Nivel</div><div style="font-weight:700;color:var(--texto);">' + origen.nivel + '</div></div>' +
+      '<div><div style="color:var(--gris-400);font-size:.7rem;font-weight:700;text-transform:uppercase;">Bloque actual</div><div style="font-weight:700;color:var(--texto);">Bloque ' + origen.bloqueActual + '</div></div>' +
+      '<div><div style="color:var(--gris-400);font-size:.7rem;font-weight:700;text-transform:uppercase;">Lección actual</div><div style="font-weight:700;color:#f59e0b;">Lección ' + (origen.leccionActual || '—') + '</div></div>' +
+      '<div><div style="color:var(--gris-400);font-size:.7rem;font-weight:700;text-transform:uppercase;">Horario</div><div style="font-weight:700;color:var(--texto);">' + origen.horario + ' <span style="color:var(--gris-500);">(' + etiquetaDiasOrigen + ')</span></div></div>' +
+    '</div>';
+
+  var cont = document.getElementById('fusion-recomendaciones-lista');
+
+  if (!recomendaciones.length) {
+    cont.innerHTML =
+      '<div style="text-align:center;padding:30px;color:var(--gris-400);font-size:.88rem;">' +
+        'No encontramos grupos destino disponibles con el mismo nivel base y vacantes.<br>' +
+        '<span style="font-size:.78rem;">Considera abrir un grupo nuevo, o revisar si hay grupos en otros niveles que puedan servir.</span>' +
+      '</div>';
+    return;
+  }
+
+  cont.innerHTML = recomendaciones.map(function (r, idx) {
+    var medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '⭐';
+    var scoreColor = r.score >= 80 ? '#22c55e' : r.score >= 60 ? '#facc15' : r.score >= 40 ? '#f97316' : '#94a3b8';
+    var etiquetaDiasDest = (r.tipoHorario === 'sabado') ? 'Sábado' : 'Lun a Jue';
+    var claseActualDest = r.leccionActual != null ? (r.nivelBase + '.' + r.bloqueActual + ' · Lección ' + r.leccionActual) : '—';
+
+    var razonesHtml = (r.razones || []).map(function (rz) {
+      return '<span style="background:rgba(96,165,250,0.12);color:#60a5fa;border-radius:100px;padding:2px 10px;font-size:.7rem;font-weight:600;margin-right:4px;">' + rz + '</span>';
+    }).join('');
+
+    return '<div style="border:1.5px solid ' + scoreColor + '33;background:rgba(255,255,255,0.02);border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:1rem;font-weight:700;color:var(--texto);">' +
+            medal + ' ' + r.idGrupo + ' — ' + r.nombre +
+          '</div>' +
+          '<div style="font-size:.78rem;color:var(--gris-500);margin-top:2px;">' + r.nivel + ' · ' + r.horario + ' · ' + etiquetaDiasDest + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:1.5rem;font-weight:800;color:' + scoreColor + ';line-height:1;">' + r.score + '</div>' +
+          '<div style="font-size:.65rem;color:var(--gris-400);text-transform:uppercase;font-weight:700;">Score</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;font-size:.78rem;margin-bottom:10px;">' +
+        '<div><div style="color:var(--gris-400);font-size:.68rem;font-weight:700;text-transform:uppercase;">Clase actual</div><div style="font-weight:700;color:#f59e0b;">' + claseActualDest + '</div></div>' +
+        '<div><div style="color:var(--gris-400);font-size:.68rem;font-weight:700;text-transform:uppercase;">Vacantes</div><div style="font-weight:700;color:#22c55e;">' + r.vacantes + ' / ' + r.cupoMax + '</div></div>' +
+        '<div><div style="color:var(--gris-400);font-size:.68rem;font-weight:700;text-transform:uppercase;">Maestro</div><div style="font-weight:600;color:var(--texto);">' + (r.nombreMaestro || '—') + '</div></div>' +
+        '<div><div style="color:var(--gris-400);font-size:.68rem;font-weight:700;text-transform:uppercase;">Asistente CE</div><div style="font-weight:600;color:var(--texto);">' + (r.nombreAsistente || '—') + '</div></div>' +
+      '</div>' +
+      (razonesHtml ? '<div style="display:flex;flex-wrap:wrap;gap:4px;">' + razonesHtml + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function cerrarModalFusion() {
+  var modal = document.getElementById('modal-fusion-recomendaciones');
+  if (modal) modal.classList.remove('abierto');
+}
+  
 </script>
 
 <!-- MODAL: ALUMNOS DEL GRUPO -->
