@@ -10109,31 +10109,36 @@ function renderCeldaCalendario(dia, semana, diaSem) {
     return '<div style="height:36px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.08);border-radius:6px;"></div>';
   }
 
+  // Extraer día del mes para mostrarlo en todas las celdas
+  var diaMes = String(dia.fecha).split('-')[2];
+
   // En práctica (fusión)
   if (dia.asistencia === 'En práctica') {
-    return '<div style="height:36px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:11px;color:#94a3b8;">—</span></div>';
+    return '<div style="height:36px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:11px;color:#94a3b8;">' + diaMes + '</span></div>';
   }
 
   // Presente con color
   if (dia.asistencia === 'Presente' && dia.color) {
     var col = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'}[dia.color] || '#94a3b8';
-    return '<div style="height:36px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Presente · Lesson ' + (dia.leccion || '?') + '"><span style="font-size:11px;color:rgba(255,255,255,0.95);font-weight:700;">' + (dia.leccion || '') + '</span></div>';
+    var marcaR = dia.esRecuperacion ? '<span style="position:absolute;top:-5px;right:-5px;font-size:12px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.5);border:2px solid #fff;">r</span>' : '';
+    return '<div style="position:relative;height:36px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Presente · Lesson ' + (dia.leccion || '?') + '"><span style="font-size:12px;color:rgba(255,255,255,0.95);font-weight:800;">' + diaMes + '</span>' + marcaR + '</div>';
   }
 
   // Ausente
   if (dia.asistencia === 'Ausente') {
     if (dia.estatus === 'Pendiente') {
-      return '<div style="height:36px;background:#facc15;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Video enviado · pendiente de revisión"><span style="font-size:14px;">🟡</span></div>';
+      return '<div style="height:36px;background:#facc15;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;" title="Video enviado · pendiente de revisión"><span style="font-size:12px;color:#422006;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#422006;">⏳</span></div>';
     }
     if (dia.estatus === 'Aprobado') {
-      var colA = dia.techo === 3 ? '#22c55e' : '#facc15';
-      return '<div style="height:36px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Recuperada"><span style="font-size:14px;">✅</span></div>';
+      var colA = dia.color === 3 ? '#22c55e' : dia.color === 2 ? '#facc15' : dia.color === 1 ? '#ef4444' : '#94a3b8';
+      var marcaRA = '<span style="position:absolute;top:-5px;right:-5px;font-size:12px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.5);border:2px solid #fff;">r</span>';
+      return '<div style="position:relative;height:36px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Recuperada · ' + (dia.color === 3 ? 'Verde' : dia.color === 2 ? 'Amarillo' : 'Rojo') + '"><span style="font-size:12px;color:' + (dia.color === 2 ? '#422006' : '#fff') + ';font-weight:800;">' + diaMes + '</span>' + marcaRA + '</div>';
     }
     if (dia.estatus === 'Rechazado') {
-      return '<div style="height:36px;background:rgba(120,113,108,0.4);border:1px solid rgba(120,113,108,0.6);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Video rechazado"><span style="font-size:14px;">❌</span></div>';
+      return '<div style="height:36px;background:rgba(120,113,108,0.4);border:1px solid rgba(120,113,108,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;" title="Video rechazado"><span style="font-size:12px;color:#cbd5e1;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#94a3b8;">❌</span></div>';
     }
     // Sin justificar → clickeable
-    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" style="height:36px;background:#ef4444;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'" title="Falta · click para recuperar"><span style="font-size:12px;color:#fff;font-weight:800;">📹</span></div>';
+    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" style="height:36px;background:#ef4444;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'" title="Falta · click para recuperar"><span style="font-size:12px;color:#fff;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:rgba(255,255,255,0.9);">📹</span></div>';
   }
 
   return '<div style="height:36px;background:rgba(255,255,255,0.03);border-radius:6px;"></div>';
