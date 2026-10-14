@@ -1074,9 +1074,14 @@ function evaluarRecuperacion(idx, aprobado) {
       }
 
       status.style.color = aprobado ? '#4ade80' : '#f87171';
-      status.innerHTML =
-        (aprobado ? '✅ Aprobado con ' + (colorFinal === 3 ? '🟢 Verde' : colorFinal === 2 ? '🟡 Amarillo' : '🔴 Rojo') : '❌ Rechazado') +
-        '<br><button onclick="notificarAlumnoWhatsApp(\'' + p.idAlumno + '\', \'' + (p.whatsappAlumno || '') + '\', \'' + p.nombreAlumno.replace(/'/g, "\\'") + '\')" style="margin-top:10px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;">📱 Notificar al alumno por WhatsApp</button>';
+            status.innerHTML =
+        '<div style="font-size:13px;font-weight:700;margin-bottom:10px;">' +
+          (aprobado ? '✅ Aprobado con ' + (colorFinal === 3 ? '🟢 Verde' : colorFinal === 2 ? '🟡 Amarillo' : '🔴 Rojo') : '❌ Rechazado') +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+          '<button onclick="notificarAlumnoWhatsApp(\'' + p.idAlumno + '\', \'' + (p.whatsappAlumno || '') + '\', \'' + p.nombreAlumno.replace(/'/g, "\\'") + '\')" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;">📱 Notificar al alumno</button>' +
+          '<button onclick="cerrarRecuperacionEvaluada(' + idx + ')" style="background:rgba(255,255,255,0.1);color:#cbd5e1;border:1px solid rgba(255,255,255,0.2);border-radius:100px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;">✓ Cerrar</button>' +
+        '</div>';
 
       _recuperacionesPendientes.splice(idx, 1);
       actualizarBadgeRecuperaciones(_recuperacionesPendientes.length);
@@ -1088,6 +1093,12 @@ function evaluarRecuperacion(idx, aprobado) {
     });
 }
 
+function cerrarRecuperacionEvaluada(idx) {
+  // El índice ya fue removido del array tras aprobar/rechazar, así que
+  // simplemente re-renderizamos la lista actualizada.
+  renderRecuperaciones();
+}
+  
 function notificarAlumnoWhatsApp(idAlumno, whatsapp, nombre) {
   // Si no viene el WhatsApp, consultarlo al backend antes de abrir
   if (!whatsapp) {
