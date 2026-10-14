@@ -2657,7 +2657,7 @@ function abrirModalFusion(idGrupoOrigen) {
           '<div style="color:#ef4444;padding:16px;">' + (data.error || 'Error desconocido') + '</div>';
         return;
       }
-      renderModalFusion(data.grupoOrigen, data.recomendaciones || []);
+    renderModalFusion(data.grupoOrigen, data.recomendaciones || [], data.descartados || []);
     })
     .catch(function (err) {
       document.getElementById('fusion-recomendaciones-lista').innerHTML =
@@ -2665,7 +2665,7 @@ function abrirModalFusion(idGrupoOrigen) {
     });
 }
 
-function renderModalFusion(origen, recomendaciones) {
+function renderModalFusion(origen, recomendaciones, descartadosRecibidos) {
   var etiquetaDiasOrigen = (origen.tipoHorario === 'sabado') ? 'Sábado' : 'Lun a Jue';
 
   document.getElementById('fusion-titulo').textContent = origen.idGrupo + ' — ' + origen.nombre;
@@ -2679,14 +2679,46 @@ function renderModalFusion(origen, recomendaciones) {
       '<div><div style="color:var(--gris-400);font-size:.7rem;font-weight:700;text-transform:uppercase;">Horario</div><div style="font-weight:700;color:var(--texto);">' + origen.horario + ' <span style="color:var(--gris-500);">(' + etiquetaDiasOrigen + ')</span></div></div>' +
     '</div>';
 
+  var descartados = descartadosRecibidos || [];
   var cont = document.getElementById('fusion-recomendaciones-lista');
 
-  if (!recomendaciones.length) {
-    cont.innerHTML =
-      '<div style="text-align:center;padding:30px;color:var(--gris-400);font-size:.88rem;">' +
-        'No encontramos grupos destino disponibles con el mismo nivel base y vacantes.<br>' +
-        '<span style="font-size:.78rem;">Considera abrir un grupo nuevo, o revisar si hay grupos en otros niveles que puedan servir.</span>' +
-      '</div>';
+    if (!recomendaciones.length) {
+    var descartados = (arguments.length >= 3 && arguments[2]) ? arguments[2] : [];
+
+    var htmlVacio = '';
+    htmlVacio += '<div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;padding:14px 18px;margin-bottom:16px;">';
+    htmlVacio +=   '<div style="font-size:.95rem;font-weight:700;color:#9a3412;margin-bottom:4px;">🔍 Análisis completado — sin opciones viables</div>';
+    htmlVacio +=   '<div style="font-size:.82rem;color:#78350f;line-height:1.5;">';
+    htmlVacio +=     'Se evaluaron todos los grupos del mismo nivel base (<strong>' + (origen.nivelBase || origen.nivel) + '</strong>) y tipo de edad (<strong>' + (origen.tipoEdad || '—') + '</strong>). Ninguno cumple todas las reglas para fusionar a este grupo.';
+    htmlVacio +=   '</div>';
+    htmlVacio += '</div>';
+
+    if (descartados.length) {
+      htmlVacio += '<div style="font-size:.82rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Grupos evaluados y motivo del descarte</div>';
+      htmlVacio += '<div style="overflow-x:auto;border:1px solid var(--borde);border-radius:10px;">';
+      htmlVacio += '<table style="width:100%;border-collapse:collapse;font-size:.82rem;">';
+      htmlVacio += '<thead><tr>';
+      htmlVacio += '<th style="background:#f1f5f9;padding:8px 12px;text-align:left;font-size:.7rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--borde);">Grupo</th>';
+      htmlVacio += '<th style="background:#f1f5f9;padding:8px 12px;text-align:left;font-size:.7rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--borde);">Nombre</th>';
+      htmlVacio += '<th style="background:#f1f5f9;padding:8px 12px;text-align:left;font-size:.7rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--borde);">Nivel</th>';
+      htmlVacio += '<th style="background:#f1f5f9;padding:8px 12px;text-align:left;font-size:.7rem;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--borde);">Motivo del descarte</th>';
+      htmlVacio += '</tr></thead><tbody>';
+      descartados.forEach(function (d) {
+        htmlVacio += '<tr>';
+        htmlVacio += '<td style="padding:8px 12px;border-bottom:1px solid var(--borde);font-family:\'DM Mono\',monospace;font-weight:700;">' + esc(d.idGrupo) + '</td>';
+        htmlVacio += '<td style="padding:8px 12px;border-bottom:1px solid var(--borde);">' + esc(d.nombre) + '</td>';
+        htmlVacio += '<td style="padding:8px 12px;border-bottom:1px solid var(--borde);font-size:.78rem;color:var(--gris);">' + esc(d.nivel) + '</td>';
+        htmlVacio += '<td style="padding:8px 12px;border-bottom:1px solid var(--borde);color:#dc2626;font-size:.8rem;">' + esc(d.motivo) + '</td>';
+        htmlVacio += '</tr>';
+      });
+      htmlVacio += '</tbody></table>';
+      htmlVacio += '</div>';
+      htmlVacio += '<div style="font-size:.78rem;color:var(--gris);margin-top:12px;">💡 <strong>Siguiente paso:</strong> abre un grupo nuevo (pestaña "+ Nuevo Grupo"), o mueve la fecha de inicio de este grupo para que coincida con otro (pestaña "Grupos" → botón "📅 Mover fecha").</div>';
+    } else {
+      htmlVacio += '<div style="text-align:center;padding:20px;color:var(--gris-400);font-size:.85rem;">No existen otros grupos del mismo nivel base para comparar.</div>';
+    }
+
+    cont.innerHTML = htmlVacio;
     return;
   }
 
