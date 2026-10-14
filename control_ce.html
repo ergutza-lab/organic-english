@@ -2798,17 +2798,23 @@ function renderModalFusion(origen, recomendaciones) {
     })
   );
 
-  // ─── Renglón: Lección actual ───
+    // ─── Renglón: Lección actual ───
+  // Se usa la POSICIÓN ABSOLUTA (bloque*32 + lección) para comparar, porque
+  // leccionActual se resetea a 1 al cambiar de bloque — comparar 11 (Bloque 2)
+  // contra 19 (Bloque 1) crudo daría +8 adelante, cuando en realidad el
+  // destino está 24 lecciones ATRÁS.
   html += fila_(
     'Lección actual',
-    '<strong style="color:#d97706;">Lección ' + (origen.leccionActual || '—') + '</strong>',
+    '<strong style="color:#d97706;">B' + (origen.bloqueActual || 1) + ' · Lec ' + (origen.leccionActual || '—') + '</strong>',
     recomendaciones.map(function (r) {
-      var dif = (r.leccionActual || 0) - (origen.leccionActual || 0);
+      var dif = (r.posicionAbsoluta || 0) - (origen.posicionAbsoluta || 0);
       var sufijo = '';
-      if (dif === 0) sufijo = ' <span style="color:#16a34a;font-size:.72rem;font-weight:700;">✓ igual</span>';
-      else if (dif < 0) sufijo = ' <span style="color:#16a34a;font-size:.72rem;font-weight:700;">(' + dif + ' atrás)</span>';
-      else sufijo = ' <span style="color:#dc2626;font-size:.72rem;font-weight:700;">(+' + dif + ' adelante)</span>';
-      return '<strong style="color:#d97706;">Lección ' + (r.leccionActual || '—') + '</strong>' + sufijo;
+      if (dif === 0) sufijo = ' <span style="color:#16a34a;font-size:.72rem;font-weight:700;">✓ mismo punto</span>';
+      else if (dif >= -4) sufijo = ' <span style="color:#16a34a;font-size:.72rem;font-weight:700;">(' + dif + ' · repaso corto)</span>';
+      else if (dif >= -8) sufijo = ' <span style="color:#16a34a;font-size:.72rem;font-weight:700;">(' + dif + ' atrás)</span>';
+      else if (dif >= -16) sufijo = ' <span style="color:#d97706;font-size:.72rem;font-weight:700;">(' + dif + ' · repaso largo)</span>';
+      else sufijo = ' <span style="color:#dc2626;font-size:.72rem;font-weight:700;">(' + dif + ' · muy atrás)</span>';
+      return '<strong style="color:#d97706;">B' + (r.bloqueActual || 1) + ' · Lec ' + (r.leccionActual || '—') + '</strong>' + sufijo;
     })
   );
 
