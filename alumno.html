@@ -10155,39 +10155,26 @@ function abrirDetalleRecuperacion(fechaISO) {
   if (!dia) return;
 
   var cont = document.getElementById('recuperacionContenido');
-
   var fechaTxt = formatearFechaRecuperacion(dia.fecha);
-    var tituloLeccion = buscarTituloLeccionRecuperacion(dia.nivelCompleto || dia.nivelLeccion, dia.leccion);
+  var inst = dia.instruccion || {};
 
   var html = '';
 
   // Botón volver
   html += '<button onclick="renderCalendarioRecuperacion()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:16px;">← Volver al calendario</button>';
 
-  // Fecha
+  // Fecha de la falta
   html += '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px 16px;margin-bottom:14px;">';
   html += '<div style="font-size:11px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Falta del</div>';
   html += '<div style="font-size:16px;font-weight:700;color:#fff;">📅 ' + fechaTxt + '</div>';
   html += '</div>';
 
-  // Lección
-  html += '<div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.25);border-radius:10px;padding:12px 16px;margin-bottom:14px;">';
-  html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📚 Lección</div>';
-  html += '<div style="font-size:15px;font-weight:700;color:#fff;">Lesson ' + dia.leccion + '</div>';
-  if (tituloLeccion) {
-    html += '<div style="font-size:13px;color:#94a3b8;margin-top:3px;">"' + tituloLeccion + '"</div>';
-  }
-  html += '</div>';
-
-  // Instrucción
-  if (dia.instruccion) {
-    html += '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:10px;padding:14px 16px;margin-bottom:14px;">';
-    html += '<div style="font-size:11px;font-weight:700;color:#fb923c;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📝 Instrucción para tu video</div>';
-    html += '<div style="font-size:13px;color:#f1f5f9;line-height:1.6;">' + dia.instruccion + '</div>';
-    html += '</div>';
+  // Instrucción (bloque bonito con título, objetivo y 5 ítems)
+  if (inst && (inst.titulo || inst.objetivo || (inst.items && inst.items.length))) {
+    html += renderBloqueInstruccion_(dia, inst);
   }
 
-  // Reglas específicas
+  // Reglas específicas de esta falta
   html += '<div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:#cbd5e1;line-height:1.7;">';
   html += '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📋 Reglas para esta falta</div>';
   html += '<div>• ' + dia.antiguedad + ' → máximo ' + (dia.techo === 3 ? '🟢 Verde' : '🟡 Amarillo') + '</div>';
@@ -10198,13 +10185,55 @@ function abrirDetalleRecuperacion(fechaISO) {
 
   // Botones
   html += '<div style="display:flex;gap:10px;">';
-  html += '<button onclick="abrirSubidaVideoRecuperacion(\'' + dia.fecha + '\', ' + dia.leccion + ', \'' + (tituloLeccion || '').replace(/'/g, "\\'") + '\')" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(249,115,22,0.35);">📤 Subir video</button>';
+  html += '<button onclick="abrirSubidaVideoRecuperacion(\'' + dia.fecha + '\', ' + dia.leccion + ', \'' + ((inst.titulo || '').replace(/'/g, "\\'")) + '\')" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(249,115,22,0.35);">📤 Subir video</button>';
   html += '<button onclick="renderCalendarioRecuperacion()" style="background:transparent;color:#64748b;border:1px solid rgba(255,255,255,0.1);border-radius:100px;padding:14px 20px;font-size:13px;cursor:pointer;">Cancelar</button>';
   html += '</div>';
 
   cont.innerHTML = html;
 }
 
+// ─── Helper: bloque bonito de la instrucción ───
+function renderBloqueInstruccion_(dia, inst) {
+  var html = '';
+  html += '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.28);border-radius:14px;padding:18px 20px;margin-bottom:16px;">';
+
+  // Título
+  var tituloTxt = 'LESSON ' + dia.leccion;
+  if (inst.titulo) tituloTxt += ' · ' + inst.titulo;
+  html += '<div style="font-size:17px;font-weight:800;color:#fb923c;margin-bottom:4px;line-height:1.3;">' + tituloTxt + '</div>';
+
+  // Duración
+  if (inst.duracion) {
+    html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Video individual de ' + inst.duracion + '</div>';
+  }
+
+  // Objetivo
+  if (inst.objetivo) {
+    html += '<div style="background:rgba(0,0,0,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#67e8f9;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🎯 Objetivo</div>';
+    html += '<div style="font-size:13px;color:#f1f5f9;line-height:1.55;">' + inst.objetivo + '</div>';
+    html += '</div>';
+  }
+
+  // Encabezado de la misión
+  html += '<div style="font-size:12px;font-weight:800;color:#fb923c;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">TU MISIÓN DE EXPRESIÓN ORAL</div>';
+  html += '<div style="font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">Graba un video en inglés que incluya los siguientes cinco elementos:</div>';
+
+  // Los 5 ítems numerados
+  var items = inst.items || [];
+  html += '<ol style="margin:0;padding:0;list-style:none;">';
+  for (var i = 0; i < 5; i++) {
+    var txt = items[i] || '';
+    html += '<li style="display:flex;gap:10px;margin-bottom:10px;font-size:13px;color:#f1f5f9;line-height:1.55;">';
+    html += '<span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(249,115,22,0.2);color:#fb923c;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;margin-top:1px;">' + (i + 1) + '</span>';
+    html += '<span>' + txt + '</span>';
+    html += '</li>';
+  }
+  html += '</ol>';
+
+  html += '</div>';
+  return html;
+}
 // ─── Vista 3: Subida de video (reutiliza el modal existente) ───
 function abrirSubidaVideoRecuperacion(fechaFalta, numLeccion, tituloLeccion) {
   _videoTipoChallenge = 'Justificante';
@@ -10238,28 +10267,6 @@ function formatearFechaRecuperacion(fechaISO) {
   return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + meses[d.getMonth()];
 }
 
-function buscarTituloLeccionRecuperacion(nivel, num) {
-  if (!nivel || !num) return '';
-  var clave = nivel + '-' + num;
-  var leccion = LECCIONES_CONTENIDO[clave];
-  if (!leccion || !leccion.titulo) {
-    // Fallback: intentar sin subnivel
-    var nivelBase = nivel.replace(/\.\d$/, '');
-    if (nivelBase !== nivel) {
-      var leccion2 = LECCIONES_CONTENIDO[nivelBase + '-' + num];
-      if (leccion2 && leccion2.titulo) leccion = leccion2;
-    }
-  }
-  // Fallback 2: intentar con KIDS- prefix
-  if ((!leccion || !leccion.titulo) && nivel.toUpperCase().indexOf('KIDS') === -1) {
-    var leccionK = LECCIONES_CONTENIDO['KIDS-' + nivel + '-' + num];
-    if (leccionK && leccionK.titulo) leccion = leccionK;
-  }
-  if (!leccion || !leccion.titulo) return '';
-  var m = leccion.titulo.match(/"([^"]+)"/);
-  return m ? m[1] : leccion.titulo;
-}
-  
 function abrirHistorialChallenges() {
   var lista = window._challengesHistoricos || [];
   var cont = document.getElementById('historialChallengesContenido');
