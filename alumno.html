@@ -10020,6 +10020,7 @@ function abrirModalRecuperacion() {
       }
       window._diasRecuperacion = data.dias || [];
       window._bloqueRecuperacion = data.bloqueActual || 1;
+      window._esSabatinoRecuperacion = data.esSabatino || false;
       renderCalendarioRecuperacion();
     })
     .catch(function() {
@@ -10035,6 +10036,7 @@ function cerrarModalRecuperacion() {
 function renderCalendarioRecuperacion() {
   var cont = document.getElementById('recuperacionContenido');
   var dias = window._diasRecuperacion || [];
+  var esSabatino = window._esSabatinoRecuperacion || false;
 
   var html = '';
 
@@ -10048,28 +10050,26 @@ function renderCalendarioRecuperacion() {
   html += '<div>• <strong style="color:#facc15;">Falta de semanas anteriores</strong> → máximo 🟡 Amarillo</div>';
   html += '</div>';
 
-  // Contar faltas recuperables
+  // Verificar faltas recuperables
   var faltasRecuperables = dias.filter(function(d) { return d.esFaltaRecuperable; });
-  if (faltasRecuperables.length === 0) {
-    var hayPendientes = dias.some(function(d) { return d.estatus === 'Pendiente'; });
-    var hayAprobadas = dias.some(function(d) { return d.estatus === 'Aprobado'; });
-    if (!hayPendientes && !hayAprobadas) {
-      html += '<div style="text-align:center;padding:20px;color:#4ade80;font-size:14px;">¡Excelente! No tienes faltas por recuperar en este bloque.</div>';
-      cont.innerHTML = html;
-      return;
-    }
+  var hayPendientes = dias.some(function(d) { return d.estatus === 'Pendiente'; });
+  var hayAprobadas = dias.some(function(d) { return d.estatus === 'Aprobado'; });
+  if (faltasRecuperables.length === 0 && !hayPendientes && !hayAprobadas) {
+    html += '<div style="text-align:center;padding:20px;color:#4ade80;font-size:14px;">¡Excelente! No tienes faltas por recuperar en este bloque.</div>';
+    cont.innerHTML = html;
+    return;
   }
 
   html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Selecciona el día que quieres recuperar:</div>';
 
-  // Encabezado del calendario
-  html += '<div style="display:grid;grid-template-columns:52px repeat(4,1fr);gap:6px;margin-bottom:8px;">';
-  html += '<div></div>';
-  html += '<div style="text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Lun</div>';
-  html += '<div style="text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Mar</div>';
-  html += '<div style="text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Mié</div>';
-  html += '<div style="text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Jue</div>';
-  html += '</div>';
+  // Feriados
+  var FERIADOS_MX = {
+    '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
+    '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
+    '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia', esBandera: true },
+    '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
+    '12-25': { emoji: '🎄', nombre: 'Navidad' }
+  };
 
   // Mapa: mapa[semana][dia] = diaObj
   var mapa = {};
@@ -10078,18 +10078,28 @@ function renderCalendarioRecuperacion() {
     mapa[d.semana][d.dia] = d;
   });
 
-  // 8 semanas
+  // Calendario (7 columnas lun-dom, 8 filas de semanas)
+  html += '<div style="overflow-x:auto;">';
+  html += '<div style="display:grid;grid-template-columns:52px repeat(7,1fr);gap:6px;margin-bottom:6px;">';
+  html += '<div></div>';
+  ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'].forEach(function(nombre, idx) {
+    var esActivoCab = esSabatino ? (idx === 5) : (idx <= 3);
+    html += '<div style="text-align:center;font-size:10px;font-weight:700;color:' + (esActivoCab ? '#94a3b8' : '#475569') + ';text-transform:uppercase;letter-spacing:0.4px;">' + nombre + '</div>';
+  });
+  html += '</div>';
+
   for (var s = 1; s <= 8; s++) {
-    html += '<div style="display:grid;grid-template-columns:52px repeat(4,1fr);gap:6px;margin-bottom:6px;align-items:center;">';
+    html += '<div style="display:grid;grid-template-columns:52px repeat(7,1fr);gap:6px;margin-bottom:6px;align-items:center;">';
     html += '<div style="font-size:11px;font-weight:700;color:#94a3b8;">Sem ' + s + '</div>';
 
-    for (var dd = 1; dd <= 4; dd++) {
-      var dia = mapa[s] && mapa[s][dd];
-      html += renderCeldaCalendario(dia, s, dd);
+    for (var di = 1; di <= 7; di++) {
+      var dia = mapa[s] && mapa[s][di];
+      html += renderCeldaCalendarioRecuperacion(dia, s, di);
     }
 
     html += '</div>';
   }
+  html += '</div>';
 
   // Leyenda
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);font-size:10px;color:#94a3b8;">';
@@ -10103,46 +10113,73 @@ function renderCalendarioRecuperacion() {
   cont.innerHTML = html;
 }
 
-function renderCeldaCalendario(dia, semana, diaSem) {
-  // Sin registro / futuro / antes de inscripción
-  if (!dia || !dia.asistencia) {
-    return '<div style="height:36px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.08);border-radius:6px;"></div>';
+// ─── Celda individual del calendario ───
+function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
+  // Día fuera de clase o sin dato
+  if (!dia) {
+    return '<div style="height:34px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06);border-radius:6px;"></div>';
   }
 
-  // Extraer día del mes para mostrarlo en todas las celdas
+  // Día del mes (2 dígitos sin cero inicial)
   var diaMes = String(dia.fecha).split('-')[2];
+
+  // Feriado
+  var mmdd = String(dia.fecha).substring(5);
+  var FERIADOS_MX = {
+    '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
+    '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
+    '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia', esBandera: true },
+    '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
+    '12-25': { emoji: '🎄', nombre: 'Navidad' }
+  };
+  if (FERIADOS_MX[mmdd]) {
+    var fest = FERIADOS_MX[mmdd];
+    var ic = fest.esBandera
+      ? '<img src="https://flagcdn.com/w40/mx.png" alt="MX" style="width:20px;height:12px;border-radius:2px;display:block;" />'
+      : '<span style="font-size:13px;line-height:1;">' + fest.emoji + '</span>';
+    return '<div title="' + fest.nombre + ' · ' + dia.fecha + '" style="height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' + ic + '<span style="font-size:7px;color:#93c5fd;font-weight:700;margin-top:1px;">' + diaMes + '</span></div>';
+  }
 
   // En práctica (fusión)
   if (dia.asistencia === 'En práctica') {
-    return '<div style="height:36px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:11px;color:#94a3b8;">' + diaMes + '</span></div>';
+    return '<div title="En práctica · ' + dia.fecha + '" style="height:34px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:12px;color:#94a3b8;font-weight:700;">' + diaMes + '</span></div>';
   }
 
-    // Presente con color
+  // Presente con color
   if (dia.asistencia === 'Presente' && dia.color) {
     var col = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'}[dia.color] || '#94a3b8';
+    var colorTexto = dia.color === 2 ? '#422006' : '#fff';
     var marcaR = dia.esRecuperacion ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
     var tooltipR = dia.esRecuperacion ? ' · recuperada' : '';
-    return '<div style="position:relative;height:36px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Presente' + tooltipR + ' · Lesson ' + (dia.leccion || '?') + '">' + marcaR + '<span style="font-size:12px;color:rgba(255,255,255,0.95);font-weight:800;">' + (dia.leccion || '') + '</span></div>';
+    return '<div title="Presente' + tooltipR + ' · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="position:relative;height:34px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;">' + marcaR + '<span style="font-size:12px;color:' + colorTexto + ';font-weight:800;">' + diaMes + '</span></div>';
   }
 
   // Ausente
   if (dia.asistencia === 'Ausente') {
     if (dia.estatus === 'Pendiente') {
-      return '<div style="height:36px;background:#facc15;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;" title="Video enviado · pendiente de revisión"><span style="font-size:12px;color:#422006;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#422006;">⏳</span></div>';
+      return '<div title="Video enviado · pendiente · ' + dia.fecha + '" style="height:34px;background:#facc15;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;"><span style="font-size:12px;color:#422006;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#422006;">⏳</span></div>';
     }
     if (dia.estatus === 'Aprobado') {
       var colA = dia.color === 3 ? '#22c55e' : dia.color === 2 ? '#facc15' : dia.color === 1 ? '#ef4444' : '#94a3b8';
+      var colorTextoA = dia.color === 2 ? '#422006' : '#fff';
       var marcaRA = '<span style="position:absolute;top:-5px;right:-5px;font-size:12px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.5);border:2px solid #fff;">r</span>';
-      return '<div style="position:relative;height:36px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;" title="Recuperada · ' + (dia.color === 3 ? 'Verde' : dia.color === 2 ? 'Amarillo' : 'Rojo') + '"><span style="font-size:12px;color:' + (dia.color === 2 ? '#422006' : '#fff') + ';font-weight:800;">' + diaMes + '</span>' + marcaRA + '</div>';
+      var txtColorA = dia.color === 3 ? 'Verde' : dia.color === 2 ? 'Amarillo' : 'Rojo';
+      return '<div title="Recuperada · ' + txtColorA + ' · ' + dia.fecha + '" style="position:relative;height:34px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;"><span style="font-size:12px;color:' + colorTextoA + ';font-weight:800;">' + diaMes + '</span>' + marcaRA + '</div>';
     }
     if (dia.estatus === 'Rechazado') {
-      return '<div style="height:36px;background:rgba(120,113,108,0.4);border:1px solid rgba(120,113,108,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;" title="Video rechazado"><span style="font-size:12px;color:#cbd5e1;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#94a3b8;">❌</span></div>';
+      return '<div title="Video rechazado · ' + dia.fecha + '" style="height:34px;background:rgba(120,113,108,0.4);border:1px solid rgba(120,113,108,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;"><span style="font-size:12px;color:#cbd5e1;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#94a3b8;">❌</span></div>';
     }
     // Sin justificar → clickeable
-    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" style="height:36px;background:#ef4444;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'" title="Falta · click para recuperar"><span style="font-size:12px;color:#fff;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:rgba(255,255,255,0.9);">📹</span></div>';
+    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" title="Falta · click para recuperar · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="height:34px;background:#ef4444;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'"><span style="font-size:12px;color:#fff;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:rgba(255,255,255,0.9);">📹</span></div>';
   }
 
-  return '<div style="height:36px;background:rgba(255,255,255,0.03);border-radius:6px;"></div>';
+  // Sin registro
+  if (dia.esFuturo) {
+    // Futuro
+    return '<div title="' + dia.fecha + '" style="height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;"><span style="color:#64748b;font-size:11px;font-weight:700;">' + diaMes + '</span></div>';
+  }
+  // Pasado sin registro → falta
+  return '<div title="Falta sin registro · ' + dia.fecha + '" style="height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:8px;margin-top:1px;">' + diaMes + '</span></div>';
 }
 
 // ─── Vista 2: Detalle de la falta ───
