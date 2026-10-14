@@ -1089,15 +1089,32 @@ function evaluarRecuperacion(idx, aprobado) {
 }
 
 function notificarAlumnoWhatsApp(idAlumno, whatsapp, nombre) {
+  // Si no viene el WhatsApp, consultarlo al backend antes de abrir
   if (!whatsapp) {
-    alert('El alumno no tiene WhatsApp registrado.');
+    fetch(APPS_SCRIPT + '?action=getWhatsAppAlumno&idAlumno=' + encodeURIComponent(idAlumno), { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success && data.whatsapp) {
+          _abrirWhatsAppAlumno(data.whatsapp, nombre || data.nombre || idAlumno);
+        } else {
+          alert('El alumno no tiene WhatsApp registrado en el sistema.\n\nVerifica en la hoja INSCRIPCIONES.');
+        }
+      })
+      .catch(function() {
+        alert('Error de conexión al buscar el WhatsApp del alumno.');
+      });
     return;
   }
+  _abrirWhatsAppAlumno(whatsapp, nombre);
+}
 
+function _abrirWhatsAppAlumno(whatsapp, nombre) {
   var num = String(whatsapp).replace(/\D/g, '');
   if (num.length === 10) num = '52' + num;
+  // Si el número ya empieza con 52 y tiene 12 dígitos, dejarlo.
+  // Si empieza con 521 y tiene 13 dígitos, dejarlo tal cual.
 
-  var primerNombre = String(nombre).split(' ')[0];
+  var primerNombre = String(nombre || '').split(' ')[0] || 'alumno';
   var nombreMaestro = maestroData ? maestroData.nombre : 'tu maestro';
 
   var msg = 'Hola ' + primerNombre + ' 👋\n\n' +
