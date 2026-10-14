@@ -921,81 +921,160 @@ function renderRecuperaciones() {
     return;
   }
 
-  var html = '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">' + lista.length + ' video' + (lista.length !== 1 ? 's' : '') + ' por evaluar</div>';
-
+  // ═══ Agrupar por (nivel + lección + grupo) ═══
+  var grupos = {};
+  var ordenGrupos = [];
   lista.forEach(function(p, idx) {
-    var techoColor = p.techo === 3 ? '#22c55e' : '#facc15';
-    var techoIcono = p.techo === 3 ? '🟢' : '🟡';
-
-    var tituloLeccion = '';
-    if (typeof LECCIONES_CONTENIDO !== 'undefined' && LECCIONES_CONTENIDO[p.nivelCompleto + '-' + p.leccion]) {
-      var l = LECCIONES_CONTENIDO[p.nivelCompleto + '-' + p.leccion];
-      if (l.titulo) {
-        var m = l.titulo.match(/"([^"]+)"/);
-        tituloLeccion = m ? m[1] : '';
-      }
+    var clave = (p.nivelLeccion || '') + '::' + (p.leccion || 0) + '::' + (p.idGrupo || '');
+    if (!grupos[clave]) {
+      grupos[clave] = {
+        clave: clave,
+        nivelLeccion: p.nivelLeccion,
+        leccion: p.leccion,
+        idGrupo: p.idGrupo,
+        nombreGrupo: p.nombreGrupo,
+        instruccion: p.instruccion || {},
+        alumnos: []
+      };
+      ordenGrupos.push(clave);
     }
+    grupos[clave].alumnos.push({ data: p, idxOriginal: idx });
+  });
 
-    html += '<div style="background:var(--card);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px;margin-bottom:14px;">';
+  var html = '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">' + lista.length + ' video' + (lista.length !== 1 ? 's' : '') + ' por evaluar · ' + ordenGrupos.length + ' lección' + (ordenGrupos.length !== 1 ? 'es' : '') + '</div>';
 
-    // Header
-    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px;flex-wrap:wrap;">';
-    html += '<div>';
-    html += '<div style="font-size:14px;font-weight:700;color:#fff;">' + p.nombreAlumno + ' <span style="font-size:11px;color:#94a3b8;font-weight:400;">(' + p.idAlumno + ')</span></div>';
-    html += '<div style="font-size:12px;color:#94a3b8;margin-top:3px;">' + p.idGrupo + ' · ' + p.nombreGrupo + '</div>';
-    html += '</div>';
-    html += '<div style="text-align:right;flex-shrink:0;">';
-    html += '<div style="font-size:11px;font-weight:700;color:' + techoColor + ';">' + techoIcono + ' Máx ' + p.techoTexto + '</div>';
-    html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">' + p.antiguedad + '</div>';
-    html += '</div>';
-    html += '</div>';
-
-    // Info de la falta
-    html += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#cbd5e1;line-height:1.6;">';
-    html += '<div>📅 Falta del <strong style="color:#fff;">' + p.fecha + '</strong></div>';
-    html += '<div>📚 Lesson ' + p.leccion + (tituloLeccion ? ' · <em>"' + tituloLeccion + '"</em>' : '') + '</div>';
-    html += '</div>';
-
-    // Instrucción
-    if (p.instruccion) {
-      html += '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">';
-      html += '<div style="font-size:10px;font-weight:700;color:#fb923c;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📝 Instrucción que recibió el alumno</div>';
-      html += '<div style="font-size:12px;color:#f1f5f9;line-height:1.6;">' + p.instruccion + '</div>';
-      html += '</div>';
-    }
-
-    // Ver video
-    if (p.urlVideo) {
-      html += '<a href="' + p.urlVideo + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);color:#fb923c;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;margin-bottom:12px;">🎥 Ver video del alumno</a>';
-    }
-
-        // Botones de color — SIEMPRE los 3, pero el verde se deshabilita
-    // si la falta es de semanas anteriores (techo = Amarillo).
-    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
-    html += '<button class="apr-btn" id="recColor1-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 1)">🔴 Rojo</button>';
-    html += '<button class="apr-btn" id="recColor2-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 2)">🟡 Amarillo</button>';
-    if (p.techo === 3) {
-      html += '<button class="apr-btn" id="recColor3-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 3)">🟢 Verde</button>';
-    } else {
-      html += '<button class="apr-btn" disabled style="opacity:0.35;cursor:not-allowed;" title="No disponible: esta falta es de semanas anteriores">🟢 Verde 🔒</button>';
-    }
-    html += '</div>';
-
-    // Comentario
-    html += '<textarea id="recComentario-' + idx + '" class="challenge-feedback" placeholder="Comentario (opcional, aparecerá al alumno)" style="min-height:60px;"></textarea>';
-
-    // Botones de acción
-    html += '<div style="display:flex;gap:8px;margin-top:12px;">';
-    html += '<button onclick="evaluarRecuperacion(' + idx + ', true)" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:100px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;">✅ Aprobar</button>';
-    html += '<button onclick="evaluarRecuperacion(' + idx + ', false)" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:100px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;">❌ Rechazar</button>';
-    html += '</div>';
-
-    html += '<div id="recStatus-' + idx + '" style="margin-top:10px;font-size:12px;text-align:center;"></div>';
-
-    html += '</div>';
+  ordenGrupos.forEach(function(clave) {
+    var g = grupos[clave];
+    html += renderGrupoRecuperacion(g);
   });
 
   cont.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Helper: pinta UNA lección agrupada (instrucción arriba + alumnos abajo)
+// ═══════════════════════════════════════════════════════════════════════
+function renderGrupoRecuperacion(g) {
+  var inst = g.instruccion || {};
+  var html = '';
+
+  // ─── Contenedor del grupo ───
+  html += '<div style="background:var(--card);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:18px;margin-bottom:18px;">';
+
+  // ═══ Bloque de instrucción (UNA vez por lección) ═══
+  html += '<div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.28);border-radius:12px;padding:16px 18px;margin-bottom:18px;">';
+
+  // Título: "LESSON 5 · What's your phone number?"
+  var tituloTxt = 'LESSON ' + g.leccion;
+  if (inst.titulo) tituloTxt += ' · ' + inst.titulo;
+  html += '<div style="font-size:16px;font-weight:800;color:#67e8f9;margin-bottom:4px;line-height:1.3;">' + tituloTxt + '</div>';
+
+  // Nivel + duración
+  var nivelTxt = g.nivelLeccion || '';
+  var duracionTxt = inst.duracion || '1–2 minutos';
+  html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:14px;">Nivel ' + nivelTxt + ' · Video individual de ' + duracionTxt + '</div>';
+
+  // Objetivo
+  if (inst.objetivo) {
+    html += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;">';
+    html += '<div style="font-size:10px;font-weight:700;color:#67e8f9;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🎯 Objetivo</div>';
+    html += '<div style="font-size:12px;color:#f1f5f9;line-height:1.55;">' + inst.objetivo + '</div>';
+    html += '</div>';
+  }
+
+  // 5 ítems
+  var items = inst.items || [];
+  if (items.length) {
+    html += '<div style="font-size:11px;font-weight:800;color:#67e8f9;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">TU MISIÓN DE EXPRESIÓN ORAL</div>';
+    html += '<div style="font-size:12px;color:#cbd5e1;line-height:1.55;margin-bottom:10px;">El alumno debía incluir los siguientes cinco elementos:</div>';
+    html += '<ol style="margin:0;padding:0;list-style:none;">';
+    for (var i = 0; i < 5; i++) {
+      var txt = items[i] || '';
+      if (!txt) continue;
+      html += '<li style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:#e2e8f0;line-height:1.5;">';
+      html += '<span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(6,182,212,0.2);color:#67e8f9;font-weight:800;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:1px;">' + (i + 1) + '</span>';
+      html += '<span>' + txt + '</span>';
+      html += '</li>';
+    }
+    html += '</ol>';
+  }
+
+  // Validación docente + Nota (solo para el maestro)
+  if (inst.validacionDocente) {
+    html += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#94a3b8;line-height:1.55;">';
+    html += '<strong style="color:#67e8f9;">✅ Validación docente:</strong> ' + inst.validacionDocente;
+    html += '</div>';
+  }
+  if (inst.nota) {
+    html += '<div style="margin-top:6px;font-size:11px;color:#94a3b8;line-height:1.55;">';
+    html += '<strong style="color:#67e8f9;">ℹ️ Nota:</strong> ' + inst.nota;
+    html += '</div>';
+  }
+
+  html += '</div>'; // fin bloque instrucción
+
+  // ═══ Tarjetas de alumnos de esta lección ═══
+  html += '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">' + g.alumnos.length + ' alumno' + (g.alumnos.length !== 1 ? 's' : '') + ' envió video</div>';
+
+  g.alumnos.forEach(function(item) {
+    html += renderTarjetaAlumnoRecuperacion(item.data, item.idxOriginal);
+  });
+
+  html += '</div>'; // fin contenedor grupo
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Helper: tarjeta de UN alumno con sus botones de color y acciones
+// ═══════════════════════════════════════════════════════════════════════
+function renderTarjetaAlumnoRecuperacion(p, idx) {
+  var techoColor = p.techo === 3 ? '#22c55e' : '#facc15';
+  var techoIcono = p.techo === 3 ? '🟢' : '🟡';
+  var html = '';
+
+  html += '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:12px;">';
+
+  // Header: alumno + techo
+  html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;flex-wrap:wrap;">';
+  html += '<div>';
+  html += '<div style="font-size:13px;font-weight:700;color:#fff;">' + p.nombreAlumno + ' <span style="font-size:11px;color:#94a3b8;font-weight:400;">(' + p.idAlumno + ')</span></div>';
+  html += '<div style="font-size:11px;color:#94a3b8;margin-top:3px;">Faltó el ' + p.fecha + '</div>';
+  html += '</div>';
+  html += '<div style="text-align:right;flex-shrink:0;">';
+  html += '<div style="font-size:11px;font-weight:700;color:' + techoColor + ';">' + techoIcono + ' Máx ' + p.techoTexto + '</div>';
+  html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">' + p.antiguedad + '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // Ver video
+  if (p.urlVideo) {
+    html += '<a href="' + p.urlVideo + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);color:#fb923c;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;margin-bottom:12px;">🎥 Ver video del alumno</a>';
+  }
+
+  // Botones de color
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+  html += '<button class="apr-btn" id="recColor1-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 1)">🔴 Rojo</button>';
+  html += '<button class="apr-btn" id="recColor2-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 2)">🟡 Amarillo</button>';
+  if (p.techo === 3) {
+    html += '<button class="apr-btn" id="recColor3-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 3)">🟢 Verde</button>';
+  } else {
+    html += '<button class="apr-btn" disabled style="opacity:0.35;cursor:not-allowed;" title="No disponible: esta falta es de semanas anteriores">🟢 Verde 🔒</button>';
+  }
+  html += '</div>';
+
+  // Comentario
+  html += '<textarea id="recComentario-' + idx + '" class="challenge-feedback" placeholder="Comentario (opcional, aparecerá al alumno)" style="min-height:60px;"></textarea>';
+
+  // Acciones
+  html += '<div style="display:flex;gap:8px;margin-top:12px;">';
+  html += '<button onclick="evaluarRecuperacion(' + idx + ', true)" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:100px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;">✅ Aprobar</button>';
+  html += '<button onclick="evaluarRecuperacion(' + idx + ', false)" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:100px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;">❌ Rechazar</button>';
+  html += '</div>';
+
+  html += '<div id="recStatus-' + idx + '" style="margin-top:10px;font-size:12px;text-align:center;"></div>';
+  html += '</div>';
+
+  return html;
 }
 
 function selColorRecuperacion(idx, color) {
