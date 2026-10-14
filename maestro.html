@@ -238,9 +238,15 @@
 
     <!-- VISTA GRUPOS -->
     <div id="vistaGrupos">
-      <button onclick="abrirMiMaterial()" style="width:100%;margin-bottom:14px;background:rgba(249,115,22,0.12);color:#fdba74;border:1px solid rgba(249,115,22,0.35);border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        📚 Mi Material
-      </button>
+            <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <button onclick="abrirMiMaterial()" style="flex:1;background:rgba(249,115,22,0.12);color:#fdba74;border:1px solid rgba(249,115,22,0.35);border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          📚 Mi Material
+        </button>
+        <button onclick="abrirRecuperaciones()" id="btnRecuperaciones" style="flex:1;background:rgba(6,182,212,0.12);color:#67e8f9;border:1px solid rgba(6,182,212,0.35);border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;">
+          🎥 Recuperaciones
+          <span id="badgeRecuperaciones" style="display:none;background:#dc2626;color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;padding:0 6px;border-radius:999px;align-items:center;justify-content:center;">0</span>
+        </button>
+      </div>
       <div class="seccion-titulo">Mis grupos</div>
       <div id="listaGrupos"><div class="loading">Cargando...</div></div>
     </div>
@@ -256,6 +262,21 @@
       <div id="listaMiMaterial"><div class="loading">Cargando...</div></div>
     </div>
 
+    <!-- VISTA RECUPERACIONES -->
+    <div id="vistaRecuperaciones" style="display:none;">
+      <button class="back-btn" onclick="volverGruposDesdeRecuperaciones()">← Mis grupos</button>
+      <div class="seccion-titulo">🎥 Recuperaciones pendientes</div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <label style="font-size:12px;color:#94a3b8;font-weight:600;">Filtrar por:</label>
+        <select id="filtroGrupoRecuperaciones" onchange="renderRecuperaciones()" style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;outline:none;">
+          <option value="">Todos mis grupos</option>
+        </select>
+      </div>
+
+      <div id="listaRecuperaciones"></div>
+    </div>
+    
         <!-- VISTA CHAT CLUB -->
 <div id="vistaClub" style="display:none;">
   <button class="back-btn" onclick="volverGruposDesdeClub()">← Mis grupos</button>
@@ -516,6 +537,7 @@ var _linksVideo = {1:{},2:{}};
             return estado !== 'cancelado';
           });
                 renderGrupos(panelData.grupos);
+                cargarBadgeRecuperaciones();
       // cargarJustificantesFalta();  ← SISTEMA VIEJO DESACTIVADO. Ahora usa "Recuperaciones".
          if (data.fotoMaestro) {
 setTimeout(function(){
@@ -813,6 +835,266 @@ function abrirMiMaterial() {
   document.getElementById('vistaMiMaterial').style.display='block';
   renderMiMaterialGlobal();
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SISTEMA DE RECUPERACIONES — MAESTRO
+// ═══════════════════════════════════════════════════════════════════════
+var _recuperacionesPendientes = [];
+
+function abrirRecuperaciones() {
+  document.getElementById('vistaGrupos').style.display = 'none';
+  document.getElementById('vistaRecuperaciones').style.display = 'block';
+
+  // Poblar dropdown de grupos
+  var select = document.getElementById('filtroGrupoRecuperaciones');
+  select.innerHTML = '<option value="">Todos mis grupos</option>';
+  (panelData.grupos || []).forEach(function(g) {
+    if (g.esClub || g.tipoHorario === 'personalizado') return;
+    var opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = g.id + ' · ' + (g.nombre || '') + ' · ' + (g.horario || '');
+    select.appendChild(opt);
+  });
+
+  // Cargar pendientes
+  var cont = document.getElementById('listaRecuperaciones');
+  cont.innerHTML = '<div class="loading">Cargando recuperaciones...</div>';
+
+  fetch(APPS_SCRIPT + '?action=getJustificantesPendientesMaestro&idMaestro=' + encodeURIComponent(maestroData.id), { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) {
+        cont.innerHTML = '<div class="empty-state"><p>Error al cargar: ' + (data.error || '') + '</p></div>';
+        return;
+      }
+      _recuperacionesPendientes = data.pendientes || [];
+      actualizarBadgeRecuperaciones(_recuperacionesPendientes.length);
+      renderRecuperaciones();
+    })
+    .catch(function() {
+      cont.innerHTML = '<div class="empty-state"><p>Error de conexión.</p></div>';
+    });
+}
+
+function volverGruposDesdeRecuperaciones() {
+  document.getElementById('vistaRecuperaciones').style.display = 'none';
+  document.getElementById('vistaGrupos').style.display = 'block';
+}
+
+function actualizarBadgeRecuperaciones(n) {
+  var badge = document.getElementById('badgeRecuperaciones');
+  if (!badge) return;
+  if (n > 0) {
+    badge.textContent = n > 9 ? '9+' : n;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function cargarBadgeRecuperaciones() {
+  if (!maestroData || !maestroData.id) return;
+  fetch(APPS_SCRIPT + '?action=getJustificantesPendientesMaestro&idMaestro=' + encodeURIComponent(maestroData.id), { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        actualizarBadgeRecuperaciones((data.pendientes || []).length);
+      }
+    })
+    .catch(function() {});
+}
+
+function renderRecuperaciones() {
+  var cont = document.getElementById('listaRecuperaciones');
+  var filtro = document.getElementById('filtroGrupoRecuperaciones').value;
+
+  var lista = _recuperacionesPendientes;
+  if (filtro) {
+    lista = lista.filter(function(p) { return p.idGrupo === filtro; });
+  }
+
+  if (!lista.length) {
+    cont.innerHTML = '<div class="empty-state"><p style="font-size:14px;">🎉 No hay recuperaciones pendientes' + (filtro ? ' en este grupo' : '') + '.</p></div>';
+    return;
+  }
+
+  var html = '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">' + lista.length + ' video' + (lista.length !== 1 ? 's' : '') + ' por evaluar</div>';
+
+  lista.forEach(function(p, idx) {
+    var techoColor = p.techo === 3 ? '#22c55e' : '#facc15';
+    var techoIcono = p.techo === 3 ? '🟢' : '🟡';
+
+    var tituloLeccion = '';
+    if (typeof LECCIONES_CONTENIDO !== 'undefined' && LECCIONES_CONTENIDO[p.nivelCompleto + '-' + p.leccion]) {
+      var l = LECCIONES_CONTENIDO[p.nivelCompleto + '-' + p.leccion];
+      if (l.titulo) {
+        var m = l.titulo.match(/"([^"]+)"/);
+        tituloLeccion = m ? m[1] : '';
+      }
+    }
+
+    html += '<div style="background:var(--card);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px;margin-bottom:14px;">';
+
+    // Header
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px;flex-wrap:wrap;">';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#fff;">' + p.nombreAlumno + ' <span style="font-size:11px;color:#94a3b8;font-weight:400;">(' + p.idAlumno + ')</span></div>';
+    html += '<div style="font-size:12px;color:#94a3b8;margin-top:3px;">' + p.idGrupo + ' · ' + p.nombreGrupo + '</div>';
+    html += '</div>';
+    html += '<div style="text-align:right;flex-shrink:0;">';
+    html += '<div style="font-size:11px;font-weight:700;color:' + techoColor + ';">' + techoIcono + ' Máx ' + p.techoTexto + '</div>';
+    html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">' + p.antiguedad + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Info de la falta
+    html += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#cbd5e1;line-height:1.6;">';
+    html += '<div>📅 Falta del <strong style="color:#fff;">' + p.fecha + '</strong></div>';
+    html += '<div>📚 Lesson ' + p.leccion + (tituloLeccion ? ' · <em>"' + tituloLeccion + '"</em>' : '') + '</div>';
+    html += '</div>';
+
+    // Instrucción
+    if (p.instruccion) {
+      html += '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">';
+      html += '<div style="font-size:10px;font-weight:700;color:#fb923c;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📝 Instrucción que recibió el alumno</div>';
+      html += '<div style="font-size:12px;color:#f1f5f9;line-height:1.6;">' + p.instruccion + '</div>';
+      html += '</div>';
+    }
+
+    // Ver video
+    if (p.urlVideo) {
+      html += '<a href="' + p.urlVideo + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);color:#fb923c;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;margin-bottom:12px;">🎥 Ver video del alumno</a>';
+    }
+
+    // Botones de color
+    html += '<div style="display:grid;grid-template-columns:repeat(' + (p.techo === 3 ? '3' : '2') + ',1fr);gap:8px;margin-bottom:12px;">';
+    html += '<button class="apr-btn" id="recColor1-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 1)">🔴 Rojo</button>';
+    html += '<button class="apr-btn" id="recColor2-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 2)">🟡 Amarillo</button>';
+    if (p.techo === 3) {
+      html += '<button class="apr-btn" id="recColor3-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 3)">🟢 Verde</button>';
+    }
+    html += '</div>';
+
+    // Comentario
+    html += '<textarea id="recComentario-' + idx + '" class="challenge-feedback" placeholder="Comentario (opcional, aparecerá al alumno)" style="min-height:60px;"></textarea>';
+
+    // Botones de acción
+    html += '<div style="display:flex;gap:8px;margin-top:12px;">';
+    html += '<button onclick="evaluarRecuperacion(' + idx + ', true)" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:100px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;">✅ Aprobar</button>';
+    html += '<button onclick="evaluarRecuperacion(' + idx + ', false)" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:100px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;">❌ Rechazar</button>';
+    html += '</div>';
+
+    html += '<div id="recStatus-' + idx + '" style="margin-top:10px;font-size:12px;text-align:center;"></div>';
+
+    html += '</div>';
+  });
+
+  cont.innerHTML = html;
+}
+
+function selColorRecuperacion(idx, color) {
+  [1,2,3].forEach(function(c) {
+    var btn = document.getElementById('recColor' + c + '-' + idx);
+    if (btn) btn.classList.remove('sel-' + c);
+  });
+  var sel = document.getElementById('recColor' + color + '-' + idx);
+  if (sel) sel.classList.add('sel-' + color);
+}
+
+function _colorSeleccionadoRecuperacion(idx) {
+  for (var c = 1; c <= 3; c++) {
+    var btn = document.getElementById('recColor' + c + '-' + idx);
+    if (btn && btn.classList.contains('sel-' + c)) return c;
+  }
+  return 0;
+}
+
+function evaluarRecuperacion(idx, aprobado) {
+  var p = _recuperacionesPendientes[idx];
+  if (!p) return;
+
+  var color = _colorSeleccionadoRecuperacion(idx);
+  if (aprobado && !color) {
+    alert('Selecciona un color antes de aprobar.');
+    return;
+  }
+
+  var status = document.getElementById('recStatus-' + idx);
+  status.style.color = '#94a3b8';
+  status.textContent = 'Guardando...';
+
+  var comentarioInput = document.getElementById('recComentario-' + idx);
+  var comentario = (comentarioInput && comentarioInput.value.trim()) || '';
+  if (!comentario) {
+    comentario = aprobado
+      ? 'Recibido y aprobado. Tu evaluación de recuperación ya quedó registrada.'
+      : 'El video no fue aprobado. Contacta a tu maestro si tienes dudas.';
+  }
+
+  var colorFinal = aprobado ? color : 1;
+
+  var url = APPS_SCRIPT + '?action=revisarJustificanteFalta' +
+    '&idAlumno=' + encodeURIComponent(p.idAlumno) +
+    '&idGrupo=' + encodeURIComponent(p.idGrupo) +
+    '&fecha=' + encodeURIComponent(p.fechaISO) +
+    '&aprobado=' + (aprobado ? 'true' : 'false') +
+    '&color=' + colorFinal +
+    '&idMaestro=' + encodeURIComponent(maestroData.id) +
+    '&comentario=' + encodeURIComponent(comentario);
+
+  fetch(url, { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) {
+        status.style.color = '#f87171';
+        status.textContent = '❌ ' + (data.error || 'Error al guardar');
+        return;
+      }
+
+      var tarjeta = status.closest('div[style*="var(--card)"]');
+      if (tarjeta) {
+        tarjeta.style.opacity = '0.55';
+        tarjeta.style.borderColor = aprobado ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)';
+        var acciones = tarjeta.querySelectorAll('button');
+        acciones.forEach(function(b) { b.disabled = true; b.style.cursor = 'not-allowed'; });
+      }
+
+      status.style.color = aprobado ? '#4ade80' : '#f87171';
+      status.innerHTML =
+        (aprobado ? '✅ Aprobado con ' + (colorFinal === 3 ? '🟢 Verde' : colorFinal === 2 ? '🟡 Amarillo' : '🔴 Rojo') : '❌ Rechazado') +
+        '<br><button onclick="notificarAlumnoWhatsApp(\'' + p.idAlumno + '\', \'' + (p.whatsappAlumno || '') + '\', \'' + p.nombreAlumno.replace(/'/g, "\\'") + '\')" style="margin-top:10px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;">📱 Notificar al alumno por WhatsApp</button>';
+
+      _recuperacionesPendientes.splice(idx, 1);
+      actualizarBadgeRecuperaciones(_recuperacionesPendientes.length);
+
+    })
+    .catch(function() {
+      status.style.color = '#f87171';
+      status.textContent = '❌ Error de conexión.';
+    });
+}
+
+function notificarAlumnoWhatsApp(idAlumno, whatsapp, nombre) {
+  if (!whatsapp) {
+    alert('El alumno no tiene WhatsApp registrado.');
+    return;
+  }
+
+  var num = String(whatsapp).replace(/\D/g, '');
+  if (num.length === 10) num = '52' + num;
+
+  var primerNombre = String(nombre).split(' ')[0];
+  var nombreMaestro = maestroData ? maestroData.nombre : 'tu maestro';
+
+  var msg = 'Hola ' + primerNombre + ' 👋\n\n' +
+            'Tu video de recuperación ya fue evaluado.\n\n' +
+            'Puedes ver el resultado en tu panel del alumno:\n' +
+            'https://organicenglish1.com/alumno.html\n\n' +
+            '— ' + nombreMaestro;
+
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+  
 function volverGruposDesdeMiMaterial() {
   document.getElementById('vistaMiMaterial').style.display='none';
   document.getElementById('vistaGrupos').style.display='block';
