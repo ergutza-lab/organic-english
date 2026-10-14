@@ -10151,7 +10151,7 @@ function abrirDetalleRecuperacion(fechaISO) {
   var cont = document.getElementById('recuperacionContenido');
 
   var fechaTxt = formatearFechaRecuperacion(dia.fecha);
-  var tituloLeccion = buscarTituloLeccionRecuperacion(dia.nivelLeccion, dia.leccion);
+    var tituloLeccion = buscarTituloLeccionRecuperacion(dia.nivelCompleto || dia.nivelLeccion, dia.leccion);
 
   var html = '';
 
@@ -10236,6 +10236,19 @@ function buscarTituloLeccionRecuperacion(nivel, num) {
   if (!nivel || !num) return '';
   var clave = nivel + '-' + num;
   var leccion = LECCIONES_CONTENIDO[clave];
+  if (!leccion || !leccion.titulo) {
+    // Fallback: intentar sin subnivel
+    var nivelBase = nivel.replace(/\.\d$/, '');
+    if (nivelBase !== nivel) {
+      var leccion2 = LECCIONES_CONTENIDO[nivelBase + '-' + num];
+      if (leccion2 && leccion2.titulo) leccion = leccion2;
+    }
+  }
+  // Fallback 2: intentar con KIDS- prefix
+  if ((!leccion || !leccion.titulo) && nivel.toUpperCase().indexOf('KIDS') === -1) {
+    var leccionK = LECCIONES_CONTENIDO['KIDS-' + nivel + '-' + num];
+    if (leccionK && leccionK.titulo) leccion = leccionK;
+  }
   if (!leccion || !leccion.titulo) return '';
   var m = leccion.titulo.match(/"([^"]+)"/);
   return m ? m[1] : leccion.titulo;
