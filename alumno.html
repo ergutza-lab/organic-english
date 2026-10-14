@@ -10062,15 +10062,6 @@ function renderCalendarioRecuperacion() {
 
   html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">Selecciona el día que quieres recuperar:</div>';
 
-  // Feriados
-  var FERIADOS_MX = {
-    '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
-    '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
-    '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia', esBandera: true },
-    '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
-    '12-25': { emoji: '🎄', nombre: 'Navidad' }
-  };
-
   // Mapa: mapa[semana][dia] = diaObj
   var mapa = {};
   dias.forEach(function(d) {
@@ -10103,11 +10094,10 @@ function renderCalendarioRecuperacion() {
 
   // Leyenda
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);font-size:10px;color:#94a3b8;">';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;"></span> Presente</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Falta (clickeable)</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Video enviado</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#16a34a;border-radius:2px;vertical-align:middle;"></span> Recuperada</span>';
-  html += '<span><span style="display:inline-block;width:10px;height:10px;background:#334155;border-radius:2px;vertical-align:middle;"></span> Sin clase</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:900;border-radius:3px;vertical-align:middle;margin-right:4px;">F</span> Falta (clickeable)</span>';
+  html += '<span><span style="display:inline-block;width:12px;height:12px;background:#f97316;border-radius:3px;vertical-align:middle;margin-right:4px;"></span> Video enviado</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#fbbf24;color:#000;font-size:10px;font-weight:900;vertical-align:middle;margin-right:4px;">r</span> Recuperada</span>';
+  html += '<span><span style="display:inline-block;width:12px;height:12px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;margin-right:4px;"></span> Sin clase</span>';
   html += '</div>';
 
   cont.innerHTML = html;
@@ -10120,7 +10110,6 @@ function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
     return '<div style="height:34px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06);border-radius:6px;"></div>';
   }
 
-  // Día del mes (2 dígitos sin cero inicial)
   var diaMes = String(dia.fecha).split('-')[2];
 
   // Feriado
@@ -10145,41 +10134,41 @@ function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
     return '<div title="En práctica · ' + dia.fecha + '" style="height:34px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:12px;color:#94a3b8;font-weight:700;">' + diaMes + '</span></div>';
   }
 
-  // Presente con color
+  // Presente con color → día de clase normal con evaluación.
+  // Si es una recuperación aprobada, se agrega el círculo amarillo "r".
   if (dia.asistencia === 'Presente' && dia.color) {
     var col = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'}[dia.color] || '#94a3b8';
     var colorTexto = dia.color === 2 ? '#422006' : '#fff';
-    var marcaR = dia.esRecuperacion ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
+    var marcaR = dia.esRecuperacion
+      ? '<span style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#fbbf24;color:#000;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);">r</span>'
+      : '';
     var tooltipR = dia.esRecuperacion ? ' · recuperada' : '';
     return '<div title="Presente' + tooltipR + ' · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="position:relative;height:34px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;">' + marcaR + '<span style="font-size:12px;color:' + colorTexto + ';font-weight:800;">' + diaMes + '</span></div>';
   }
 
   // Ausente
   if (dia.asistencia === 'Ausente') {
+    // Video enviado (pendiente de revisión) → NARANJA
     if (dia.estatus === 'Pendiente') {
-      return '<div title="Video enviado · pendiente · ' + dia.fecha + '" style="height:34px;background:#facc15;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;"><span style="font-size:12px;color:#422006;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#422006;">⏳</span></div>';
+      return '<div title="Video enviado · pendiente de revisión · ' + dia.fecha + '" style="height:34px;background:#f97316;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;box-shadow:0 2px 6px rgba(249,115,22,0.35);"><span style="font-size:12px;color:#fff;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:rgba(255,255,255,0.9);">⏳</span></div>';
     }
+        // Recuperada (aprobada) → fondo del color asignado + círculo amarillo con "r"
     if (dia.estatus === 'Aprobado') {
       var colA = dia.color === 3 ? '#22c55e' : dia.color === 2 ? '#facc15' : dia.color === 1 ? '#ef4444' : '#94a3b8';
       var colorTextoA = dia.color === 2 ? '#422006' : '#fff';
-      var marcaRA = '<span style="position:absolute;top:-5px;right:-5px;font-size:12px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.5);border:2px solid #fff;">r</span>';
       var txtColorA = dia.color === 3 ? 'Verde' : dia.color === 2 ? 'Amarillo' : 'Rojo';
-      return '<div title="Recuperada · ' + txtColorA + ' · ' + dia.fecha + '" style="position:relative;height:34px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;"><span style="font-size:12px;color:' + colorTextoA + ';font-weight:800;">' + diaMes + '</span>' + marcaRA + '</div>';
+      return '<div title="Recuperada · ' + txtColorA + ' · ' + dia.fecha + '" style="position:relative;height:34px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;"><span style="font-size:12px;color:' + colorTextoA + ';font-weight:800;">' + diaMes + '</span><span style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#fbbf24;color:#000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);">r</span></div>';
     }
-    if (dia.estatus === 'Rechazado') {
-      return '<div title="Video rechazado · ' + dia.fecha + '" style="height:34px;background:rgba(120,113,108,0.4);border:1px solid rgba(120,113,108,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;"><span style="font-size:12px;color:#cbd5e1;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:#94a3b8;">❌</span></div>';
-    }
-    // Sin justificar → clickeable
-    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" title="Falta · click para recuperar · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="height:34px;background:#ef4444;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'"><span style="font-size:12px;color:#fff;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:rgba(255,255,255,0.9);">📹</span></div>';
+    // Falta sin justificar → F grande + día en gris + clickeable (borde amarillo sutil)
+    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" title="Falta · click para recuperar · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="height:34px;background:#334155;border:1.5px solid rgba(251,191,36,0.5);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'"><span style="font-size:14px;color:#fff;font-weight:900;line-height:1;">F</span><span style="font-size:8px;color:#94a3b8;margin-top:1px;">' + diaMes + '</span></div>';
   }
 
   // Sin registro
   if (dia.esFuturo) {
-    // Futuro
     return '<div title="' + dia.fecha + '" style="height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;"><span style="color:#64748b;font-size:11px;font-weight:700;">' + diaMes + '</span></div>';
   }
-  // Pasado sin registro → falta
-  return '<div title="Falta sin registro · ' + dia.fecha + '" style="height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:8px;margin-top:1px;">' + diaMes + '</span></div>';
+  // Pasado sin registro → falta (F grande + día en gris, no clickeable)
+  return '<div title="Falta sin registro · ' + dia.fecha + '" style="height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="font-size:14px;color:#cbd5e1;font-weight:900;line-height:1;">F</span><span style="font-size:8px;color:#94a3b8;margin-top:1px;">' + diaMes + '</span></div>';
 }
 
 // ─── Vista 2: Detalle de la falta ───
