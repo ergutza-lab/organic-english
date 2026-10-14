@@ -3218,9 +3218,11 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
     for (var cn = 1; cn <= 4; cn++) {
       var reg = regsSabado[cn];
       var lessonNum = (idxSab * 4) + cn;
-      if (reg && reg.asistio !== false && reg.color) {
+            if (reg && reg.asistio !== false && reg.color) {
         var col = colorMap[reg.color] || '#94a3b8';
-        html += '<div style="background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:rgba(255,255,255,0.85);font-weight:700;">C' + cn + '</div><div style="color:#fff;font-size:14px;font-weight:800;">' + lessonNum + '</div></div>';
+        var marcaR = reg.esRecuperacion ? '<span style="position:absolute;top:2px;right:5px;font-size:10px;font-weight:900;color:rgba(255,255,255,0.95);text-shadow:0 1px 2px rgba(0,0,0,0.5);">r</span>' : '';
+        var tooltipR = reg.esRecuperacion ? ' · recuperada' : '';
+        html += '<div style="position:relative;background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;" title="' + tooltipR + '">' + marcaR + '<div style="font-size:9px;color:rgba(255,255,255,0.85);font-weight:700;">C' + cn + '</div><div style="color:#fff;font-size:14px;font-weight:800;">' + lessonNum + '</div></div>';
       } else if (reg) {
         html += '<div style="background:#334155;border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div><div style="color:#cbd5e1;font-size:14px;font-weight:900;">F</div></div>';
       } else {
@@ -3348,9 +3350,16 @@ function renderDetalleEvalDer(d) {
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
           html += '<div title="Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
-        } else {
+                } else {
           var col = colorMap[rec.color] || '#94a3b8';
-          html += '<div style="flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span><span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span></div>';
+          var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
+          var marcaR = rec.esRecuperacion ? '<span style="position:absolute;top:1px;right:3px;font-size:8px;font-weight:900;color:rgba(255,255,255,0.95);text-shadow:0 1px 2px rgba(0,0,0,0.5);">r</span>' : '';
+          var tooltipR = rec.esRecuperacion ? ' · recuperada' : '';
+          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + tooltipR + ' · ' + diaNum + ' ' + mesStr + '" style="position:relative;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+            marcaR +
+            '<span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span>' +
+            '<span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span>' +
+          '</div>';
         }
         continue;
       }
