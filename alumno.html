@@ -10195,9 +10195,10 @@ function abrirDetalleRecuperacion(fechaISO) {
   html += '<div style="font-size:16px;font-weight:700;color:#fff;">📅 ' + fechaTxt + '</div>';
   html += '</div>';
 
-  // Instrucción (bloque bonito con título, objetivo y 5 ítems)
+    // Instrucción (bloque bonito con título, objetivo y 5 ítems)
   if (inst && (inst.titulo || inst.objetivo || (inst.items && inst.items.length))) {
-    html += renderBloqueInstruccion_(dia, inst);
+    var esKids = inst.esKids === true || (inst.titulo && String(inst.titulo).indexOf('MISIÓN') === 0);
+    html += renderBloqueInstruccion_(dia, inst, esKids);
   }
 
   // Reglas específicas de esta falta
@@ -10219,12 +10220,13 @@ function abrirDetalleRecuperacion(fechaISO) {
 }
 
 // ─── Helper: bloque bonito de la instrucción ───
-function renderBloqueInstruccion_(dia, inst) {
+function renderBloqueInstruccion_(dia, inst, esKids) {
   var html = '';
   html += '<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.28);border-radius:14px;padding:18px 20px;margin-bottom:16px;">';
 
-  // Título
-  var tituloTxt = 'LESSON ' + dia.leccion;
+  // Título: "LESSON X · Título" o "MISIÓN X · Título"
+  var labelClase = esKids ? 'MISIÓN' : 'LESSON';
+  var tituloTxt = labelClase + ' ' + dia.leccion;
   if (inst.titulo) tituloTxt += ' · ' + inst.titulo;
   html += '<div style="font-size:17px;font-weight:800;color:#fb923c;margin-bottom:4px;line-height:1.3;">' + tituloTxt + '</div>';
 
