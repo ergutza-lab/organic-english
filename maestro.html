@@ -141,6 +141,9 @@
   .apr-btn.sel-si { background: rgba(34,197,94,0.6); border-color: #4ade80; color: #fff; box-shadow:0 2px 8px rgba(34,197,94,0.3); }
   .apr-btn.sel-no { background: rgba(239,68,68,0.55); border-color: #f87171; color: #fff; box-shadow:0 2px 8px rgba(239,68,68,0.3); }
   .apr-btn.sel-nr { background: rgba(100,116,139,0.55); border-color: #94a3b8; color: #fff; box-shadow:0 2px 8px rgba(100,116,139,0.3); }
+  .apr-btn.sel-1 { background: rgba(239,68,68,0.55); border-color: #f87171; color: #fff; box-shadow: 0 0 0 3px rgba(239,68,68,0.3), 0 2px 8px rgba(239,68,68,0.4); }
+  .apr-btn.sel-2 { background: rgba(250,204,21,0.75); border-color: #facc15; color: #422006; box-shadow: 0 0 0 3px rgba(250,204,21,0.35), 0 2px 8px rgba(250,204,21,0.5); font-weight: 900; }
+  .apr-btn.sel-3 { background: rgba(34,197,94,0.65); border-color: #4ade80; color: #fff; box-shadow: 0 0 0 3px rgba(34,197,94,0.3), 0 2px 8px rgba(34,197,94,0.4); }
 
   .bloque-sel { display: flex; gap: 8px; margin-bottom: 16px; }
   .bloque-btn { flex: 1; padding: 10px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
@@ -966,12 +969,15 @@ function renderRecuperaciones() {
       html += '<a href="' + p.urlVideo + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);color:#fb923c;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;margin-bottom:12px;">🎥 Ver video del alumno</a>';
     }
 
-    // Botones de color
-    html += '<div style="display:grid;grid-template-columns:repeat(' + (p.techo === 3 ? '3' : '2') + ',1fr);gap:8px;margin-bottom:12px;">';
+        // Botones de color — SIEMPRE los 3, pero el verde se deshabilita
+    // si la falta es de semanas anteriores (techo = Amarillo).
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
     html += '<button class="apr-btn" id="recColor1-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 1)">🔴 Rojo</button>';
     html += '<button class="apr-btn" id="recColor2-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 2)">🟡 Amarillo</button>';
     if (p.techo === 3) {
       html += '<button class="apr-btn" id="recColor3-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 3)">🟢 Verde</button>';
+    } else {
+      html += '<button class="apr-btn" disabled style="opacity:0.35;cursor:not-allowed;" title="No disponible: esta falta es de semanas anteriores">🟢 Verde 🔒</button>';
     }
     html += '</div>';
 
@@ -1051,12 +1057,20 @@ function evaluarRecuperacion(idx, aprobado) {
         return;
       }
 
-      var tarjeta = status.closest('div[style*="var(--card)"]');
+            var tarjeta = status.closest('div[style*="var(--card)"]');
       if (tarjeta) {
-        tarjeta.style.opacity = '0.55';
-        tarjeta.style.borderColor = aprobado ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)';
-        var acciones = tarjeta.querySelectorAll('button');
-        acciones.forEach(function(b) { b.disabled = true; b.style.cursor = 'not-allowed'; });
+        // Solo cambiar el borde para indicar el estado. NO opacar toda la tarjeta
+        // (antes se opacaba también el botón de WhatsApp que se inyecta después).
+        tarjeta.style.borderColor = aprobado ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
+        tarjeta.style.borderWidth = '2px';
+        // Deshabilitar solo los botones de ACCIÓN (color + aprobar/rechazar).
+        // El botón de WhatsApp que aparece después NO se toca.
+        var botonesAccion = tarjeta.querySelectorAll('button.apr-btn, button[onclick*="evaluarRecuperacion"]');
+        botonesAccion.forEach(function(b) {
+          b.disabled = true;
+          b.style.cursor = 'not-allowed';
+          b.style.opacity = '0.5';
+        });
       }
 
       status.style.color = aprobado ? '#4ade80' : '#f87171';
