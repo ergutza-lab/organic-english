@@ -10112,7 +10112,9 @@ function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
 
   var diaMes = String(dia.fecha).split('-')[2];
 
-  // Feriado
+  // ═══════════════════════════════════════════════════════════════════
+  //  0) FERIADO — siempre primero
+  // ═══════════════════════════════════════════════════════════════════
   var mmdd = String(dia.fecha).substring(5);
   var FERIADOS_MX = {
     '01-01': { emoji: '🎆', nombre: 'Año Nuevo' },
@@ -10129,13 +10131,17 @@ function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
     return '<div title="' + fest.nombre + ' · ' + dia.fecha + '" style="height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' + ic + '<span style="font-size:7px;color:#93c5fd;font-weight:700;margin-top:1px;">' + diaMes + '</span></div>';
   }
 
-  // En práctica (fusión)
+  // ═══════════════════════════════════════════════════════════════════
+  //  1) EN PRÁCTICA (fusión) — SIEMPRE primero, antes de "Presente con color"
+  //     Esto blinda contra cualquier dato raro del backend.
+  // ═══════════════════════════════════════════════════════════════════
   if (dia.asistencia === 'En práctica') {
-    return '<div title="En práctica · ' + dia.fecha + '" style="height:34px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:12px;color:#94a3b8;font-weight:700;">' + diaMes + '</span></div>';
+    return '<div title="En práctica · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="height:34px;background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:12px;color:#94a3b8;font-weight:700;">' + diaMes + '</span></div>';
   }
 
-  // Presente con color → día de clase normal con evaluación.
-  // Si es una recuperación aprobada, se agrega el círculo amarillo "r".
+  // ═══════════════════════════════════════════════════════════════════
+  //  2) PRESENTE con color (día de clase con evaluación)
+  // ═══════════════════════════════════════════════════════════════════
   if (dia.asistencia === 'Presente' && dia.color) {
     var col = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'}[dia.color] || '#94a3b8';
     var colorTexto = dia.color === 2 ? '#422006' : '#fff';
@@ -10146,31 +10152,51 @@ function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
     return '<div title="Presente' + tooltipR + ' · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="position:relative;height:34px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;">' + marcaR + '<span style="font-size:12px;color:' + colorTexto + ';font-weight:800;">' + diaMes + '</span></div>';
   }
 
-  // Ausente
+  // ═══════════════════════════════════════════════════════════════════
+  //  3) AUSENTE (falta real con recuperación disponible)
+  // ═══════════════════════════════════════════════════════════════════
   if (dia.asistencia === 'Ausente') {
     // Video enviado (pendiente de revisión) → NARANJA
     if (dia.estatus === 'Pendiente') {
       return '<div title="Video enviado · pendiente de revisión · ' + dia.fecha + '" style="height:34px;background:#f97316;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:default;box-shadow:0 2px 6px rgba(249,115,22,0.35);"><span style="font-size:12px;color:#fff;font-weight:800;">' + diaMes + '</span><span style="font-size:8px;color:rgba(255,255,255,0.9);">⏳</span></div>';
     }
-        // Recuperada (aprobada) → fondo del color asignado + círculo amarillo con "r"
+    // Recuperada (aprobada) → color asignado + círculo amarillo con "r"
     if (dia.estatus === 'Aprobado') {
       var colA = dia.color === 3 ? '#22c55e' : dia.color === 2 ? '#facc15' : dia.color === 1 ? '#ef4444' : '#94a3b8';
       var colorTextoA = dia.color === 2 ? '#422006' : '#fff';
       var txtColorA = dia.color === 3 ? 'Verde' : dia.color === 2 ? 'Amarillo' : 'Rojo';
       return '<div title="Recuperada · ' + txtColorA + ' · ' + dia.fecha + '" style="position:relative;height:34px;background:' + colA + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;"><span style="font-size:12px;color:' + colorTextoA + ';font-weight:800;">' + diaMes + '</span><span style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#fbbf24;color:#000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);">r</span></div>';
     }
-    // Falta sin justificar → F grande + día en gris + clickeable (borde amarillo sutil)
+    // Falta sin justificar → F grande + clickeable (con borde amarillo)
     return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" title="Falta · click para recuperar · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="height:34px;background:#334155;border:1.5px solid rgba(251,191,36,0.5);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'scale(1)\'"><span style="font-size:14px;color:#fff;font-weight:900;line-height:1;">F</span><span style="font-size:8px;color:#94a3b8;margin-top:1px;">' + diaMes + '</span></div>';
   }
 
-  // Sin registro
-  if (dia.esFuturo) {
-    return '<div title="' + dia.fecha + '" style="height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;"><span style="color:#64748b;font-size:11px;font-weight:700;">' + diaMes + '</span></div>';
-  }
-  // Pasado sin registro → falta (F grande + día en gris, no clickeable)
-  return '<div title="Falta sin registro · ' + dia.fecha + '" style="height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="font-size:14px;color:#cbd5e1;font-weight:900;line-height:1;">F</span><span style="font-size:8px;color:#94a3b8;margin-top:1px;">' + diaMes + '</span></div>';
-}
+  // ═══════════════════════════════════════════════════════════════════
+  //  4) SIN REGISTRO → NUNCA mostrar F. Celda neutra siempre.
+  //
+  //  Reglas nuevas (aprobadas por Dirección 15/10/2026):
+  //    - Si el día aún NO ha pasado (hoy o futuro) → celda neutra "por venir"
+  //    - Si el día YA pasó pero el alumno estaba en tránsito de fusión → celda neutra
+  //    - En NINGÚN caso se marca F por "sin registro".
+  //    Solo se marca F cuando hay un registro explícito de Ausente (arriba).
+  //
+  //  Motivo: la F por falta de registro genera falsos positivos cuando el
+  //  maestro aún no ha evaluado, cuando el día es hoy, o cuando el alumno
+  //  está en tránsito de fusión y no aplicaba clase.
+  // ═══════════════════════════════════════════════════════════════════
+  var hoyISO = Utilities_formatDate_ ? '' : '';
+  var hoy = new Date();
+  var hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+  var esHoyOFuturo = (dia.fecha >= hoyStr);
 
+  if (esHoyOFuturo) {
+    // Celda neutra "por venir"
+    return '<div title="Clase por venir · ' + dia.fecha + '" style="height:34px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;"><span style="font-size:11px;color:#64748b;font-weight:700;">' + diaMes + '</span></div>';
+  }
+
+  // Día pasado sin registro → celda neutra (sin clase / en tránsito)
+  return '<div title="Sin clase registrada · ' + dia.fecha + '" style="height:34px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.06);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;"><span style="font-size:11px;color:#475569;font-weight:600;">' + diaMes + '</span></div>';
+}
 // ─── Vista 2: Detalle de la falta ───
 function abrirDetalleRecuperacion(fechaISO) {
   var dias = window._diasRecuperacion || [];
