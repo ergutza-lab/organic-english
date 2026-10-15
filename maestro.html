@@ -1463,20 +1463,43 @@ function actualizarEstadoFecha(fechaStr) {
     var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
 
     if (esSabatino) {
-      var siguiente = siguienteClaseDisponible(fechaStr);
-      if (siguiente === null) {
+      // ─── Validación: solo sábados ───
+      var fechaObj = new Date(fechaStr + 'T12:00:00');
+      var diaSemana = fechaObj.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+      if (diaSemana !== 6) {
         input.style.borderColor = '#ef4444';
-        if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Ya se registraron las 4 clases de este sábado. Selecciona otra fecha.'; }
+        if (aviso) {
+          aviso.style.display = 'block';
+          aviso.style.color = '#f87171';
+          aviso.textContent = '⚠️ Este grupo es sabatino. Selecciona un sábado.';
+        }
+        document.getElementById('listaAlumnosRegistro').innerHTML =
+          '<div class="empty-state"><p>Selecciona un sábado para evaluar.</p></div>';
+        var btnGIni = document.getElementById('btnGuardar');
+        if (btnGIni) btnGIni.style.display = 'none';
+        return;
+      }
+
+      // ─── Verificar si el día ya tiene las 4 clases registradas ───
+      var clasesHoy = (clasesPorFechaActual[fechaStr] || []).length;
+      if (clasesHoy >= 4) {
+        input.style.borderColor = '#ef4444';
+        if (aviso) {
+          aviso.style.display = 'block';
+          aviso.style.color = '#f87171';
+          aviso.textContent = '⚠️ Este sábado ya tiene las 4 clases registradas. Selecciona otra fecha.';
+        }
       } else {
         input.style.borderColor = 'rgba(168,85,247,0.5)';
-        if (aviso) { aviso.style.display='block'; aviso.textContent='📘 Vas a registrar la clase ' + siguiente + ' de 4 de este sábado.'; aviso.style.color = '#a855f7'; }
+        if (aviso) aviso.style.display = 'none';
       }
-      // ─── NUEVO (Cambio D): repintar según la nueva fecha ───
-      // Si el día está vacío → vista masiva. Si ya tiene clases → vista vieja.
+
+      // Repintar (vista masiva si está vacío, vista vieja si tiene 1-3 clases)
       renderRegistro();
       return;
     }
 
+    // ─── Grupos entre semana (sin cambios) ───
     if (fechasRegistradas.indexOf(fechaStr) !== -1) {
       input.style.borderColor = '#ef4444';
       if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'; aviso.style.color=''; }
@@ -1768,11 +1791,11 @@ function renderRegistroSabatinoMasivo() {
       return card;
     }
 
-    // 4 clases
+        // 4 clases
     for (var cn = 1; cn <= 4; cn++) {
       card += '<div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:8px;">';
 
-      // Label + botones de color
+      // Label + botones de color + botón de sugerencias
       card += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
       card += '<div style="font-size:12px;font-weight:800;color:#fff;min-width:28px;">C' + cn + '</div>';
       card += '<div class="semaforo" style="flex:1;display:flex;gap:4px;">';
@@ -1783,6 +1806,9 @@ function renderRegistroSabatinoMasivo() {
           + ' style="flex:1;padding:6px 2px;font-size:14px;">' + emoji + '</button>';
       }
       card += '</div>';
+      card += '<button onclick="abrirModalObsSab(\'' + a.id + '\',' + cn + ')"'
+        + ' title="Ver sugerencias de observación"'
+        + ' style="flex-shrink:0;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;border-radius:6px;padding:5px 9px;font-size:13px;cursor:pointer;">💡</button>';
       card += '</div>';
 
       // Observación
@@ -1802,12 +1828,25 @@ function renderRegistroSabatinoMasivo() {
 
 
 function selColorSab(idAlumno, claseNum, valor) {
+  var btn = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + valor);
+  var yaSeleccionado = btn && btn.classList.contains('sel-' + valor);
+
+  // Primero limpiamos los 4 botones de esa clase
   for (var v = 1; v <= 4; v++) {
-    var btn = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + v);
-    if (btn) btn.className = 'sem-btn' + (v === valor ? ' sel-' + v : '');
+    var b = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + v);
+    if (b) b.className = 'sem-btn';
+  }
+
+  // Si NO estaba seleccionado antes, ahora lo marcamos
+  // Si SÍ estaba seleccionado antes, se queda des-seleccionado (Ausente)
+  if (!yaSeleccionado && btn) {
+    btn.className = 'sem-btn sel-' + valor;
+  } else {
+    // Se des-seleccionó → limpiamos la observación para que no quede huérfana
+    var inpObs = document.getElementById('sab-obs-' + idAlumno + '-' + claseNum);
+    if (inpObs) inpObs.value = '';
   }
 }
-
 
 function getColorSab(idAlumno, claseNum) {
   for (var v = 4; v >= 1; v--) {
@@ -2741,19 +2780,42 @@ var OBS_OPCIONES = {
   var obsAlumnoActual = null;
   var obsColorActual  = null;
   var obsSeleccionada = null;
+  var obsClaseNum = null;
 
-  function abrirModalObs(idAlumno, color) {
+    function abrirModalObs(idAlumno, color, claseNum) {
     obsAlumnoActual = idAlumno;
     obsColorActual  = color;
     obsSeleccionada = null;
+    obsClaseNum = (typeof claseNum === 'number' && claseNum >= 1 && claseNum <= 4)
+      ? claseNum : null;
+
     document.getElementById('obsTitulo').textContent = OBS_LABELS[color];
     document.getElementById('obsTitulo').style.color  = OBS_COLORES[color];
     document.getElementById('obsLibre').value = '';
+
+    // Si es modo sábado masivo, precargar lo que ya tenga el input de esa clase
+    if (obsClaseNum) {
+      var inp = document.getElementById('sab-obs-' + idAlumno + '-' + obsClaseNum);
+      if (inp && inp.value.trim()) {
+        document.getElementById('obsLibre').value = inp.value.trim();
+      }
+    }
+
     var opciones = OBS_OPCIONES[color];
     document.getElementById('obsOpciones').innerHTML = opciones.map(function(txt, i){
       return '<div onclick="selOpcionObs(this)" data-txt="'+txt+'" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:#94a3b8;cursor:pointer;">'+txt+'</div>';
     }).join('');
     document.getElementById('modalObs').style.display = 'flex';
+  }
+
+  // Nueva función específica para la vista masiva de sábados
+  function abrirModalObsSab(idAlumno, claseNum) {
+    var color = getColorSab(idAlumno, claseNum);
+    if (!color) {
+      mostrarToast('Primero selecciona un color para esta clase', 'error');
+      return;
+    }
+    abrirModalObs(idAlumno, color, claseNum);
   }
 
   function selOpcionObs(el) {
@@ -2779,15 +2841,23 @@ var OBS_OPCIONES = {
   function confirmarObs() {
     var libre = document.getElementById('obsLibre').value.trim();
     var texto = libre || obsSeleccionada || '';
+
     if (texto && obsAlumnoActual) {
-     document.getElementById('obs-'+obsAlumnoActual).value = texto;
-      var disp = document.getElementById('obs-'+obsAlumnoActual+'-display');
-      if (disp) { disp.textContent = texto; disp.style.color = '#fff'; }
+      if (obsClaseNum) {
+        // Modo sábado masivo → escribe en el input de esa clase
+        var inpSab = document.getElementById('sab-obs-' + obsAlumnoActual + '-' + obsClaseNum);
+        if (inpSab) inpSab.value = texto;
+      } else {
+        // Modo viejo (una observación por día)
+        document.getElementById('obs-'+obsAlumnoActual).value = texto;
+        var disp = document.getElementById('obs-'+obsAlumnoActual+'-display');
+        if (disp) { disp.textContent = texto; disp.style.color = '#fff'; }
+      }
     }
     cerrarModalObs();
   }
 
-function entrarZoomMaestro() {
+  function entrarZoomMaestro() {
     if (!grupoActual || !grupoActual.linkZoom) {
       mostrarToast('No hay enlace Zoom configurado para este grupo','error');
       return;
@@ -2795,7 +2865,7 @@ function entrarZoomMaestro() {
     window.open(grupoActual.linkZoom, '_blank');
   }
 
-function invitarClase() {
+  function invitarClase() {
     if (!grupoActual || !grupoActual.linkWhats) {
       mostrarToast('No hay link de WhatsApp configurado para este grupo','error');
       return;
@@ -2821,6 +2891,7 @@ function invitarClase() {
     document.getElementById('modalObs').style.display = 'none';
     obsAlumnoActual = null;
     obsSeleccionada = null;
+    obsClaseNum = null;
   }
 
 function lenteSVGMaestro(pct){
