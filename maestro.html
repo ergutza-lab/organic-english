@@ -1743,7 +1743,11 @@ function renderRegistroSabatinoMasivo() {
   var alumnos = grupoActual.alumnos || [];
   var lista = document.getElementById('listaAlumnosRegistro');
   var btnG = document.getElementById('btnGuardar');
-  if (btnG) btnG.textContent = '✅ Aplicar las 4 clases de hoy';
+  if (btnG) {
+    btnG.style.display = 'block';
+    btnG.disabled = false;
+    btnG.textContent = '✅ Aplicar las 4 clases de hoy';
+  }
 
   if (!alumnos.length) {
     lista.innerHTML = '<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>';
@@ -1795,7 +1799,7 @@ function renderRegistroSabatinoMasivo() {
     for (var cn = 1; cn <= 4; cn++) {
       card += '<div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:8px;">';
 
-      // Label + botones de color + botón de sugerencias
+            // Label + botones de color
       card += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
       card += '<div style="font-size:12px;font-weight:800;color:#fff;min-width:28px;">C' + cn + '</div>';
       card += '<div class="semaforo" style="flex:1;display:flex;gap:4px;">';
@@ -1806,9 +1810,6 @@ function renderRegistroSabatinoMasivo() {
           + ' style="flex:1;padding:6px 2px;font-size:14px;">' + emoji + '</button>';
       }
       card += '</div>';
-      card += '<button onclick="abrirModalObsSab(\'' + a.id + '\',' + cn + ')"'
-        + ' title="Ver sugerencias de observación"'
-        + ' style="flex-shrink:0;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;border-radius:6px;padding:5px 9px;font-size:13px;cursor:pointer;">💡</button>';
       card += '</div>';
 
       // Observación
@@ -1831,31 +1832,23 @@ function selColorSab(idAlumno, claseNum, valor) {
   var btn = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + valor);
   var yaSeleccionado = btn && btn.classList.contains('sel-' + valor);
 
-  // Primero limpiamos los 4 botones de esa clase
+  // Limpiar los 4 botones de esa clase
   for (var v = 1; v <= 4; v++) {
     var b = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + v);
     if (b) b.className = 'sem-btn';
   }
 
-  // Si NO estaba seleccionado antes, ahora lo marcamos
-  // Si SÍ estaba seleccionado antes, se queda des-seleccionado (Ausente)
-  if (!yaSeleccionado && btn) {
-    btn.className = 'sem-btn sel-' + valor;
-  } else {
-    // Se des-seleccionó → limpiamos la observación para que no quede huérfana
+  // Si ya estaba marcado ese color → se des-marca (Ausente) y no abre modal
+  if (yaSeleccionado) {
     var inpObs = document.getElementById('sab-obs-' + idAlumno + '-' + claseNum);
     if (inpObs) inpObs.value = '';
+    return;
   }
-}
 
-function getColorSab(idAlumno, claseNum) {
-  for (var v = 4; v >= 1; v--) {
-    var btn = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + v);
-    if (btn && btn.classList.contains('sel-' + v)) return v;
-  }
-  return 0;
+  // Color nuevo → lo marca y abre el modal de sugerencias
+  if (btn) btn.className = 'sem-btn sel-' + valor;
+  abrirModalObs(idAlumno, valor, claseNum);
 }
-
 
 function guardarRegistroSabatinoMasivo() {
   var fecha = document.getElementById('fechaClase').value;
