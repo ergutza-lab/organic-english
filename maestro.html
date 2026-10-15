@@ -1471,6 +1471,9 @@ function actualizarEstadoFecha(fechaStr) {
         input.style.borderColor = 'rgba(168,85,247,0.5)';
         if (aviso) { aviso.style.display='block'; aviso.textContent='📘 Vas a registrar la clase ' + siguiente + ' de 4 de este sábado.'; aviso.style.color = '#a855f7'; }
       }
+      // ─── NUEVO (Cambio D): repintar según la nueva fecha ───
+      // Si el día está vacío → vista masiva. Si ya tiene clases → vista vieja.
+      renderRegistro();
       return;
     }
 
@@ -1558,160 +1561,346 @@ function actualizarEstadoFecha(fechaStr) {
 
   // ── REGISTRO DIARIO ────────────────────────────────────────────────
     function renderRegistro() {
+  // ─── NUEVO: detectar si toca la vista masiva de sábado ───
+  var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
+  var fechaActual = document.getElementById('fechaClase').value;
+  var clasesHoy = clasesPorFechaActual[fechaActual] || [];
+
+  if (esSabatino && clasesHoy.length === 0) {
+    renderRegistroSabatinoMasivo();
+    return;
+  }
+
+  // ─── Flujo viejo (idéntico al que ya tenías) ───
     var alumnos=grupoActual.alumnos||[];
-    var lista=document.getElementById('listaAlumnosRegistro');
-    if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>'; return; }
+  var lista=document.getElementById('listaAlumnosRegistro');
+  var btnG = document.getElementById('btnGuardar');
+  if (btnG) {
+    btnG.style.display = 'block';
+    btnG.textContent = 'Guardar registro del día';
+    btnG.disabled = false;
+  }
 
-    var OBS = {
-      1: [
-        'Necesita más apoyo para lograr el objetivo comunicativo de la clase.',
-        'Participó muy poco durante las actividades del día.',
-        'Aún presenta dificultad para usar el lenguaje objetivo.',
-        'Requiere más práctica y participación en clase.',
-        'Necesita mejorar asistencia, atención o participación para avanzar.'
-      ],
-      2: [
-        'Logró parcialmente el objetivo con apoyo constante.',
-        'Mostró esfuerzo, pero aún necesita más confianza al comunicarse.',
-        'Participó y comprendió parte del objetivo de la clase.',
-        'Va avanzando, pero necesita practicar más de forma independiente.',
-        'Mostró mejora durante la clase, aunque todavía requiere apoyo frecuente.'
-      ],
-      3: [
-        'Cumplió el objetivo comunicativo de la clase correctamente.',
-        'Participó activamente y se comunicó de forma comprensible.',
-        'Mostró buena comprensión y uso del lenguaje objetivo.',
-        'Trabajó de manera constante y con poca ayuda.',
-        'Participó bien en práctica y breakout rooms.'
-      ],
-      4: [
-        'Superó el objetivo de la clase con confianza.',
-        'Participó espontáneamente y agregó información extra.',
-        'Mostró excelente iniciativa comunicativa durante la clase.',
-        'Se comunicó con seguridad y apoyó activamente en actividades.',
-        'Demostró muy buen desempeño e independencia al usar el inglés.'
-      ]
-    };
+  if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>'; return; }
 
-    var COLORES_LABEL = {1:'Rojo — Mejorable', 2:'Amarillo — En proceso', 3:'Verde — Adecuado', 4:'Azul — Destacado'};
+  var OBS = {
+    1: [
+      'Necesita más apoyo para lograr el objetivo comunicativo de la clase.',
+      'Participó muy poco durante las actividades del día.',
+      'Aún presenta dificultad para usar el lenguaje objetivo.',
+      'Requiere más práctica y participación en clase.',
+      'Necesita mejorar asistencia, atención o participación para avanzar.'
+    ],
+    2: [
+      'Logró parcialmente el objetivo con apoyo constante.',
+      'Mostró esfuerzo, pero aún necesita más confianza al comunicarse.',
+      'Participó y comprendió parte del objetivo de la clase.',
+      'Va avanzando, pero necesita practicar más de forma independiente.',
+      'Mostró mejora durante la clase, aunque todavía requiere apoyo frecuente.'
+    ],
+    3: [
+      'Cumplió el objetivo comunicativo de la clase correctamente.',
+      'Participó activamente y se comunicó de forma comprensible.',
+      'Mostró buena comprensión y uso del lenguaje objetivo.',
+      'Trabajó de manera constante y con poca ayuda.',
+      'Participó bien en práctica y breakout rooms.'
+    ],
+    4: [
+      'Superó el objetivo de la clase con confianza.',
+      'Participó espontáneamente y agregó información extra.',
+      'Mostró excelente iniciativa comunicativa durante la clase.',
+      'Se comunicó con seguridad y apoyó activamente en actividades.',
+      'Demostró muy buen desempeño e independencia al usar el inglés.'
+    ]
+  };
 
-    var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
+  var COLORES_LABEL = {1:'Rojo — Mejorable', 2:'Amarillo — En proceso', 3:'Verde — Adecuado', 4:'Azul — Destacado'};
 
-    lista.innerHTML=alumnos.map(function(a){
-      // ─── Calcular si el alumno está bloqueado por fusión ───
+  var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
+
+  lista.innerHTML=alumnos.map(function(a){
+    var enFusion = !!a.enFusion;
+    var ultimaEval = a.ultimaLeccionEvaluada;
+    var puedeEvaluar = !enFusion
+      || ultimaEval === null
+      || ultimaEval === undefined
+      || leccionActualGrupo > ultimaEval;
+
+    var bloqueadoPorFusion = enFusion && !puedeEvaluar;
+
+    var badgeFusion = '';
+    var infoFusion = '';
+    var claseAlumnoFusion = '';
+
+    if (enFusion) {
+      if (bloqueadoPorFusion) {
+        badgeFusion = '<div style="background:rgba(250,204,21,0.2);border:1.5px solid rgba(250,204,21,0.6);color:#fde047;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-top:6px;">🔄 En repaso</div>';
+        infoFusion =
+          '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.35);border-radius:8px;padding:10px 12px;margin-top:10px;">' +
+            '<div style="font-size:11px;color:#fde047;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">🔄 Alumno en período de repaso</div>' +
+            '<div style="font-size:12px;color:rgba(255,255,255,0.95);line-height:1.6;">' +
+              'Última evaluada: <strong>Lesson ' + ultimaEval + '</strong> · ' +
+              'Grupo va en <strong>Lesson ' + leccionActualGrupo + '</strong><br>' +
+              '<span style="color:#fde047;">Podrás evaluarlo a partir de Lesson ' + (ultimaEval + 1) + '</span>' +
+            '</div>' +
+            (a.periodoFusion ?
+              '<div style="text-align:right;font-size:10px;color:rgba(255,255,255,0.55);margin-top:8px;">' +
+                a.periodoFusion.idPeriodo + ' · ' + (a.periodoFusion.inicio || '') +
+              '</div>' : '') +
+          '</div>';
+        claseAlumnoFusion = ' alumno-en-fusion-bloqueado';
+      } else {
+        badgeFusion = '<div style="background:rgba(34,197,94,0.2);border:1.5px solid rgba(34,197,94,0.6);color:#86efac;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-top:6px;">✅ Ya es evaluable</div>';
+        infoFusion =
+          '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;color:rgba(255,255,255,0.9);line-height:1.5;">' +
+            'Grupo en <strong>Lesson ' + leccionActualGrupo + '</strong> · Última evaluada: <strong>Lesson ' + ultimaEval + '</strong><br>' +
+            '<span style="color:#86efac;">Alumno listo para ser evaluado ✓</span>' +
+            (a.periodoFusion ?
+              '<div style="text-align:right;font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;">' +
+                a.periodoFusion.idPeriodo +
+              '</div>' : '') +
+          '</div>';
+      }
+    }
+
+    var btns = COLORES_EVAL.map(function(c){
+      var disabledAttr = bloqueadoPorFusion ? ' disabled style="opacity:0.35;cursor:not-allowed;pointer-events:none;"' : '';
+      var onclick = bloqueadoPorFusion ? '' : ' onclick="selColor(\''+a.id+'\','+c.val+');abrirModalObs(\''+a.id+'\','+c.val+')"';
+      return '<button class="sem-btn" id="eval-'+c.val+'-'+a.id+'"' + onclick + disabledAttr + ' title="'+c.label+'">'+c.emoji+'</button>';
+    }).join('');
+
+    var inputNota = bloqueadoPorFusion
+      ? '<input type="text" id="obs-'+a.id+'-nota" disabled placeholder="No disponible durante el repaso" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.4);font-size:12px;outline:none;box-sizing:border-box;cursor:not-allowed;" />'
+      : '<input type="text" id="obs-'+a.id+'-nota" placeholder="Escribe una nota adicional..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;box-sizing:border-box;" />';
+
+    var obsDisplay = bloqueadoPorFusion
+      ? '<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.4);font-size:12px;min-height:36px;">Sin evaluación durante el período de repaso</div>'
+      : '<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.6);font-size:12px;min-height:36px;">— Selecciona un color para ver opciones —</div>';
+
+    var colorSolidoReg = colorPorNivel(grupoActual.nivel);
+    var bordeExtra = bloqueadoPorFusion ? 'border:2px solid rgba(250,204,21,0.6);' : 'border:1px solid rgba(255,255,255,0.15);';
+
+    return '<div class="alumno-registro" style="background:'+colorSolidoReg+';'+bordeExtra+'">'
+      +'<div class="alumno-reg-header" style="border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:10px;margin-bottom:12px;">'
+        +'<span class="alumno-reg-nombre">'+a.nombre+'</span>'
+        +'<span class="alumno-reg-id">'+a.id+'</span>'
+      +'</div>'
+      + badgeFusion
+      + infoFusion
+      +(!bloqueadoPorFusion ?
+        '<div style="margin-top:12px;margin-bottom:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:14px;">ℹ️</span>'
+          +'<span style="font-size:11px;color:rgba(255,255,255,0.85);">Si registras una calificación el alumno se marcará como <strong style="color:#4ade80;">Presente</strong>. Si no registras nada, quedará como <strong style="color:#f87171;">Ausente</strong>.</span>'
+        +'</div>'
+        : '')
+      +'<div style="margin-bottom:12px;margin-top:10px;">'
+        +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Evaluación del día</div>'
+        +'<div class="semaforo">'+btns+'</div>'
+      +'</div>'
+      +'<div style="margin-bottom:8px;">'
+        +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Observación seleccionada</div>'
+        + obsDisplay
+        +'<input type="hidden" id="obs-'+a.id+'" value="" />'
+      +'</div>'
+      +'<div id="nota-wrap-'+a.id+'" style="display:none;">'
+        +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Nota adicional (opcional)</div>'
+        + inputNota
+      +'</div>'
+      +(!bloqueadoPorFusion
+        ? '<button onclick="toggleNota(\''+a.id+'\')" style="background:transparent;border:none;color:rgba(255,255,255,0.75);font-size:11px;cursor:pointer;margin-top:6px;padding:0;">+ Agregar nota adicional</button>'
+        : '')
+    +'</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Vista masiva de sábado: 4 clases en una sola planilla
+// ═══════════════════════════════════════════════════════════════════════
+function renderRegistroSabatinoMasivo() {
+  var alumnos = grupoActual.alumnos || [];
+  var lista = document.getElementById('listaAlumnosRegistro');
+  var btnG = document.getElementById('btnGuardar');
+  if (btnG) btnG.textContent = '✅ Aplicar las 4 clases de hoy';
+
+  if (!alumnos.length) {
+    lista.innerHTML = '<div class="empty-state"><p>No hay alumnos en este grupo.</p></div>';
+    return;
+  }
+
+  var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
+  var colorSolido = colorPorNivel(grupoActual.nivel);
+
+  var html = '';
+
+  // Banner informativo
+  html += '<div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.4);border-radius:12px;padding:14px 16px;margin-bottom:16px;color:#c4b5fd;font-size:12px;line-height:1.6;">'
+    + '<strong style="font-size:13px;">📘 Evaluación masiva de sábado</strong><br>'
+    + 'Registra las <strong>4 clases de hoy de una sola vez</strong>. Cada clase se guarda con su propio color y observación. '
+    + 'Si dejas una clase <strong>sin color</strong>, el alumno se registra como <strong>ausente</strong> en esa clase (podrá recuperarla después).'
+    + '</div>';
+
+  html += alumnos.map(function(a) {
+    var enFusion = !!a.enFusion;
+    var ultimaEval = a.ultimaLeccionEvaluada;
+    var puedeEvaluar = !enFusion
+      || ultimaEval === null
+      || ultimaEval === undefined
+      || leccionActualGrupo > ultimaEval;
+    var bloqueadoPorFusion = enFusion && !puedeEvaluar;
+
+    var bordeExtra = bloqueadoPorFusion
+      ? 'border:2px solid rgba(250,204,21,0.6);'
+      : 'border:1px solid rgba(255,255,255,0.15);';
+
+    var card = '<div class="alumno-registro" style="background:' + colorSolido + ';' + bordeExtra + 'padding:14px;">';
+
+    // Header
+    card += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.15);">';
+    card += '<span style="font-size:14px;font-weight:700;color:#fff;">' + a.nombre + '</span>';
+    card += '<span style="font-size:11px;color:rgba(255,255,255,0.75);">' + a.id + '</span>';
+    card += '</div>';
+
+    if (bloqueadoPorFusion) {
+      card += '<div style="background:rgba(250,204,21,0.15);border:1px solid rgba(250,204,21,0.5);border-radius:8px;padding:12px;color:#fde047;font-size:12px;text-align:center;">';
+      card += '🔄 En repaso (fusión) — no evaluable hoy';
+      card += '</div>';
+      card += '</div>';
+      return card;
+    }
+
+    // 4 clases
+    for (var cn = 1; cn <= 4; cn++) {
+      card += '<div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:8px;">';
+
+      // Label + botones de color
+      card += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+      card += '<div style="font-size:12px;font-weight:800;color:#fff;min-width:28px;">C' + cn + '</div>';
+      card += '<div class="semaforo" style="flex:1;display:flex;gap:4px;">';
+      for (var v = 1; v <= 4; v++) {
+        var emoji = {1:'🔴', 2:'🟡', 3:'🟢', 4:'🔵'}[v];
+        card += '<button class="sem-btn" id="sab-' + a.id + '-' + cn + '-' + v + '"'
+          + ' onclick="selColorSab(\'' + a.id + '\',' + cn + ',' + v + ')"'
+          + ' style="flex:1;padding:6px 2px;font-size:14px;">' + emoji + '</button>';
+      }
+      card += '</div>';
+      card += '</div>';
+
+      // Observación
+      card += '<input type="text" id="sab-obs-' + a.id + '-' + cn + '"'
+        + ' placeholder="Observación de C' + cn + ' (opcional)"'
+        + ' style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:6px 10px;color:#fff;font-size:11px;outline:none;box-sizing:border-box;" />';
+
+      card += '</div>';
+    }
+
+    card += '</div>';
+    return card;
+  }).join('');
+
+  lista.innerHTML = html;
+}
+
+
+function selColorSab(idAlumno, claseNum, valor) {
+  for (var v = 1; v <= 4; v++) {
+    var btn = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + v);
+    if (btn) btn.className = 'sem-btn' + (v === valor ? ' sel-' + v : '');
+  }
+}
+
+
+function getColorSab(idAlumno, claseNum) {
+  for (var v = 4; v >= 1; v--) {
+    var btn = document.getElementById('sab-' + idAlumno + '-' + claseNum + '-' + v);
+    if (btn && btn.classList.contains('sel-' + v)) return v;
+  }
+  return 0;
+}
+
+
+function guardarRegistroSabatinoMasivo() {
+  var fecha = document.getElementById('fechaClase').value;
+  if (!fecha) { mostrarToast('Selecciona la fecha', 'error'); return; }
+
+  var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
+  if (!esSabatino) { mostrarToast('Este grupo no es sabatino', 'error'); return; }
+
+  var alumnos = grupoActual.alumnos || [];
+  var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
+
+  // Construir 4 clases
+  var clases = [];
+  for (var cn = 1; cn <= 4; cn++) {
+    var registros = alumnos.map(function(a) {
       var enFusion = !!a.enFusion;
       var ultimaEval = a.ultimaLeccionEvaluada;
-      // El alumno puede evaluarse si:
-      //   - No está en fusión, o
-      //   - No tiene evaluaciones previas (null/undefined), o
-      //   - La lección actual del grupo ya superó su última evaluada
       var puedeEvaluar = !enFusion
         || ultimaEval === null
         || ultimaEval === undefined
         || leccionActualGrupo > ultimaEval;
-
       var bloqueadoPorFusion = enFusion && !puedeEvaluar;
 
-      // ─── Construir badge de estado de fusión ───
-      var badgeFusion = '';
-      var infoFusion = '';
-      var claseAlumnoFusion = '';
-
-      if (enFusion) {
-        if (bloqueadoPorFusion) {
-          // Badge amarillo: en repaso, no evaluable aún
-          badgeFusion = '<div style="background:rgba(250,204,21,0.2);border:1.5px solid rgba(250,204,21,0.6);color:#fde047;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-top:6px;">🔄 En repaso</div>';
-          infoFusion =
-            '<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.35);border-radius:8px;padding:10px 12px;margin-top:10px;">' +
-              '<div style="font-size:11px;color:#fde047;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">🔄 Alumno en período de repaso</div>' +
-              '<div style="font-size:12px;color:rgba(255,255,255,0.95);line-height:1.6;">' +
-                'Última evaluada: <strong>Lesson ' + ultimaEval + '</strong> · ' +
-                'Grupo va en <strong>Lesson ' + leccionActualGrupo + '</strong><br>' +
-                '<span style="color:#fde047;">Podrás evaluarlo a partir de Lesson ' + (ultimaEval + 1) + '</span>' +
-              '</div>' +
-              (a.periodoFusion ?
-                '<div style="text-align:right;font-size:10px;color:rgba(255,255,255,0.55);margin-top:8px;">' +
-                  a.periodoFusion.idPeriodo + ' · ' + (a.periodoFusion.inicio || '') +
-                '</div>' : '') +
-            '</div>';
-          claseAlumnoFusion = ' alumno-en-fusion-bloqueado';
-        } else {
-          // Badge verde: ya es evaluable
-          badgeFusion = '<div style="background:rgba(34,197,94,0.2);border:1.5px solid rgba(34,197,94,0.6);color:#86efac;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-top:6px;">✅ Ya es evaluable</div>';
-          infoFusion =
-            '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;color:rgba(255,255,255,0.9);line-height:1.5;">' +
-              'Grupo en <strong>Lesson ' + leccionActualGrupo + '</strong> · Última evaluada: <strong>Lesson ' + ultimaEval + '</strong><br>' +
-              '<span style="color:#86efac;">Alumno listo para ser evaluado ✓</span>' +
-              (a.periodoFusion ?
-                '<div style="text-align:right;font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;">' +
-                  a.periodoFusion.idPeriodo +
-                '</div>' : '') +
-            '</div>';
-        }
+      if (bloqueadoPorFusion) {
+        return { idAlumno: a.id, enPractica: true };
       }
 
-      // ─── Construir botones de color (deshabilitados si bloqueado) ───
-      var btns = COLORES_EVAL.map(function(c){
-        var disabledAttr = bloqueadoPorFusion ? ' disabled style="opacity:0.35;cursor:not-allowed;pointer-events:none;"' : '';
-        var onclick = bloqueadoPorFusion ? '' : ' onclick="selColor(\''+a.id+'\','+c.val+');abrirModalObs(\''+a.id+'\','+c.val+')"';
-        return '<button class="sem-btn" id="eval-'+c.val+'-'+a.id+'"' + onclick + disabledAttr + ' title="'+c.label+'">'+c.emoji+'</button>';
-      }).join('');
+      var color = getColorSab(a.id, cn);
+      var obsEl = document.getElementById('sab-obs-' + a.id + '-' + cn);
+      var obs = obsEl ? obsEl.value.trim() : '';
 
-      // ─── Input de nota adicional (deshabilitado si bloqueado) ───
-      var inputNota = bloqueadoPorFusion
-        ? '<input type="text" id="obs-'+a.id+'-nota" disabled placeholder="No disponible durante el repaso" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.4);font-size:12px;outline:none;box-sizing:border-box;cursor:not-allowed;" />'
-        : '<input type="text" id="obs-'+a.id+'-nota" placeholder="Escribe una nota adicional..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;box-sizing:border-box;" />';
+      return {
+        idAlumno: a.id,
+        color: color,
+        observacion: obs
+      };
+    });
 
-      // ─── Observación seleccionada (oculta si bloqueado) ───
-      var obsDisplay = bloqueadoPorFusion
-        ? '<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.4);font-size:12px;min-height:36px;">Sin evaluación durante el período de repaso</div>'
-        : '<div id="obs-'+a.id+'-display" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:rgba(255,255,255,0.6);font-size:12px;min-height:36px;">— Selecciona un color para ver opciones —</div>';
-
-      var colorSolidoReg = colorPorNivel(grupoActual.nivel);
-      var bordeExtra = bloqueadoPorFusion ? 'border:2px solid rgba(250,204,21,0.6);' : 'border:1px solid rgba(255,255,255,0.15);';
-
-      return '<div class="alumno-registro" style="background:'+colorSolidoReg+';'+bordeExtra+'">'
-
-        +'<div class="alumno-reg-header" style="border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:10px;margin-bottom:12px;">'
-          +'<span class="alumno-reg-nombre">'+a.nombre+'</span>'
-          +'<span class="alumno-reg-id">'+a.id+'</span>'
-        +'</div>'
-
-        + badgeFusion
-
-        + infoFusion
-
-        +(!bloqueadoPorFusion ?
-          '<div style="margin-top:12px;margin-bottom:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">'
-            +'<span style="font-size:14px;">ℹ️</span>'
-            +'<span style="font-size:11px;color:rgba(255,255,255,0.85);">Si registras una calificación el alumno se marcará como <strong style="color:#4ade80;">Presente</strong>. Si no registras nada, quedará como <strong style="color:#f87171;">Ausente</strong>.</span>'
-          +'</div>'
-          : '')
-
-        +'<div style="margin-bottom:12px;margin-top:10px;">'
-          +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Evaluación del día</div>'
-          +'<div class="semaforo">'+btns+'</div>'
-        +'</div>'
-
-        +'<div style="margin-bottom:8px;">'
-          +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Observación seleccionada</div>'
-          + obsDisplay
-          +'<input type="hidden" id="obs-'+a.id+'" value="" />'
-        +'</div>'
-
-        +'<div id="nota-wrap-'+a.id+'" style="display:none;">'
-          +'<div style="font-size:10px;color:rgba(255,255,255,0.75);margin-bottom:4px;text-transform:uppercase;font-weight:600;">Nota adicional (opcional)</div>'
-          + inputNota
-        +'</div>'
-
-        +(!bloqueadoPorFusion
-          ? '<button onclick="toggleNota(\''+a.id+'\')" style="background:transparent;border:none;color:rgba(255,255,255,0.75);font-size:11px;cursor:pointer;margin-top:6px;padding:0;">+ Agregar nota adicional</button>'
-          : '')
-
-      +'</div>';
-    }).join('');
+    clases.push({ claseNum: cn, registros: registros });
   }
 
+  var btn = document.getElementById('btnGuardar');
+  btn.textContent = 'Guardando las 4 clases...';
+  btn.disabled = true;
+
+  var url = APPS_SCRIPT + '?action=registrarDiaSabatinoMasivo'
+    + '&idGrupo=' + encodeURIComponent(grupoActual.id)
+    + '&fecha=' + encodeURIComponent(fecha)
+    + '&idMaestro=' + encodeURIComponent(maestroData.id)
+    + '&clases=' + encodeURIComponent(JSON.stringify(clases));
+
+  fetch(url, { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        mostrarToast('✅ Las 4 clases quedaron registradas', 'success');
+
+        // Actualizar el estado local de clases por fecha
+        if (!clasesPorFechaActual[fecha]) clasesPorFechaActual[fecha] = [];
+        [1, 2, 3, 4].forEach(function(n) {
+          if (clasesPorFechaActual[fecha].indexOf(n) === -1) clasesPorFechaActual[fecha].push(n);
+        });
+
+        // Mostrar mensaje de éxito y ocultar el botón
+        document.getElementById('listaAlumnosRegistro').innerHTML =
+          '<div class="empty-state" style="padding:32px 20px;">'
+          + '<p style="font-size:14px;color:#4ade80;">✅ Las 4 clases de este sábado ya quedaron registradas.</p>'
+          + '<p style="font-size:12px;color:#94a3b8;margin-top:8px;">Puedes ver el resultado en la pestaña "Evaluación del grupo".</p>'
+          + '</div>';
+        btn.style.display = 'none';
+        actualizarEstadoFecha(fecha);
+      } else {
+        btn.textContent = '✅ Aplicar las 4 clases de hoy';
+        btn.disabled = false;
+        mostrarToast('Error: ' + (data.error || ''), 'error');
+      }
+    })
+    .catch(function() {
+      btn.textContent = '✅ Aplicar las 4 clases de hoy';
+      btn.disabled = false;
+      mostrarToast('Error de conexión', 'error');
+    });
+}
+  
   function selObservacion(idAlumno) {
     var sel = document.getElementById('obs-sel-'+idAlumno);
     var color = sel.options[sel.selectedIndex].getAttribute('data-color');
@@ -1752,6 +1941,14 @@ function actualizarEstadoFecha(fechaStr) {
   }
 
   function guardarRegistro() {
+  // ─── Desviar al modo masivo si estamos en la vista de sábado masivo ───
+  var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
+  var fechaActual = document.getElementById('fechaClase').value;
+  var clasesHoy = clasesPorFechaActual[fechaActual] || [];
+  if (esSabatino && clasesHoy.length === 0 && document.getElementById('sab-' + (grupoActual.alumnos[0] ? grupoActual.alumnos[0].id : 'X') + '-1-1')) {
+    guardarRegistroSabatinoMasivo();
+    return;
+  }
     var fecha=document.getElementById('fechaClase').value;
     if (!fecha) { mostrarToast('Selecciona la fecha de la clase','error'); return; }
 
