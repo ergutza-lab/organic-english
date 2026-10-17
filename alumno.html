@@ -10994,16 +10994,22 @@ function renderDetalleEvalDer(d) {
   //  Fecha de referencia: la más temprana entre inscripción y primer registro.
   //  Antes de esa fecha el alumno no cuenta (no aplicaba).
   // ═══════════════════════════════════════════════════════════════════
-  var fechaReferencia = null;
-  if (fechaInscripcionAl && primerRegistroAl) {
-    fechaReferencia = fechaInscripcionAl < primerRegistroAl ? fechaInscripcionAl : primerRegistroAl;
-  } else if (fechaInscripcionAl) {
-    fechaReferencia = fechaInscripcionAl;
-  } else if (primerRegistroAl) {
-    fechaReferencia = primerRegistroAl;
-  } else if (fechaInicioGrupoAl) {
-    fechaReferencia = fechaInicioGrupoAl;
-  }
+  // ✅ El primer registro del alumno ES el inicio efectivo de sus clases.
+// Si se inscribió un jueves pero empezó hasta el lunes, los días hábiles
+// entre la inscripción y su primer registro NO se marcan como falta —
+// simplemente "no aplicaba" para él.
+var fechaReferencia = null;
+if (primerRegistroAl) {
+  fechaReferencia = primerRegistroAl;    // ← prioridad: primer registro real
+} else if (fechaInscripcionAl) {
+  fechaReferencia = fechaInscripcionAl;
+} else if (fechaInicioGrupoAl) {
+  fechaReferencia = fechaInicioGrupoAl;
+}
+
+// Si el maestro no ha registrado NINGUNA clase todavía, no marcamos F
+// en ningún día (no sabemos si el alumno faltó o si el maestro no ha abierto).
+var hayRegistrosMaestro = cal.length > 0;
 
   // Header de días
   html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
@@ -11110,26 +11116,27 @@ function renderDetalleEvalDer(d) {
           '<span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span>' +
           '<span style="color:#475569;font-size:7px;">' + mesStr + '</span>' +
         '</div>';
-      } else if (!yaEmpezó) {
-        // Antes de la inscripción del alumno → no aplicaba
-        html += '<div title="Antes de tu inscripción · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
-          '<span style="color:#475569;font-size:10px;">' + diaNum + '</span>' +
-          '<span style="color:#334155;font-size:7px;">' + mesStr + '</span>' +
-        '</div>';
-      } else {
-        // ═══════════════════════════════════════════════════════════════
-        //  Día de clase pasado, sin registro → F (falta)
-        //  NO se muestra vacío ni X. Regla: si hubo clase y no hay
-        //  evaluación, el alumno faltó.
-        // ═══════════════════════════════════════════════════════════════
-        html += '<div title="Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
-          '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
-          '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
-        '</div>';
-      }
-    }
-    html += '</div>';
-  }
+     } else if (!yaEmpezó) {
+  // ✅ Antes del primer registro real del alumno → no aplicaba para él
+  html += '<div title="Antes de tu primera clase · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+    '<span style="color:#475569;font-size:10px;">' + diaNum + '</span>' +
+    '<span style="color:#334155;font-size:7px;">' + mesStr + '</span>' +
+  '</div>';
+} else if (!hayRegistrosMaestro) {
+  // ✅ NUEVO: el maestro no ha registrado NINGUNA clase todavía
+  // → celda neutra. Evita marcar F cuando simplemente el maestro
+  //   no ha abierto el sistema todavía.
+  html += '<div title="Pendiente de registro · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+    '<span style="color:#64748b;font-size:10px;font-weight:600;">' + diaNum + '</span>' +
+    '<span style="color:#475569;font-size:7px;">' + mesStr + '</span>' +
+  '</div>';
+} else {
+  // Día de clase pasado, con maestro activo, sin registro → F (falta real)
+  html += '<div title="Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+    '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
+    '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
+  '</div>';
+}
 
   if (cal.length === 0) {
     html += '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:6px;">Tu calendario detallado estará disponible en cuanto tu maestro registre clases.</div>';
