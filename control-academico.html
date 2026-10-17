@@ -1940,7 +1940,6 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var grupo  = data.grupo || {};
       var maestro = data.maestro || '—';
 
-      // Datos canónicos por bloque (vienen del backend ya calculados)
       var b1 = (data.porBloque && data.porBloque[1]) ? data.porBloque[1] : null;
       var b2 = (data.porBloque && data.porBloque[2]) ? data.porBloque[2] : null;
       if (!b1) b1 = {nota:null,asistencia:null,colores:null,total:0,presentes:0,miniAprobado:false,grandAprobado:false,tieneRegistros:false,esColocacion:false};
@@ -1966,9 +1965,10 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         if(pc>=60) return '#f97316';
         return '#ef4444';
       }
+      // ⬅️ Gema reducida de 74x84 → 58x66
       function gemaSVGReporte_(porcentaje, idUnico){
         var gemaColor=gemaColorTier_(porcentaje);
-        return '<svg width="74" height="84" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
+        return '<svg width="58" height="66" viewBox="0 0 60 68" xmlns="http://www.w3.org/2000/svg">'
           +'<defs><linearGradient id="gF'+idUnico+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="100%" stop-color="'+gemaColor+'" stop-opacity="0"/></linearGradient></defs>'
           +'<polygon points="30,4 44,18 30,14 16,18" fill="url(#gF'+idUnico+')" stroke="'+gemaColor+'" stroke-width="0.5"/>'
           +'<polygon points="30,4 16,18 8,18 18,4" fill="'+gemaColor+'" opacity="0.75" stroke="'+gemaColor+'" stroke-width="0.5"/>'
@@ -1982,9 +1982,10 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
           +'<circle cx="30" cy="63" r="2.5" fill="#fff" opacity="0.55"/>'
           +'</svg>';
       }
+      // ⬅️ Medallas reducidas 32x44 → 26x36
       function medalSVGReporte_(w,h){
-        w=w||32; h=h||44;
-        return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 5px #facc15);">'
+        w=w||26; h=h||36;
+        return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 44 60" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 3px #facc15);">'
           +'<rect x="17" y="2" width="10" height="22" rx="2" fill="#facc15"/>'
           +'<rect x="12" y="0" width="20" height="5" rx="2" fill="#fde047"/>'
           +'<circle cx="22" cy="44" r="16" fill="#fde047"/>'
@@ -1994,8 +1995,8 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
           +'</svg>';
       }
       function trophySVGReporte_(w,h){
-        w=w||36; h=h||44;
-        return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 6px #fbbf24);">'
+        w=w||28; h=h||36;
+        return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 3px #fbbf24);">'
           +'<path d="M12,12 Q4,12 4,22 Q4,32 12,32" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>'
           +'<path d="M38,12 Q46,12 46,22 Q46,32 38,32" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>'
           +'<path d="M12,8 L38,8 Q38,36 25,42 Q12,36 12,8 Z" fill="#fbbf24"/>'
@@ -2005,28 +2006,30 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
           +'<polygon points="25,14 26.5,18.5 31.5,18.5 27.5,21.2 29,25.7 25,23 21,25.7 22.5,21.2 18.5,18.5 23.5,18.5" fill="#fff" opacity="0.85"/>'
           +'</svg>';
       }
+      // ⬅️ Contenedor de medalla compactado
       function medallaHtml(aprobado, tipo){
         if(!aprobado) return '';
         var icono=tipo==='mini'?medalSVGReporte_():trophySVGReporte_();
         var label=tipo==='mini'?'Mini Challenge':'Grand Challenge';
-        return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;width:88px;">'+
-          '<div style="background:#1c2b5e;border-radius:12px;padding:6px 9px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(28,43,94,.3);">'+icono+'</div>'+
-          '<div style="font-size:9px;font-weight:700;color:'+(tipo==='mini'?'#ca8a04':'#d97706')+';text-align:center;line-height:1.25;">'+label+'</div>'+
+        return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;width:72px;">'+
+          '<div style="background:#1c2b5e;border-radius:8px;padding:4px 6px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(28,43,94,.3);">'+icono+'</div>'+
+          '<div style="font-size:8px;font-weight:700;color:'+(tipo==='mini'?'#ca8a04':'#d97706')+';text-align:center;line-height:1.2;">'+label+'</div>'+
         '</div>';
       }
 
+      // ⬅️ Bloque compactado: barras 11→8px, márgenes 6→3, títulos 15→13, etc.
       function bloqueColHtml(titulo, sub, b){
         var total = b.total || 0;
         var col   = b.colores || {1:0,2:0,3:0,4:0};
         var pctC  = function(c){ return total>0 ? Math.round((col[c]||0)/total*100) : 0; };
 
         var colorRows = b.esColocacion
-          ? '<div style="background:#f1f5f9;border-radius:10px;padding:9px 11px;font-size:9.5px;color:#64748b;line-height:1.5;">Ingreso directo a Bloque 2 por evaluación de colocación — nivel de Bloque 1 acreditado con base 100%.</div>'
+          ? '<div style="background:#f1f5f9;border-radius:8px;padding:6px 9px;font-size:9px;color:#64748b;line-height:1.4;">Ingreso directo a Bloque 2 por evaluación de colocación — nivel de Bloque 1 acreditado con base 100%.</div>'
           : [1,2,3,4].map(function(c){
-              return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">'+
-                '<span style="width:11px;height:11px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;box-shadow:0 0 0 3px '+colorHex[c]+'22;"></span>'+
-                '<div style="flex:1;background:#eef1f6;border-radius:20px;height:11px;overflow:hidden;"><div style="width:'+pctC(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
-                '<span style="font-size:10px;font-weight:700;color:#64748b;width:30px;text-align:right;">'+pctC(c)+'%</span>'+
+              return '<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">'+
+                '<span style="width:9px;height:9px;border-radius:50%;background:'+colorHex[c]+';flex-shrink:0;"></span>'+
+                '<div style="flex:1;background:#eef1f6;border-radius:20px;height:8px;overflow:hidden;"><div style="width:'+pctC(c)+'%;height:100%;background:'+colorHex[c]+';border-radius:20px;"></div></div>'+
+                '<span style="font-size:9px;font-weight:700;color:#64748b;width:26px;text-align:right;">'+pctC(c)+'%</span>'+
               '</div>';
             }).join('');
 
@@ -2037,15 +2040,15 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
           ? (sub + ' · Sin registros aún')
           : (sub + (b.esColocacion?'':(' · Asistencia '+b.asistencia+'%')));
 
-        return '<div style="flex:1;min-width:230px;">'+
-          '<div style="height:4px;width:40px;border-radius:4px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:7px;"></div>'+
-          '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px;">'+
-            '<div><div style="font-size:15px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
-            '<div style="font-size:9px;color:#94a3b8;">'+subTexto+'</div></div>'+
-            '<div style="font-size:19px;font-weight:800;color:'+pctColor+';">'+(esSinRegistros?'—':b.nota+'%')+'</div>'+
+        return '<div style="flex:1;min-width:200px;">'+
+          '<div style="height:3px;width:36px;border-radius:3px;background:linear-gradient(90deg,#f97316,#ef4444);margin-bottom:4px;"></div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px;">'+
+            '<div><div style="font-size:13px;font-weight:800;color:#1c2b5e;">'+titulo+'</div>'+
+            '<div style="font-size:8.5px;color:#94a3b8;">'+subTexto+'</div></div>'+
+            '<div style="font-size:16px;font-weight:800;color:'+pctColor+';">'+(esSinRegistros?'—':b.nota+'%')+'</div>'+
           '</div>'+
           colorRows+
-          (medallas?('<div style="display:flex;gap:10px;justify-content:center;margin-top:9px;">'+medallas+'</div>'):'')+
+          (medallas?('<div style="display:flex;gap:8px;justify-content:center;margin-top:6px;">'+medallas+'</div>'):'')+
         '</div>';
       }
 
@@ -2057,28 +2060,33 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
       var fechaHoy=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
       var folio=idGrupo+'-'+idAlumno+'-'+hoyISO();
 
+      // ⬅️ @page margin 9mm→8mm, body padding 16px 34px → 4px 14px, max-width 880→960
       var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
         '<title>Reporte de Evaluación — '+alumno.nombre+'</title>'+
         '<style>'+
         '*{box-sizing:border-box;}'+
-        '@page{size:letter;margin:9mm;}'+
+        '@page{size:letter;margin:8mm;}'+
         "body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#334155;margin:0;padding:0;}"+
         '[contenteditable]:focus{outline:2px dashed #f97316;outline-offset:3px;border-radius:4px;}'+
-        '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
-        '</style></head><body style="padding:16px 34px;max-width:880px;margin:0 auto;">';
+        '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.no-break{page-break-inside:avoid;}}'+
+        '</style></head><body style="padding:4px 14px;max-width:960px;margin:0 auto;">';
 
-      html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">'+
-        '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logotransparente.png" style="height:138px;object-fit:contain;display:block;" />'+
-        '<div style="text-align:right;"><div style="font-size:10px;color:#94a3b8;">Emisiones: '+fechaHoy+'</div><div style="font-size:9px;color:#cbd5e1;">Folio: '+folio+'</div></div>'+
+      // ⬅️ HEADER: logo 138→78px
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">'+
+        '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logotransparente.png" style="height:78px;object-fit:contain;display:block;" />'+
+        '<div style="text-align:right;"><div style="font-size:9px;color:#94a3b8;">Emisiones: '+fechaHoy+'</div><div style="font-size:8px;color:#cbd5e1;">Folio: '+folio+'</div></div>'+
       '</div>';
-      html+='<h1 style="font-size:24px;font-weight:800;color:#111827;margin:8px 0 6px;">Reporte de Evaluación</h1>'+
-        '<div style="height:3px;background:linear-gradient(90deg,#f97316,#ef4444 60%,transparent);margin-bottom:12px;"></div>';
+      // ⬅️ H1: 24→19px, márgenes 8/6→4/3
+      html+='<h1 style="font-size:19px;font-weight:800;color:#111827;margin:4px 0 3px;">Reporte de Evaluación</h1>'+
+        '<div style="height:2px;background:linear-gradient(90deg,#f97316,#ef4444 60%,transparent);margin-bottom:7px;"></div>';
 
-      html+='<div style="font-size:11px;color:#64748b;margin-bottom:14px;">Este documento certifica el desempeño académico del alumno en el nivel indicado dentro del programa <strong style="color:#1c2b5e;">Organic English — Inglés Intuitivo</strong>.</div>';
+      // ⬅️ Descripción: 11→10px, margin-bottom 14→8
+      html+='<div style="font-size:10px;color:#64748b;margin-bottom:8px;">Este documento certifica el desempeño académico del alumno en el nivel indicado dentro del programa <strong style="color:#1c2b5e;">Organic English — Inglés Intuitivo</strong>.</div>';
 
-      html+='<div style="margin-bottom:16px;">'+
-        '<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Datos del alumno</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:12px;color:#334155;padding-bottom:10px;border-bottom:1px solid #eef1f6;">'+
+      // ⬅️ Datos alumno: márgenes reducidos, gap 6px 24px → 3px 20px
+      html+='<div class="no-break" style="margin-bottom:9px;">'+
+        '<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Datos del alumno</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 20px;font-size:11px;color:#334155;padding-bottom:6px;border-bottom:1px solid #eef1f6;">'+
           '<div><strong style="color:#1e293b;">Nombre:</strong> '+alumno.nombre+'</div>'+
           '<div><strong style="color:#1e293b;">ID:</strong> '+alumno.id+'</div>'+
           '<div><strong style="color:#1e293b;">Grupo:</strong> '+(grupo.id||idGrupo)+' · '+(grupo.horario||'—')+'</div>'+
@@ -2087,41 +2095,45 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
           '<div><strong style="color:#1e293b;">Estado final:</strong> '+(estadoTxt||'—')+'</div>'+
         '</div></div>';
 
-      html+='<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">'+
-        '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;background:#1c2b5e;border-radius:16px;padding:7px 11px 5px;box-shadow:0 6px 14px rgba(28,43,94,.3);">'+
+      // ⬅️ Gema + Evaluación: tamaños y padding reducidos
+      html+='<div class="no-break" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'+
+        '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;background:#1c2b5e;border-radius:12px;padding:4px 8px 2px;box-shadow:0 3px 8px rgba(28,43,94,.3);">'+
           gemaSVGReporte_(evaluacionFinalPct, idAlumno)+
         '</div>'+
-        '<div style="display:flex;flex-direction:column;gap:2px;">'+
-          '<div contenteditable="true" title="Puedes corregir el texto antes de imprimir" style="font-size:24px;font-weight:800;color:#111827;">Nivel: '+nivelDisplay+'</div>'+
-          '<div style="font-size:17px;font-weight:800;color:#1c2b5e;">Evaluación Final: '+evaluacionFinalPct+'%</div>'+
+        '<div style="display:flex;flex-direction:column;gap:1px;">'+
+          '<div contenteditable="true" title="Puedes corregir el texto antes de imprimir" style="font-size:19px;font-weight:800;color:#111827;">Nivel: '+nivelDisplay+'</div>'+
+          '<div style="font-size:14px;font-weight:800;color:#1c2b5e;">Evaluación Final: '+evaluacionFinalPct+'%</div>'+
         '</div>'+
       '</div>';
 
-      html+='<div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:16px;">'+
+      // ⬅️ Bloques: gap 30→22, margin-bottom 16→9
+      html+='<div class="no-break" style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:9px;">'+
         bloqueColHtml('Bloque 1', b1.esColocacion?'Colocación':'Semanas 1-8', b1)+
         bloqueColHtml('Bloque 2','Semanas 9-16', b2)+
       '</div>';
 
-      html+='<div style="margin-bottom:14px;">'+
-        '<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Observaciones</div>'+
-        '<div contenteditable="true" title="Puedes editar este texto antes de imprimir" style="min-height:36px;padding:2px 0;font-size:12px;color:#334155;line-height:1.55;">'+obsDefault+'</div>'+
+      // ⬅️ Observaciones: min-height 36→18, fuente 12→11, márgenes reducidos
+      html+='<div class="no-break" style="margin-bottom:8px;">'+
+        '<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Observaciones</div>'+
+        '<div contenteditable="true" title="Puedes editar este texto antes de imprimir" style="min-height:18px;padding:1px 0;font-size:11px;color:#334155;line-height:1.45;">'+obsDefault+'</div>'+
       '</div>';
 
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:70px;">'+
+      // ⬅️ FIRMAS: el cambio más grande — margin-top 70→22, img 100→58px
+      html+='<div class="no-break" style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:22px;">'+
         '<div style="text-align:center;">'+
-          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA1.webp" onerror="this.style.display=\'none\'" style="height:100px;object-fit:contain;display:block;margin:0 auto 4px;" />'+
-          '<div contenteditable="true" style="border-bottom:1.5px solid #1e293b;min-height:22px;margin-bottom:6px;font-size:13px;font-weight:700;color:#1e293b;">'+(dirNombre||'&nbsp;')+'</div>'+
-          '<div style="font-size:11px;color:#64748b;">Director</div>'+
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA1.webp" onerror="this.style.display=\'none\'" style="height:58px;object-fit:contain;display:block;margin:0 auto 2px;" />'+
+          '<div contenteditable="true" style="border-bottom:1.2px solid #1e293b;min-height:16px;margin-bottom:3px;font-size:11px;font-weight:700;color:#1e293b;">'+(dirNombre||'&nbsp;')+'</div>'+
+          '<div style="font-size:10px;color:#64748b;">Director</div>'+
         '</div>'+
         '<div style="text-align:center;">'+
-          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA2.webp" onerror="this.style.display=\'none\'" style="height:100px;object-fit:contain;display:block;margin:0 auto 4px;" />'+
-          '<div contenteditable="true" style="border-bottom:1.5px solid #1e293b;min-height:22px;margin-bottom:6px;font-size:13px;font-weight:700;color:#1e293b;">'+(coordNombre||'&nbsp;')+'</div>'+
-          '<div style="font-size:11px;color:#64748b;">Coordinador Académico</div>'+
+          '<img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/FIRMA2.webp" onerror="this.style.display=\'none\'" style="height:58px;object-fit:contain;display:block;margin:0 auto 2px;" />'+
+          '<div contenteditable="true" style="border-bottom:1.2px solid #1e293b;min-height:16px;margin-bottom:3px;font-size:11px;font-weight:700;color:#1e293b;">'+(coordNombre||'&nbsp;')+'</div>'+
+          '<div style="font-size:10px;color:#64748b;">Coordinador Académico</div>'+
         '</div>'+
       '</div>';
 
-      html+='<div class="no-print" style="text-align:center;margin-top:18px;">'+
-        '<button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:10px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button>'+
+      html+='<div class="no-print" style="text-align:center;margin-top:14px;">'+
+        '<button onclick="window.print()" style="background:#1c2b5e;color:#fff;border:none;border-radius:8px;padding:10px 30px;font-size:13px;font-weight:700;cursor:pointer;">Imprimir / Guardar como PDF</button>'+
       '</div>';
 
       html+='</body></html>';
@@ -2133,6 +2145,7 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
     })
     .catch(function(){ alert('Error de conexión al generar el reporte.'); resetBtn(); });
 }
+ 
 function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
   var coordNombre=(document.getElementById('pdfCoordinadorNombre')||{}).value||(caData&&caData.nombre)||'';
