@@ -308,7 +308,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* TOAST */
-    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gris-800);color:#fff;border-radius:var(--r-md);padding:10px 20px;font-size:13px;font-weight:600;z-index:3000;transition:transform .28s ease;white-space:nowrap;box-shadow:var(--shadow-lg)}
+    .toast{max-width:92vw;text-align:center;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gris-800);color:#fff;border-radius:var(--r-md);padding:10px 20px;font-size:13px;font-weight:600;z-index:3000;transition:transform .28s ease;white-space:normal;box-shadow:var(--shadow-lg)}
     .toast.show{transform:translateX(-50%) translateY(0)}
     .toast.success{background:#15803d}
     .toast.error{background:#dc2626}
@@ -2021,6 +2021,12 @@ function abrirModalSinCosto(){
     select.appendChild(opt);
   });
 
+  // Siempre dejar el botón limpio al abrir (antes se quedaba en
+  // "Creando fusión..." deshabilitado después de una fusión exitosa).
+  _fusionEnCurso = false;
+  var btnFus = document.getElementById('btn-confirmar-fusion');
+  btnFus.disabled = false;
+  btnFus.textContent = '🔀 Crear fusión';
   document.getElementById('modal-sin-costo').classList.add('open');
   calInit('cal-sin-costo', !!alumnoSeleccionadoCambio.esSabatino);
   document.body.style.overflow='hidden';
@@ -2031,8 +2037,10 @@ function cerrarModalSinCosto(){
   document.body.style.overflow='';
 }
 
+var _fusionEnCurso = false;
 async function confirmarSinCosto(){
   if(!alumnoSeleccionadoCambio) return;
+  if(_fusionEnCurso) return;   // evita doble clic / doble envío
 
   var grupoDestino = document.getElementById('fusion-grupo-destino').value;
   if (!grupoDestino) {
@@ -2048,6 +2056,7 @@ async function confirmarSinCosto(){
 
   const motivo = document.getElementById('input-motivo-sin-costo').value.trim();
   const btn = document.getElementById('btn-confirmar-fusion');
+  _fusionEnCurso = true;
   btn.disabled = true;
   btn.textContent = 'Creando fusión...';
 
@@ -2063,18 +2072,26 @@ async function confirmarSinCosto(){
     const resp = await fetch(url);
     const data = await resp.json();
 
-        if (data.success) {
+    if (data.success) {
       mostrarToast('🔀 Fusión creada: ' + data.idGrupoOrigen + ' → ' + data.idGrupoDestino, 'success');
       cerrarModalSinCosto();
+      // Limpiar el alumno seleccionado: si no, el panel sigue mostrando al
+      // alumno anterior (con su grupo viejo) y un clic en el botón volvía
+      // a intentar fusionar al MISMO alumno -> "ya tiene una fusión activa".
+      document.getElementById('select-alumno-cambio').value = '';
+      seleccionarAlumnoCambio();
       await cargarDatos();
       abrirModalNotifFusion(data);
     } else {
-      mostrarToast(data.error || 'Error al crear la fusión', 'error');
-      btn.disabled = false;
-      btn.textContent = '🔀 Crear fusión';
+      mostrarToast(data.error || 'Error al crear la fusión', 'error', 6000);
     }
   } catch(e) {
-    mostrarToast('Error de conexión', 'error');
+    // Con Apps Script la fusión pudo haberse creado aunque la respuesta no
+    // llegó. Se refrescan los datos y se avisa antes de reintentar.
+    mostrarToast('Sin respuesta del servidor. Puede que la fusión SÍ se haya creado: revisa antes de reintentar.', 'error', 8000);
+    try { await cargarDatos(); } catch(_) {}
+  } finally {
+    _fusionEnCurso = false;
     btn.disabled = false;
     btn.textContent = '🔀 Crear fusión';
   }
@@ -2613,10 +2630,12 @@ function subirLinkWhats(idGrupo) {
     .catch(()=>mostrarToast('Error de conexión','error'));
 }
 
-function mostrarToast(msg,tipo=''){
+var _toastTimer=null;
+function mostrarToast(msg,tipo='',ms=3200){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast '+tipo;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3200);
+  clearTimeout(_toastTimer);   // un toast viejo ya no cierra al nuevo
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),ms);
 }
 
 
