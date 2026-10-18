@@ -1529,9 +1529,11 @@ function actualizarEstadoFecha(fechaStr) {
       document.getElementById('bloqueChBtn2').classList.toggle('active', bloqueChallengeSel===2);
       Promise.all([
         fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=1', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
-        fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=2', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};})
+        fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=2', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
+        fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoActual.id)+'&t='+Date.now(), {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return null;})
       ]).then(function(res){
         _linksVideo = { 1: res[0].links||{}, 2: res[1].links||{} };
+        if (res[2] && res[2].success && grupoActual) grupoActual._mapaData = res[2].resultados || [];
         renderChallenge();
       });
     }
@@ -2491,6 +2493,7 @@ function renderMapas(resultados) {
     tipoChallenge = tipo;
     document.getElementById('tipoBtn1').classList.toggle('active', tipo === 'Mini');
     document.getElementById('tipoBtn2').classList.toggle('active', tipo === 'Gran');
+    renderChallenge();
   }
 
   function selBloqueChallenge(bloque) {
@@ -2544,32 +2547,108 @@ function renderMapas(resultados) {
           +'<div class="apr-btn" id="apr-no-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'no\')">🔄 No Aprobó</div>'
           +'<div class="apr-btn" id="apr-nr-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'nr\')">⛔ No realizó</div>'
         +'</div>'
-        +'<button class="btn-guardar" style="margin-top:10px;" onclick="guardarChallengeAlumno(\''+a.id+'\')">Guardar</button>'
+        +'<button class="btn-guardar" id="btn-gch-'+a.id+'" style="margin-top:10px;" onclick="guardarChallengeAlumno(\''+a.id+'\')">Guardar</button>'
+        +'<div id="ch-msg-'+a.id+'" style="margin-top:8px;font-size:12px;font-weight:700;line-height:1.4;"></div>'
       +'</div>';
     }).join('');
+    prefillChallenges();
   }
 
-function guardarChallengeAlumno(idAlumno) {
-  var fecha = new Date().toISOString().split('T')[0];
-  var aprobado = document.getElementById('apr-si-'+idAlumno).classList.contains('sel-si');
-  var noRealizo = document.getElementById('apr-nr-'+idAlumno).classList.contains('sel-nr');
-  var data = [{
-    idAlumno:  idAlumno,
-    feedback:  document.getElementById('fb-'+idAlumno).value,
-    aprobado:  aprobado,
-    noRealizo: noRealizo
-  }];
-  fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+
-    '&bloque='+bloqueChallengeSel+'&fecha='+fecha+
-    '&tipo='+encodeURIComponent(tipoChallenge)+
-    '&alumnos='+encodeURIComponent(JSON.stringify(data)), {redirect:'follow'})
-    .then(r=>r.json())
-    .then(d=>{
-      if (d.success) mostrarToast('Challenge guardado para '+idAlumno+' (Bloque '+bloqueChallengeSel+')','success');
-      else mostrarToast('Error: '+d.error,'error');
-    })
-    .catch(()=>mostrarToast('Error de conexión','error'));
-}
+  // ── Challenges: helpers de verificación y precarga ──────────────────
+  function _fechaLocalCh() {
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  function _hallarChallenge(resultados, idAlumno, tipo, bloque) {
+    var r = (resultados || []).find(function(x){ return x && x.alumno && x.alumno.id === idAlumno; });
+    if (!r || !r.challenges) return null;
+    var esMini = (tipo === 'Mini');
+    var hit = null;
+    r.challenges.forEach(function(c){
+      var okTipo = esMini ? (c.tipo === 'Mini') : (c.tipo === 'Gran' || c.tipo === 'Grand');
+      if (okTipo && (c.bloque || 1) === bloque) hit = c;
+    });
+    return hit;
+  }
+
+  function prefillChallenges() {
+    var res = grupoActual && grupoActual._mapaData;
+    (grupoActual.alumnos || []).forEach(function(a){
+      var msg = document.getElementById('ch-msg-'+a.id);
+      if (!res) {
+        if (msg) { msg.textContent = ''; }
+        return;
+      }
+      var c = _hallarChallenge(res, a.id, tipoChallenge, bloqueChallengeSel);
+      if (!c) {
+        if (msg) { msg.textContent = 'Sin registro guardado para este Challenge.'; msg.style.color = 'rgba(255,255,255,0.75)'; }
+        return;
+      }
+      var fb = document.getElementById('fb-'+a.id);
+      if (fb && c.feedback) fb.value = c.feedback;
+      if (c.noRealizo === true) selAprobado(a.id, 'nr');
+      else if (c.aprobado === true) selAprobado(a.id, 'si');
+      else if (c.aprobado === false) selAprobado(a.id, 'no');
+      if (msg) {
+        msg.textContent = '✓ Ya registrado en el sistema ('+(c.noRealizo===true?'No realizó':c.aprobado===true?'Aprobó':c.aprobado===false?'No aprobó':'registrado')+')';
+        msg.style.color = '#86efac';
+      }
+    });
+  }
+
+  var _guardandoCh = {};
+
+  function guardarChallengeAlumno(idAlumno) {
+    if (_guardandoCh[idAlumno]) return;
+    var selSi = document.getElementById('apr-si-'+idAlumno).classList.contains('sel-si');
+    var selNo = document.getElementById('apr-no-'+idAlumno).classList.contains('sel-no');
+    var selNr = document.getElementById('apr-nr-'+idAlumno).classList.contains('sel-nr');
+    if (!selSi && !selNo && !selNr) { mostrarToast('Selecciona Aprobó, No Aprobó o No realizó antes de guardar','error'); return; }
+
+    var tipo     = tipoChallenge;
+    var bloque   = bloqueChallengeSel;
+    var grupoId  = grupoActual.id;
+    var fecha    = _fechaLocalCh();
+    var feedback = document.getElementById('fb-'+idAlumno).value;
+    var btn = document.getElementById('btn-gch-'+idAlumno);
+    var msg = document.getElementById('ch-msg-'+idAlumno);
+
+    _guardandoCh[idAlumno] = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+    if (msg) { msg.textContent = 'Guardando y verificando...'; msg.style.color = '#fde047'; }
+
+    function fin(ok, texto) {
+      _guardandoCh[idAlumno] = false;
+      var b = document.getElementById('btn-gch-'+idAlumno);
+      var m = document.getElementById('ch-msg-'+idAlumno);
+      if (b) { b.disabled = false; b.textContent = 'Guardar'; }
+      if (m) { m.textContent = texto; m.style.color = ok ? '#86efac' : '#fca5a5'; }
+      mostrarToast(texto, ok ? 'success' : 'error');
+    }
+
+    var data = [{ idAlumno: idAlumno, feedback: feedback, aprobado: selSi, noRealizo: selNr }];
+    fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoId)+
+      '&bloque='+bloque+'&fecha='+fecha+
+      '&tipo='+encodeURIComponent(tipo)+
+      '&alumnos='+encodeURIComponent(JSON.stringify(data)), {redirect:'follow'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.success) { fin(false, 'Error: '+(d.error || 'el servidor no guardó')); return; }
+        // Verificación real: se vuelve a leer el grupo y se busca el registro
+        return fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoId)+'&t='+Date.now(), {redirect:'follow'})
+          .then(function(r){ return r.json(); })
+          .then(function(m){
+            if (!m.success) { fin(false, 'Se envió, pero no se pudo verificar. Revisa en Evaluación del grupo.'); return; }
+            if (grupoActual && grupoActual.id === grupoId) grupoActual._mapaData = m.resultados || [];
+            var c = _hallarChallenge(m.resultados, idAlumno, tipo, bloque);
+            var ok = !!c && (selNr || c.aprobado === selSi);
+            if (ok) fin(true, '✓ '+tipo+' Challenge Bloque '+bloque+' guardado y verificado ('+idAlumno+')');
+            else    fin(false, 'NO SE GUARDÓ: el servidor respondió OK pero el registro de '+idAlumno+' no aparece. Avisa a sistemas y no lo des por registrado.');
+          });
+      })
+      .catch(function(){ fin(false, 'Error de conexión: no se pudo confirmar el guardado'); });
+  }
 
   function selAprobado(idAlumno, estado) {
 document.getElementById('apr-si-'+idAlumno).className='apr-btn'+(estado==='si'?' sel-si':'');
