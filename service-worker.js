@@ -1,11 +1,18 @@
-// Service Worker de la PWA de Organic English (piloto: Direccion).
-// Estrategia "red primero, con limite de espera": intenta traer la
-// version mas reciente del servidor, pero si la red tarda mas de 5
-// segundos en responder (sin fallar ni tener exito -- tipico de redes
-// con problemas de ruteo, como se detecto con Telcel), deja de esperar
-// y usa la copia guardada localmente de inmediato. Asi la app nunca se
-// queda congelada en la pantalla de carga esperando una respuesta que
-// quiza nunca llegue.
+// Service Worker de la PWA de Organic English — v1.2
+//
+// Estrategias:
+//  • Paginas HTML, scripts, estilos y manifest del MISMO sitio: "red primero".
+//    Siempre se revalida contra el servidor (cache: 'no-cache'), asi que ya
+//    no se queda una version vieja por el cache HTTP de GitHub Pages
+//    (~10 min). Si la red tarda mas de 5 s o falla, se usa la copia guardada
+//    y la descarga SIGUE en segundo plano para dejar lista la version nueva
+//    en la proxima apertura.
+//  • Imagenes, fuentes y recursos de otros sitios: "stale-while-revalidate"
+//    (se sirve lo guardado al instante y se actualiza por detras).
+//  • Llamadas a Google Apps Script: NUNCA se interceptan (son datos en vivo).
+//
+// Las paginas se guardan SIN el query string (alumno.html?id=...&email=...),
+// para no acumular IDs ni correos de alumnos dentro del cache del dispositivo.
 
 // ═══ Firebase Cloud Messaging: recibir avisos aunque la app este cerrada ═══
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
@@ -46,20 +53,26 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-// ═══ PWA: cache + instalacion (lo que ya teniamos) ═══
-const CACHE_NAME = 'oe-app-v1.1';
-const APP_SHELL = [
-  'staff.html'
-];
-// Cuanto tiempo maximo esperar a la red antes de rendirse y usar la
-// copia guardada (o el aviso de sin conexion si no hay copia todavia).
-const TIEMPO_MAXIMO_ESPERA_MS = 5000;
+// ═══ PWA: cache + instalacion ═══
+// IMPORTANTE: cada vez que quieras forzar limpieza total de caches viejos en
+// todos los dispositivos, cambia este numero (v1.2 -> v1.3, etc.).
+var CACHE_NAME = 'oe-app-v1.2';
+var APP_SHELL = ['staff.html'];
+var TIEMPO_MAXIMO_ESPERA_MS = 5000;
+var HOSTS_SIN_INTERCEPTAR = ['script.google.com', 'script.googleusercontent.com'];
+
+function ignorar() {}
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(APP_SHELL);
-    })
+      return Promise.all(APP_SHELL.map(function (ruta) {
+        // 'reload' = ignora el cache HTTP para guardar la version realmente nueva
+        return fetch(new Request(ruta, { cache: 'reload' })).then(function (resp) {
+          if (resp && resp.ok) return cache.put(ruta, resp);
+        });
+      }));
+    }).catch(ignorar)
   );
   self.skipWaiting();
 });
@@ -72,41 +85,24 @@ self.addEventListener('activate', function (event) {
           .filter(function (key) { return key !== CACHE_NAME; })
           .map(function (key) { return caches.delete(key); })
       );
+    }).then(function () {
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
-// Intenta la red, pero se rinde (rejecta) si tarda mas de "ms" -- a
-// diferencia de un fetch normal, que puede quedarse pendiente para
-// siempre si la conexion no falla activamente, solo se queda "pensando".
-function fetchConLimiteDeTiempo(request, ms) {
-  return new Promise(function (resolve, reject) {
-    var yaSeDecidio = false;
-    var temporizador = setTimeout(function () {
-      if (yaSeDecidio) return;
-      yaSeDecidio = true;
-      reject(new Error('tiempo de espera agotado'));
-    }, ms);
+// Permite a una pagina preguntar que version del service worker esta activa:
+//   navigator.serviceWorker.controller.postMessage('GET_VERSION')
+self.addEventListener('message', function (event) {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data === 'GET_VERSION' && event.source) {
+    event.source.postMessage({ type: 'VERSION', version: CACHE_NAME });
+  }
+});
 
-    fetch(request).then(function (respuesta) {
-      if (yaSeDecidio) return; // el timeout ya gano la carrera, ignorar
-      yaSeDecidio = true;
-      clearTimeout(temporizador);
-      resolve(respuesta);
-    }).catch(function (err) {
-      if (yaSeDecidio) return;
-      yaSeDecidio = true;
-      clearTimeout(temporizador);
-      reject(err);
-    });
-  });
-}
-
-// Pagina simple que se muestra SOLO si no hay conexion Y tampoco hay
-// ninguna copia guardada localmente todavia (por ejemplo, la primerisima
-// vez que alguien abre la app y su red no responde). Evita que la
-// persona se quede viendo una pantalla en blanco sin saber que paso.
+// Pagina simple que se muestra SOLO si no hay conexion Y tampoco hay copia
+// guardada de ESA pagina. Solo se usa para paginas (navegacion), nunca para
+// imagenes ni datos.
 function paginaSinConexion() {
   return new Response(
     '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
@@ -128,33 +124,97 @@ function paginaSinConexion() {
   );
 }
 
-self.addEventListener('fetch', function (event) {
-  if (event.request.method !== 'GET') return;
+function esDocumento(req) {
+  return req.mode === 'navigate' || req.destination === 'document' || req.destination === 'iframe';
+}
 
-  // Las llamadas al backend (Google Apps Script) NUNCA deben pasar por
-  // el limite de tiempo ni el cache de este service worker -- son datos
-  // en vivo (JSON), no paginas. Si se les aplica el mismo manejo que a
-  // las paginas del sitio, un timeout puede terminar entregando la
-  // pagina "Sin conexion" (HTML) como si fuera la respuesta de la API,
-  // rompiendo cualquier fetch() que este esperando JSON real.
-  var urlPeticion = new URL(event.request.url);
-  if (urlPeticion.hostname === 'script.google.com' || urlPeticion.hostname === 'script.googleusercontent.com') {
-    return; // se deja pasar tal cual, sin interceptar
-  }
+// Todo lo que, si queda viejo, rompe la app: paginas, scripts, estilos, manifest.
+function usaRedPrimero(req, url) {
+  if (url.origin !== self.location.origin) return false;
+  if (esDocumento(req)) return true;
+  var d = req.destination;
+  if (d === 'script' || d === 'style' || d === 'manifest' || d === 'worker') return true;
+  var accept = req.headers.get('accept') || '';
+  return accept.indexOf('text/html') !== -1;
+}
 
-  event.respondWith(
-    fetchConLimiteDeTiempo(event.request, TIEMPO_MAXIMO_ESPERA_MS)
-      .then(function (response) {
-        var copia = response.clone();
-        caches.open(CACHE_NAME).then(function (cache) {
-          cache.put(event.request, copia);
-        });
-        return response;
-      })
-      .catch(function () {
-        return caches.match(event.request).then(function (cacheada) {
-          return cacheada || paginaSinConexion();
-        });
-      })
+function manejarRedPrimero(event, url) {
+  var req = event.request;
+  var esDoc = esDocumento(req);
+  // Paginas: se guardan sin query string. Otros archivos: URL completa.
+  var clave = esDoc ? (url.origin + url.pathname) : req.url;
+
+  // 'no-cache' = siempre revalida con el servidor (barato: 304 si no cambio)
+  var red = fetch(req, { cache: 'no-cache' }).then(function (resp) {
+    if (resp && resp.ok) {
+      var copia = resp.clone();
+      caches.open(CACHE_NAME)
+        .then(function (c) { return c.put(clave, copia); })
+        .catch(ignorar);
+    }
+    return resp;
+  });
+  // Mantiene vivo el service worker para que la descarga termine y se guarde
+  // aunque la pagina ya haya recibido la copia vieja por el limite de espera.
+  event.waitUntil(red.catch(ignorar));
+
+  var redOSinRed = red.then(
+    function (r) { return (r && r.status >= 500) ? null : r; },
+    function () { return null; }
   );
+  var limite = new Promise(function (resolve) {
+    setTimeout(function () { resolve(null); }, TIEMPO_MAXIMO_ESPERA_MS);
+  });
+
+  return Promise.race([redOSinRed, limite]).then(function (resp) {
+    if (resp) return resp;
+    return caches.match(clave).then(function (cacheada) {
+      if (cacheada) return cacheada;
+      return esDoc ? paginaSinConexion() : Response.error();
+    });
+  });
+}
+
+function manejarStaleWhileRevalidate(event) {
+  var req = event.request;
+  return caches.match(req).then(function (cacheada) {
+    var red = fetch(req).then(function (resp) {
+      // 'opaque' = imagenes de otros dominios (raw.githubusercontent.com)
+      if (resp && (resp.ok || resp.type === 'opaque')) {
+        var copia = resp.clone();
+        caches.open(CACHE_NAME)
+          .then(function (c) { return c.put(req, copia); })
+          .catch(ignorar);
+      }
+      return resp;
+    });
+    if (cacheada) {
+      event.waitUntil(red.catch(ignorar));
+      return cacheada;
+    }
+    return red.catch(function () { return Response.error(); });
+  });
+}
+
+self.addEventListener('fetch', function (event) {
+  var req = event.request;
+  if (req.method !== 'GET') return;
+
+  var url = new URL(req.url);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // Video/audio con Range: se deja pasar tal cual.
+  if (req.headers.has('range')) return;
+
+  // Backend (Google Apps Script): NUNCA interceptar. Son datos JSON en vivo;
+  // si se les aplica el limite de tiempo o el cache, un timeout puede entregar
+  // la pagina "Sin conexion" como si fuera la respuesta de la API y romper
+  // cualquier fetch() que espere JSON.
+  if (HOSTS_SIN_INTERCEPTAR.indexOf(url.hostname) !== -1) return;
+
+  if (usaRedPrimero(req, url)) {
+    event.respondWith(manejarRedPrimero(event, url));
+  } else {
+    event.respondWith(manejarStaleWhileRevalidate(event));
+  }
 });
