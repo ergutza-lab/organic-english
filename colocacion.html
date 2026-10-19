@@ -650,6 +650,7 @@ function toggleNivel(id, btn) {
  
   // ── MODAL ASIGNACIÓN ──
   function abrirModalAsignacion(idAlumno, nivelSugerido) {
+    esRecolocacionActual = false;   // ← AGREGAR ESTA LÍNEA
     alumnoActual = todosAlumnos.find(function(a) { return a.idAlumno === idAlumno; });
     if (!alumnoActual) { alert('No se encontró el alumno.'); return; }
     grupoSeleccionado = null;
@@ -861,7 +862,100 @@ function toggleNivel(id, btn) {
         btn.textContent = 'Confirmar asignación'; btn.disabled = false;
         alert('Error de conexión.');
       });
-  }
+  }function confirmarAsignacion() {
+    if (!alumnoActual || !grupoSeleccionado) return;
+    var btn = document.getElementById('btnConfirmar');
+
+    // ── CASO 1: Alumno YA inscrito → cambio de grupo (recolocación) ──
+    if (esRecolocacionActual) {
+      var idAlumnoRecol  = alumnoActual.idAlumno;
+      var nombreRecol    = alumnoActual.nombre;
+      var alumnoWA       = alumnoActual.whatsapp;
+      var grupoDestinoId = grupoSeleccionado;
+      btn.textContent = 'Cambiando de grupo...'; btn.disabled = true;
+
+      var respCambio = null;
+      fetch(APPS_SCRIPT + '?action=cambiarGrupoAlumno' +
+        '&idAlumno='      + encodeURIComponent(idAlumnoRecol) +
+        '&grupoDestino='  + encodeURIComponent(grupoDestinoId))
+        .then(r => r.json())
+        .then(data => {
+          if (!data.ok && !data.success) throw new Error(data.error || 'Error al cambiar de grupo.');
+          respCambio = data;
+          return fetch(APPS_SCRIPT + '?action=marcarRecolocacionResuelta&idAlumno=' + encodeURIComponent(idAlumnoRecol));
+        })
+        .then(r => r.json())
+        .then(function() {
+          btn.textContent = 'Confirmar cambio de grupo'; btn.disabled = false;
+          cerrarModalAsignacion();
+
+          // Armamos notifData con lo que tengamos (best-effort)
+          notifData = respCambio || {};
+          notifData.esCambioGrupo = true;
+          if (!notifData.alumnoWA)     notifData.alumnoWA     = alumnoWA;
+          if (!notifData.nombreAlumno) notifData.nombreAlumno = nombreRecol;
+          if (!notifData.idGrupo)      notifData.idGrupo      = grupoDestinoId;
+
+          var destGroup = todosGrupos.find(function(g){ return g.idGrupo === grupoDestinoId; });
+          if (destGroup) {
+            if (!notifData.asisNombre)    notifData.asisNombre    = destGroup.asistente;
+            if (!notifData.maestroNombre) notifData.maestroNombre = destGroup.maestro;
+            if (!notifData.asisWA)        notifData.asisWA        = destGroup.asistenteWA;
+            if (!notifData.maestroWA)     notifData.maestroWA     = destGroup.maestroWA;
+          }
+
+          document.getElementById('modalNotifTitulo').textContent  = 'Cambio de grupo completado';
+          document.getElementById('modalNotifMensaje').textContent =
+            'Envía los 3 avisos. Puedes hacerlo en cualquier orden, pero no cierres hasta enviar los 3.';
+          resetBotonesNotif();
+          document.getElementById('modalNotificacion').classList.add('active');
+          cargarDatos();
+        })
+        .catch(function(err) {
+          btn.textContent = 'Confirmar cambio de grupo'; btn.disabled = false;
+          alert('Error: ' + err.message);
+        });
+      return;
+    }
+
+    // ── CASO 2: Alumno NUEVO (pendiente de colocación) — como antes ──
+    btn.textContent = 'Asignando...'; btn.disabled = true;
+    var alumnoWAActual = alumnoActual.whatsapp;
+
+    fetch(APPS_SCRIPT + '?action=asignarGrupoColocacion' +
+      '&idAlumno='    + encodeURIComponent(alumnoActual.idAlumno) +
+      '&idGrupo='     + encodeURIComponent(grupoSeleccionado) +
+      '&idColocador=' + encodeURIComponent(colocadorData.id))
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = 'Confirmar asignación';
+        cerrarModalAsignacion();
+        if (data.success || data.ok) {              // ← acepta ambos campos
+          notifData = data;
+          notifData.esCambioGrupo = false;
+          if (!notifData.alumnoWA) notifData.alumnoWA = alumnoWAActual;
+
+          if (data.correoEnviado === false) {
+            alert('⚠️ El grupo se asignó correctamente, PERO el correo de bienvenida NO se pudo enviar.\n\n' +
+                  'Motivo del sistema: ' + (data.correoError || 'desconocido') + '\n\n' +
+                  'Avisa a sistemas o reenvíalo manualmente desde "Mis alumnos" (módulo del asesor).');
+          }
+
+          document.getElementById('modalNotifTitulo').textContent  = 'Asignación completada';
+          document.getElementById('modalNotifMensaje').textContent =
+            'Envía los 3 avisos. Puedes hacerlo en cualquier orden, pero no cierres hasta enviar los 3.';
+          resetBotonesNotif();
+          document.getElementById('modalNotificacion').classList.add('active');
+          cargarDatos();
+        } else {
+          alert('Error: ' + (data.error || 'Intenta de nuevo.'));
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Confirmar asignación'; btn.disabled = false;
+        alert('Error de conexión.');
+      });
+}
 
   // ── MODAL SIN GRUPO DISPONIBLE (pendiente de reembolso) ──
   var alumnoSinGrupoActual = null;
@@ -934,10 +1028,11 @@ function toggleNivel(id, btn) {
   }
 
   function resetBotonesNotif() {
+    var esCambio = notifData && notifData.esCambioGrupo;
     var textos = {
-      btnNotificarCE: 'Notificar al Asistente CE',
+      btnNotificarCE:      'Notificar al Asistente CE',
       btnNotificarMaestro: 'Notificar al Maestro',
-      btnNotificarAlumno: 'Notificar al Alumno (Bienvenida)'
+      btnNotificarAlumno:  esCambio ? 'Notificar al Alumno (Cambio)' : 'Notificar al Alumno (Bienvenida)'
     };
     Object.keys(textos).forEach(function(id) {
       var b = document.getElementById(id);
@@ -945,7 +1040,7 @@ function toggleNivel(id, btn) {
       b.classList.remove('enviado');
       b.textContent = textos[id];
     });
-  }
+}
 
   function marcarBotonEnviado(id) {
     var b = document.getElementById(id);
@@ -988,17 +1083,18 @@ function toggleNivel(id, btn) {
     if (!notifData) return;
     var d = notifData;
     var alumnoWA = d.alumnoWA;
-    if (alumnoWA) {
-      var msgAlumno = encodeURIComponent(
-        '¡Hola ' + d.nombreAlumno + '! Ya estás oficialmente registrado(a) en el grupo ' + d.idGrupo +
-        '. ¡Bienvenido(a)! Cualquier duda, aquí estamos para apoyarte.'
-      );
-      window.open('https://wa.me/' + cleanWA(alumnoWA) + '?text=' + msgAlumno, '_blank');
-      marcarBotonEnviado('btnNotificarAlumno');
-    } else {
-      alert('No hay número de WhatsApp registrado para el alumno.');
-    }
-  });
+    if (!alumnoWA) { alert('No hay número de WhatsApp registrado para el alumno.'); return; }
+
+    var msgAlumno = encodeURIComponent(
+      d.esCambioGrupo
+        ? '¡Hola ' + d.nombreAlumno + '! Tu cambio de grupo a ' + d.idGrupo +
+          ' ya quedó confirmado. Cualquier duda, aquí estamos para apoyarte.'
+        : '¡Hola ' + d.nombreAlumno + '! Ya estás oficialmente registrado(a) en el grupo ' + d.idGrupo +
+          '. ¡Bienvenido(a)! Cualquier duda, aquí estamos para apoyarte.'
+    );
+    window.open('https://wa.me/' + cleanWA(alumnoWA) + '?text=' + msgAlumno, '_blank');
+    marcarBotonEnviado('btnNotificarAlumno');
+});
 
   // ══════════════════════════════════════════════════════════════════════
   // EXAMEN DE COLOCACIÓN
