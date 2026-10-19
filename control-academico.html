@@ -1400,7 +1400,8 @@ function renderRankingBajas(){
   if (gruposNuevosExcluidos>0 || bajasExcluidasPorAntiguedad>0) {
     avisoAntiguedad.style.display='block';
     avisoAntiguedad.querySelector('.aviso-grupos-count').textContent = gruposNuevosExcluidos;
-    avisoAntiguedad.querySelector('.aviso-bajas-count').textContent = bajasExcluidasPorAntiguedad;
+    var elBajasCount = avisoAntiguedad.querySelector('.aviso-bajas-count');
+    if (elBajasCount) elBajasCount.textContent = bajasExcluidasPorAntiguedad;
   } else {
     avisoAntiguedad.style.display='none';
   }
@@ -1924,6 +1925,57 @@ function verEvalGrupo(idGrupo, nombreGrupo){
     .catch(function(){body.innerHTML='<div class="empty-state">Error al cargar.</div>';});
 }
  
+
+// ═══ Mostrar documentos generados (constancia / diploma / reporte) ═══
+// Intenta abrir una ventana nueva. Si el navegador la bloquea (típico en
+// iPhone/Safari porque se abre después de esperar al servidor), el documento
+// se muestra en una capa a pantalla completa dentro de esta misma página.
+function abrirDocumentoGenerado_(html, ancho, alto){
+  var w=null;
+  try{ w=window.open('','_blank','width='+ancho+',height='+alto); }catch(e){ w=null; }
+  if(w && w.document){
+    try{
+      w.document.write(html);
+      w.document.close();
+      return;
+    }catch(e2){ console.error('No se pudo escribir en la ventana nueva:',e2); try{w.close();}catch(e3){} }
+  }
+  var viejo=document.getElementById('docGeneradoOverlay');
+  if(viejo) viejo.parentNode.removeChild(viejo);
+  var ov=document.createElement('div');
+  ov.id='docGeneradoOverlay';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#fff;display:flex;flex-direction:column;';
+  var barra=document.createElement('div');
+  barra.style.cssText='display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f1c3f;';
+  var cerrar=document.createElement('button');
+  cerrar.type='button';
+  cerrar.textContent='✕ Cerrar';
+  cerrar.style.cssText='background:#f97316;color:#fff;border:none;border-radius:100px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;';
+  cerrar.onclick=function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); };
+  var imprimir=document.createElement('button');
+  imprimir.type='button';
+  imprimir.textContent='🖨️ Imprimir / Guardar PDF';
+  imprimir.style.cssText='background:#1c2b5e;color:#fff;border:1px solid #475569;border-radius:100px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;';
+  imprimir.onclick=function(){ try{ marco.contentWindow.focus(); marco.contentWindow.print(); }catch(e){ alert('Usa el botón compartir de tu navegador para guardar o imprimir.'); } };
+  barra.appendChild(cerrar);
+  barra.appendChild(imprimir);
+  var marco=document.createElement('iframe');
+  marco.style.cssText='flex:1;width:100%;border:none;background:#fff;';
+  ov.appendChild(barra);
+  ov.appendChild(marco);
+  document.body.appendChild(ov);
+  var d=marco.contentWindow.document;
+  d.open();
+  d.write(html);
+  d.close();
+}
+
+function avisarErrorGeneracion_(que, err){
+  console.error('Error al generar '+que+':', err);
+  var detalle=(err && err.message) ? err.message : String(err||'desconocido');
+  alert('Error al generar '+que+'.\n\nDetalle técnico: '+detalle+'\n\nSi se repite, envía una captura de este mensaje a Erick.');
+}
+
 function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
   var resumenGlobal=(window._grupoEvalDataActual||[]).filter(function(r){return r.alumno.id===idAlumno;})[0];
   var dirNombre=(document.getElementById('pdfDirectorNombre')||{}).value||'';
@@ -2138,12 +2190,10 @@ function generarReporteEvaluacionAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
 
       html+='</body></html>';
 
-      var w=window.open('','_blank','width=1000,height=800');
-      w.document.write(html);
-      w.document.close();
+      abrirDocumentoGenerado_(html,1000,800);
       resetBtn();
     })
-    .catch(function(){ alert('Error de conexión al generar el reporte.'); resetBtn(); });
+    .catch(function(err){ avisarErrorGeneracion_('el reporte',err); resetBtn(); });
 }
  
 function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
@@ -2234,12 +2284,10 @@ function generarDiplomaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         '</div>'+
         '</body></html>';
 
-      var w=window.open('','_blank','width=1000,height=900');
-      w.document.write(html);
-      w.document.close();
+      abrirDocumentoGenerado_(html,1000,900);
       resetBtn();
     })
-    .catch(function(){ alert('Error de conexión al generar el diploma.'); resetBtn(); });
+    .catch(function(err){ avisarErrorGeneracion_('el diploma',err); resetBtn(); });
 }
 
 function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
@@ -2382,12 +2430,10 @@ function generarConstanciaAlumno(idAlumno, idGrupo, nombreAlumno, btnEl){
         '</div>'+
         '</body></html>';
 
-      var w=window.open('','_blank','width=1150,height=950');
-      w.document.write(html);
-      w.document.close();
+      abrirDocumentoGenerado_(html,1150,950);
       resetBtn();
     })
-    .catch(function(){ alert('Error de conexión al generar la constancia.'); resetBtn(); });
+    .catch(function(err){ avisarErrorGeneracion_('la constancia',err); resetBtn(); });
 }
 
 function nombreGrupoActualSeguro(idGrupo){
