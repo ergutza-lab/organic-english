@@ -10308,8 +10308,10 @@ function abrirSubidaVideoRecuperacion(fechaFalta, numLeccion, tituloLeccion) {
   document.getElementById('videoProgressBar').style.width = '0%';
   document.getElementById('videoStatus').textContent = '';
   document.getElementById('btnEnviarVideo').disabled = true;
+  _vistaVideoNormal();
 
   document.getElementById('modalVideoChallenge').classList.add('visible');
+  if (_videosSubidos[_claveVideo()]) _mostrarExitoVideo(true);
 }
 
 // ─── Utilidades ───
@@ -11257,12 +11259,61 @@ function mostrarPostitBajoRendimiento(postitReal) {
     </div>
     <div class="modal-video-status" id="videoStatus"></div>
     <button class="btn-subir-video" id="btnEnviarVideo" onclick="subirVideoChallenge()" disabled>📤 Subir Video</button>
-    <button class="btn-cerrar-video" onclick="cerrarModalVideo()">Cerrar</button>
+    <button class="btn-cerrar-video" id="btnCerrarVideo" onclick="cerrarModalVideo()">Cerrar</button>
+    <div id="videoExito" style="display:none;text-align:center;padding:6px 0 4px;">
+      <div style="font-size:84px;line-height:1;margin-bottom:10px;">✅</div>
+      <div id="videoExitoTitulo" style="font-size:26px;font-weight:800;color:#4ade80;line-height:1.2;margin-bottom:10px;">¡Tu video ya se subió!</div>
+      <div id="videoExitoTexto" style="font-size:14.5px;color:#e2e8f0;line-height:1.55;margin-bottom:8px;"></div>
+      <div style="font-size:13px;color:#fbbf24;font-weight:700;margin-bottom:18px;">⚠️ No lo vuelvas a subir. Con una vez es suficiente.</div>
+      <button class="btn-subir-video" id="btnEntendidoVideo" onclick="cerrarVideoExito()">Entendido</button>
+    </div>
   </div>
 </div>
 
 <script>
 var _videoTipoChallenge = '';
+var _subiendoVideo = false;
+var _videosSubidos = {};
+function _claveVideo() { return _videoTipoChallenge + '|' + (_faltaFechaJustificar || ''); }
+function _vistaVideoNormal() {
+  _subiendoVideo = false;
+  ['videoDropZone','videoProgressWrap','videoStatus','btnEnviarVideo','btnCerrarVideo'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.style.display = '';
+  });
+  document.getElementById('videoProgressWrap').style.display = 'none';
+  document.getElementById('videoExito').style.display = 'none';
+  document.getElementById('btnCerrarVideo').disabled = false;
+  document.getElementById('btnCerrarVideo').textContent = 'Cerrar';
+  document.getElementById('videoDropZone').style.pointerEvents = '';
+  document.getElementById('videoDropZone').style.opacity = '';
+}
+function _mostrarExitoVideo(yaEstaba) {
+  _subiendoVideo = false;
+  ['videoDropZone','videoProgressWrap','videoStatus','btnEnviarVideo','btnCerrarVideo','modalVideoNotaGrabacion'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  var esJust = (_videoTipoChallenge === 'Justificante');
+  document.getElementById('videoExitoTitulo').textContent = yaEstaba ? 'Ya subiste este video' : '¡Tu video ya se subió!';
+  document.getElementById('videoExitoTexto').textContent = esJust
+    ? 'Tu video de recuperación quedó registrado y está en revisión. Tu maestro lo evaluará y el día aparecerá en naranja ⏳ en tu calendario.'
+    : 'Tu video quedó registrado correctamente. Tu maestro lo revisará pronto.';
+  document.getElementById('videoExito').style.display = 'block';
+}
+function _desbloquearVideo() {
+  _subiendoVideo = false;
+  document.getElementById('btnEnviarVideo').disabled = false;
+  var c = document.getElementById('btnCerrarVideo'); c.disabled = false; c.textContent = 'Cerrar';
+  document.getElementById('videoDropZone').style.pointerEvents = '';
+  document.getElementById('videoDropZone').style.opacity = '';
+}
+function cerrarVideoExito() {
+  var esJust = (_videoTipoChallenge === 'Justificante');
+  cerrarModalVideo();
+  if (esJust) {
+    var modalRec = document.getElementById('modalRecuperacion');
+    if (modalRec && modalRec.classList.contains('visible') && typeof abrirModalRecuperacion === 'function') abrirModalRecuperacion();
+  }
+}
 var _videoArchivo = null;
 var _faltaFechaJustificar = null;
 
@@ -11294,7 +11345,9 @@ function abrirModalVideo(tipo, fechaFalta) {
     document.getElementById('modalVideoSub').textContent = 'Video de 1 minuto sobre el tema tratado en la clase — ' + formatFechaCorta(fechaFalta);
     document.getElementById('modalVideoNotaGrabacion').style.display = 'block';
   }
+  _vistaVideoNormal();
   document.getElementById('modalVideoChallenge').classList.add('visible');
+  if (_videosSubidos[_claveVideo()]) _mostrarExitoVideo(true);
 }
 
 function cerrarModalVideo() {
@@ -11426,8 +11479,14 @@ function _subirDriveResumable(file, token, metadata, onProgress) {
 
 function subirVideoChallenge() {
   if (!_videoArchivo || !alumnoData) return;
+  if (_subiendoVideo || _videosSubidos[_claveVideo()]) return;
+  _subiendoVideo = true;
   var btn = document.getElementById('btnEnviarVideo');
   btn.disabled = true;
+  var _btnC = document.getElementById('btnCerrarVideo');
+  _btnC.disabled = true; _btnC.textContent = 'Subiendo… espera';
+  document.getElementById('videoDropZone').style.pointerEvents = 'none';
+  document.getElementById('videoDropZone').style.opacity = '0.5';
   document.getElementById('videoProgressWrap').style.display = 'block';
   document.getElementById('videoStatus').textContent = 'Preparando subida…';
 
@@ -11489,23 +11548,12 @@ function subirVideoChallenge() {
       clearInterval(ticker);
       if (!ok) {
         document.getElementById('videoStatus').textContent = '❌ El video se subió pero NO se registró: ' + errSrv + '. Inténtalo de nuevo o avisa a tu maestro.';
-        btn.disabled = false;
+        _desbloquearVideo();
         return;
       }
       prog.style.width = '100%';
-      document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
-
-      if (_videoTipoChallenge === 'Justificante') {
-        // ═══ HOOK: refrescar el modal de recuperación si está abierto ═══
-        var modalRec = document.getElementById('modalRecuperacion');
-        if (modalRec && modalRec.classList.contains('visible')) {
-          setTimeout(function() {
-            cerrarModalVideo();
-            if (typeof abrirModalRecuperacion === 'function') abrirModalRecuperacion();
-          }, 1800);
-          return;
-        }
-      } else {
+      _videosSubidos[_claveVideo()] = true;
+      if (_videoTipoChallenge !== 'Justificante') {
         var linkId = _videoTipoChallenge === 'Mini' ? 'linkVideoMini' : 'linkVideoGrand';
         var linkEl = document.getElementById(linkId);
         if (linkEl) {
@@ -11514,7 +11562,7 @@ function subirVideoChallenge() {
           linkEl.style.display = 'block';
         }
       }
-      setTimeout(cerrarModalVideo, 2500);
+      _mostrarExitoVideo(false);
     });
   })
   .catch(function(err) {
@@ -11525,7 +11573,7 @@ function subirVideoChallenge() {
     }
     document.getElementById('videoStatus').textContent = '❌ ' + _m;
     console.log('ERROR VIDEO:', err);
-    btn.disabled = false;
+    _desbloquearVideo();
   });
 }
 </script>
