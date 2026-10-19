@@ -1162,6 +1162,16 @@ function mostrarPanel(){
 }
 
 function cargarDatos(callback){
+  // Las tres consultas al backend arrancan AL MISMO TIEMPO (antes las dos
+  // últimas esperaban a que terminara getDatosCA).
+  var pBloqueos = fetch(APPS_SCRIPT+'?action=getHorariosBloqueados',{redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(bd){ bloqueosData = (bd.status==='ok') ? (bd.bloqueos||[]) : []; })
+    .catch(function(){ bloqueosData=[]; });
+  var pDisponibilidad = fetch(APPS_SCRIPT+'?action=getDisponibilidadMaestros',{redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(dd){ disponibilidadData = (dd.status==='ok') ? (dd.disponibilidad||[]) : []; })
+    .catch(function(){ disponibilidadData=[]; });
   fetch(APPS_SCRIPT+'?action=getDatosCA',{redirect:'follow'})
     .then(r=>r.json())
     .then(data=>{
@@ -1180,14 +1190,6 @@ function cargarDatos(callback){
       renderEvaluaciones();
       poblarSelectGrupos();
       poblarSelectCambioNivel();
-      var pBloqueos = fetch(APPS_SCRIPT+'?action=getHorariosBloqueados',{redirect:'follow'})
-        .then(function(r){ return r.json(); })
-        .then(function(bd){ bloqueosData = (bd.status==='ok') ? (bd.bloqueos||[]) : []; })
-        .catch(function(){ bloqueosData=[]; });
-      var pDisponibilidad = fetch(APPS_SCRIPT+'?action=getDisponibilidadMaestros',{redirect:'follow'})
-        .then(function(r){ return r.json(); })
-        .then(function(dd){ disponibilidadData = (dd.status==='ok') ? (dd.disponibilidad||[]) : []; })
-        .catch(function(){ disponibilidadData=[]; });
       Promise.all([pBloqueos, pDisponibilidad]).then(function(){
         if(typeof callback === 'function') callback();
       });
