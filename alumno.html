@@ -11399,9 +11399,14 @@ function subirVideoChallenge() {
     return fetch(urlRegistro, { redirect: 'follow' })
     .then(function(r) { return r.text(); })
     .then(function(txt) {
-      var ok = false;
-      try { ok = JSON.parse(txt).success !== false; } catch(e) { ok = true; }
+      var ok = false, errSrv = '';
+      try { var _pj = JSON.parse(txt); ok = _pj.success === true; errSrv = _pj.error || ''; } catch(e) { ok = false; errSrv = 'Respuesta inválida del servidor'; }
       clearInterval(ticker);
+      if (!ok) {
+        document.getElementById('videoStatus').textContent = '❌ El video se subió pero NO se registró: ' + errSrv + '. Inténtalo de nuevo o avisa a tu maestro.';
+        btn.disabled = false;
+        return;
+      }
       prog.style.width = '100%';
       document.getElementById('videoStatus').textContent = '✅ Video subido exitosamente.';
 
