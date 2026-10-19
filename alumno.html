@@ -11334,6 +11334,96 @@ function onVideoSeleccionado(input) {
   });
 })();
 
+// ═══ Subida a Drive por partes (resumible) con progreso real y reintentos ═══
+// Un video de 100+ MB en una sola petición se cae con datos móviles (Safari: "Load failed").
+// Aquí se sube en bloques de 8 MB; si un bloque falla se reintenta sin empezar de cero.
+function _subirDriveResumable(file, token, metadata, onProgress) {
+  var CHUNK = 8 * 1024 * 1024; // múltiplo de 256 KB
+  var total = file.size;
+  var tipo  = file.type || 'video/mp4';
+  var totalMb = (total/1024/1024).toFixed(1);
+
+  function esperar(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  function putXHR(url, headers, body, onUp) {
+    return new Promise(function(resolve, reject) {
+      var x = new XMLHttpRequest();
+      x.open('PUT', url, true);
+      Object.keys(headers).forEach(function(k){ x.setRequestHeader(k, headers[k]); });
+      x.timeout = 120000;
+      if (onUp) x.upload.onprogress = function(e){ if (e.lengthComputable) onUp(e.loaded); };
+      x.onload    = function(){ resolve(x); };
+      x.onerror   = function(){ reject(new Error('Load failed (red)')); };
+      x.ontimeout = function(){ reject(new Error('Tiempo de espera agotado (red)')); };
+      x.send(body);
+    });
+  }
+
+  // Pregunta a Drive cuántos bytes ya recibió (para reanudar tras un corte)
+  function consultarOffset(sessionUrl) {
+    return putXHR(sessionUrl, { 'Content-Range': 'bytes */' + total }, null).then(function(x) {
+      if (x.status === 200 || x.status === 201) return { listo: true, resp: x.responseText };
+      if (x.status === 308) {
+        var rg = x.getResponseHeader('Range'); // "bytes=0-N"
+        var m = rg && rg.match(/-(\d+)$/);
+        return { listo: false, offset: m ? parseInt(m[1], 10) + 1 : 0 };
+      }
+      throw new Error('Drive respondió ' + x.status);
+    });
+  }
+
+  return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,webViewLink', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': tipo,
+      'X-Upload-Content-Length': String(total)
+    },
+    body: JSON.stringify(metadata)
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.text().then(function(t){ throw new Error('Drive error ' + r.status + ': ' + t.substring(0, 200)); });
+    }
+    var sessionUrl = r.headers.get('Location');
+    if (!sessionUrl) throw new Error('Drive no devolvió la sesión de subida');
+
+    var offset = 0, fallos = 0;
+    function siguiente() {
+      var fin = Math.min(offset + CHUNK, total);
+      var base = offset;
+      return putXHR(sessionUrl, {
+        'Content-Range': 'bytes ' + offset + '-' + (fin - 1) + '/' + total
+      }, file.slice(offset, fin), function(loaded) {
+        var hecho = base + loaded;
+        onProgress(hecho / total, (hecho/1024/1024).toFixed(1), totalMb);
+      }).then(function(x) {
+        if (x.status === 200 || x.status === 201) {
+          onProgress(1, totalMb, totalMb);
+          return JSON.parse(x.responseText);
+        }
+        if (x.status === 308) {
+          fallos = 0;
+          var rg = x.getResponseHeader('Range');
+          var m = rg && rg.match(/-(\d+)$/);
+          offset = m ? parseInt(m[1], 10) + 1 : fin;
+          return siguiente();
+        }
+        throw new Error('Drive respondió ' + x.status);
+      }).catch(function(err) {
+        fallos++;
+        if (fallos > 6) throw err;
+        return esperar(1500 * fallos).then(function(){ return consultarOffset(sessionUrl); }).then(function(st) {
+          if (st.listo) return JSON.parse(st.resp);
+          offset = st.offset;
+          return siguiente();
+        });
+      });
+    }
+    return siguiente();
+  });
+}
+
 function subirVideoChallenge() {
   if (!_videoArchivo || !alumnoData) return;
   var btn = document.getElementById('btnEnviarVideo');
@@ -11364,18 +11454,13 @@ function subirVideoChallenge() {
     if (!res.token) throw new Error('No se obtuvo token');
     document.getElementById('videoStatus').textContent = 'Subiendo video a Drive…';
 
-    var metadata = JSON.stringify({ name: nombreFinal, parents: [idCarpeta] });
-    var form = new FormData();
-    form.append('metadata', new Blob([metadata], { type: 'application/json' }));
-    form.append('file', _videoArchivo);
-
-    return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + res.token },
-      body: form
+    clearInterval(ticker);
+    var metadata = { name: nombreFinal, parents: [idCarpeta] };
+    return _subirDriveResumable(_videoArchivo, res.token, metadata, function(frac, mb, totalMb) {
+      prog.style.width = (3 + frac * 85) + '%';
+      document.getElementById('videoStatus').textContent = 'Subiendo video… ' + Math.round(frac*100) + '% (' + mb + ' de ' + totalMb + ' MB). No cierres ni bloquees la pantalla.';
     });
   })
-  .then(function(r) { return r.json(); })
   .then(function(driveResp) {
     if (!driveResp.id) throw new Error('Drive error: ' + JSON.stringify(driveResp));
     var urlVideo = driveResp.webViewLink;
@@ -11434,7 +11519,11 @@ function subirVideoChallenge() {
   })
   .catch(function(err) {
     clearInterval(ticker);
-    document.getElementById('videoStatus').textContent = '❌ Error: ' + err.message;
+    var _m = String(err && err.message || err);
+    if (/load failed|failed to fetch|networkerror|network|timeout|cortó/i.test(_m)) {
+      _m = 'Se cortó la conexión mientras subía el video. Conéctate a WiFi, deja la pantalla encendida y vuelve a intentarlo (pulsa "Subir Video").';
+    }
+    document.getElementById('videoStatus').textContent = '❌ ' + _m;
     console.log('ERROR VIDEO:', err);
     btn.disabled = false;
   });
