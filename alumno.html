@@ -10153,7 +10153,7 @@ function renderCalendarioRecuperacionSabatino_(mapa, dias) {
     }
     if (!sabObj && fechaInicioGrupo) { sabObj = new Date(fechaInicioGrupo); sabObj.setDate(sabObj.getDate() + (s - 1) * 7); }
     var fechaTxt = sabObj ? (sabObj.getDate() + ' ' + mesCorto[sabObj.getMonth()]) : '';
-    var esFuturo = sabObj ? (sabObj.getTime() > hoy.getTime()) : false;
+    var esFuturo = sabObj ? (sabObj.getTime() >= hoy.getTime()) : false;
 
     var faltasSab = esFuturo ? 0 : celdas.filter(function(c) { return c && c.asistencia === 'Ausente' && c.esFaltaRecuperable && c.estatus !== 'Pendiente' && c.estatus !== 'Aprobado'; }).length;
 
@@ -10227,10 +10227,8 @@ function renderCeldaSabatinoRecuperacion_(dia, cn, lessonNum, esFuturo) {
   }
 
   // Sábado que aún no llega → jamás es falta (aunque el backend mande "Ausente")
-  if (dia.estatus !== 'Pendiente' && dia.estatus !== 'Aprobado') {
-    var fReal = _parseFechaLocal_(dia.fechaReal || '');
-    var hoyC = new Date(); hoyC.setHours(0,0,0,0);
-    if (fReal && fReal.getTime() >= hoyC.getTime()) return cajaNeutra_('Clase por venir · ' + fechaTit);
+  if (dia.estatus !== 'Pendiente' && dia.estatus !== 'Aprobado' && esFuturo) {
+    return cajaNeutra_('Clase por venir · ' + fechaTit);
   }
 
   if (dia.asistencia === 'Ausente') {
@@ -12003,8 +12001,8 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
 </div>
 
 <!-- MODAL: RECUPERAR CLASE -->
-<div id="modalRecuperacion" class="modal-video-overlay" onclick="if(event.target===this)cerrarModalRecuperacion()">
-  <div class="modal-video-box" style="max-width:560px;max-height:92vh;max-height:92dvh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;">
+<div id="modalRecuperacion" class="modal-video-overlay" onclick="if(event.target===this)cerrarModalRecuperacion()" style="overflow-y:auto;overflow-x:hidden;align-items:flex-start;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px;">
+  <div class="modal-video-box" style="max-width:560px;margin:auto;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
       <div>
         <div style="font-size:22px;font-weight:700;color:#f1f5f9;">📹 Recuperar clase</div>
@@ -12034,3 +12032,8 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   
 </body>
 </html>
+
+
+
+
+  
