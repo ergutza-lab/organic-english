@@ -10155,7 +10155,7 @@ function renderCalendarioRecuperacionSabatino_(mapa, dias) {
     var fechaTxt = sabObj ? (sabObj.getDate() + ' ' + mesCorto[sabObj.getMonth()]) : '';
     var esFuturo = sabObj ? (sabObj.getTime() > hoy.getTime()) : false;
 
-    var faltasSab = celdas.filter(function(c) { return c && c.asistencia === 'Ausente' && c.esFaltaRecuperable && c.estatus !== 'Pendiente' && c.estatus !== 'Aprobado'; }).length;
+    var faltasSab = esFuturo ? 0 : celdas.filter(function(c) { return c && c.asistencia === 'Ausente' && c.esFaltaRecuperable && c.estatus !== 'Pendiente' && c.estatus !== 'Aprobado'; }).length;
 
     var bgSab = 'rgba(255,255,255,0.03)', bordeSab = '1px solid rgba(255,255,255,0.08)', colTit = '#f1f5f9', etiqueta = '';
     if (s === 4) { bgSab = 'rgba(251,191,36,0.12)'; bordeSab = '1px solid rgba(251,191,36,0.45)'; colTit = '#fbbf24'; etiqueta = '⭐ Mini'; }
@@ -10224,6 +10224,13 @@ function renderCeldaSabatinoRecuperacion_(dia, cn, lessonNum, esFuturo) {
   if (dia.asistencia === 'Presente' && dia.color) {
     var col = colorMapSab[dia.color] || '#94a3b8';
     return cajaColor_(col, 'Presente' + (dia.esRecuperacion ? ' · recuperada' : '') + ' · ' + fechaTit + ' · ' + (labelSab[dia.color] || ''), dia.esRecuperacion);
+  }
+
+  // Sábado que aún no llega → jamás es falta (aunque el backend mande "Ausente")
+  if (dia.estatus !== 'Pendiente' && dia.estatus !== 'Aprobado') {
+    var fReal = _parseFechaLocal_(dia.fechaReal || '');
+    var hoyC = new Date(); hoyC.setHours(0,0,0,0);
+    if (fReal && fReal.getTime() >= hoyC.getTime()) return cajaNeutra_('Clase por venir · ' + fechaTit);
   }
 
   if (dia.asistencia === 'Ausente') {
@@ -11997,7 +12004,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
 
 <!-- MODAL: RECUPERAR CLASE -->
 <div id="modalRecuperacion" class="modal-video-overlay" onclick="if(event.target===this)cerrarModalRecuperacion()">
-  <div class="modal-video-box" style="max-width:560px;">
+  <div class="modal-video-box" style="max-width:560px;max-height:92vh;max-height:92dvh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
       <div>
         <div style="font-size:22px;font-weight:700;color:#f1f5f9;">📹 Recuperar clase</div>
