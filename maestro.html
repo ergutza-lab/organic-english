@@ -504,6 +504,41 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL: EDITAR EVALUACIÓN DESDE CALENDARIO -->
+<div id="modalEditarEval" class="modal-eval-overlay"
+     onclick="if(event.target===this)cerrarModalEditarEval()">
+  <div class="modal-eval-box" style="max-width:460px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#f1f5f9;">✏️ Editar evaluación</div>
+        <div id="editarEvalSub" style="font-size:12px;color:#64748b;margin-top:3px;">—</div>
+      </div>
+      <button onclick="cerrarModalEditarEval()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700;">✕</button>
+    </div>
+
+    <div id="editarEvalActual" style="background:rgba(0,0,0,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#cbd5e1;">
+      <!-- Se llena dinámicamente -->
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Asignar nuevo estado</div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
+      <button class="apr-btn" id="editarSel1" onclick="selEditarEval(1)" style="padding:14px;font-size:13px;">🔴 Rojo</button>
+      <button class="apr-btn" id="editarSel2" onclick="selEditarEval(2)" style="padding:14px;font-size:13px;">🟡 Amarillo</button>
+      <button class="apr-btn" id="editarSel3" onclick="selEditarEval(3)" style="padding:14px;font-size:13px;">🟢 Verde</button>
+      <button class="apr-btn" id="editarSel4" onclick="selEditarEval(4)" style="padding:14px;font-size:13px;">🔵 Azul</button>
+    </div>
+
+    <button id="editarSelFalta" onclick="selEditarEval(0)" class="apr-btn" style="width:100%;padding:12px;font-size:13px;margin-bottom:16px;">⛔ Marcar como FALTA</button>
+
+    <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Observación (opcional)</div>
+    <textarea id="editarEvalObs" class="challenge-feedback" style="min-height:70px;margin-bottom:14px;" placeholder="Observación para esta clase..."></textarea>
+
+    <button id="editarEvalGuardar" onclick="guardarEdicionEval()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">💾 Guardar cambios</button>
+    <div id="editarEvalStatus" style="margin-top:10px;font-size:12px;text-align:center;"></div>
+  </div>
+</div>
       
 <div class="toast" id="toast"></div>
 </div><!-- cierre de #vistaDetalle -->
@@ -4053,22 +4088,26 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
     if (atenuar) html += '<div style="font-size:9px;color:#64748b;">POR VENIR</div>';
     html += '</div>';
 
-    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+        html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
     for (var cn = 1; cn <= 4; cn++) {
       var reg = regsSabado[cn];
       var lessonNum = (idxSab * 4) + cn;
-            if (reg && reg.asistio !== false && reg.color) {
+      var colorVal = reg && reg.asistio !== false && reg.color ? reg.color : 0;
+      var obsVal   = reg ? (reg.observacion || '') : '';
+      var clickSab = "abrirModalEditarEval('" + d.alumno.id + "','" + sabadoISO + "'," + cn + "," + (idxSab + 1) + "," + bloqueActualSab + ",true," + (colorVal || 'null') + "," + (reg && reg.asistio !== false ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
+
+      if (reg && reg.asistio !== false && reg.color) {
         var col = colorMap[reg.color] || '#94a3b8';
         var marcaR = reg.esRecuperacion ? '<span style="position:absolute;top:2px;right:2px;font-size:11px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
         var tooltipR = reg.esRecuperacion ? ' · recuperada' : '';
-        html += '<div style="position:relative;background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;" title="' + tooltipR + '">' + marcaR + '<div style="font-size:9px;color:rgba(255,255,255,0.85);font-weight:700;">C' + cn + '</div><div style="color:#fff;font-size:14px;font-weight:800;">' + lessonNum + '</div></div>';
+        html += '<div onclick="' + clickSab + '" style="position:relative;cursor:pointer;background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;" title="Toca para editar' + tooltipR + '">' + marcaR + '<div style="font-size:9px;color:rgba(255,255,255,0.85);font-weight:700;">C' + cn + '</div><div style="color:#fff;font-size:14px;font-weight:800;">' + lessonNum + '</div></div>';
       } else if (reg) {
-        html += '<div style="background:#334155;border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div><div style="color:#cbd5e1;font-size:14px;font-weight:900;">F</div></div>';
+        html += '<div onclick="' + clickSab + '" style="cursor:pointer;background:#334155;border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;" title="Toca para cambiar a evaluación"><div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div><div style="color:#cbd5e1;font-size:14px;font-weight:900;">F</div></div>';
       } else {
-        html += '<div style="background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;"><div style="font-size:9px;color:#64748b;">C' + cn + '</div><div style="color:#475569;font-size:14px;">—</div></div>';
+        html += '<div onclick="' + clickSab + '" style="cursor:pointer;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;" title="Toca para asignar evaluación"><div style="font-size:9px;color:#64748b;">C' + cn + '</div><div style="color:#475569;font-size:14px;">—</div></div>';
       }
     }
-    html += '</div></div>';
+    html += '</div>';
   });
 
   html += '</div>';
@@ -4180,21 +4219,28 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
-      var fNorm = fechaDia ? new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate()) : null;
+           var fNorm = fechaDia ? new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate()) : null;
       var esFuturo = fNorm ? (fNorm.getTime() > hoy.getTime()) : false;
       var esHoy = fNorm ? (fNorm.getTime() === hoy.getTime()) : false;
       var yaEmpezó = true;
       if (fechaRef && fNorm) yaEmpezó = fNorm.getTime() >= fechaRef.getTime();
 
+      // ── Celda clickeable (evaluación, falta, o día pasado vacío) ──
+      var colorVal = rec ? (rec.color || 0) : 0;
+      var asistioVal = rec ? (rec.asistio !== false) : false;
+      var obsVal = rec ? (rec.observacion || '') : '';
+      var fechaCelISO = fechaDia ? (fechaDia.getFullYear() + '-' + String(fechaDia.getMonth()+1).padStart(2,'0') + '-' + String(fechaDia.getDate()).padStart(2,'0')) : '';
+      var clickCel = "abrirModalEditarEval('" + d.alumno.id + "','" + fechaCelISO + "'," + (di + 1) + "," + s + "," + bloqueActualAl + ",false," + (colorVal || 'null') + "," + (asistioVal ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
+
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
-          html += '<div title="Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
-                } else {
+          html += '<div onclick="' + clickCel + '" title="Falta · Toca para editar" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        } else {
           var col = colorMap[rec.color] || '#94a3b8';
           var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
           var marcaR = rec.esRecuperacion ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
           var tooltipR = rec.esRecuperacion ? ' · recuperada' : '';
-          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + tooltipR + ' · ' + diaNum + ' ' + mesStr + '" style="position:relative;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+          html += '<div onclick="' + clickCel + '" title="' + (rec.fecha || '') + ' · ' + labelCol + tooltipR + ' · Toca para editar" style="position:relative;cursor:pointer;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
             marcaR +
             '<span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span>' +
             '<span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span>' +
@@ -4203,11 +4249,14 @@ function renderDetalleEvalDer(d) {
         continue;
       }
       if (esFuturo || esHoy) {
+        // Día futuro: no clickeable
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span><span style="color:#475569;font-size:7px;">' + mesStr + '</span></div>';
       } else if (!yaEmpezó) {
+        // Antes del inicio del grupo: no clickeable
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#475569;font-size:10px;">' + diaNum + '</span><span style="color:#334155;font-size:7px;">' + mesStr + '</span></div>';
       } else {
-        html += '<div title="Falta" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        // Día pasado sin registro → falta sin evaluar → clickeable
+        html += '<div onclick="' + clickCel + '" title="Toca para registrar evaluación" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
       }
     }
     html += '</div>';
@@ -4406,6 +4455,149 @@ function abrirDetalleEvalMaestro(idAlumno) {
     document.getElementById('detalleEvalDer').innerHTML =
       '<div style="text-align:center;padding:40px;color:#f87171;">Error de conexión.</div>';
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  EDITAR EVALUACIÓN DESDE EL CALENDARIO DEL DETALLE
+// ═══════════════════════════════════════════════════════════════════════
+var _editEvalCtx = null;   // { idAlumno, idGrupo, fecha, claseNum, semana, bloque, esSabatino, valorSel }
+
+function abrirModalEditarEval(idAlumno, fechaISO, claseNum, semana, bloque, esSabatino, colorActual, asistio, obsActual) {
+  // Si no hay fecha válida, no hacemos nada (día no evaluable)
+  if (!fechaISO) {
+    mostrarToast('Esta clase aún no tiene fecha asignada', 'error');
+    return;
+  }
+
+  _editEvalCtx = {
+    idAlumno: idAlumno,
+    idGrupo: grupoActual ? grupoActual.id : '',
+    fecha: fechaISO,
+    claseNum: claseNum,
+    semana: semana,
+    bloque: bloque,
+    esSabatino: !!esSabatino,
+    valorSel: null
+  };
+
+  // Mostrar fecha bonita
+  var f = _parseFechaLocal_(fechaISO);
+  var fechaBonita = f
+    ? f.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][f.getMonth()] + ' ' + f.getFullYear()
+    : fechaISO;
+
+  document.getElementById('editarEvalSub').textContent = fechaBonita + ' · Clase ' + claseNum + ' · Semana ' + semana;
+
+  // Pintar estado actual
+  var actual = '';
+  if (asistio === false || colorActual == null) {
+    actual = '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⛔</span><div><div style="font-weight:700;color:#cbd5e1;">Falta</div><div style="font-size:11px;color:#64748b;">Sin evaluación registrada</div></div></div>';
+  } else {
+    var emoji = { 1:'🔴', 2:'🟡', 3:'🟢', 4:'🔵' }[colorActual] || '⚪';
+    var label = { 1:'Rojo', 2:'Amarillo', 3:'Verde', 4:'Azul' }[colorActual] || '';
+    actual = '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">' + emoji + '</span><div><div style="font-weight:700;color:#f1f5f9;">' + label + '</div><div style="font-size:11px;color:#64748b;">Evaluación actual</div></div></div>';
+  }
+  document.getElementById('editarEvalActual').innerHTML =
+    '<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Estado actual</div>' + actual;
+
+  // Precargar observación existente
+  document.getElementById('editarEvalObs').value = obsActual || '';
+
+  // Limpiar selección y status
+  [1,2,3,4].forEach(function(v){
+    var b = document.getElementById('editarSel' + v);
+    if (b) b.className = 'apr-btn';
+  });
+  var bf = document.getElementById('editarSelFalta');
+  if (bf) bf.className = 'apr-btn';
+  document.getElementById('editarEvalStatus').textContent = '';
+
+  document.getElementById('modalEditarEval').classList.add('visible');
+}
+
+function cerrarModalEditarEval() {
+  document.getElementById('modalEditarEval').classList.remove('visible');
+  _editEvalCtx = null;
+}
+
+function selEditarEval(valor) {
+  if (!_editEvalCtx) return;
+  _editEvalCtx.valorSel = valor;
+
+  [1,2,3,4].forEach(function(v){
+    var b = document.getElementById('editarSel' + v);
+    if (b) b.className = 'apr-btn' + (v === valor ? ' sel-' + v : '');
+  });
+  var bf = document.getElementById('editarSelFalta');
+  if (bf) bf.className = 'apr-btn' + (valor === 0 ? ' sel-nr' : '');
+}
+
+function guardarEdicionEval() {
+  if (!_editEvalCtx) return;
+  var status = document.getElementById('editarEvalStatus');
+  var obs = document.getElementById('editarEvalObs').value.trim();
+
+  var valor = _editEvalCtx.valorSel;
+  if (valor === null || valor === undefined) {
+    status.style.color = '#f87171';
+    status.textContent = 'Selecciona un color o "Falta" antes de guardar.';
+    return;
+  }
+
+  var btn = document.getElementById('editarEvalGuardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  status.style.color = '#94a3b8';
+  status.textContent = '';
+
+  var ctx = _editEvalCtx;
+  // valor 0 = falta, valor 1-4 = color
+  var asistio = valor > 0;
+  var color    = valor > 0 ? valor : 0;
+
+  var url = APPS_SCRIPT + '?action=editarEvaluacionClase'
+    + '&idGrupo='     + encodeURIComponent(ctx.idGrupo)
+    + '&idAlumno='    + encodeURIComponent(ctx.idAlumno)
+    + '&fecha='       + encodeURIComponent(ctx.fecha)
+    + '&claseNum='    + encodeURIComponent(ctx.claseNum)
+    + '&semana='      + encodeURIComponent(ctx.semana)
+    + '&bloque='      + encodeURIComponent(ctx.bloque)
+    + '&asistio='     + (asistio ? 'true' : 'false')
+    + '&color='       + color
+    + '&observacion=' + encodeURIComponent(obs)
+    + '&esSabatino='  + (ctx.esSabatino ? 'true' : 'false')
+    + '&idMaestro='   + encodeURIComponent(maestroData ? maestroData.id : '');
+
+  fetch(url, { redirect: 'follow' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar cambios';
+
+      if (!data.success) {
+        status.style.color = '#f87171';
+        status.textContent = '❌ ' + (data.error || 'Error al guardar');
+        return;
+      }
+
+      status.style.color = '#4ade80';
+      status.textContent = '✅ Evaluación actualizada';
+
+      // Refrescar el detalle (recargar el modal sin cerrarlo)
+      var alumnoId = ctx.idAlumno;
+      setTimeout(function(){
+        cerrarModalEditarEval();
+        if (typeof abrirDetalleEvalMaestro === 'function') {
+          abrirDetalleEvalMaestro(alumnoId);
+        }
+      }, 700);
+    })
+    .catch(function(){
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar cambios';
+      status.style.color = '#f87171';
+      status.textContent = '❌ Error de conexión';
+    });
 }
   
 function cerrarDetalleEvalMaestro() {
