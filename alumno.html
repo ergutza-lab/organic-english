@@ -10046,8 +10046,13 @@ function renderCalendarioRecuperacion() {
   html += '<div style="margin-bottom:4px;">• Tienes <strong style="color:#fff;">un solo intento</strong> por falta</div>';
   html += '<div style="margin-bottom:4px;">• El video debe durar <strong style="color:#fff;">máximo 1:30 min</strong></div>';
   html += '<div style="margin-bottom:4px;">• Habla en inglés durante todo el video</div>';
-  html += '<div style="margin-bottom:4px;">• <strong style="color:#4ade80;">Falta de esta semana</strong> → máximo 🟢 Verde</div>';
-  html += '<div>• <strong style="color:#facc15;">Falta de semanas anteriores</strong> → máximo 🟡 Amarillo</div>';
+  if (esSabatino) {
+    html += '<div style="margin-bottom:4px;">• <strong style="color:#4ade80;">Falta de tu último sábado</strong> → máximo 🟢 Verde si subes tu video <strong style="color:#fff;">a más tardar el viernes</strong> de la semana siguiente</div>';
+    html += '<div>• <strong style="color:#facc15;">Faltas de sábados anteriores</strong> → máximo 🟡 Amarillo</div>';
+  } else {
+    html += '<div style="margin-bottom:4px;">• <strong style="color:#4ade80;">Falta de esta semana</strong> → máximo 🟢 Verde</div>';
+    html += '<div>• <strong style="color:#facc15;">Falta de semanas anteriores</strong> → máximo 🟡 Amarillo</div>';
+  }
   html += '</div>';
 
   // Verificar faltas recuperables
@@ -10289,6 +10294,19 @@ function renderBloqueInstruccion_(dia, inst, esKids) {
   return html;
 }
 // ─── Vista 3: Subida de video (reutiliza el modal existente) ───
+// Fecha real y número de clase de la falta que se está recuperando
+// (importante en grupos sabatinos: 4 clases el mismo sábado).
+function _paramsFaltaReal_() {
+  var dias = window._diasRecuperacion || [];
+  for (var i = 0; i < dias.length; i++) {
+    if (dias[i].fecha === _faltaFechaJustificar && dias[i].fechaReal && dias[i].claseNum) {
+      return '&fechaReal=' + encodeURIComponent(dias[i].fechaReal) +
+             '&claseNum='  + encodeURIComponent(dias[i].claseNum);
+    }
+  }
+  return '';
+}
+
 function abrirSubidaVideoRecuperacion(fechaFalta, numLeccion, tituloLeccion) {
   _videoTipoChallenge = 'Justificante';
   _videoArchivo = null;
@@ -11532,6 +11550,7 @@ function subirVideoChallenge() {
         '&idAlumno=' + encodeURIComponent(idAlumno) +
         '&idGrupo='  + encodeURIComponent(idGrupo) +
         '&fecha='    + encodeURIComponent(_faltaFechaJustificar) +
+        _paramsFaltaReal_() +
         '&url='      + encodeURIComponent(urlVideo)
       : APPS_SCRIPT + '?action=registrarLinkVideo' +
         '&idAlumno=' + encodeURIComponent(idAlumno) +
