@@ -10115,6 +10115,18 @@ function renderCalendarioRecuperacion() {
   cont.innerHTML = html;
 }
 
+// ─── ¿Este registro es una evaluación obtenida por RECUPERACIÓN? (círculo amarillo "r") ───
+function _esRecup_(r) {
+  if (!r) return false;
+  return r.esRecuperacion === true || r.esRecuperacion === 'true' || r.esRecuperacion === 1 ||
+         r.recuperada === true || r.estatus === 'Aprobado' ||
+         /recuper/i.test(String(r.tipo || '')) || /recuper/i.test(String(r.origen || ''));
+}
+// ¿El registro tiene calificación válida? (una recuperación aprobada puede conservar asistio=false)
+function _tieneColor_(r) {
+  return !!r && r.color != null && r.color !== '' && (r.asistio !== false || _esRecup_(r));
+}
+
 // ─── Calendario de recuperación SABATINO (copia del calendario de Detalles) ───
 // 1 tarjeta por sábado, 4 mini-celdas (C1..C4). Cada F es clickeable,
 // así que si faltó a las 4 clases del mismo sábado puede subir los 4 videos.
@@ -10221,9 +10233,9 @@ function renderCeldaSabatinoRecuperacion_(dia, cn, lessonNum, esFuturo) {
       '<div style="font-size:8px;color:#64748b;">Lesson ' + lessonShow + '</div></div>';
   }
 
-  if (dia.asistencia === 'Presente' && dia.color) {
+  if (dia.color && (dia.asistencia === 'Presente' || _esRecup_(dia)) && dia.estatus !== 'Pendiente') {
     var col = colorMapSab[dia.color] || '#94a3b8';
-    return cajaColor_(col, 'Presente' + (dia.esRecuperacion ? ' · recuperada' : '') + ' · ' + fechaTit + ' · ' + (labelSab[dia.color] || ''), dia.esRecuperacion);
+    return cajaColor_(col, (_esRecup_(dia) ? 'Recuperada' : 'Presente') + ' · ' + fechaTit + ' · ' + (labelSab[dia.color] || ''), _esRecup_(dia));
   }
 
   // Sábado que aún no llega → jamás es falta (aunque el backend mande "Ausente")
@@ -10292,13 +10304,13 @@ function renderCeldaCalendarioRecuperacion(dia, semana, diaSem) {
   // ═══════════════════════════════════════════════════════════════════
   //  2) PRESENTE con color (día de clase con evaluación)
   // ═══════════════════════════════════════════════════════════════════
-  if (dia.asistencia === 'Presente' && dia.color) {
+  if (dia.color && (dia.asistencia === 'Presente' || _esRecup_(dia)) && dia.estatus !== 'Pendiente') {
     var col = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'}[dia.color] || '#94a3b8';
     var colorTexto = dia.color === 2 ? '#422006' : '#fff';
-    var marcaR = dia.esRecuperacion
+    var marcaR = _esRecup_(dia)
       ? '<span style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#fbbf24;color:#000;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);">r</span>'
       : '';
-    var tooltipR = dia.esRecuperacion ? ' · recuperada' : '';
+    var tooltipR = _esRecup_(dia) ? ' · recuperada' : '';
     return '<div title="Presente' + tooltipR + ' · ' + dia.fecha + (dia.leccion ? ' · Lesson ' + dia.leccion : '') + '" style="position:relative;height:34px;background:' + col + ';border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:default;">' + marcaR + '<span style="font-size:12px;color:' + colorTexto + ';font-weight:800;">' + diaMes + '</span></div>';
   }
 
@@ -10984,7 +10996,7 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
 
       var cajaHtml = '';
       if (reg) {
-        if (reg.asistio === false || reg.color == null) {
+        if (!_tieneColor_(reg)) {
           // Falta o sin color → mostrar F
           cajaHtml =
             '<div style="background:#334155;border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" title="' + reg.fecha + ' · Falta">' +
@@ -10996,8 +11008,8 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
           // Color válido
           var col = colorMap[reg.color] || '#94a3b8';
           var labelCol = labelColor[reg.color] || '';
-          var marcaR = reg.esRecuperacion ? '<span style="position:absolute;top:2px;right:2px;font-size:11px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
-          var tooltipR = reg.esRecuperacion ? ' · recuperada' : '';
+          var marcaR = _esRecup_(reg) ? '<span style="position:absolute;top:2px;right:2px;font-size:11px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
+          var tooltipR = _esRecup_(reg) ? ' · recuperada' : '';
           cajaHtml =
             '<div style="position:relative;background:' + col + ';border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 6px rgba(0,0,0,0.25);" title="' + reg.fecha + ' · ' + labelCol + tooltipR + '">' +
               marcaR +
@@ -11245,7 +11257,7 @@ function renderDetalleEvalDer(d) {
 
       // Si hay registro → mostrar color o F
       if (rec) {
-        if (rec.asistio === false || rec.color == null) {
+        if (!_tieneColor_(rec)) {
           html += '<div title="' + (rec.fecha || '') + ' · Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
             '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
             '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
@@ -11253,8 +11265,8 @@ function renderDetalleEvalDer(d) {
         } else {
           var col = colorMap[rec.color] || '#94a3b8';
           var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
-          var marcaR = rec.esRecuperacion ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
-          var tooltipR = rec.esRecuperacion ? ' · recuperada' : '';
+          var marcaR = _esRecup_(rec) ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
+          var tooltipR = _esRecup_(rec) ? ' · recuperada' : '';
           html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + tooltipR + ' · ' + diaNum + ' ' + mesStr + '" style="position:relative;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
             marcaR +
             '<span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span>' +
@@ -12032,8 +12044,3 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   
 </body>
 </html>
-
-
-
-
-  
