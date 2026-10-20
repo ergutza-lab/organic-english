@@ -10074,6 +10074,13 @@ function renderCalendarioRecuperacion() {
     mapa[d.semana][d.dia] = d;
   });
 
+  // ── Grupos SABATINOS: calendario idéntico al de "Detalles" (1 tarjeta por sábado, 4 clases) ──
+  if (esSabatino) {
+    html += renderCalendarioRecuperacionSabatino_(mapa, dias);
+    cont.innerHTML = html;
+    return;
+  }
+
   // Calendario (7 columnas lun-dom, 8 filas de semanas)
   html += '<div style="overflow-x:auto;">';
   html += '<div style="display:grid;grid-template-columns:52px repeat(7,1fr);gap:6px;margin-bottom:6px;">';
@@ -10106,6 +10113,139 @@ function renderCalendarioRecuperacion() {
   html += '</div>';
 
   cont.innerHTML = html;
+}
+
+// ─── Calendario de recuperación SABATINO (copia del calendario de Detalles) ───
+// 1 tarjeta por sábado, 4 mini-celdas (C1..C4). Cada F es clickeable,
+// así que si faltó a las 4 clases del mismo sábado puede subir los 4 videos.
+function _diaSabRec_(mapa, semana, cn) {
+  var fila = mapa[semana] || {};
+  var k, d;
+  // Preferir coincidencia por claseNum; si no, por posición del día (1-4)
+  for (k in fila) { d = fila[k]; if (d && parseInt(d.claseNum, 10) === cn) return d; }
+  return fila[cn] || null;
+}
+
+function renderCalendarioRecuperacionSabatino_(mapa, dias) {
+  var html = '';
+  var mesCorto = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+
+  var fechaInicioGrupo = null;
+  if (alumnoData && alumnoData.grupo && alumnoData.grupo.fechaInicio) {
+    fechaInicioGrupo = _parseFechaLocal_(alumnoData.grupo.fechaInicio);
+  }
+
+  html += '<div style="background:rgba(0,0,0,0.18);border-radius:14px;padding:16px;margin-bottom:6px;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#f1f5f9;">📅 Calendario del Bloque ' + (window._bloqueRecuperacion || 1) + '</div>';
+  html += '<div style="font-size:10px;color:#94a3b8;">1 clase por semana (Sábado) · 4 clases por sábado</div>';
+  html += '</div>';
+
+  for (var s = 1; s <= 8; s++) {
+    var celdas = [];
+    for (var cn = 1; cn <= 4; cn++) celdas.push(_diaSabRec_(mapa, s, cn));
+
+    // Fecha real del sábado
+    var sabObj = null;
+    for (var i = 0; i < 4; i++) {
+      if (celdas[i] && celdas[i].fechaReal) { sabObj = _parseFechaLocal_(celdas[i].fechaReal); break; }
+    }
+    if (!sabObj && fechaInicioGrupo) { sabObj = new Date(fechaInicioGrupo); sabObj.setDate(sabObj.getDate() + (s - 1) * 7); }
+    var fechaTxt = sabObj ? (sabObj.getDate() + ' ' + mesCorto[sabObj.getMonth()]) : '';
+    var esFuturo = sabObj ? (sabObj.getTime() > hoy.getTime()) : false;
+
+    var faltasSab = celdas.filter(function(c) { return c && c.asistencia === 'Ausente' && c.esFaltaRecuperable && c.estatus !== 'Pendiente' && c.estatus !== 'Aprobado'; }).length;
+
+    var bgSab = 'rgba(255,255,255,0.03)', bordeSab = '1px solid rgba(255,255,255,0.08)', colTit = '#f1f5f9', etiqueta = '';
+    if (s === 4) { bgSab = 'rgba(251,191,36,0.12)'; bordeSab = '1px solid rgba(251,191,36,0.45)'; colTit = '#fbbf24'; etiqueta = '⭐ Mini'; }
+    if (s === 8) { bgSab = 'rgba(239,68,68,0.12)'; bordeSab = '1px solid rgba(239,68,68,0.5)'; colTit = '#f87171'; etiqueta = '🏆 Grand'; }
+    var atenuar = esFuturo && !etiqueta;
+
+    html += '<div style="background:' + bgSab + ';border:' + bordeSab + ';border-radius:12px;padding:10px 12px;margin-bottom:10px;' + (atenuar ? 'opacity:0.55;' : '') + '">';
+    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">';
+    html += '<div><div style="font-size:11px;font-weight:800;color:' + colTit + ';text-transform:uppercase;letter-spacing:0.6px;">SÁBADO ' + s + (fechaTxt ? ' · ' + fechaTxt : '') + '</div>';
+    if (etiqueta) html += '<div style="font-size:10px;font-weight:800;color:' + colTit + ';margin-top:3px;">' + etiqueta + '</div>';
+    html += '</div>';
+    if (atenuar) html += '<div style="font-size:9px;color:#64748b;font-weight:700;flex-shrink:0;">POR VENIR</div>';
+    else if (faltasSab > 0) html += '<div style="font-size:10px;color:#fbbf24;font-weight:700;flex-shrink:0;">' + faltasSab + ' por recuperar</div>';
+    html += '</div>';
+
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+    for (var c = 1; c <= 4; c++) html += renderCeldaSabatinoRecuperacion_(celdas[c - 1], c, (s - 1) * 4 + c, esFuturo);
+    html += '</div></div>';
+  }
+  html += '</div>';
+
+  // Leyenda
+  html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);font-size:10px;color:#94a3b8;">';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:900;border-radius:3px;vertical-align:middle;margin-right:4px;">F</span> Falta (clickeable)</span>';
+  html += '<span><span style="display:inline-block;width:12px;height:12px;background:#f97316;border-radius:3px;vertical-align:middle;margin-right:4px;"></span> Video enviado</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#fbbf24;color:#000;font-size:10px;font-weight:900;vertical-align:middle;margin-right:4px;">r</span> Recuperada</span>';
+  html += '<span><span style="display:inline-block;width:12px;height:12px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;margin-right:4px;"></span> Sin registro</span>';
+  html += '</div>';
+  return html;
+}
+
+function renderCeldaSabatinoRecuperacion_(dia, cn, lessonNum, esFuturo) {
+  var base = 'border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;';
+  var lessonShow = (dia && dia.leccion) ? dia.leccion : lessonNum;
+  var colorMapSab = {1:'#ef4444',2:'#facc15',3:'#22c55e',4:'#3b82f6'};
+  var labelSab = {1:'Rojo',2:'Amarillo',3:'Verde',4:'Azul'};
+
+  function marcaR_() {
+    return '<span style="position:absolute;top:2px;right:2px;font-size:11px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>';
+  }
+  function cajaColor_(col, titulo, conR) {
+    var txt = (col === '#facc15') ? '#422006' : '#fff';
+    return '<div title="' + titulo + '" style="position:relative;background:' + col + ';' + base + 'box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+      (conR ? marcaR_() : '') +
+      '<div style="font-size:9px;color:' + txt + ';opacity:0.85;font-weight:700;">C' + cn + '</div>' +
+      '<div style="color:' + txt + ';font-size:14px;font-weight:800;">' + lessonShow + '</div>' +
+      '<div style="font-size:8px;color:' + txt + ';opacity:0.75;">Lesson</div></div>';
+  }
+  function cajaNeutra_(titulo) {
+    return '<div title="' + titulo + '" style="background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);' + base + '">' +
+      '<div style="font-size:9px;color:#64748b;font-weight:700;">C' + cn + '</div>' +
+      '<div style="color:#475569;font-size:14px;font-weight:800;">—</div>' +
+      '<div style="font-size:8px;color:#475569;">Lesson ' + lessonShow + '</div></div>';
+  }
+
+  if (!dia) return cajaNeutra_('Sin registro');
+  var fechaTit = dia.fechaReal || dia.fecha;
+
+  if (dia.asistencia === 'En práctica') {
+    return '<div title="En práctica · ' + fechaTit + '" style="background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);' + base + '">' +
+      '<div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div>' +
+      '<div style="color:#94a3b8;font-size:11px;font-weight:700;">Práctica</div>' +
+      '<div style="font-size:8px;color:#64748b;">Lesson ' + lessonShow + '</div></div>';
+  }
+
+  if (dia.asistencia === 'Presente' && dia.color) {
+    var col = colorMapSab[dia.color] || '#94a3b8';
+    return cajaColor_(col, 'Presente' + (dia.esRecuperacion ? ' · recuperada' : '') + ' · ' + fechaTit + ' · ' + (labelSab[dia.color] || ''), dia.esRecuperacion);
+  }
+
+  if (dia.asistencia === 'Ausente') {
+    if (dia.estatus === 'Pendiente') {
+      return '<div title="Video enviado · pendiente de revisión · ' + fechaTit + '" style="background:#f97316;' + base + 'box-shadow:0 2px 6px rgba(249,115,22,0.35);">' +
+        '<div style="font-size:9px;color:rgba(255,255,255,0.9);font-weight:700;">C' + cn + '</div>' +
+        '<div style="color:#fff;font-size:14px;font-weight:800;">' + lessonShow + '</div>' +
+        '<div style="font-size:9px;color:rgba(255,255,255,0.95);">⏳ Enviado</div></div>';
+    }
+    if (dia.estatus === 'Aprobado') {
+      var colA = colorMapSab[dia.color] || '#94a3b8';
+      return cajaColor_(colA, 'Recuperada · ' + (labelSab[dia.color] || '') + ' · ' + fechaTit, true);
+    }
+    return '<div onclick="abrirDetalleRecuperacion(\'' + dia.fecha + '\')" title="Falta · click para recuperar · ' + fechaTit + ' · Lesson ' + lessonShow + '" ' +
+      'style="background:#334155;border:1.5px solid rgba(251,191,36,0.5);' + base + 'cursor:pointer;transition:transform 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.25);" ' +
+      'onmouseover="this.style.transform=\'scale(1.06)\'" onmouseout="this.style.transform=\'scale(1)\'">' +
+      '<div style="font-size:9px;color:#94a3b8;font-weight:700;">C' + cn + '</div>' +
+      '<div style="color:#fff;font-size:15px;font-weight:900;">F</div>' +
+      '<div style="font-size:8px;color:#fbbf24;font-weight:700;">Recuperar</div></div>';
+  }
+
+  return cajaNeutra_(esFuturo ? 'Clase por venir' : 'Sin registro');
 }
 
 // ─── Celda individual del calendario ───
@@ -10212,7 +10352,9 @@ function abrirDetalleRecuperacion(fechaISO) {
   if (!dia) return;
 
   var cont = document.getElementById('recuperacionContenido');
-  var fechaTxt = formatearFechaRecuperacion(dia.fecha);
+  var esSabDet = window._esSabatinoRecuperacion || false;
+  var fechaTxt = formatearFechaRecuperacion((esSabDet && dia.fechaReal) ? dia.fechaReal : dia.fecha);
+  if (esSabDet && dia.claseNum) fechaTxt += ' · Clase ' + dia.claseNum + ' de 4';
   var inst = dia.instruccion || {};
 
   var html = '';
