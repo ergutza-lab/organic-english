@@ -1023,10 +1023,15 @@ function renderRecuperaciones() {
   var cont = document.getElementById('listaRecuperaciones');
   var filtro = document.getElementById('filtroGrupoRecuperaciones').value;
 
-  var lista = _recuperacionesPendientes;
-  if (filtro) {
-    lista = lista.filter(function(p) { return p.idGrupo === filtro; });
-  }
+  // FIX: cada tarjeta usa el índice REAL dentro de _recuperacionesPendientes.
+  // Antes, al evaluar una se borraba del arreglo y las demás tarjetas
+  // quedaban apuntando a otro alumno (o a nada), por eso solo dejaba evaluar una.
+  var lista = [];
+  _recuperacionesPendientes.forEach(function(p, i) {
+    if (p._evaluada) return;
+    if (filtro && p.idGrupo !== filtro) return;
+    lista.push({ p: p, i: i });
+  });
 
   if (!lista.length) {
     cont.innerHTML = '<div class="empty-state"><p style="font-size:14px;">🎉 No hay recuperaciones pendientes' + (filtro ? ' en este grupo' : '') + '.</p></div>';
@@ -1036,7 +1041,8 @@ function renderRecuperaciones() {
   // ═══ Agrupar por (nivel + lección + grupo) ═══
   var grupos = {};
   var ordenGrupos = [];
-  lista.forEach(function(p, idx) {
+  lista.forEach(function(item) {
+    var p = item.p, idx = item.i;
     var clave = (p.nivelLeccion || '') + '::' + (p.leccion || 0) + '::' + (p.idGrupo || '');
     if (!grupos[clave]) {
       grupos[clave] = {
@@ -1152,7 +1158,7 @@ function renderTarjetaAlumnoRecuperacion(p, idx) {
   html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;flex-wrap:wrap;">';
   html += '<div>';
   html += '<div style="font-size:13px;font-weight:700;color:#fff;">' + p.nombreAlumno + ' <span style="font-size:11px;color:#94a3b8;font-weight:400;">(' + p.idAlumno + ')</span></div>';
-  html += '<div style="font-size:11px;color:#94a3b8;margin-top:3px;">Faltó el ' + p.fecha + '</div>';
+  html += '<div style="font-size:11px;color:#94a3b8;margin-top:3px;">Faltó el ' + p.fecha + (p.esSabatino && p.claseNum ? ' · Clase ' + p.claseNum + ' del sábado' : '') + '</div>';
   html += '</div>';
   html += '<div style="text-align:right;flex-shrink:0;">';
   html += '<div style="font-size:11px;font-weight:700;color:' + techoColor + ';">' + techoIcono + ' Máx ' + p.techoTexto + '</div>';
@@ -1183,9 +1189,18 @@ function renderTarjetaAlumnoRecuperacion(p, idx) {
   if (p.techo === 3) {
     html += '<button class="apr-btn" id="recColor3-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 3)">🟢 Verde</button>';
   } else {
-    html += '<button class="apr-btn" disabled style="opacity:0.35;cursor:not-allowed;" title="No disponible: esta falta es de semanas anteriores">🟢 Verde 🔒</button>';
+    html += '<button class="apr-btn" id="recColor3-' + idx + '" onclick="selColorRecuperacion(' + idx + ', 3)" title="Por sistema el máximo es Amarillo. Verde es una excepción que requiere motivo.">🟢 Verde ⚠️</button>';
   }
   html += '</div>';
+
+  // Motivo de la excepción (solo aparece si se elige Verde en una falta de semana anterior)
+  if (p.techo !== 3) {
+    html += '<div id="recExcepcionBox-' + idx + '" style="display:none;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:10px 12px;margin-bottom:12px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:6px;">⚠️ Excepción: Verde en falta de semana anterior</div>';
+    html += '<textarea id="recMotivo-' + idx + '" class="challenge-feedback" placeholder="Motivo (obligatorio, mínimo 10 caracteres): explica por qué se justifica Verde" style="min-height:56px;"></textarea>';
+    html += '<div style="font-size:10px;color:#94a3b8;margin-top:4px;">Quedará registrado con tu nombre y este motivo.</div>';
+    html += '</div>';
+  }
 
   // Comentario
   html += '<textarea id="recComentario-' + idx + '" class="challenge-feedback" placeholder="Comentario (opcional, aparecerá al alumno)" style="min-height:60px;"></textarea>';
@@ -1203,6 +1218,19 @@ function renderTarjetaAlumnoRecuperacion(p, idx) {
 }
 
 function selColorRecuperacion(idx, color) {
+  var pSel = _recuperacionesPendientes[idx];
+  var esExcepcion = !!(pSel && color === 3 && pSel.techo !== 3);
+  if (esExcepcion) {
+    var seguir = confirm(
+      '⚠️ Por sistema, esta recuperación solo debería evaluarse con 🟡 Amarillo como máximo (la falta es de una semana anterior).\n\n' +
+      'Si consideras que por algún retraso está justificado evaluar al alumno en 🟢 Verde, puedes hacerlo. ' +
+      'Esta excepción quedará registrada con tu nombre y tu motivo, y coordinación podrá revisarla.\n\n' +
+      '¿Quieres continuar con Verde?'
+    );
+    if (!seguir) return;
+  }
+  var cajaExc = document.getElementById('recExcepcionBox-' + idx);
+  if (cajaExc) cajaExc.style.display = esExcepcion ? 'block' : 'none';
   [1,2,3].forEach(function(c) {
     var btn = document.getElementById('recColor' + c + '-' + idx);
     if (btn) btn.classList.remove('sel-' + c);
@@ -1229,6 +1257,18 @@ function evaluarRecuperacion(idx, aprobado) {
     return;
   }
 
+  var esExcepcionVerde = !!(aprobado && color === 3 && p.techo !== 3);
+  var motivoExcepcion = '';
+  if (esExcepcionVerde) {
+    var motivoEl = document.getElementById('recMotivo-' + idx);
+    motivoExcepcion = (motivoEl && motivoEl.value.trim()) || '';
+    if (motivoExcepcion.length < 10) {
+      alert('Para aplicar Verde a una falta de semana anterior debes escribir el motivo (mínimo 10 caracteres).');
+      if (motivoEl) motivoEl.focus();
+      return;
+    }
+  }
+
   var status = document.getElementById('recStatus-' + idx);
   status.style.color = '#94a3b8';
   status.textContent = 'Guardando...';
@@ -1250,7 +1290,8 @@ function evaluarRecuperacion(idx, aprobado) {
     '&aprobado=' + (aprobado ? 'true' : 'false') +
     '&color=' + colorFinal +
     '&idMaestro=' + encodeURIComponent(maestroData.id) +
-    '&comentario=' + encodeURIComponent(comentario);
+    '&comentario=' + encodeURIComponent(comentario) +
+    (esExcepcionVerde ? '&excepcionVerde=true&motivoExcepcion=' + encodeURIComponent(motivoExcepcion) : '');
 
   fetch(url, { redirect: 'follow' })
     .then(function(r) { return r.json(); })
@@ -1280,15 +1321,17 @@ function evaluarRecuperacion(idx, aprobado) {
       status.style.color = aprobado ? '#4ade80' : '#f87171';
             status.innerHTML =
         '<div style="font-size:13px;font-weight:700;margin-bottom:10px;">' +
-          (aprobado ? '✅ Aprobado con ' + (colorFinal === 3 ? '🟢 Verde' : colorFinal === 2 ? '🟡 Amarillo' : '🔴 Rojo') : '❌ Rechazado') +
+          (aprobado ? '✅ Aprobado con ' + (colorFinal === 3 ? '🟢 Verde' : colorFinal === 2 ? '🟡 Amarillo' : '🔴 Rojo') + (esExcepcionVerde ? ' (excepción registrada)' : '') : '❌ Rechazado') +
         '</div>' +
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
           '<button onclick="notificarAlumnoWhatsApp(\'' + p.idAlumno + '\', \'' + (p.whatsappAlumno || '') + '\', \'' + p.nombreAlumno.replace(/'/g, "\\'") + '\')" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;">📱 Notificar al alumno</button>' +
           '<button onclick="cerrarRecuperacionEvaluada(' + idx + ')" style="background:rgba(255,255,255,0.1);color:#cbd5e1;border:1px solid rgba(255,255,255,0.2);border-radius:100px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;">✓ Cerrar</button>' +
         '</div>';
 
-      _recuperacionesPendientes.splice(idx, 1);
-      actualizarBadgeRecuperaciones(_recuperacionesPendientes.length);
+      // No se borra del arreglo (movería los índices de las demás tarjetas):
+      // solo se marca como evaluada; desaparece al volver a pintar la lista.
+      p._evaluada = true;
+      actualizarBadgeRecuperaciones(_recuperacionesPendientes.filter(function(x){ return !x._evaluada; }).length);
 
     })
     .catch(function() {
