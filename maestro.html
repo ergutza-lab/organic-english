@@ -4094,7 +4094,8 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
       var lessonNum = (idxSab * 4) + cn;
       var colorVal = reg && reg.asistio !== false && reg.color ? reg.color : 0;
       var obsVal   = reg ? (reg.observacion || '') : '';
-      var clickSab = "abrirModalEditarEval('" + d.alumno.id + "','" + sabadoISO + "'," + cn + "," + (idxSab + 1) + "," + bloqueActualSab + ",true," + (colorVal || 'null') + "," + (reg && reg.asistio !== false ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
+          var _idAlumnoSab = (alumnoData && alumnoData.alumno && alumnoData.alumno.id) ? alumnoData.alumno.id : ((d.alumno && d.alumno.id) ? d.alumno.id : ''); // ✅ FIX 1
+    var clickSab = "abrirModalEditarEval('" + _idAlumnoSab + "','" + sabadoISO + "'," + cn + "," + (idxSab + 1) + "," + bloqueActualSab + ",true," + (colorVal || 'null') + "," + (reg && reg.asistio !== false ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
 
       if (reg && reg.asistio !== false && reg.color) {
         var col = colorMap[reg.color] || '#94a3b8';
@@ -4219,7 +4220,7 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
-           var fNorm = fechaDia ? new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate()) : null;
+      var fNorm = fechaDia ? new Date(fechaDia.getFullYear(), fechaDia.getMonth(), fechaDia.getDate()) : null;
       var esFuturo = fNorm ? (fNorm.getTime() > hoy.getTime()) : false;
       var esHoy = fNorm ? (fNorm.getTime() === hoy.getTime()) : false;
       var yaEmpezó = true;
@@ -4230,7 +4231,8 @@ function renderDetalleEvalDer(d) {
       var asistioVal = rec ? (rec.asistio !== false) : false;
       var obsVal = rec ? (rec.observacion || '') : '';
       var fechaCelISO = fechaDia ? (fechaDia.getFullYear() + '-' + String(fechaDia.getMonth()+1).padStart(2,'0') + '-' + String(fechaDia.getDate()).padStart(2,'0')) : '';
-      var clickCel = "abrirModalEditarEval('" + d.alumno.id + "','" + fechaCelISO + "'," + (di + 1) + "," + s + "," + bloqueActualAl + ",false," + (colorVal || 'null') + "," + (asistioVal ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
+      var _idAlumnoCel = (alumnoData && alumnoData.alumno && alumnoData.alumno.id) ? alumnoData.alumno.id : ((d.alumno && d.alumno.id) ? d.alumno.id : ''); // ✅ FIX 2
+      var clickCel = "abrirModalEditarEval('" + _idAlumnoCel + "','" + fechaCelISO + "'," + (di + 1) + "," + s + "," + bloqueActualAl + ",false," + (colorVal || 'null') + "," + (asistioVal ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
 
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
@@ -4249,13 +4251,10 @@ function renderDetalleEvalDer(d) {
         continue;
       }
       if (esFuturo || esHoy) {
-        // Día futuro: no clickeable
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px dashed rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#64748b;font-size:10px;font-weight:700;">' + diaNum + '</span><span style="color:#475569;font-size:7px;">' + mesStr + '</span></div>';
       } else if (!yaEmpezó) {
-        // Antes del inicio del grupo: no clickeable
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#475569;font-size:10px;">' + diaNum + '</span><span style="color:#334155;font-size:7px;">' + mesStr + '</span></div>';
       } else {
-        // Día pasado sin registro → falta sin evaluar → clickeable
         html += '<div onclick="' + clickCel + '" title="Toca para registrar evaluación" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
       }
     }
