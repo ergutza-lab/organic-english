@@ -3075,15 +3075,106 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       .catch(()=>{ document.getElementById('zoomStatus').textContent = '❌ Error de conexión'; });
   }
   
+  // ══════════════════════════════════════════════════════════════════
+  //  GRABACIONES POR CLASE (oct-2026)
+  //  Un link por cada día de clase, con su fecha y su lección. Se guardan
+  //  en la hoja GRABACIONES; el alumno ve las últimas 4 en su panel.
+  // ══════════════════════════════════════════════════════════════════
+  var _grabClases = [];
+
   function abrirModalGrabacion(idGrupo) {
-    modalAbierto = true;
     var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
     if (!g) return;
+    modalAbierto = true;
     grupoGrabActual = idGrupo;
-    document.getElementById('grabGrupoLabel').textContent = 'Grupo '+idGrupo+' · '+g.horario;
-    document.getElementById('grabInput').value = g.grabacion || '';
-    document.getElementById('grabStatus').textContent = '';
-    document.getElementById('modalGrabacion').style.display = 'flex';
+    _grabClases = [];
+    _renderModalGrabClases(g, '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px;">Cargando clases...</div>');
+    fetch(APPS_SCRIPT+'?action=getGrabacionesClaseGrupo&idGrupo='+encodeURIComponent(idGrupo), {redirect:'follow'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (grupoGrabActual !== idGrupo) return;
+        if (!d.success) { _renderModalGrabClases(g, '<div style="color:#fca5a5;font-size:13px;text-align:center;padding:20px 0;">❌ '+(d.error||'No se pudieron cargar las clases')+'</div>'); return; }
+        _grabClases = d.clases || [];
+        _renderModalGrabClases(g, null);
+      })
+      .catch(function(){ _renderModalGrabClases(g, '<div style="color:#fca5a5;font-size:13px;text-align:center;padding:20px 0;">❌ Error de conexión</div>'); });
+  }
+
+  function _fechaLargaGrab(iso) {
+    var p = String(iso).split('-');
+    var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+    var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
+  }
+
+  function _renderModalGrabClases(g, mensaje) {
+    var viejo = document.getElementById('modalGrabClases');
+    if (viejo) viejo.remove();
+    var hoyISO = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    var filas = mensaje || (_grabClases.length ? _grabClases.map(function(c, i){
+      var esHoy = c.fecha === hoyISO;
+      return '<div style="background:'+(c.link?'rgba(34,197,94,0.07)':'rgba(255,255,255,0.04)')+';border:1px solid '+(c.link?'rgba(34,197,94,0.3)':'rgba(255,255,255,0.08)')+';border-radius:12px;padding:12px;margin-bottom:10px;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">'
+          + '<div style="font-size:14px;font-weight:700;color:#f1f5f9;">📅 '+_fechaLargaGrab(c.fecha)+(esHoy?' <span style="font-size:10px;background:#7c1d6f;color:#fff;border-radius:100px;padding:2px 8px;margin-left:4px;">HOY</span>':'')+'</div>'
+          + '<div style="font-size:11px;font-weight:700;color:'+(c.leccion?'#c4b5fd':'#64748b')+';">'+(c.leccion?('📘 '+c.leccion):'Clase sin registrar')+'</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;">'
+          + '<input type="text" id="grabLink-'+i+'" value="'+String(c.link||'').replace(/"/g,'&quot;')+'" placeholder="https://drive.google.com/..." style="flex:1;min-width:0;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;color:#f1f5f9;font-size:13px;outline:none;" />'
+          + '<button onclick="guardarGrabacionClaseUI('+i+')" id="grabBtn-'+i+'" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:10px;padding:0 14px;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>'
+        + '</div>'
+        + '<div id="grabEstado-'+i+'" style="font-size:11px;margin-top:6px;color:'+(c.link?'#86efac':'#64748b')+';">'+(c.link?'✓ Grabación guardada':'Sin grabación')+'</div>'
+        + '</div>';
+    }).join('') : '<div style="text-align:center;padding:20px 0;color:#94a3b8;font-size:13px;">No hay clases recientes para este grupo.</div>');
+
+    var ov = document.createElement('div');
+    ov.id = 'modalGrabClases';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<div style="background:#1a2540;border-radius:20px;padding:22px 18px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;border:1px solid rgba(124,29,111,0.6);">'
+      + '<div style="font-size:28px;text-align:center;margin-bottom:6px;">🎥</div>'
+      + '<div style="font-size:18px;font-weight:700;color:#f1f5f9;text-align:center;margin-bottom:4px;">Grabaciones de clase</div>'
+      + '<div style="font-size:12px;color:#64748b;text-align:center;margin-bottom:6px;">Grupo '+g.id+' · '+(g.horario||'')+'</div>'
+      + '<div style="font-size:12px;color:#94a3b8;text-align:center;margin-bottom:16px;line-height:1.5;">Pega el link de la grabación en el día que le corresponde. Tus alumnos verán las últimas 4 clases con su fecha y lección.</div>'
+      + filas
+      + '<button onclick="cerrarModalGrabClases()" style="width:100%;margin-top:4px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:100px;padding:11px;font-size:13px;cursor:pointer;">Cerrar</button>'
+      + '</div>';
+    document.body.appendChild(ov);
+  }
+
+  function cerrarModalGrabClases() {
+    var m = document.getElementById('modalGrabClases');
+    if (m) m.remove();
+    modalAbierto = false;
+    grupoGrabActual = null;
+  }
+
+  function guardarGrabacionClaseUI(i) {
+    var c = _grabClases[i];
+    if (!c || !grupoGrabActual) return;
+    var idGrupo = grupoGrabActual;
+    var link = document.getElementById('grabLink-'+i).value.trim();
+    var est = document.getElementById('grabEstado-'+i);
+    var btn = document.getElementById('grabBtn-'+i);
+    if (link && !/^https?:\/\//i.test(link)) { est.textContent = '❌ El link debe empezar con https://'; est.style.color = '#fca5a5'; return; }
+    btn.disabled = true; est.textContent = 'Guardando...'; est.style.color = '#fde047';
+    fetch(APPS_SCRIPT+'?action=guardarGrabacionClase&idGrupo='+encodeURIComponent(idGrupo)+'&fecha='+encodeURIComponent(c.fecha)+'&link='+encodeURIComponent(link)+'&idMaestro='+encodeURIComponent(maestroData.id), {redirect:'follow'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        btn.disabled = false;
+        if (!d.success) { est.textContent = '❌ '+(d.error||'No se guardó'); est.style.color = '#fca5a5'; return; }
+        c.link = link;
+        if (d.leccion) c.leccion = d.leccion;
+        est.textContent = link ? '✓ Grabación guardada · los alumnos ya la ven' : 'Grabación quitada';
+        est.style.color = '#86efac';
+        // La columna "grabacion" del grupo es la de la clase más reciente con link
+        var g = panelData.grupos.find(function(x){ return x.id===idGrupo; });
+        if (g) {
+          var conLink = _grabClases.filter(function(x){ return x.link; }).sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });
+          g.grabacion = conLink.length ? conLink[0].link : '';
+        }
+        mostrarToast('Grabación del '+_fechaLargaGrab(c.fecha)+' guardada','success');
+      })
+      .catch(function(){ btn.disabled = false; est.textContent = '❌ Error de conexión'; est.style.color = '#fca5a5'; });
   }
   
     function cerrarModalGrabacion() {
