@@ -1586,14 +1586,16 @@
 
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
       // Grabaciones de la semana: 4 renglones, uno por clase (oct-2026)
+      // Siempre se muestra la lista de 4 renglones (grupos regulares). Si la
+      // última grabación guardada no es de esta semana, se agrega al final.
       var semGrab = g.grabaciones && g.grabaciones.semana;
-      var conLinkGrab = semGrab ? semGrab.slots.filter(function (s) { return s.link; }) : [];
-      alumnoData._grabSemana = conLinkGrab.length ? semGrab : null;
       var ultimaGrab = (g.grabaciones && g.grabaciones.ultima) || g.grabacion || '';
-      if (conLinkGrab.length || ultimaGrab) {
+      alumnoData._grabSemana = semGrab || null;
+      alumnoData._grabUltima = (semGrab && semGrab.slots.some(function (s) { return s.link === ultimaGrab; })) ? '' : ultimaGrab;
+      if (semGrab || ultimaGrab) {
         var btnGrab = document.getElementById('btnGrabacion');
-        btnGrab.href = conLinkGrab.length ? conLinkGrab[conLinkGrab.length - 1].link : ultimaGrab;
-        if (conLinkGrab.length) {
+        btnGrab.href = ultimaGrab || '#';
+        if (semGrab) {
           btnGrab.innerHTML = '🎥 Grabaciones de la semana';
           btnGrab.onclick = function (ev) { ev.preventDefault(); abrirModalGrabaciones(); };
         }
@@ -9264,6 +9266,9 @@ var MISIONES_KIDS_A12_LISTA = [
           return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#94a3b8;font-size:13px;font-weight:700;">' +
             contenido + '<span style="font-size:11px;white-space:nowrap;">' + (s.futura ? 'Próximamente' : 'Aún no disponible') + '</span></div>';
         }).join('') +
+        (alumnoData._grabUltima
+          ? '<a href="' + alumnoData._grabUltima + '" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin:4px 0 8px;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;"><span>⏮ Última grabación disponible</span><span style="white-space:nowrap;">▶ Ver</span></a>'
+          : '') +
         '<button onclick="document.getElementById(\'modalGrabacionesOE\').remove()" style="width:100%;margin-top:6px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>' +
       '</div>';
     document.body.appendChild(ov);
