@@ -481,6 +481,7 @@
         <div class="bloque-sel" id="selectorClaveChallenge" style="margin-top:0;flex-wrap:wrap;"></div>
         <div id="avisoClaveChallenge" style="display:none;background:rgba(250,204,21,0.15);border:1px solid rgba(250,204,21,0.5);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#fde68a;line-height:1.5;"></div>
         <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:12px 0 16px 0;text-shadow:0 1px 2px rgba(0,0,0,0.25);">Escribe el feedback personalizado para cada alumno y marca si completó el challenge. El sistema ya preseleccionó el nivel y bloque que corresponde; cámbialo solo si estás calificando un challenge de otro bloque.</p>
+        <div id="listaChallenges"></div>
       </div>
 
       <!-- TAB MATERIAL DE CLASES -->
@@ -2475,6 +2476,7 @@ function renderMapas(resultados) {
         var gemSVG = construirGemaSVG(pc, r.alumno.id, 60, 68);
       
     var bloqueActual = r.bloque || 1;
+    var nivelLbl = normalizarNivelClaveJS(grupoActual.nivel);
     var tieneMini  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado; });
     var tieneGrand = r.challenges && r.challenges.some(function(c){ return (c.tipo==='Grand'||c.tipo==='Gran') && (c.bloque||1)===bloqueActual && c.aprobado; });
     var miniNoAprobo  = r.challenges && r.challenges.some(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual && c.aprobado===false; });
@@ -2514,6 +2516,9 @@ function renderMapas(resultados) {
         +'</svg>';
     }
 
+    var chMini  = r.challenges && r.challenges.find(function(c){ return c.tipo==='Mini' && (c.bloque||1)===bloqueActual; });
+    var chGrand = r.challenges && r.challenges.find(function(c){ return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual; });
+
     var total = r.totalClases || 1;
     var gp = function(c){ return total>0?Math.round((r.colores[c]/total)*100):0; };
 
@@ -2523,7 +2528,7 @@ function renderMapas(resultados) {
            +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;">'
         +'<div>'
           +'<div style="font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.alumno.nombre+'</div>'
-          +'<div style="font-size:11px;color:rgba(255,255,255,0.85);">'+r.alumno.id+' · '+r.totalClases+' clases · Bloque '+r.bloque+'</div>'
+          +'<div style="font-size:11px;color:rgba(255,255,255,0.85);">'+r.alumno.id+' · '+r.totalClases+' clases · '+nivelLbl+' Bloque '+r.bloque+'</div>'
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:8px;">'
           +'<div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);">'+r.estado+'</div>'
@@ -2542,7 +2547,7 @@ function renderMapas(resultados) {
         +'</div>'
         +(bloqueActual===2
           ? '<div style="margin-left:auto;display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">'
-            +'<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">Bloque 1</div>'
+            +'<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">'+nivelLbl+' · Bloque 1</div>'
             +'<div style="display:flex;gap:2px;" title="Mini Challenge B1: '+(tieneMiniB1?'Aprobado':miniNoAproboB1?'No aprobó':'Pendiente')+' · Grand Challenge B1: '+(tieneGrandB1?'Aprobado':grandNoAproboB1?'No aprobó':'Pendiente')+'">'
               +medalSVG(tieneMiniB1, miniNoAproboB1, 20, 27)
               +trophySVG(tieneGrandB1, grandNoAproboB1, 22, 27)
@@ -2572,23 +2577,23 @@ function renderMapas(resultados) {
       +'<div style="display:flex;gap:8px;margin-bottom:10px;">'
         +'<div style="flex:1;background:rgba(0,0,0,0.3);border:1px solid '+(tieneMini?'rgba(251,191,36,0.5)':'rgba(255,255,255,0.15)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>'
-          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;">Mini Challenge · B'+bloqueActual+'</div>'
+          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;">Mini Challenge · '+nivelLbl+' Bloque '+bloqueActual+'</div>'
           +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneMini?'#fde047':miniNoAprobo?'#f87171':'rgba(255,255,255,0.7)')+';">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
-          +(r.challenges&&r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;})&&r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback
+          +(chMini && chMini.feedback
             ?'<div style="margin-top:6px;background:rgba(0,0,0,0.35);border-radius:6px;padding:6px 8px;text-align:left;">'
               +'<div style="font-size:8px;font-weight:700;color:#fde047;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
-              +'<div style="font-size:10px;color:#fff;line-height:1.4;">'+r.challenges.find(function(c){return c.tipo==='Mini' && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
+              +'<div style="font-size:10px;color:#fff;line-height:1.4;">'+chMini.feedback+'</div>'
               +'</div>'
             :'')
         +'</div>'
         +'<div style="flex:1;background:rgba(0,0,0,0.3);border:1px solid '+(tieneGrand?'rgba(251,191,36,0.5)':'rgba(255,255,255,0.15)')+';border-radius:10px;padding:10px;text-align:center;">'
           +'<div style="display:flex;justify-content:center;margin-bottom:4px;">'+trophySVG(tieneGrand, grandNoAprobo)+'</div>'
-          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;">Grand Challenge · B'+bloqueActual+'</div>'
+          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;">Grand Challenge · '+nivelLbl+' Bloque '+bloqueActual+'</div>'
           +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(tieneGrand?'#fdba74':grandNoAprobo?'#f87171':'rgba(255,255,255,0.7)')+';">'+(tieneGrand?'Aprobado ✓':grandNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>'
-          +(r.challenges&&r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;})&&r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback
+          +(chGrand && chGrand.feedback
             ?'<div style="margin-top:6px;background:rgba(0,0,0,0.35);border-radius:6px;padding:6px 8px;text-align:left;">'
               +'<div style="font-size:8px;font-weight:700;color:#fdba74;margin-bottom:2px;text-transform:uppercase;">💬 Feedback</div>'
-              +'<div style="font-size:10px;color:#fff;line-height:1.4;">'+r.challenges.find(function(c){return (c.tipo==='Gran'||c.tipo==='Grand') && (c.bloque||1)===bloqueActual;}).feedback+'</div>'
+              +'<div style="font-size:10px;color:#fff;line-height:1.4;">'+chGrand.feedback+'</div>'
               +'</div>'
             :'')
         +'</div>'
@@ -2703,13 +2708,13 @@ function renderMapas(resultados) {
   }
 
   function selBloqueChallenge(bloque) {
-    bloqueChallengeSel = bloque;
-    document.getElementById('bloqueChBtn1').classList.toggle('active', bloque === 1);
-    document.getElementById('bloqueChBtn2').classList.toggle('active', bloque === 2);
-    renderChallenge();
+    var nivel = normalizarNivelClaveJS(grupoActual && grupoActual.nivel);
+    selClaveChallenge(nivel + '-B' + (bloque === 2 ? 2 : 1));
   }
 
   function renderChallenge() {
+    renderSelectorClaveChallenge();
+    var nivelLbl = normalizarNivelClaveJS(grupoActual.nivel);
     var alumnos=grupoActual.alumnos||[];
     var lista=document.getElementById('listaChallenges');
     if (!alumnos.length) { lista.innerHTML='<div class="empty-state"><p>No hay alumnos.</p></div>'; return; }
@@ -2737,16 +2742,16 @@ function renderMapas(resultados) {
           var linkMini2  = lv2.mini  || '';
           var linkGrand2 = lv2.grand || '';
           var html = '<div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;">';
-          if (linkMini1)  html += '<a href="'+linkMini1+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Mini Challenge · Bloque 1</a>';
-          if (linkMini2)  html += '<a href="'+linkMini2+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Mini Challenge · Bloque 2</a>';
-          if (linkGrand1) html += '<a href="'+linkGrand1+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Grand Challenge · Bloque 1</a>';
-          if (linkGrand2) html += '<a href="'+linkGrand2+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Grand Challenge · Bloque 2</a>';
-          if (!linkMini1 && !linkMini2 && !linkGrand1 && !linkGrand2) html += '<span style="font-size:11px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);padding:4px 10px;border-radius:8px;">Sin video subido</span>';
+          if (linkMini1)  html += '<a href="'+linkMini1+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Mini Challenge · '+nivelLbl+' Bloque 1</a>';
+          if (linkMini2)  html += '<a href="'+linkMini2+'"  target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Mini Challenge · '+nivelLbl+' Bloque 2</a>';
+          if (linkGrand1) html += '<a href="'+linkGrand1+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Grand Challenge · '+nivelLbl+' Bloque 1</a>';
+          if (linkGrand2) html += '<a href="'+linkGrand2+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.3);">&#9654; Ver Grand Challenge · '+nivelLbl+' Bloque 2</a>';
+          if (!linkMini1 && !linkMini2 && !linkGrand1 && !linkGrand2) html += '<span style="font-size:11px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);padding:4px 10px;border-radius:8px;">Sin video subido en '+nivelLbl+'</span>';
           html += '</div>';
           return html;
         })()
 
-        +'<div style="font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,0.35);display:inline-block;padding:4px 10px;border-radius:6px;text-transform:uppercase;margin:4px 0 10px 0;letter-spacing:0.5px;">Calificando · Bloque '+bloqueChallengeSel+'</div>'
+        +'<div style="font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,0.35);display:inline-block;padding:4px 10px;border-radius:6px;text-transform:uppercase;margin:4px 0 10px 0;letter-spacing:0.5px;">Calificando · '+etiquetaClaveJS(claveChallengeSel)+'</div>'
 
         +'<div class="challenge-aprobado">'
           +'<div class="apr-btn" id="apr-si-'+a.id+'" onclick="selAprobado(\''+a.id+'\',\'si\')">✅ Aprobó</div>'
@@ -2766,29 +2771,37 @@ function renderMapas(resultados) {
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
 
-  function _hallarChallenge(resultados, idAlumno, tipo, bloque) {
+  function _hallarChallenge(resultados, idAlumno, tipo, clave) {
     var r = (resultados || []).find(function(x){ return x && x.alumno && x.alumno.id === idAlumno; });
     if (!r || !r.challenges) return null;
     var esMini = (tipo === 'Mini');
+    var bloque = parseInt(String(clave).slice(-1), 10) || 1;
     var hit = null;
     r.challenges.forEach(function(c){
-      var okTipo = esMini ? (c.tipo === 'Mini') : (c.tipo === 'Gran' || c.tipo === 'Grand');
-      if (okTipo && (c.bloque || 1) === bloque) hit = c;
+      var okTipo  = esMini ? (c.tipo === 'Mini') : (c.tipo === 'Gran' || c.tipo === 'Grand');
+      var okClave = c.claveBloque ? (c.claveBloque === clave) : ((c.bloque || 1) === bloque);
+      if (okTipo && okClave) hit = c;
     });
     return hit;
   }
 
   function prefillChallenges() {
     var res = grupoActual && grupoActual._mapaData;
+    var esAnterior = opcionesClaveChallenge().some(function(o){ return o.clave === claveChallengeSel && o.anterior; });
     (grupoActual.alumnos || []).forEach(function(a){
       var msg = document.getElementById('ch-msg-'+a.id);
+      if (esAnterior) {
+        // El mapa del grupo solo trae challenges del nivel actual: no se puede precargar.
+        if (msg) { msg.textContent = 'Nivel anterior: si este alumno ya tiene este challenge registrado, el sistema te avisará al guardar.'; msg.style.color = 'rgba(255,255,255,0.75)'; }
+        return;
+      }
       if (!res) {
         if (msg) { msg.textContent = ''; }
         return;
       }
-      var c = _hallarChallenge(res, a.id, tipoChallenge, bloqueChallengeSel);
+      var c = _hallarChallenge(res, a.id, tipoChallenge, claveChallengeSel);
       if (!c) {
-        if (msg) { msg.textContent = 'Sin registro guardado para este Challenge.'; msg.style.color = 'rgba(255,255,255,0.75)'; }
+        if (msg) { msg.textContent = 'Sin registro guardado para este Challenge ('+etiquetaClaveJS(claveChallengeSel)+').'; msg.style.color = 'rgba(255,255,255,0.75)'; }
         return;
       }
       var fb = document.getElementById('fb-'+a.id);
@@ -2812,8 +2825,12 @@ function renderMapas(resultados) {
     var selNr = document.getElementById('apr-nr-'+idAlumno).classList.contains('sel-nr');
     if (!selSi && !selNo && !selNr) { mostrarToast('Selecciona Aprobó, No Aprobó o No realizó antes de guardar','error'); return; }
 
+    var clave    = claveChallengeSel || claveChallengePorDefecto();
+    if (!/^.+-B[12]$/.test(clave)) { mostrarToast('Selecciona el nivel y bloque del challenge antes de guardar','error'); return; }
     var tipo     = tipoChallenge;
-    var bloque   = bloqueChallengeSel;
+    var bloque   = parseInt(clave.slice(-1), 10) || 1;
+    var etiqueta = etiquetaClaveJS(clave);
+    var esAnterior = opcionesClaveChallenge().some(function(o){ return o.clave === clave && o.anterior; });
     var grupoId  = grupoActual.id;
     var fecha    = _fechaLocalCh();
     var feedback = document.getElementById('fb-'+idAlumno).value;
@@ -2835,22 +2852,40 @@ function renderMapas(resultados) {
 
     var data = [{ idAlumno: idAlumno, feedback: feedback, aprobado: selSi, noRealizo: selNr }];
     fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoId)+
-      '&bloque='+bloque+'&fecha='+fecha+
+      '&bloque='+bloque+'&claveBloque='+encodeURIComponent(clave)+
+      '&fecha='+fecha+
       '&tipo='+encodeURIComponent(tipo)+
+      '&idMaestro='+encodeURIComponent(maestroData ? maestroData.id : '')+
       '&alumnos='+encodeURIComponent(JSON.stringify(data)), {redirect:'follow'})
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d.success) { fin(false, 'Error: '+(d.error || 'el servidor no guardó')); return; }
-        // Verificación real: se vuelve a leer el grupo y se busca el registro
+        var guardado = !d.guardados || (Array.isArray(d.guardados) && d.guardados.indexOf(idAlumno) !== -1);
+
+        // Nivel anterior: el mapa del grupo no lo muestra, se confirma con la respuesta del servidor
+        if (esAnterior) {
+          if (guardado) fin(true, '✓ '+tipo+' Challenge de '+idAlumno+' guardado como '+etiqueta+' (nivel anterior)');
+          else          fin(false, (d.aviso || ('No se guardó: '+idAlumno+' ya tiene este '+tipo+' Challenge en '+etiqueta)));
+          return;
+        }
+
+        // Verificación real: se vuelve a leer el grupo y se busca el registro con su clave
         return fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoId)+'&t='+Date.now(), {redirect:'follow'})
           .then(function(r){ return r.json(); })
           .then(function(m){
-            if (!m.success) { fin(false, 'Se envió, pero no se pudo verificar. Revisa en Evaluación del grupo.'); return; }
+            if (!m.success) {
+              fin(guardado, guardado ? '✓ Guardado ('+etiqueta+'), pero no se pudo verificar. Revisa en Evaluación del grupo.' : (d.aviso || 'No se pudo guardar'));
+              return;
+            }
             if (grupoActual && grupoActual.id === grupoId) grupoActual._mapaData = m.resultados || [];
-            var c = _hallarChallenge(m.resultados, idAlumno, tipo, bloque);
+            var c = _hallarChallenge(m.resultados, idAlumno, tipo, clave);
             var ok = !!c && (selNr || c.aprobado === selSi);
-            if (ok) fin(true, '✓ '+tipo+' Challenge Bloque '+bloque+' guardado y verificado ('+idAlumno+')');
-            else    fin(false, 'NO SE GUARDÓ: el servidor respondió OK pero el registro de '+idAlumno+' no aparece. Avisa a sistemas y no lo des por registrado.');
+            if (ok) fin(true, '✓ '+tipo+' Challenge '+etiqueta+' guardado y verificado ('+idAlumno+')');
+            else if (d.aviso) fin(false, d.aviso);
+            else    fin(false, 'NO SE GUARDÓ: el servidor respondió OK pero el registro de '+idAlumno+' no aparece en '+etiqueta+'. Avisa a sistemas y no lo des por registrado.');
+          })
+          .catch(function(){
+            fin(guardado, guardado ? '✓ Guardado ('+etiqueta+'), pero no se pudo verificar. Revisa en Evaluación del grupo.' : 'Error de conexión al verificar');
           });
       })
       .catch(function(){ fin(false, 'Error de conexión: no se pudo confirmar el guardado'); });
@@ -2864,19 +2899,23 @@ document.getElementById('apr-nr-'+idAlumno).className='apr-btn'+(estado==='nr'?'
 
   function guardarChallenge() {
     var alumnos = grupoActual.alumnos||[];
-    var fecha   = new Date().toISOString().split('T')[0];
+    var fecha   = _fechaLocalCh();
+    var clave   = claveChallengeSel || claveChallengePorDefecto();
+    var bloque  = parseInt(String(clave).slice(-1), 10) || 1;
     var data    = alumnos.map(function(a){
      var aprobado = document.getElementById('apr-si-'+a.id).classList.contains('sel-si');
 var noRealizo = document.getElementById('apr-nr-'+a.id).classList.contains('sel-nr');
 return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprobado:aprobado, noRealizo:noRealizo};
     });
     fetch(APPS_SCRIPT+'?action=registrarChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+
-      '&bloque='+bloqueChallengeSel+'&fecha='+fecha+
+      '&bloque='+bloque+'&claveBloque='+encodeURIComponent(clave)+
+      '&fecha='+fecha+
       '&tipo='+encodeURIComponent(tipoChallenge)+
-      '&alumnos='+encodeURIComponent(JSON.stringify(data)))
+      '&idMaestro='+encodeURIComponent(maestroData ? maestroData.id : '')+
+      '&alumnos='+encodeURIComponent(JSON.stringify(data)), {redirect:'follow'})
       .then(r=>r.json())
       .then(d=>{
-        if (d.success) mostrarToast(tipoChallenge+' Challenge guardado (Bloque '+bloqueChallengeSel+')','success');
+        if (d.success) mostrarToast(tipoChallenge+' Challenge guardado ('+etiquetaClaveJS(clave)+')','success');
         else mostrarToast('Error: '+d.error,'error');
       })
       .catch(()=>mostrarToast('Error de conexión','error'));
