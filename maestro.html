@@ -612,6 +612,9 @@ var _linksVideo = {1:{},2:{}};
     err.style.display='none';
     var btn=document.querySelector('.btn-primary');
     btn.textContent='Verificando...'; btn.disabled=true;
+    // VELOCIDAD: los datos del panel se piden al mismo tiempo que el login
+    // (solo se muestran si el login es correcto).
+    _prefetchDatosMaestro = { id: id, p: _fetchDatosMaestro(id) };
     fetch(APPS_SCRIPT+'?action=loginMaestro&id='+encodeURIComponent(id)+'&clave='+encodeURIComponent(clave))
       .then(r=>r.json())
       .then(data=>{
@@ -630,11 +633,66 @@ var _linksVideo = {1:{},2:{}};
     cargarDatos();
   }
 
+  // ── VELOCIDAD: helpers de carga ─────────────────────────────────────
+  var _prefetchDatosMaestro = null;
+
+  function _fetchDatosMaestro(idMaestro) {
+    return fetch(APPS_SCRIPT+'?action=getDatosMaestro&id='+encodeURIComponent(idMaestro), {redirect:'follow'})
+      .then(function(r){ return r.json(); });
+  }
+
+  // Mapa del grupo actual: reutiliza la petición si es reciente (maxEdadMs)
+  // o si todavía está en camino; si no, pide una nueva.
+  function _pedirMapaGrupo(maxEdadMs) {
+    var g = grupoActual;
+    if (!g) return Promise.resolve(null);
+    if (g._mapaPromise && (Date.now() - (g._mapaTs || 0)) < (maxEdadMs || 0)) return g._mapaPromise;
+    var idG = g.id;
+    g._mapaTs = Date.now();
+    g._mapaPromise = fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idG), {redirect:'follow'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.success && grupoActual && grupoActual.id === idG) {
+          grupoActual._mapaData   = d.resultados || [];
+          grupoActual._esSabatino = d.esSabatino || false;
+          grupoActual.linkZoom    = d.linkZoom  || grupoActual.linkZoom  || '';
+          grupoActual.linkWhats   = d.linkWhats || grupoActual.linkWhats || '';
+        }
+        return d;
+      })
+      .catch(function(){ if (grupoActual && grupoActual.id === idG) grupoActual._mapaPromise = null; return null; });
+    return g._mapaPromise;
+  }
+
+  // Cualquier petición que ESCRIBE (registrar día, challenge, justificante,
+  // editar, borrar...) deja sin efecto el mapa guardado en memoria, para que
+  // la siguiente consulta traiga datos frescos.
+  function _olvidarMapasGuardados() {
+    var gs = (panelData && panelData.grupos) || [];
+    gs.forEach(function(g){ g._mapaPromise = null; g._mapaTs = 0; });
+    if (grupoActual) { grupoActual._mapaPromise = null; grupoActual._mapaTs = 0; }
+  }
+  (function(){
+    var fetchOriginal = window.fetch;
+    window.fetch = function(url) {
+      var esEscritura = false;
+      try {
+        var u = String(url && url.url ? url.url : url);
+        esEscritura = u.indexOf(APPS_SCRIPT) === 0 && !/[?&]action=(get|login)/.test(u);
+      } catch (e) {}
+      if (!esEscritura) return fetchOriginal.apply(this, arguments);
+      _olvidarMapasGuardados();
+      return fetchOriginal.apply(this, arguments).then(function(r){ _olvidarMapasGuardados(); return r; });
+    };
+  })();
+
   function cargarDatos() {
-    fetch(APPS_SCRIPT+'?action=getDatosMaestro&id='+encodeURIComponent(maestroData.id))
-      .then(r=>r.json())
+    var pDatos = (_prefetchDatosMaestro && _prefetchDatosMaestro.id === maestroData.id)
+      ? _prefetchDatosMaestro.p
+      : _fetchDatosMaestro(maestroData.id);
+    _prefetchDatosMaestro = null;
+    pDatos
       .then(data=>{
-        console.log('DATOS MAESTRO:', JSON.stringify(data));
         if (data.success) {
           panelData=data;
           panelData.grupos = (panelData.grupos || []).filter(function(g){
@@ -1491,12 +1549,15 @@ function renderPatronMaestro(patron) {
     document.getElementById('fechaClase').value=hoyStr;
     fechasRegistradas=[];
 
+    // VELOCIDAD: los links de Zoom y WhatsApp ya vienen en los datos del
+    // maestro; los botones quedan listos sin esperar el mapa del grupo.
     var btnWa    = document.getElementById('btnInvitarWhats');
     var btnZoomM = document.getElementById('btnEntrarZoomMaestro');
-    btnWa.textContent    = '⏳ Cargando...';
-    btnWa.disabled       = true;
-    btnZoomM.textContent = '⏳ Cargando...';
-    btnZoomM.disabled    = true;
+    btnWa.textContent    = '💬 Invitar a la clase';
+    btnWa.disabled       = false;
+    btnWa.style.opacity  = grupoActual.linkWhats ? '1' : '0.5';
+    btnZoomM.textContent = '🖥️ Entrar a Zoom';
+    btnZoomM.disabled    = false;
 
     fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
       .then(r=>r.json())
@@ -1508,26 +1569,15 @@ function renderPatronMaestro(patron) {
         }
       });
 
+    // Se pide el mapa del grupo desde ya (Evaluación y Challenges lo reutilizan).
     grupoActual._mapaData = null;
-    fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
-      .then(r=>r.json())
-            .then(function(d){
-        if(d.success) {
-          grupoActual._mapaData = d.resultados || [];
-          grupoActual._esSabatino = d.esSabatino || false;   // ← NUEVO
-          grupoActual.linkZoom  = d.linkZoom  || '';
-          grupoActual.linkWhats = d.linkWhats || '';
-          btnWa.textContent    = '💬 Invitar a la clase';
-          btnWa.disabled       = false;
-          btnZoomM.textContent = '🖥️ Entrar a Zoom';
-          btnZoomM.disabled    = false;
-          if (!d.linkWhats) {
-            btnWa.style.opacity = '0.5';
-          } else {
-            btnWa.style.opacity = '1';
-          }
-        }
-      });
+    grupoActual._mapaPromise = null;
+    var idGrupoAbierto = idGrupo;
+    _pedirMapaGrupo(0).then(function(d){
+      if (d && d.success && grupoActual && grupoActual.id === idGrupoAbierto) {
+        btnWa.style.opacity = grupoActual.linkWhats ? '1' : '0.5';
+      }
+    });
 
     cambiarTab('Registro');
   }
@@ -1647,17 +1697,16 @@ function actualizarEstadoFecha(fechaStr) {
       document.getElementById('contenido'+t).style.display=t===tab?'block':'none';
     });
     if (tab==='Registro')  renderRegistro();
-    if (tab==='Mapa')      { grupoActual._mapaData=null; cargarMapas(); }
+    if (tab==='Mapa')      cargarMapas();
     if (tab==='Challenge') {
       claveChallengeSel  = claveChallengePorDefecto();
       bloqueChallengeSel = parseInt(String(claveChallengeSel).slice(-1), 10) || 1;
       Promise.all([
         fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=1', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
         fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=2', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
-        fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoActual.id)+'&t='+Date.now(), {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return null;})
+        _pedirMapaGrupo(30000)
       ]).then(function(res){
         _linksVideo = { 1: res[0].links||{}, 2: res[1].links||{} };
-        if (res[2] && res[2].success && grupoActual) grupoActual._mapaData = res[2].resultados || [];
         renderChallenge();
       });
     }
@@ -2234,22 +2283,25 @@ function guardarRegistroSabatinoMasivo() {
 
   function cargarMapas() {
     var lista = document.getElementById('listaMapas');
+    var idG = grupoActual.id;
+    var yaMostrado = null;
     if (grupoActual._mapaData) {
+      // VELOCIDAD: se muestra al instante lo que ya se tenía...
+      yaMostrado = JSON.stringify(grupoActual._mapaData);
       renderMapas(grupoActual._mapaData);
-      return;
+    } else {
+      lista.innerHTML = '<div class="loading">Cargando evaluación...</div>';
     }
-    lista.innerHTML = '<div class="loading">Cargando evaluación...</div>';
-    fetch(APPS_SCRIPT+'?action=getMapaGrupo&idGrupo='+encodeURIComponent(grupoActual.id), {redirect:'follow'})
-      .then(r => r.json())
-      .then(data => {
-        if (!data.success) { lista.innerHTML='<div class="empty-state"><p>Error al cargar.</p></div>'; return; }
-                grupoActual._mapaData = data.resultados || [];
-        grupoActual._esSabatino = data.esSabatino || false;   // ← NUEVO
-        grupoActual.linkZoom  = data.linkZoom  || grupoActual.linkZoom  || '';
-        grupoActual.linkWhats = data.linkWhats || grupoActual.linkWhats || '';
-        renderMapas(grupoActual._mapaData);
-      })
-      .catch(() => { lista.innerHTML='<div class="empty-state"><p>Error de conexión.</p></div>'; });
+    // ...y se actualiza en segundo plano (si hay petición en camino de hace <5 s, se reutiliza).
+    _pedirMapaGrupo(5000).then(function(data){
+      if (!grupoActual || grupoActual.id !== idG) return;
+      if (!data || !data.success) {
+        if (!yaMostrado) lista.innerHTML = data ? '<div class="empty-state"><p>Error al cargar.</p></div>' : '<div class="empty-state"><p>Error de conexión.</p></div>';
+        return;
+      }
+      var tabMapaVisible = document.getElementById('contenidoMapa').style.display !== 'none';
+      if (tabMapaVisible && JSON.stringify(grupoActual._mapaData) !== yaMostrado) renderMapas(grupoActual._mapaData);
+    });
   }
 
   function nivelColor(val) {
@@ -2877,7 +2929,11 @@ function renderMapas(resultados) {
               fin(guardado, guardado ? '✓ Guardado ('+etiqueta+'), pero no se pudo verificar. Revisa en Evaluación del grupo.' : (d.aviso || 'No se pudo guardar'));
               return;
             }
-            if (grupoActual && grupoActual.id === grupoId) grupoActual._mapaData = m.resultados || [];
+            if (grupoActual && grupoActual.id === grupoId) {
+              grupoActual._mapaData = m.resultados || [];
+              grupoActual._mapaPromise = Promise.resolve(m);
+              grupoActual._mapaTs = Date.now();
+            }
             var c = _hallarChallenge(m.resultados, idAlumno, tipo, clave);
             var ok = !!c && (selNr || c.aprobado === selSi);
             if (ok) fin(true, '✓ '+tipo+' Challenge '+etiqueta+' guardado y verificado ('+idAlumno+')');
@@ -4614,9 +4670,7 @@ function abrirDetalleEvalMaestro(idAlumno) {
   //  1) getMapaGrupo         → de aquí tomamos el % EXACTO que muestra la tarjeta
   //  2) getEvaluacionAlumno  → de aquí tomamos calendario, observaciones, etc.
   Promise.all([
-    fetch(APPS_SCRIPT + '?action=getMapaGrupo&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
-      .then(function(r){ return r.json(); })
-      .catch(function(){ return { success: false, resultados: [] }; }),
+    _pedirMapaGrupo(60000).then(function(m){ return m || { success: false, resultados: [] }; }),
     fetch(APPS_SCRIPT + '?action=getEvaluacionAlumno&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(grupoActual.id), { redirect: 'follow' })
       .then(function(r){ return r.json(); })
       .catch(function(){ return { success: false }; })
