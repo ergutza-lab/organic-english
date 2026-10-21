@@ -1585,14 +1585,16 @@
       if (esKids) prepararPracticaKids();
 
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
-      // Banco de grabaciones: las últimas 4 clases del grupo (oct-2026)
-      var grabs = (g.grabaciones && g.grabaciones.length) ? g.grabaciones : (g.grabacion ? [{ link: g.grabacion, fecha: '' }] : []);
-      alumnoData._grabaciones = grabs;
-      if (grabs.length) {
+      // Grabaciones de la semana: 4 renglones, uno por clase (oct-2026)
+      var semGrab = g.grabaciones && g.grabaciones.semana;
+      var conLinkGrab = semGrab ? semGrab.slots.filter(function (s) { return s.link; }) : [];
+      alumnoData._grabSemana = conLinkGrab.length ? semGrab : null;
+      var ultimaGrab = (g.grabaciones && g.grabaciones.ultima) || g.grabacion || '';
+      if (conLinkGrab.length || ultimaGrab) {
         var btnGrab = document.getElementById('btnGrabacion');
-        btnGrab.href = grabs[0].link;
-        if (grabs.length > 1) {
-          btnGrab.innerHTML = '🎥 Grabaciones (' + grabs.length + ')';
+        btnGrab.href = conLinkGrab.length ? conLinkGrab[conLinkGrab.length - 1].link : ultimaGrab;
+        if (conLinkGrab.length) {
+          btnGrab.innerHTML = '🎥 Grabaciones de la semana';
           btnGrab.onclick = function (ev) { ev.preventDefault(); abrirModalGrabaciones(); };
         }
         btnGrab.style.display = 'inline-flex';
@@ -9223,43 +9225,44 @@ var MISIONES_KIDS_A12_LISTA = [
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
   }
   function abrirGrabacionDesdeBoard() {
-    var grabs = (alumnoData && alumnoData._grabaciones) || [];
-    if (grabs.length > 1) { abrirModalGrabaciones(); return; }
+    if (alumnoData && alumnoData._grabSemana) { abrirModalGrabaciones(); return; }
     var btn = document.getElementById('btnGrabacion');
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
   }
 
-  // ── Banco de grabaciones: lista de las últimas 4 clases ──────────────
+  // ── Grabaciones de la semana: los mismos 4 renglones que ve el maestro ──
   function abrirModalGrabaciones() {
-    var grabs = (alumnoData && alumnoData._grabaciones) || [];
-    var dias  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    var sem = alumnoData && alumnoData._grabSemana;
+    if (!sem) return;
+    var dias  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    function etiqueta(g, i) {
-      var txt = 'Grabación';
-      if (g.fechaClase) {
-        var p = String(g.fechaClase).split('-');
-        var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
-        txt = 'Clase del ' + dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
-      } else if (g.fecha) {
-        var d2 = new Date(g.fecha);
-        if (!isNaN(d2.getTime())) txt = 'Subida el ' + dias[d2.getDay()] + ' ' + d2.getDate() + ' ' + meses[d2.getMonth()];
-      }
-      return '<span style="display:block;">' + (i === 0 ? '⭐ ' : '') + txt + '</span>' +
-        (g.leccion ? '<span style="display:block;font-size:11px;font-weight:600;color:#e9d5ff;margin-top:2px;">📘 ' + g.leccion + '</span>' : '');
+    function fechaLarga(iso) {
+      var p = String(iso).split('-');
+      var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+      return dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
     }
     var viejo = document.getElementById('modalGrabacionesOE');
     if (viejo) viejo.remove();
     var ov = document.createElement('div');
     ov.id = 'modalGrabacionesOE';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.75);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(2,6,23,0.75);display:flex;align-items:center;justify-content:center;padding:16px;';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
     ov.innerHTML =
-      '<div style="background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:20px;width:100%;max-width:380px;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-        '<div style="font-size:17px;font-weight:800;margin-bottom:4px;">🎥 Grabaciones de tus clases</div>' +
-        '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.5;">Las últimas ' + grabs.length + ' clases de tu grupo. Úsalas para repasar o para ponerte al corriente si faltaste.</div>' +
-        grabs.map(function (g, i) {
-          return '<a href="' + g.link + '" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:' + (i === 0 ? 'linear-gradient(135deg,#7c1d6f,#5b0f52)' : 'rgba(255,255,255,0.06)') + ';border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#fff;text-decoration:none;font-size:13px;font-weight:700;">' +
-            '<span>' + etiqueta(g, i) + '</span><span style="font-size:16px;">▶</span></a>';
+      '<div style="background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:20px;width:100%;max-width:400px;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+        '<div style="font-size:17px;font-weight:800;margin-bottom:4px;">🎥 Grabaciones de esta semana</div>' +
+        '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.5;">Úsalas para repasar o para ponerte al corriente si faltaste a una clase.</div>' +
+        sem.slots.map(function (s) {
+          var titulo = /^Clase/.test(s.etiqueta)
+            ? s.etiqueta + ' · ' + fechaLarga(s.fecha)
+            : 'Clase del ' + fechaLarga(s.fecha);
+          var contenido = '<span><span style="display:block;">' + titulo + '</span>' +
+            '<span style="display:block;font-size:11px;font-weight:600;color:#e9d5ff;margin-top:2px;">📘 ' + (s.leccion || 'Lección por definir') + '</span></span>';
+          if (s.link) {
+            return '<a href="' + s.link + '" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#fff;text-decoration:none;font-size:13px;font-weight:700;">' +
+              contenido + '<span style="font-size:13px;white-space:nowrap;">▶ Ver</span></a>';
+          }
+          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#94a3b8;font-size:13px;font-weight:700;">' +
+            contenido + '<span style="font-size:11px;white-space:nowrap;">' + (s.futura ? 'Próximamente' : 'Aún no disponible') + '</span></div>';
         }).join('') +
         '<button onclick="document.getElementById(\'modalGrabacionesOE\').remove()" style="width:100%;margin-top:6px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>' +
       '</div>';
