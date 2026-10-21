@@ -9234,10 +9234,18 @@ var MISIONES_KIDS_A12_LISTA = [
     var grabs = (alumnoData && alumnoData._grabaciones) || [];
     var dias  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    function etiqueta(fecha, i) {
-      var d = fecha ? new Date(fecha) : null;
-      var txt = (d && !isNaN(d.getTime())) ? ('Subida el ' + dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()]) : 'Grabación';
-      return (i === 0 ? 'Clase más reciente · ' : '') + txt;
+    function etiqueta(g, i) {
+      var txt = 'Grabación';
+      if (g.fechaClase) {
+        var p = String(g.fechaClase).split('-');
+        var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+        txt = 'Clase del ' + dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
+      } else if (g.fecha) {
+        var d2 = new Date(g.fecha);
+        if (!isNaN(d2.getTime())) txt = 'Subida el ' + dias[d2.getDay()] + ' ' + d2.getDate() + ' ' + meses[d2.getMonth()];
+      }
+      return '<span style="display:block;">' + (i === 0 ? '⭐ ' : '') + txt + '</span>' +
+        (g.leccion ? '<span style="display:block;font-size:11px;font-weight:600;color:#e9d5ff;margin-top:2px;">📘 ' + g.leccion + '</span>' : '');
     }
     var viejo = document.getElementById('modalGrabacionesOE');
     if (viejo) viejo.remove();
@@ -9251,7 +9259,7 @@ var MISIONES_KIDS_A12_LISTA = [
         '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.5;">Las últimas ' + grabs.length + ' clases de tu grupo. Úsalas para repasar o para ponerte al corriente si faltaste.</div>' +
         grabs.map(function (g, i) {
           return '<a href="' + g.link + '" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:' + (i === 0 ? 'linear-gradient(135deg,#7c1d6f,#5b0f52)' : 'rgba(255,255,255,0.06)') + ';border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#fff;text-decoration:none;font-size:13px;font-weight:700;">' +
-            '<span>' + etiqueta(g.fecha, i) + '</span><span style="font-size:16px;">▶</span></a>';
+            '<span>' + etiqueta(g, i) + '</span><span style="font-size:16px;">▶</span></a>';
         }).join('') +
         '<button onclick="document.getElementById(\'modalGrabacionesOE\').remove()" style="width:100%;margin-top:6px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>' +
       '</div>';
