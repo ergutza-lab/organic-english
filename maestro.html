@@ -1586,11 +1586,54 @@ function actualizarEstadoFecha(fechaStr) {
     // ─── Grupos entre semana (sin cambios) ───
     if (fechasRegistradas.indexOf(fechaStr) !== -1) {
       input.style.borderColor = '#ef4444';
-      if (aviso) { aviso.style.display='block'; aviso.textContent='⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'; aviso.style.color=''; }
+      if (aviso) {
+        aviso.style.display='block'; aviso.style.color='';
+        aviso.innerHTML = '⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'
+          + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(239,68,68,0.25);color:#fecaca;">'
+          + '¿O quieres <b>borrar todos los registros de este día</b> para volver a evaluar a los alumnos?'
+          + '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">'
+          + '<button id="btnBorrarDia" type="button" onclick="borrarRegistrosDelDia()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">Sí, borrar registros del día</button>'
+          + '</div></div>';
+      }
     } else {
       input.style.borderColor = 'rgba(255,255,255,0.1)';
       if (aviso) aviso.style.display='none';
     }
+  }
+
+  // ─── Borrar TODOS los registros de una fecha para poder re-evaluar ───
+  function borrarRegistrosDelDia() {
+    if (!grupoActual) return;
+    var fecha = document.getElementById('fechaClase').value;
+    if (!fecha || fechasRegistradas.indexOf(fecha) === -1) return;
+
+    var partes = fecha.split('-');
+    var fechaTxt = partes[2] + '/' + partes[1] + '/' + partes[0];
+    if (!confirm('¿Seguro que quieres BORRAR todos los registros del ' + fechaTxt + ' de este grupo?\n\nSe eliminarán las evaluaciones y asistencias de todos los alumnos de ese día y podrás evaluarlos de nuevo. Esta acción no se puede deshacer.')) return;
+
+    var btn = document.getElementById('btnBorrarDia');
+    if (btn) { btn.disabled = true; btn.textContent = 'Borrando...'; }
+
+    fetch(APPS_SCRIPT+'?action=borrarRegistrosDia&idGrupo='+encodeURIComponent(grupoActual.id)+
+          '&fecha='+encodeURIComponent(fecha)+'&idMaestro='+encodeURIComponent(maestroData.id), {redirect:'follow'})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.success) {
+          var i = fechasRegistradas.indexOf(fecha);
+          if (i !== -1) fechasRegistradas.splice(i, 1);
+          delete clasesPorFechaActual[fecha];
+          mostrarToast('Registros del ' + fechaTxt + ' borrados. Ya puedes evaluar de nuevo.', 'success');
+          actualizarEstadoFecha(fecha);
+          renderRegistro();
+        } else {
+          if (btn) { btn.disabled = false; btn.textContent = 'Sí, borrar registros del día'; }
+          mostrarToast('No se pudo borrar: ' + ((data && data.error) || 'error desconocido'), 'error');
+        }
+      })
+      .catch(function(){
+        if (btn) { btn.disabled = false; btn.textContent = 'Sí, borrar registros del día'; }
+        mostrarToast('Error de conexión', 'error');
+      });
   }
 
   function volverGrupos() {
