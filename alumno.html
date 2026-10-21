@@ -10647,6 +10647,68 @@ function abrirDetalleEvaluacion() {
   renderDetalleEvalIzq(d);
   renderDetalleEvalDer(d);
   document.getElementById('modalDetalleEvaluacion').classList.add('visible');
+
+  // Cargar qué días fueron evaluados por RECUPERACIÓN y repintar con la "r" amarilla
+  cargarMarcasRecuperacion_(function() {
+    var dd = window._evalDataActual;
+    if (dd) renderDetalleEvalDer(dd);
+  });
+}
+
+// ─── Marcas de recuperación para el calendario de Detalles ───
+// Pide al servidor los días con video de recuperación APROBADO y los guarda en
+// window._marcasRecup (misma fuente que el calendario de recuperación).
+function cargarMarcasRecuperacion_(cb) {
+  if (!alumnoData || !alumnoData.alumno || !alumnoData.grupo) return;
+  var idAlumno = alumnoData.alumno.id, idGrupo = alumnoData.grupo.id;
+  fetch(APPS_SCRIPT + '?action=getFaltasJustificables&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || !data.success) return;
+      window._marcasRecup = (data.dias || []).filter(function(x) {
+        return x && x.estatus === 'Aprobado';
+      });
+      if (cb) cb();
+    })
+    .catch(function() {});
+}
+
+// Marca como recuperadas (esRecuperacion=true) las evaluaciones del calendario que
+// coinciden con un video aprobado. Si el registro no existe o no trae color, lo crea/completa.
+function _aplicarMarcasRecup_(d) {
+  var marcas = window._marcasRecup || [];
+  if (!marcas.length) return;
+  if (!d.calendario) d.calendario = [];
+  var cal = d.calendario;
+  var esSab = (d.esSabatino === true);
+
+  marcas.forEach(function(m) {
+    var sem = parseInt(m.semana, 10);
+    var cn  = parseInt(m.claseNum, 10) || 0;
+    var dsem = parseInt(m.dia, 10) || 0;
+    var fechaCmp = String(m.fechaReal || m.fecha || '').substring(0, 10);
+    var reg = null;
+    for (var i = 0; i < cal.length; i++) {
+      var c = cal[i];
+      if (parseInt(c.semana, 10) !== sem) continue;
+      if (esSab) {
+        var ccn = parseInt(c.claseNum, 10) || 1;
+        if (ccn === cn) { reg = c; break; }
+      } else {
+        if (parseInt(c.dia, 10) === dsem) { reg = c; break; }
+      }
+    }
+    if (reg) {
+      reg.esRecuperacion = true;
+      if ((reg.color == null || reg.color === '') && m.color) reg.color = m.color;
+      if (reg.asistio === false && reg.color) reg.asistio = true;
+    } else if (m.color) {
+      cal.push({
+        fecha: fechaCmp, semana: sem, dia: esSab ? 6 : dsem, claseNum: cn || 1,
+        color: m.color, asistio: true, esRecuperacion: true
+      });
+    }
+  });
 }
 
 function cerrarDetalleEvaluacion() {
@@ -11062,6 +11124,7 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
   
 function renderDetalleEvalDer(d) {
   var html = '';
+  _aplicarMarcasRecup_(d);
   var cal = d.calendario || [];
 
   // ─── Detectar si es sabatino ───
