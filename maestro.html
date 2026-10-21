@@ -477,12 +477,10 @@
           <div class="bloque-btn active" id="tipoBtn1" onclick="selTipoChallenge('Mini')">🌤 Mini Challenge (sem 4)</div>
           <div class="bloque-btn"        id="tipoBtn2" onclick="selTipoChallenge('Gran')">🌟 Grand Challenge (sem 8)</div>
         </div>
-        <div class="bloque-sel" id="selectorBloqueChallenge" style="margin-top:8px;">
-          <div class="bloque-btn active" id="bloqueChBtn1" onclick="selBloqueChallenge(1)">📘 Bloque 1</div>
-          <div class="bloque-btn"        id="bloqueChBtn2" onclick="selBloqueChallenge(2)">📗 Bloque 2</div>
-        </div>
-        <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:12px 0 16px 0;text-shadow:0 1px 2px rgba(0,0,0,0.25);">Escribe el feedback personalizado para cada alumno y marca si completó el challenge. Elige arriba de qué bloque estás calificando.</p>
-        <div id="listaChallenges"></div>
+        <div style="font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px 0;text-shadow:0 1px 2px rgba(0,0,0,0.3);">¿A qué nivel y bloque pertenece este challenge?</div>
+        <div class="bloque-sel" id="selectorClaveChallenge" style="margin-top:0;flex-wrap:wrap;"></div>
+        <div id="avisoClaveChallenge" style="display:none;background:rgba(250,204,21,0.15);border:1px solid rgba(250,204,21,0.5);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#fde68a;line-height:1.5;"></div>
+        <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:12px 0 16px 0;text-shadow:0 1px 2px rgba(0,0,0,0.25);">Escribe el feedback personalizado para cada alumno y marca si completó el challenge. El sistema ya preseleccionó el nivel y bloque que corresponde; cámbialo solo si estás calificando un challenge de otro bloque.</p>
       </div>
 
       <!-- TAB MATERIAL DE CLASES -->
@@ -1642,7 +1640,7 @@ function actualizarEstadoFecha(fechaStr) {
     grupoActual=null;
   }
 
-  function cambiarTab(tab) {
+    function cambiarTab(tab) {
     ['Registro','Mapa','Challenge','Material'].forEach(function(t){
       document.getElementById('tab'+t).classList.toggle('active',t===tab);
       document.getElementById('contenido'+t).style.display=t===tab?'block':'none';
@@ -1650,10 +1648,8 @@ function actualizarEstadoFecha(fechaStr) {
     if (tab==='Registro')  renderRegistro();
     if (tab==='Mapa')      { grupoActual._mapaData=null; cargarMapas(); }
     if (tab==='Challenge') {
-      var bw = calcularBloqueySemana();
-      bloqueChallengeSel = bw.bloque;
-      document.getElementById('bloqueChBtn1').classList.toggle('active', bloqueChallengeSel===1);
-      document.getElementById('bloqueChBtn2').classList.toggle('active', bloqueChallengeSel===2);
+      claveChallengeSel  = claveChallengePorDefecto();
+      bloqueChallengeSel = parseInt(String(claveChallengeSel).slice(-1), 10) || 1;
       Promise.all([
         fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=1', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
         fetch(APPS_SCRIPT+'?action=getLinksVideoChallenge&idGrupo='+encodeURIComponent(grupoActual.id)+'&bloque=2', {redirect:'follow'}).then(function(r){return r.json();}).catch(function(){return {links:{}};}),
@@ -2613,8 +2609,91 @@ function renderMapas(resultados) {
   }).join('');
 }
 
-  var tipoChallenge = 'Mini';
+    var tipoChallenge = 'Mini';
   var bloqueChallengeSel = 1;
+  var claveChallengeSel = '';
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  CLAVE DE BLOQUE (nivel + bloque), ej. "A2-B1". Misma normalización
+  //  que _normalizarNivelClave_ en Core.gs.
+  // ═══════════════════════════════════════════════════════════════════
+  var SECUENCIA_NIVELES_OE = ['A1','A2','B1','B2','C1','C2'];
+
+  function normalizarNivelClaveJS(texto) {
+    var s = String(texto || '').toUpperCase().trim();
+    s = s.replace(/^NIVEL\s+/, '').replace(/-?\s*BLOQUE\s*\d+.*$/, '');
+    return s.replace(/\s+/g, '').trim();
+  }
+
+  function nivelAnteriorClaveJS(nivelClave) {
+    var i = SECUENCIA_NIVELES_OE.indexOf(nivelClave);
+    return i > 0 ? SECUENCIA_NIVELES_OE[i - 1] : '';
+  }
+
+  function etiquetaClaveJS(clave) {
+    var m = String(clave || '').match(/^(.+)-B([12])$/);
+    return m ? (m[1] + ' · Bloque ' + m[2]) : 'Bloque sin identificar';
+  }
+
+  function opcionesClaveChallenge() {
+    var nivel = normalizarNivelClaveJS(grupoActual && grupoActual.nivel);
+    var ops = [];
+    if (nivel) {
+      ops.push({ clave: nivel + '-B1', label: nivel + ' · Bloque 1', anterior: false });
+      ops.push({ clave: nivel + '-B2', label: nivel + ' · Bloque 2', anterior: false });
+    }
+    var prev = nivelAnteriorClaveJS(nivel);
+    if (prev) ops.push({ clave: prev + '-B2', label: prev + ' · Bloque 2 (nivel anterior)', anterior: true });
+    return ops;
+  }
+
+  // Misma regla que _resolverClaveBloque_ (Core.gs):
+  //  - primeros 14 días del nivel -> nivel anterior, Bloque 2
+  //  - después -> nivel actual, Bloque 1 hasta el día 62, Bloque 2 desde el 63
+  function claveChallengePorDefecto() {
+    var nivel = normalizarNivelClaveJS(grupoActual && grupoActual.nivel);
+    var prev  = nivelAnteriorClaveJS(nivel);
+    var dias  = 0;
+    if (grupoActual && grupoActual.fechaInicio) {
+      var ini = _parseFechaLocal_(grupoActual.fechaInicio);
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      if (ini) dias = Math.floor((hoy - ini) / 86400000);
+    }
+    if (prev && dias >= 0 && dias < 14) return prev + '-B2';
+    return nivel + '-B' + (dias < 63 ? 1 : 2);
+  }
+
+  function renderSelectorClaveChallenge() {
+    var cont = document.getElementById('selectorClaveChallenge');
+    if (!cont) return;
+    var ops = opcionesClaveChallenge();
+    if (!ops.some(function(o){ return o.clave === claveChallengeSel; })) {
+      claveChallengeSel = ops.length ? ops[0].clave : '';
+    }
+    cont.innerHTML = ops.map(function(o){
+      var icono = o.anterior ? '📙 ' : (o.clave.slice(-1) === '1' ? '📘 ' : '📗 ');
+      return '<div class="bloque-btn' + (o.clave === claveChallengeSel ? ' active' : '') + '"'
+        + ' onclick="selClaveChallenge(\'' + o.clave + '\')"'
+        + ' style="' + (o.anterior ? 'flex-basis:100%;' : '') + '">' + icono + o.label + '</div>';
+    }).join('');
+
+    var aviso = document.getElementById('avisoClaveChallenge');
+    var sel = ops.find(function(o){ return o.clave === claveChallengeSel; });
+    if (aviso) {
+      if (sel && sel.anterior) {
+        aviso.style.display = 'block';
+        aviso.innerHTML = '⚠️ Estás calificando un challenge del <strong>nivel anterior (' + etiquetaClaveJS(sel.clave) + ')</strong>. Quedará en el historial de ese nivel y <strong>no afectará</strong> la evaluación del nivel actual.';
+      } else {
+        aviso.style.display = 'none';
+      }
+    }
+  }
+
+  function selClaveChallenge(clave) {
+    claveChallengeSel = clave;
+    bloqueChallengeSel = parseInt(String(clave).slice(-1), 10) || 1;
+    renderChallenge();
+  }
 
   function selTipoChallenge(tipo) {
     tipoChallenge = tipo;
