@@ -1416,6 +1416,14 @@
   var btn = document.querySelector('.btn-primary');
   btn.textContent = 'Verificando...'; btn.disabled = true;
 
+  // VELOCIDAD: si este alumno ya entró antes, su evaluación se pide al mismo
+  // tiempo que el login (solo se muestra si el login es correcto y el grupo
+  // sigue siendo el mismo).
+  _prefetchEvaluacion = null;
+  var grupoPrevio = '';
+  try { grupoPrevio = localStorage.getItem('oe_grupo_' + id) || ''; } catch (eLs) {}
+  if (grupoPrevio) _prefetchEvaluacion = _pedirEvaluacionYFaltas(id, grupoPrevio);
+
   fetch(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(id) + '&email=' + encodeURIComponent(email), { redirect: 'follow' })
     .then(r => r.json())
     .then(data => {
@@ -1423,6 +1431,7 @@
 
       if (data.success) {
         alumnoData = data;
+        try { if (data.grupo && data.grupo.id) localStorage.setItem('oe_grupo_' + data.alumno.id, data.grupo.id); } catch (eLs) {}
         mostrarPanel();
         if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
       } else {
@@ -9412,13 +9421,10 @@ var MISIONES_KIDS_A12_LISTA = [
   }
 
   function cargarMapaAlumno(idAlumno, idGrupo) {
-    if (!idGrupo) return;
-    var url=APPS_SCRIPT+'?action=getMapaAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo);
-    fetch(url, { redirect: 'follow' })
-      .then(r=>r.json()).then(data=>{if(data.success)renderMapaAlumno(data);})
-      .catch(function(){
-        fetch(url, { mode: 'no-cors' }).catch(function(){});
-      });
+    // VELOCIDAD: la acción getMapaAlumno ya no existe en el servidor (siempre
+    // respondía error y el "Jardín de crecimiento" nunca se mostraba). Se deja
+    // de pedir para no gastar una petición en cada entrada.
+    return;
   }
 
   function renderMapaAlumno(data) {
@@ -9633,15 +9639,33 @@ var MISIONES_KIDS_A12_LISTA = [
   function formatFechaCorta(f){if(!f)return'—';var d=_fechaSegura(f),m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear();}
   function formatFechaMini(f){if(!f)return'—';var d=_fechaSegura(f),m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return d.getDate()+' '+m[d.getMonth()];}
 
+  // VELOCIDAD: evaluación y faltas justificables se piden al mismo tiempo
+  // (antes las faltas esperaban a que terminara la evaluación).
+  var _prefetchEvaluacion = null;
+  function _pedirEvaluacionYFaltas(idAlumno, idGrupo) {
+    var pEval = fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function(r){ return r.json(); });
+    var pFaltas = fetch(APPS_SCRIPT + '?action=getFaltasJustificables&idAlumno=' + encodeURIComponent(idAlumno) + '&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return null; });
+    return { clave: idAlumno + '|' + idGrupo, eval: pEval, faltas: pFaltas };
+  }
+
   function cargarEvaluacionAlumno(idAlumno, idGrupo) {
-    fetch(APPS_SCRIPT+'?action=getEvaluacionAlumno&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo))
-      .then(r=>r.json())
+    var pedido = (_prefetchEvaluacion && _prefetchEvaluacion.clave === idAlumno + '|' + idGrupo)
+      ? _prefetchEvaluacion
+      : _pedirEvaluacionYFaltas(idAlumno, idGrupo);
+    _prefetchEvaluacion = null;
+    pedido.eval
       .then(d=>{
-        console.log('EVALUACION DATA:', JSON.stringify(d));
         if(d.success) {
           renderEvaluacionAlumno(d);
           var esPersonalizado = alumnoData && alumnoData.grupo && alumnoData.grupo.tipoHorario === 'personalizado';
-          if (!esPersonalizado) cargarFaltasJustificables(idAlumno, idGrupo);
+          if (!esPersonalizado) {
+            pedido.faltas.then(function(data){
+              if (data && data.success) renderFaltasJustificables(data.faltas);
+            });
+          }
         }
         else document.getElementById('evaluacionAlumno').innerHTML='<div style="text-align:center;padding:20px;color:#64748b;">Sin registros aún</div>';
       })
