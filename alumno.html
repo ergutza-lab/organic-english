@@ -9767,9 +9767,15 @@ function renderEvaluacionAlumno(d) {
   var challengesNivel = d.challenges || [];
   var challengesHistoricos = (d.challengesHistoricos || []).slice();
 
-  var miniCh = null, grandCh = null;
+    var miniCh = null, grandCh = null;
+  var videoMiniPend = '', videoGrandPend = '';
   challengesNivel.forEach(function(ch) {
-    var esMini = ch.tipo.toLowerCase().indexOf('mini') === 0;
+    var esMini = String(ch.tipo || '').toLowerCase().indexOf('mini') === 0;
+    // Video subido que el maestro aún no califica (el servidor lo manda sin bloque ni fecha)
+    if (ch.bloque === undefined && !ch.fecha && !ch.feedback && ch.urlVideo) {
+      if (esMini) videoMiniPend = ch.urlVideo; else videoGrandPend = ch.urlVideo;
+      return;
+    }
     if (ch.bloque === bloqueActualNum) {
       if (esMini) miniCh = ch;
       else grandCh = ch;
@@ -9829,16 +9835,16 @@ function renderEvaluacionAlumno(d) {
   html += '<div style="display:flex;justify-content:center;margin-bottom:2px;">'+medalSVG(tieneMini, miniNoAprobo)+'</div>';
   html += '<div style="font-size:10px;font-weight:700;color:'+(tieneMini?'#facc15':miniNoAprobo?'#f87171':kIdleTitle)+';text-transform:uppercase;letter-spacing:0.5px;">'+labelMini+'</div>';
   html += '<div style="font-size:9px;color:'+kSub+';margin-top:2px;">Actividad en la Semana 4</div>';
-  html += '<div style="font-size:9px;color:'+(tieneMini?'#fff':miniNoAprobo?'#fca5a5':kIdlePend)+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':'Pendiente')+'</div>';
+    html += '<div style="font-size:9px;color:'+(tieneMini?'#fff':miniNoAprobo?'#fca5a5':kIdlePend)+';margin-top:2px;">'+(tieneMini?'Aprobado ✓':miniNoAprobo?'No Aprobó ✗':videoMiniPend?'Video entregado · En revisión ⏳':'Pendiente')+'</div>';
   if(fbMini){
     html += '<div style="margin-top:4px;background:'+(kidsTheme?'rgba(255,255,255,0.85)':'rgba(0,0,0,0.3)')+';border-radius:8px;padding:5px 8px;text-align:left;overflow:visible;">';
     html += '<div style="font-size:9px;font-weight:700;color:'+(kidsTheme?'#a16207':'#facc15')+';margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
     html += '<div style="font-size:11px;color:'+(kidsTheme?'#1e293b':'#fff')+';line-height:1.5;">'+fbMini+'</div></div>';
   }
-  if (!miniExiste) {
+    if (!miniExiste && !videoMiniPend) {
     html += '<button class="btn-video-orange" onclick="abrirModalVideo(\'Mini\')">📹 Subir mi video</button>';
   }
-  var urlMini = miniCh && miniCh.urlVideo ? miniCh.urlVideo : '';
+  var urlMini = (miniCh && miniCh.urlVideo) ? miniCh.urlVideo : videoMiniPend;
   html += '<a id="linkVideoMini" class="link-video-subido" href="'+urlMini+'" target="_blank" style="display:'+(urlMini?'block':'none')+'">▶ Ver mi video subido</a>';
   html += '</div>';
 
@@ -9857,7 +9863,7 @@ function renderEvaluacionAlumno(d) {
     html += '<div style="font-size:9px;font-weight:700;color:'+(kidsTheme?'#c2410c':'#f97316')+';margin-bottom:3px;text-transform:uppercase;">💬 Retroalimentación</div>';
     html += '<div style="font-size:11px;color:'+(kidsTheme?'#1e293b':'#fff')+';line-height:1.5;">'+fbGrand+'</div></div>';
   }
-  var urlGrand = grandCh && grandCh.urlVideo ? grandCh.urlVideo : '';
+    var urlGrand = (grandCh && grandCh.urlVideo) ? grandCh.urlVideo : videoGrandPend;
   html += '<a id="linkVideoGrand" class="link-video-subido" href="'+urlGrand+'" target="_blank" style="display:'+(urlGrand?'block':'none')+'">▶ Ver mi video subido</a>';
   html += '</div>';
 
