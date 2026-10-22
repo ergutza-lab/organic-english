@@ -953,6 +953,11 @@ function iniciarLogin() {
   var errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
   if (!id || !clave) { errEl.textContent='Ingresa tu ID y clave.'; errEl.style.display='block'; return; }
+  // Mientras se verifica la clave, ya se piden los datos del panel.
+  _precargaCE = { ts: Date.now(), id: id,
+    datos: api({ action:'getDatosCE', id:id }),
+    evals: api({ action:'getEvaluacionesCE' }) };
+  _precargaCE.datos.catch(function(){}); _precargaCE.evals.catch(function(){});
   apiPost({ action:'loginCE', id:id, clave:clave }).then(function(res) {
     if (res.ok) {
       estado.idCE = id; estado.nombreCE = res.nombre;
@@ -968,13 +973,22 @@ document.getElementById('login-id').addEventListener('keydown', function(e) { if
 document.getElementById('login-clave').addEventListener('keydown', function(e) { if(e.key==='Enter') iniciarLogin(); });
 
 // ── CARGAR DATOS ──
-function cargarDatos() {
+// Precarga del login: se usa UNA vez (menos de 2 min). fresco=true (boton
+// Actualizar) pide al servidor datos recien calculados.
+var _precargaCE = null;
+function cargarDatos(fresco) {
   document.getElementById('resumen-cargando').style.display = 'block';
   document.getElementById('resumen-contenido').style.display = 'none';
-  Promise.all([
-    api({ action:'getDatosCE', id:estado.idCE }),
-    api({ action:'getEvaluacionesCE' })
-  ]).then(function(results) {
+  var pDatos, pEvals;
+  if (!fresco && _precargaCE && _precargaCE.id === estado.idCE && (Date.now() - _precargaCE.ts) < 120000) {
+    pDatos = _precargaCE.datos; pEvals = _precargaCE.evals;
+  } else {
+    var extra = fresco ? { fresco: '1' } : {};
+    pDatos = api(Object.assign({ action:'getDatosCE', id:estado.idCE }, extra));
+    pEvals = api(Object.assign({ action:'getEvaluacionesCE' }, extra));
+  }
+  _precargaCE = null;
+  Promise.all([pDatos, pEvals]).then(function(results) {
     var res = results[0], eRes = results[1];
     if (!res.ok) return;
     estado.grupos       = res.grupos       || [];
@@ -1003,7 +1017,7 @@ function cargarDatos() {
 function actualizarDatos() {
   var btn = document.getElementById('btn-actualizar');
   btn.classList.add('girando'); btn.disabled = true;
-  cargarDatos();
+  cargarDatos(true);
   setTimeout(function() { btn.classList.remove('girando'); btn.disabled=false; }, 1200);
 }
 
