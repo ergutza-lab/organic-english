@@ -1585,22 +1585,9 @@
       if (esKids) prepararPracticaKids();
 
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
-      // Botón "Ver grabación" (oct-2026): en grupos regulares SIEMPRE abre la
-      // ventana con las 4 clases de la semana y su lección (se consultan al
-      // momento del clic). En grupos personalizados abre la última grabación.
-      var semGrab = g.grabaciones && g.grabaciones.semana;
-      var ultimaGrab = (g.grabaciones && g.grabaciones.ultima) || g.grabacion || '';
-      alumnoData._grabSemana = semGrab || null;
-      alumnoData._grabUltima = ultimaGrab;
-      var btnGrab = document.getElementById('btnGrabacion');
-      var esPersonalizadoGrab = g.tipoHorario === 'personalizado';
-      if (!esPersonalizadoGrab) {
-        btnGrab.href = '#';
-        btnGrab.removeAttribute('target');
-        btnGrab.onclick = function (ev) { ev.preventDefault(); abrirModalGrabaciones(); };
-        btnGrab.style.display = 'inline-flex';
-      } else if (ultimaGrab) {
-        btnGrab.href = ultimaGrab;
+      if (g.grabacion) {
+        var btnGrab = document.getElementById('btnGrabacion');
+        btnGrab.href = g.grabacion;
         btnGrab.style.display = 'inline-flex';
       }
       var fi = new Date(g.fechaInicio);
@@ -9229,76 +9216,8 @@ var MISIONES_KIDS_A12_LISTA = [
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
   }
   function abrirGrabacionDesdeBoard() {
-    var g = alumnoData && alumnoData.grupo;
-    if (g && g.tipoHorario !== 'personalizado') { abrirModalGrabaciones(); return; }
     var btn = document.getElementById('btnGrabacion');
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
-  }
-
-  // ── Ventana de grabaciones: las 4 clases de la semana con su lección ──
-  // Se consulta al servidor en cada clic (así aparece cualquier link que el
-  // maestro acabe de subir). Si no hay conexión, usa lo que trajo el login.
-  function abrirModalGrabaciones() {
-    var g = alumnoData && alumnoData.grupo;
-    if (!g) return;
-    _pintarModalGrabaciones(null, true);
-    fetch(APPS_SCRIPT + '?action=getGrabacionesClaseGrupo&idGrupo=' + encodeURIComponent(g.id), { redirect: 'follow' })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d && d.success) _pintarModalGrabaciones(d.clases || [], false);
-        else _pintarModalGrabaciones(alumnoData._grabSemana ? alumnoData._grabSemana.slots : [], false);
-      })
-      .catch(function () { _pintarModalGrabaciones(alumnoData._grabSemana ? alumnoData._grabSemana.slots : [], false); });
-  }
-
-  function _pintarModalGrabaciones(slots, cargando) {
-    var dias  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-    var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    function fechaLarga(iso) {
-      var p = String(iso).split('-');
-      var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
-      return dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
-    }
-    var ultima = alumnoData._grabUltima || '';
-    // La "última grabación" solo se ofrece mientras ninguna clase de esta semana tenga link
-    var hayUltimaEnLista = (slots || []).some(function (s) { return s.link; });
-    var cuerpo;
-    if (cargando) {
-      cuerpo = '<div style="text-align:center;padding:24px 0;color:#94a3b8;font-size:13px;">Cargando grabaciones...</div>';
-    } else if (!slots || !slots.length) {
-      cuerpo = '<div style="text-align:center;padding:16px 0;color:#94a3b8;font-size:13px;">Aún no hay grabaciones de esta semana.</div>';
-    } else {
-      cuerpo = slots.map(function (s) {
-        var titulo = /^Clase/.test(s.etiqueta || '')
-          ? s.etiqueta + ' · ' + fechaLarga(s.fecha)
-          : 'Clase del ' + fechaLarga(s.fecha);
-        var contenido = '<span><span style="display:block;">' + titulo + '</span>' +
-          '<span style="display:block;font-size:11px;font-weight:600;color:#e9d5ff;margin-top:2px;">📘 ' + (s.leccion || 'Lección por definir') + '</span></span>';
-        if (s.link) {
-          return '<a href="' + s.link + '" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#fff;text-decoration:none;font-size:13px;font-weight:700;">' +
-            contenido + '<span style="font-size:13px;white-space:nowrap;">▶ Ver</span></a>';
-        }
-        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:#94a3b8;font-size:13px;font-weight:700;">' +
-          contenido + '<span style="font-size:11px;white-space:nowrap;">' + (s.futura ? 'Próximamente' : 'Aún no disponible') + '</span></div>';
-      }).join('');
-    }
-    if (!cargando && ultima && !hayUltimaEnLista) {
-      cuerpo += '<a href="' + ultima + '" target="_blank" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin:4px 0 8px;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;"><span>⏮ Última grabación disponible</span><span style="white-space:nowrap;">▶ Ver</span></a>';
-    }
-    var viejo = document.getElementById('modalGrabacionesOE');
-    if (viejo) viejo.remove();
-    var ov = document.createElement('div');
-    ov.id = 'modalGrabacionesOE';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(2,6,23,0.75);display:flex;align-items:center;justify-content:center;padding:16px;';
-    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML =
-      '<div style="background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-        '<div style="font-size:17px;font-weight:800;margin-bottom:4px;">🎥 Grabaciones de esta semana</div>' +
-        '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.5;">Úsalas para repasar o para ponerte al corriente si faltaste a una clase.</div>' +
-        cuerpo +
-        '<button onclick="document.getElementById(\'modalGrabacionesOE\').remove()" style="width:100%;margin-top:6px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>' +
-      '</div>';
-    document.body.appendChild(ov);
   }
   function abrirBoardChallenge() {
     var card = document.getElementById('evaluacionAlumno');
@@ -9384,10 +9303,6 @@ var MISIONES_KIDS_A12_LISTA = [
     var tipoTexto = semanasP === 1 ? 'Colegiatura semanal' : semanasP + ' semanas cubiertas';
     div.innerHTML=
       '<div class="pago-highlight"><div class="pago-monto">$'+p.monto+' MXN</div><div class="pago-tipo">'+tipoTexto+' · '+formatFechaCorta(p.fecha)+'</div></div>'+
-      // Pago que empieza a cubrir más adelante (ingreso a un grupo que comenzó esta semana)
-      ((p.periodoInicio && new Date(p.periodoInicio).getTime() > Date.now())
-        ? '<div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:12px;color:#86efac;line-height:1.5;">🎁 Tus clases de esta semana son sin costo. Tu pago cubre a partir del '+formatFechaCorta(p.periodoInicio)+'.</div>'
-        : '')+
       '<div class="field-row"><span class="field-label">Vigente hasta</span><span class="field-val">'+formatFechaCorta(p.periodoFin)+'</span></div>'+
       '<div class="progreso-bar"><div class="progreso-fill" style="width:'+pct+'%"></div></div>'+
       '<div class="progreso-labels"><span>'+formatFechaMini(p.fecha)+'</span><span>'+formatFechaMini(p.periodoFin)+'</span></div>'+
