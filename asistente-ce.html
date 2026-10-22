@@ -802,8 +802,11 @@ setTimeout(()=>{
       localStorage.removeItem('oe_asistente_ce_sesion');
       return;
     }
-    // Rehidratar y entrar directo al panel
+    // Rehidratar y entrar directo al panel. Si hay datos de la ultima vez,
+    // se muestran AL INSTANTE mientras llegan los nuevos (al volver de
+    // WhatsApp el celular recarga la pagina).
     asistente = datos.asistente;
+    _pintarSnapshotAsistente();
     mostrarPanel();
   } catch (e) {
     // Si algo falla, ignorar y dejar el login normal
@@ -819,6 +822,9 @@ function iniciarLogin(){
   if(!id||!clave){err.textContent='Ingresa tu ID y clave.';err.style.display='block';return;}
   const btn=document.querySelector('.btn-login');
   btn.textContent='Verificando…';btn.disabled=true;
+  // Mientras se verifica la clave, ya se piden los datos del panel.
+  _precargaAsis={id:id,ts:Date.now(),p:fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(id)}`)};
+  _precargaAsis.p.catch(()=>{});
   fetch(`${APPS_SCRIPT}?action=loginAsistente&id=${encodeURIComponent(id)}&clave=${encodeURIComponent(clave)}`)
     .then(r=>r.json())
     .then(data=>{
@@ -860,7 +866,7 @@ async function actualizarPanelAsistente() {
     btn.textContent = '⏳ Actualizando...';
   }
   try {
-    await cargarDatos();
+    await cargarDatos(true);
     mostrarToast('✅ Panel actualizado', 'success');
   } catch (e) {
     mostrarToast('Error al actualizar', 'error');
@@ -883,15 +889,57 @@ function cerrarSesion(){
   // entrar automáticamente, que es lo opuesto a lo que quiere el usuario
   // cuando da clic en "Salir".
   try { localStorage.removeItem('oe_asistente_ce_sesion'); } catch(e) {}
+  try { Object.keys(localStorage).forEach(k=>{ if(k.indexOf('oe_asistente_ce_datos_')===0) localStorage.removeItem(k); }); } catch(e) {}
 }
 
-async function cargarDatos(){
+// ── VELOCIDAD ──
+// _precargaAsis: getDatosAsistente pedido junto con el login (se usa una vez).
+// Snapshot: copia de los ultimos datos en este celular, para mostrar el
+// panel al instante al volver a la pagina; los datos nuevos lo reemplazan
+// en cuanto llegan (aviso "Actualizando…" arriba a la derecha).
+var _precargaAsis=null; // var (no let): la rehidratacion de sesion corre antes de esta linea
+function _claveSnapshotAsis(){ return 'oe_asistente_ce_datos_'+(asistente&&asistente.id||''); }
+function _renderTodoAsistente(conAusencias,fresco){
+  renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderBajas();renderCambios();
+  if(conAusencias!==false) renderAusencias(fresco);
+}
+function _avisoActualizandoAsis(mostrar){
+  let el=document.getElementById('aviso-actualizando-asis');
+  if(!el && mostrar){
+    el=document.createElement('div');el.id='aviso-actualizando-asis';
+    el.textContent='⏳ Actualizando…';
+    el.style.cssText='position:fixed;top:10px;right:10px;z-index:99999;background:rgba(15,23,42,0.88);color:#fde68a;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none;';
+    document.body.appendChild(el);
+  }
+  if(el) el.style.display=mostrar?'block':'none';
+}
+function _pintarSnapshotAsistente(){
   try{
-    const resp=await fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(asistente.id)}`);
+    const raw=localStorage.getItem(_claveSnapshotAsis());
+    if(!raw) return false;
+    const snap=JSON.parse(raw);
+    if(!snap||!snap.datos||(Date.now()-snap.ts)>24*3600*1000) return false;
+    datosPanel=snap.datos;
+    _renderTodoAsistente(false); // ausencias: se piden una sola vez, con los datos nuevos
+    return true;
+  }catch(e){ return false; }
+}
+async function cargarDatos(fresco){
+  const conSnapshot=!!datosPanel;
+  if(conSnapshot) _avisoActualizandoAsis(true);
+  try{
+    let resp;
+    if(!fresco && _precargaAsis && _precargaAsis.id===asistente.id && (Date.now()-_precargaAsis.ts)<120000){
+      resp=await _precargaAsis.p;
+    }else{
+      resp=await fetch(`${APPS_SCRIPT}?action=getDatosAsistente&id=${encodeURIComponent(asistente.id)}${fresco?'&fresco=1':''}`);
+    }
+    _precargaAsis=null;
     datosPanel=await resp.json();
-    renderResumen();renderGrupos();renderPagos();renderNuevos();renderAlertas();renderBajas();renderCambios();
-    renderAusencias();
-  }catch(e){mostrarToast('Error al cargar datos.','error');}
+    _renderTodoAsistente(true,fresco);
+    try{ if(datosPanel && datosPanel.status==='ok') localStorage.setItem(_claveSnapshotAsis(),JSON.stringify({ts:Date.now(),datos:datosPanel})); }catch(e){}
+  }catch(e){_precargaAsis=null;mostrarToast('Error al cargar datos.','error');}
+  finally{ _avisoActualizandoAsis(false); }
 }
 
 function cambiarTab(tab,el){
@@ -3049,7 +3097,7 @@ function escJs(str) {
 // ═══════════════════════════════════════════════════════════════════════
 //  TAB "INASISTENCIAS" — alumnos con 2+ faltas consecutivas
 // ═══════════════════════════════════════════════════════════════════════
-function renderAusencias() {
+function renderAusencias(fresco) {
   var cont = document.getElementById('lista-ausencias');
   if (!cont) {
     console.warn('No existe #lista-ausencias en el DOM');
@@ -3060,7 +3108,7 @@ function renderAusencias() {
     return;
   }
 
-  var url = APPS_SCRIPT + '?action=getAlumnosConInasistencias&idAsistente=' + encodeURIComponent(asistente.id);
+  var url = APPS_SCRIPT + '?action=getAlumnosConInasistencias&idAsistente=' + encodeURIComponent(asistente.id) + (fresco === true ? '&fresco=1' : '');
   console.log('Llamando:', url);
 
   fetch(url, { redirect: 'follow' })
