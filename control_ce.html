@@ -293,6 +293,24 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   .filtro-select { flex: 1; }
   .form-grid { grid-template-columns: 1fr; }
 }
+/* Cupo máximo editable (modal de grupo) */
+.cupo-chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:.74rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;cursor:pointer;font-family:inherit;line-height:1.4;transition:background .15s}
+.cupo-chip:hover{background:rgba(255,255,255,.28)}
+.cupo-chip.lleno{background:rgba(220,38,38,.35);border-color:rgba(255,180,180,.6)}
+.cupo-lapiz{opacity:.8;margin-left:.15rem}
+.cupo-editor{padding:.85rem 1.5rem;background:#eef4ff;border-bottom:1.5px solid var(--borde)}
+.cupo-editor-fila{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.cupo-editor label{font-size:.78rem;font-weight:700;color:var(--azul)}
+.cupo-editor input[type=number]{width:70px;padding:.35rem .4rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.95rem;font-weight:700;text-align:center}
+.cupo-pm{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--borde);background:#fff;font-size:1rem;font-weight:700;cursor:pointer;color:var(--azul)}
+.cupo-info{font-size:.74rem;color:var(--gris)}
+.cupo-motivo{width:100%;margin:.55rem 0;padding:.45rem .6rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.82rem;box-sizing:border-box;font-family:inherit}
+.cupo-btn{background:var(--azul);color:#fff;border:none;border-radius:8px;padding:.45rem 1rem;font-weight:700;cursor:pointer;font-family:inherit}
+.cupo-btn:disabled{opacity:.6;cursor:default}
+.cupo-btn-sec{background:#fff;color:var(--gris);border:1.5px solid var(--borde);border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-family:inherit}
+.cupo-msg{font-size:.78rem;font-weight:600;margin-right:auto}
+.cupo-msg.error{color:var(--rojo)}
+.cupo-msg.ok{color:var(--verde)}
 </style>
 </head>
 <body>
@@ -2409,6 +2427,70 @@ function limpiarFormAsistente() {
 
 
 
+// ── CUPO MÁXIMO DEL GRUPO (editable por Coordinación Escolar) ─────────
+// Se guarda en GRUPOS (columna F) y queda en LOG_AUDITORIA.
+function pintarCupoGrupo(grupo) {
+  var btn = document.getElementById('modal-grupo-cupo-btn');
+  var lleno = Number(grupo.inscritos) >= Number(grupo.cupoMax);
+  btn.className = 'cupo-chip' + (lleno ? ' lleno' : '');
+  btn.innerHTML = '👥 ' + esc(grupo.inscritos) + ' / ' + esc(grupo.cupoMax) + ' · Cupo máx. <span class="cupo-lapiz">✎</span>';
+}
+function _grupoModalCupo() {
+  var id = estado.grupoCancelarEnModal;
+  return estado.grupos.find(function(g){ return g.id === id; });
+}
+function abrirEditorCupo() {
+  var g = _grupoModalCupo(); if (!g) return;
+  var ed = document.getElementById('modal-grupo-cupo-editor');
+  if (ed.style.display !== 'none') { cerrarEditorCupo(); return; }
+  var inp = document.getElementById('cupo-nuevo');
+  inp.value = Number(g.cupoMax) || 10;
+  inp.min = Math.max(1, Number(g.inscritos) || 0);
+  document.getElementById('cupo-inscritos-info').textContent = 'Inscritos: ' + (Number(g.inscritos) || 0) + ' (mínimo permitido)';
+  document.getElementById('cupo-motivo').value = '';
+  var msg = document.getElementById('cupo-msg'); msg.textContent = ''; msg.className = 'cupo-msg';
+  ed.style.display = 'block';
+  inp.focus(); inp.select();
+}
+function cerrarEditorCupo() {
+  var ed = document.getElementById('modal-grupo-cupo-editor');
+  if (ed) ed.style.display = 'none';
+}
+function limpiarMsgCupo() { var m = document.getElementById('cupo-msg'); m.textContent = ''; m.className = 'cupo-msg'; }
+function ajustarCupo(delta) {
+  limpiarMsgCupo();
+  var inp = document.getElementById('cupo-nuevo');
+  var v = (parseInt(inp.value, 10) || 0) + delta;
+  var min = parseInt(inp.min, 10) || 1;
+  inp.value = Math.min(50, Math.max(min, v));
+}
+function guardarCupoGrupo() {
+  var g = _grupoModalCupo(); if (!g) return;
+  var msg = document.getElementById('cupo-msg');
+  var btn = document.getElementById('cupo-guardar');
+  var nuevo = Number(document.getElementById('cupo-nuevo').value);
+  var inscritos = Number(g.inscritos) || 0;
+  msg.className = 'cupo-msg error';
+  if (!isFinite(nuevo) || Math.floor(nuevo) !== nuevo || nuevo < 1 || nuevo > 50) { msg.textContent = 'Escribe un número entero de 1 a 50.'; return; }
+  if (nuevo < inscritos) { msg.textContent = 'No puede ser menor a los ' + inscritos + ' inscritos.'; return; }
+  if (nuevo === Number(g.cupoMax)) { msg.textContent = 'Es el mismo cupo actual.'; return; }
+  btn.disabled = true; btn.textContent = 'Guardando…'; msg.className = 'cupo-msg'; msg.textContent = '';
+  api({ action:'actualizarCupoGrupo', idGrupo:g.id, cupoMax:nuevo, idCE:estado.idCE,
+        motivo:document.getElementById('cupo-motivo').value.trim() })
+    .then(function(res) {
+      btn.disabled = false; btn.textContent = 'Guardar';
+      if (!res.ok) { msg.className = 'cupo-msg error'; msg.textContent = res.error || 'No se pudo guardar.'; return; }
+      g.cupoMax = res.cupoMax;
+      if (typeof res.inscritos === 'number') g.inscritos = res.inscritos;
+      pintarCupoGrupo(g);
+      msg.className = 'cupo-msg ok'; msg.textContent = '✓ Cupo actualizado a ' + res.cupoMax;
+      setTimeout(cerrarEditorCupo, 1100);
+      renderGrupos(ultimoFiltroGrupos);
+      if (typeof poblarSelectGruposDestino === 'function') poblarSelectGruposDestino();
+    })
+    .catch(function() { btn.disabled = false; btn.textContent = 'Guardar'; msg.className = 'cupo-msg error'; msg.textContent = 'Error de conexión.'; });
+}
+
 // ── MODAL ALUMNOS DEL GRUPO ──────────────────────────────────────────
 function abrirModalAlumnosGrupo(idGrupo) {
   var grupo = estado.grupos.find(function(g){ return g.id === idGrupo; });
@@ -2422,6 +2504,8 @@ function abrirModalAlumnosGrupo(idGrupo) {
   document.getElementById('modal-grupo-chip-id').textContent = grupo.id;
   document.getElementById('modal-grupo-titulo').textContent  = grupo.nombre + ' · ' + grupo.nivel;
   document.getElementById('modal-grupo-sub').textContent     = grupo.horario + ' · Inicio: ' + formatFecha(grupo.fechaInicio);
+  pintarCupoGrupo(grupo);
+  cerrarEditorCupo();
 
   // Stats rápidos
   var nVigente  = alumnos.filter(function(a){ return calcularSituacion(a).clave === 'vigente'; }).length;
@@ -2935,10 +3019,28 @@ function cerrarModalFusion() {
     <div style="padding:1.25rem 1.5rem;border-bottom:1.5px solid var(--borde);display:flex;align-items:center;justify-content:space-between;background:var(--azul);">
       <div>
         <div style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem" id="modal-grupo-chip-id">—</div>
-        <div style="font-size:1rem;font-weight:700;color:#fff" id="modal-grupo-titulo">—</div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <div style="font-size:1rem;font-weight:700;color:#fff" id="modal-grupo-titulo">—</div>
+          <button type="button" id="modal-grupo-cupo-btn" class="cupo-chip" onclick="abrirEditorCupo()" title="Clic para cambiar el cupo máximo">—</button>
+        </div>
         <div style="font-size:.78rem;color:rgba(255,255,255,.6);margin-top:.15rem" id="modal-grupo-sub">—</div>
       </div>
       <button class="btn-cerrar" onclick="cerrarModal('modal-alumnos-grupo')" style="flex-shrink:0">✕</button>
+    </div>
+    <div id="modal-grupo-cupo-editor" class="cupo-editor" style="display:none">
+      <div class="cupo-editor-fila">
+        <label for="cupo-nuevo">Cupo máximo</label>
+        <button type="button" class="cupo-pm" onclick="ajustarCupo(-1)" aria-label="Menos">−</button>
+        <input type="number" id="cupo-nuevo" min="1" max="50" step="1" oninput="limpiarMsgCupo()" onkeydown="if(event.key==='Enter')guardarCupoGrupo()">
+        <button type="button" class="cupo-pm" onclick="ajustarCupo(1)" aria-label="Más">+</button>
+        <span id="cupo-inscritos-info" class="cupo-info"></span>
+      </div>
+      <input type="text" id="cupo-motivo" class="cupo-motivo" maxlength="200" placeholder="Motivo (ej. Dirección autorizó 1 plaza más)">
+      <div class="cupo-editor-fila" style="justify-content:flex-end">
+        <span id="cupo-msg" class="cupo-msg"></span>
+        <button type="button" class="cupo-btn-sec" onclick="cerrarEditorCupo()">Cancelar</button>
+        <button type="button" class="cupo-btn" id="cupo-guardar" onclick="guardarCupoGrupo()">Guardar</button>
+      </div>
     </div>
     <div style="display:flex;gap:0;border-bottom:1.5px solid var(--borde);background:var(--gris-cl)" id="modal-grupo-stats"></div>
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
