@@ -1141,6 +1141,9 @@ function login(){
   err.style.display='none';
   var btn=document.querySelector('.btn-primary');
   btn.textContent='Verificando...';btn.disabled=true;
+  // Mientras se verifica la clave, ya se van pidiendo los datos del panel
+  // (no dependen del usuario). Asi el panel aparece casi al mismo tiempo.
+  precargarDatosCA();
   fetch(APPS_SCRIPT+'?action=loginCA&id='+encodeURIComponent(id)+'&clave='+encodeURIComponent(clave),{redirect:'follow'})
     .then(r=>r.json())
     .then(data=>{
@@ -1161,18 +1164,44 @@ function mostrarPanel(){
   cargarFechasRegistradas();
 }
 
+// ── PRECARGA (velocidad): las consultas del arranque salen junto con el login.
+// Cada precarga se usa UNA sola vez y solo si tiene menos de 2 minutos;
+// las recargas posteriores (despues de guardar algo) siempre piden de nuevo.
+var _precargaCA = null;
+function precargarDatosCA(){
+  var hoy=new Date();
+  var pedir=function(qs){ return fetch(APPS_SCRIPT+'?'+qs,{redirect:'follow'}); };
+  _precargaCA = {
+    ts: Date.now(),
+    getDatosCA: pedir('action=getDatosCA'),
+    getHorariosBloqueados: pedir('action=getHorariosBloqueados'),
+    getDisponibilidadMaestros: pedir('action=getDisponibilidadMaestros'),
+    getFechasAsistenciaCA: pedir('action=getFechasAsistenciaCA&year='+hoy.getFullYear()+'&month='+(hoy.getMonth()+1))
+  };
+  // Evita avisos de "promesa sin manejar" si el login falla
+  Object.keys(_precargaCA).forEach(function(k){ if(k!=='ts') _precargaCA[k].catch(function(){}); });
+}
+function fetchCA(accion, url){
+  if (_precargaCA && _precargaCA[accion] && (Date.now()-_precargaCA.ts) < 120000) {
+    var p = _precargaCA[accion];
+    _precargaCA[accion] = null;
+    return p;
+  }
+  return fetch(url,{redirect:'follow'});
+}
+
 function cargarDatos(callback){
   // Las tres consultas al backend arrancan AL MISMO TIEMPO (antes las dos
   // últimas esperaban a que terminara getDatosCA).
-  var pBloqueos = fetch(APPS_SCRIPT+'?action=getHorariosBloqueados',{redirect:'follow'})
+  var pBloqueos = fetchCA('getHorariosBloqueados', APPS_SCRIPT+'?action=getHorariosBloqueados')
     .then(function(r){ return r.json(); })
     .then(function(bd){ bloqueosData = (bd.status==='ok') ? (bd.bloqueos||[]) : []; })
     .catch(function(){ bloqueosData=[]; });
-  var pDisponibilidad = fetch(APPS_SCRIPT+'?action=getDisponibilidadMaestros',{redirect:'follow'})
+  var pDisponibilidad = fetchCA('getDisponibilidadMaestros', APPS_SCRIPT+'?action=getDisponibilidadMaestros')
     .then(function(r){ return r.json(); })
     .then(function(dd){ disponibilidadData = (dd.status==='ok') ? (dd.disponibilidad||[]) : []; })
     .catch(function(){ disponibilidadData=[]; });
-  fetch(APPS_SCRIPT+'?action=getDatosCA',{redirect:'follow'})
+  fetchCA('getDatosCA', APPS_SCRIPT+'?action=getDatosCA')
     .then(r=>r.json())
     .then(data=>{
       if(data.status!=='ok') return;
@@ -1228,7 +1257,7 @@ function maestroDisponibleSabado(idMaestro, horario) {
 function cargarFechasRegistradas(){
   var hoy=new Date();
   var year=hoy.getFullYear(), month=hoy.getMonth()+1;
-  fetch(APPS_SCRIPT+'?action=getFechasAsistenciaCA&year='+year+'&month='+month, {redirect:'follow'})
+  fetchCA('getFechasAsistenciaCA', APPS_SCRIPT+'?action=getFechasAsistenciaCA&year='+year+'&month='+month)
     .then(function(r){return r.json();})
     .then(function(data){
       var fechas=data.fechas||[];
