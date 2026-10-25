@@ -9561,16 +9561,35 @@ var MISIONES_KIDS_A12_LISTA = [
   var _encuestaCalificacionActual = 0;
 
   var _postitsYaAnimados = {};
+  // Los post-its que "vuelan" (aparecen en grande al centro y luego bajan a
+  // su lugar en el muro) se forman en FILA: si a un alumno le tocan dos
+  // (ej. la encuesta naranja y el de referidos verde), sale uno y después
+  // el otro, nunca encimados.
+  var _colaPostitsVolando = [];
+  var _postitVolandoOcupado = false;
+
   function mostrarPostitConAnimacion(postitReal) {
     if (_postitsYaAnimados[postitReal.id]) {
       postitReal.style.visibility = 'visible';
       return;
     }
     _postitsYaAnimados[postitReal.id] = true;
+    _colaPostitsVolando.push(postitReal);
+    _siguientePostitVolando();
+  }
+
+  function _siguientePostitVolando() {
+    if (_postitVolandoOcupado || !_colaPostitsVolando.length) return;
+    var postitReal = _colaPostitsVolando.shift();
 
     var overlay = document.getElementById('postitVolandoOverlay');
     var card = document.getElementById('postitVolandoCard');
-    if (!overlay || !card) { postitReal.style.visibility = 'visible'; return; }
+    if (!overlay || !card) { postitReal.style.visibility = 'visible'; _siguientePostitVolando(); return; }
+    _postitVolandoOcupado = true;
+
+    // La tarjeta que vuela copia el color y el texto del post-it real.
+    card.className = String(postitReal.className || '').replace(/\bref-nuevo\b/g, '').trim();
+    card.innerHTML = postitReal.innerHTML;
 
     var vw = window.innerWidth, vh = window.innerHeight;
     var anchoGrande = 340, altoGrande = 170;
@@ -9599,6 +9618,8 @@ var MISIONES_KIDS_A12_LISTA = [
         postitReal.style.visibility = 'visible';
         overlay.style.display = 'none';
         card.style.fontSize = '';
+        _postitVolandoOcupado = false;
+        setTimeout(_siguientePostitVolando, 400);
       }, 720);
     }, 5000);
   }
@@ -9648,11 +9669,19 @@ var MISIONES_KIDS_A12_LISTA = [
     // Post-it: visible mientras pueda recomendar (menos de 3 activas y ya
     // cumplió su primera semana).
     if (d.puedeRecomendar) {
-      postit.style.display = '';
       var vistoKey = 'oe_ref_visto_' + d.idAlumno;
       var yaVisto = false;
       try { yaVisto = !!localStorage.getItem(vistoKey); } catch (e) {}
       postit.classList.toggle('ref-nuevo', !yaVisto);
+      postit.style.display = '';
+      if (yaVisto) {
+        postit.style.visibility = 'visible';
+      } else {
+        // Mientras no lo haya abierto, aparece en grande al entrar (en fila
+        // con los demás post-its que vuelan, como el de la encuesta).
+        postit.style.visibility = 'hidden';
+        mostrarPostitConAnimacion(postit);
+      }
     } else {
       postit.style.display = 'none';
     }
@@ -9764,7 +9793,7 @@ var MISIONES_KIDS_A12_LISTA = [
 
   function cerrarReferidos() { document.getElementById('modalReferidos').classList.remove('visible'); }
 
-    // Logo de Organic English para la calcomanía. Se usa logoblanco.png (mismo
+  // Logo de Organic English para la calcomanía. Se usa logoblanco.png (mismo
   // sitio, para que el navegador permita exportar la imagen) y sus letras
   // blancas se pintan azul marino para que se lean sobre el fondo crema.
   var _refLogoPromesa = null;
