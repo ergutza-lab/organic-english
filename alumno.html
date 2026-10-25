@@ -9764,8 +9764,39 @@ var MISIONES_KIDS_A12_LISTA = [
 
   function cerrarReferidos() { document.getElementById('modalReferidos').classList.remove('visible'); }
 
-  // Dibuja la calcomanía de invitación (PNG 1080x1080) con el nombre de pila
-  // y el código del alumno.
+    // Logo de Organic English para la calcomanía. Se usa logoblanco.png (mismo
+  // sitio, para que el navegador permita exportar la imagen) y sus letras
+  // blancas se pintan azul marino para que se lean sobre el fondo crema.
+  var _refLogoPromesa = null;
+  function refCargarLogo() {
+    if (_refLogoPromesa) return _refLogoPromesa;
+    _refLogoPromesa = new Promise(function (res) {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var c = document.createElement('canvas');
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          var x = c.getContext('2d');
+          x.drawImage(img, 0, 0);
+          var px = x.getImageData(0, 0, c.width, c.height), a = px.data;
+          for (var i = 0; i < a.length; i += 4) {
+            var r = a[i], g = a[i + 1], b = a[i + 2];
+            if (a[i + 3] > 0 && Math.min(r, g, b) > 150 && Math.max(r, g, b) - Math.min(r, g, b) < 40) {
+              a[i] = 28; a[i + 1] = 43; a[i + 2] = 94;   // #1c2b5e
+            }
+          }
+          x.putImageData(px, 0, 0);
+          res(c);
+        } catch (e) { res(null); }
+      };
+      img.onerror = function () { res(null); };
+      img.src = 'images/logoblanco.png';
+    });
+    return _refLogoPromesa;
+  }
+
+  // Dibuja la calcomanía de invitación (PNG 1080x1080) con el logo, el nombre
+  // de pila y el código del alumno.
   function generarCalcomaniaInvitacion() {
     var d = refData;
     var cv = document.getElementById('refCanvas');
@@ -9773,8 +9804,10 @@ var MISIONES_KIDS_A12_LISTA = [
     var cargaFuentes = (document.fonts && document.fonts.load)
       ? Promise.all([document.fonts.load('120px "Luckiest Guy"'), document.fonts.load('700 60px "Caveat"')]).catch(function () {})
       : Promise.resolve();
+    var logo = null;
 
-    return cargaFuentes.then(function () {
+    return Promise.all([cargaFuentes, refCargarLogo()]).then(function (r) {
+      logo = r[1];
       var W = 1080, C = 540;
       ctx.clearRect(0, 0, W, W);
       ctx.fillStyle = '#1c2b5e';
@@ -9795,32 +9828,40 @@ var MISIONES_KIDS_A12_LISTA = [
       ctx.translate(C, C); ctx.rotate(-0.07); ctx.translate(-C, -C);
       ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
 
-      ctx.fillStyle = '#ea580c';
-      ctx.font = '800 50px "Segoe UI", Arial, sans-serif';
-      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
-      ctx.fillText('ORGANIC ENGLISH', C, 300);
-      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+      // Logo (o el texto, si no se pudo cargar)
+      var dy = 0;
+      if (logo) {
+        var lw = 420, lh = Math.round(lw * logo.height / logo.width);
+        ctx.drawImage(logo, C - lw / 2, 160, lw, lh);
+        dy = 40;
+      } else {
+        ctx.fillStyle = '#ea580c';
+        ctx.font = '800 50px "Segoe UI", Arial, sans-serif';
+        if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
+        ctx.fillText('ORGANIC ENGLISH', C, 300);
+        if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+      }
 
       ctx.fillStyle = '#1c2b5e';
       ctx.font = '110px "Luckiest Guy", "Segoe UI", sans-serif';
-      ctx.fillText('¡Te invita', C, 430);
+      ctx.fillText('¡Te invita', C, 430 + dy);
       var nombre = (d.nombrePila || 'tu amigo') + '!';
       var tam = 128;
       ctx.font = tam + 'px "Luckiest Guy", "Segoe UI", sans-serif';
       while (ctx.measureText(nombre).width > 700 && tam > 60) { tam -= 6; ctx.font = tam + 'px "Luckiest Guy", "Segoe UI", sans-serif'; }
       ctx.fillStyle = '#f97316';
-      ctx.fillText(nombre, C, 560);
+      ctx.fillText(nombre, C, 555 + dy);
 
       ctx.fillStyle = '#334155';
-      ctx.font = '600 40px "Segoe UI", Arial, sans-serif';
-      ctx.fillText('Inscríbete con nuestro asesor', C, 650);
-      ctx.fillText('Organic English y muéstrale', C, 700);
-      ctx.fillText('esta calcomanía', C, 750);
+      ctx.font = '600 38px "Segoe UI", Arial, sans-serif';
+      ctx.fillText('Inscríbete con nuestro asesor', C, 640 + dy);
+      ctx.fillText('Organic English y muéstrale', C, 686 + dy);
+      ctx.fillText('esta calcomanía', C, 732 + dy);
 
       // Píldora con el código
       var txt = 'CÓDIGO ' + d.idAlumno;
-      ctx.font = '800 58px "Segoe UI", Arial, sans-serif';
-      var tw = ctx.measureText(txt).width + 90, th = 104, x = C - tw / 2, y = 790;
+      ctx.font = '800 56px "Segoe UI", Arial, sans-serif';
+      var tw = ctx.measureText(txt).width + 90, th = 100, x = C - tw / 2, y = 762 + dy;
       ctx.fillStyle = '#1c2b5e';
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(x, y, tw, th, th / 2); else ctx.rect(x, y, tw, th);
