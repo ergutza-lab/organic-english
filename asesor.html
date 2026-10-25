@@ -441,6 +441,13 @@
       <div id="ni-tutor-whatsapp-preview" style="display:none;font-size:11px;color:#4ade80;font-weight:600;margin:4px 0 10px 2px;"></div>
     </div>
 
+    <div id="ni-bloque-referido" style="display:none;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:8px;">🎁 Programa de referidos (opcional)</div>
+      <span class="monto-label">Código de quien lo recomendó</span>
+      <input type="text" id="ni-codigo-referido" placeholder="Ej. OE-339" autocomplete="off" oninput="niValidarCodigoReferido()" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;outline:none;box-sizing:border-box;text-transform:uppercase;" />
+      <div id="ni-referido-info" style="display:none;font-size:12px;font-weight:600;margin-top:8px;line-height:1.4;"></div>
+    </div>
+
     <span class="monto-label">Tipo de inscripción</span>
     <select id="ni-tipo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niToggleBecado()">
       <option value="Promo">Promoción ($100/semana)</option>
@@ -1672,6 +1679,7 @@ function abrirModalNuevaInscripcion() {
     document.getElementById(id).value = '';
   });
   document.getElementById('ni-tipo').value = 'Promo';
+  niReiniciarReferido();
   document.getElementById('ni-bloque-menor').style.display = 'none';
   document.getElementById('ni-bloque-pago').style.display = '';
   document.getElementById('ni-status').textContent = '';
@@ -2056,6 +2064,66 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
     '¡Bienvenido/a! 🙌';
 }
 
+// ── PROGRAMA DE REFERIDOS ──
+// Solo el asesor principal Organic English (ASE-PR) captura el código de
+// quien recomendó al alumno. El código se revisa mientras se escribe.
+var NI_ASESOR_REFERIDOS = 'ASE-PR';
+var niReferidoEstado = { codigo: '', ok: false, motivo: '', nombre: '', revisando: false };
+var niReferidoTimer = null;
+
+function niEsAsesorReferidos() {
+  return !!(asesorData && String(asesorData.id || '').trim().toUpperCase() === NI_ASESOR_REFERIDOS);
+}
+
+function niReiniciarReferido() {
+  var bloque = document.getElementById('ni-bloque-referido');
+  if (!bloque) return;
+  bloque.style.display = niEsAsesorReferidos() ? '' : 'none';
+  document.getElementById('ni-codigo-referido').value = '';
+  var info = document.getElementById('ni-referido-info');
+  info.style.display = 'none';
+  info.textContent = '';
+  niReferidoEstado = { codigo: '', ok: false, motivo: '', nombre: '', revisando: false };
+}
+
+function niValidarCodigoReferido() {
+  var input = document.getElementById('ni-codigo-referido');
+  var info  = document.getElementById('ni-referido-info');
+  var codigo = input.value.trim().toUpperCase();
+  clearTimeout(niReferidoTimer);
+  if (!codigo) {
+    info.style.display = 'none';
+    niReferidoEstado = { codigo: '', ok: false, motivo: '', nombre: '', revisando: false };
+    return;
+  }
+  niReferidoEstado = { codigo: codigo, ok: false, motivo: '', nombre: '', revisando: true };
+  info.style.display = 'block';
+  info.style.color = '#94a3b8';
+  info.textContent = 'Revisando código...';
+  niReferidoTimer = setTimeout(function () {
+    fetch(APPS_SCRIPT + '?action=validarCodigoReferido&codigo=' + encodeURIComponent(codigo) + '&idAsesor=' + encodeURIComponent(asesorData.id), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (input.value.trim().toUpperCase() !== codigo) return;   // ya cambió el texto
+        if (!d.success) throw new Error(d.error || 'error');
+        niReferidoEstado = { codigo: codigo, ok: !!d.ok, motivo: d.motivo || '', nombre: d.nombre || '', revisando: false };
+        if (d.ok) {
+          info.style.color = '#4ade80';
+          info.textContent = '✅ Lo recomendó ' + d.nombre + ' (' + d.codigo + (d.grupo ? ', grupo ' + d.grupo : '') + ').';
+        } else {
+          info.style.color = '#fbbf24';
+          info.textContent = '⚠️ ' + d.motivo + ' Si continúas, el alumno se inscribe normal, sin recomendación.';
+        }
+      })
+      .catch(function () {
+        if (input.value.trim().toUpperCase() !== codigo) return;
+        niReferidoEstado = { codigo: codigo, ok: false, motivo: 'No se pudo revisar el código.', nombre: '', revisando: false };
+        info.style.color = '#fbbf24';
+        info.textContent = '⚠️ No se pudo revisar el código (conexión). Al registrar se vuelve a revisar.';
+      });
+  }, 600);
+}
+
 function confirmarNuevaInscripcion() {
   var status = document.getElementById('ni-status');
   var btn = document.getElementById('btnConfirmarNI');
@@ -2095,6 +2163,12 @@ function confirmarNuevaInscripcion() {
   var calNI = calendarios['cal-ni'];
   if (!esBecado && !esColocacionSinGrupo && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
 
+  var codigoReferido = niEsAsesorReferidos() ? document.getElementById('ni-codigo-referido').value.trim().toUpperCase() : '';
+  if (codigoReferido && niReferidoEstado.codigo === codigoReferido && !niReferidoEstado.revisando && !niReferidoEstado.ok) {
+    if (!confirm('El código ' + codigoReferido + ' no se puede usar:\n\n' + niReferidoEstado.motivo + '\n\n¿Inscribir al alumno sin recomendación?')) return;
+    codigoReferido = '';
+  }
+
   var idGrupoEnviar = esColocacionSinGrupo ? '' : idGrupo;
   var grupoSel = esColocacionSinGrupo ? null : gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
   var hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -2117,7 +2191,8 @@ function confirmarNuevaInscripcion() {
       monto: monto,
       coberturaInicio: calNI && calNI.inicio ? calNI.inicio.toISOString() : '',
       coberturaFin:    calNI && calNI.fin    ? calNI.fin.toISOString()    : '',
-      base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre
+      base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre,
+      codigoReferido: codigoReferido
     })
   }).then(function (r) { return r.json(); }).then(function (data) {
     if (data.success) {
@@ -2126,6 +2201,11 @@ function confirmarNuevaInscripcion() {
       status.style.background = 'rgba(34,197,94,0.12)';
       status.style.color = '#4ade80';
       status.textContent = '✅ ' + nombre + ' registrado con ID ' + data.idAlumno + '.';
+      if (data.referido) {
+        status.textContent += data.referido.ok
+          ? ' 🎁 Recomendación registrada: lo recomendó ' + data.referido.nombreRecomienda + ' (' + data.referido.recomienda + ').'
+          : ' ⚠️ ' + data.referido.motivo;
+      }
 
       var destinoNombre = data.esMenor ? data.tutorNombre : nombre;
       var destinoWA = data.esMenor ? cleanWA(tutorWhatsappWA) : cleanWA(whatsappWA);
