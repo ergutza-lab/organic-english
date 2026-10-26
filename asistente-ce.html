@@ -397,6 +397,7 @@
   <div class="tabs">
     <div class="tab active" onclick="cambiarTab('grupos',this)">Mis Grupos</div>
     <div class="tab" onclick="cambiarTab('pagos',this)">Pagos por validar <span class="tab-badge cero" id="badge-pagos">0</span></div>
+    <div class="tab" onclick="cambiarTab('referidos',this)">🎁 Referidos <span class="tab-badge cero" id="badge-referidos">0</span></div>
     <div class="tab" onclick="cambiarTab('nuevos',this)">Nuevos <span class="tab-badge cero" id="badge-nuevos">0</span></div>
     <div class="tab" onclick="cambiarTab('alertas',this)">Sin Pago <span class="tab-badge cero" id="badge-alertas">0</span></div>
     <div class="tab" onclick="cambiarTab('ausencias',this)">🚨 Inasistencias <span class="tab-badge cero" id="badge-ausencias">0</span></div>
@@ -418,6 +419,11 @@
     <div id="sec-pagos" class="section">
       <div class="sec-header"><h2 class="sec-title">Pagos por validar</h2></div>
       <div id="lista-pagos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
+    </div>
+
+    <div id="sec-referidos" class="section">
+      <div class="sec-header"><h2 class="sec-title">Programa de referidos</h2></div>
+      <div id="lista-referidos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
     </div>
 
     <div id="sec-nuevos" class="section">
@@ -937,6 +943,7 @@ async function cargarDatos(fresco){
     _precargaAsis=null;
     datosPanel=await resp.json();
     _renderTodoAsistente(true,fresco);
+    cargarReferidosAsistente();
     try{ if(datosPanel && datosPanel.status==='ok') localStorage.setItem(_claveSnapshotAsis(),JSON.stringify({ts:Date.now(),datos:datosPanel})); }catch(e){}
   }catch(e){_precargaAsis=null;mostrarToast('Error al cargar datos.','error');}
   finally{ _avisoActualizandoAsis(false); }
@@ -1390,6 +1397,199 @@ function marcarPresentado(idAlumno, btn){
       mostrarToast('No se pudo guardar. Revisa tu conexión e intenta de nuevo.','error');
     });
 }
+// ══════════════════════════════════════════════════════════════════════
+//  PROGRAMA DE REFERIDOS -- canjes de calcomanias doradas (oct-2026)
+//  Datos: action=getReferidosAsistente (Referidos.gs).
+// ══════════════════════════════════════════════════════════════════════
+var refAsis = { porValidar: [], doradas: [], doradasPorAlumno: {} };
+var refCanjeActual = null;
+
+function cargarReferidosAsistente(){
+  if(!asistente) return;
+  fetch(`${APPS_SCRIPT}?action=getReferidosAsistente&idAsistente=${encodeURIComponent(asistente.id)}`)
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d || !d.success) return;
+      refAsis = { porValidar: d.porValidar||[], doradas: d.doradas||[], doradasPorAlumno: d.doradasPorAlumno||{} };
+      renderReferidosAsis();
+      try{ renderAlertas(); renderBajas(); }catch(e){}
+    })
+    .catch(()=>{});
+}
+
+function badgeDoradas(idAlumno){
+  const n = refAsis && refAsis.doradasPorAlumno ? (refAsis.doradasPorAlumno[idAlumno]||0) : 0;
+  if(!n) return '';
+  return `<span onclick="event.stopPropagation();irAReferidos()" title="Tiene calcomanías doradas del programa de referidos: puede usarlas para cubrir una semana" style="cursor:pointer;font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;margin-left:4px;white-space:nowrap;">⭐ ${n} dorada${n>1?'s':''}</span>`;
+}
+
+function irAReferidos(){
+  const tab=[...document.querySelectorAll('.tab')].find(t=>t.textContent.indexOf('Referidos')!==-1);
+  if(tab) cambiarTab('referidos',tab);
+}
+
+function _premioRef(it){
+  if(it.esBecado) return '$100 por transferencia (becado)';
+  if(it.esPersonalizado) return '1 clase sin costo (personalizado)';
+  return '1 semana sin costo';
+}
+
+function _fechaCortaRef(iso){
+  if(!iso) return '—';
+  const p=String(iso).split('-'); const m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return parseInt(p[2],10)+' '+m[parseInt(p[1],10)-1]+' '+p[0];
+}
+
+function renderReferidosAsis(){
+  const b=document.getElementById('badge-referidos');
+  const nPend=refAsis.porValidar.length;
+  if(b){ b.textContent=nPend; b.className='tab-badge'+(nPend?'':' cero'); }
+  const cont=document.getElementById('lista-referidos');
+  if(!cont) return;
+
+  const tarjeta=(it, solicitado)=>`
+    <div class="alerta-card" style="border-left-color:${solicitado?'#f59e0b':'#fbbf24'};flex-wrap:wrap;">
+      <div class="alerta-icon">${solicitado?'🎁':'⭐'}</div>
+      <div class="alerta-info" style="flex:1;min-width:0;">
+        <div class="alerta-nombre">${it.nombre} ${it.estatusAlumno==='Baja'?'<span style="font-size:10px;font-weight:800;color:#ef4444;">· EN BAJA</span>':''}</div>
+        <div class="alerta-sub"><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);font-size:11px">${it.idAlumno}</span> · ${it.grupo} · Invitó a <strong>${it.invitado||it.idInvitado}</strong></div>
+        <div class="alerta-sub">Premio: <strong>${_premioRef(it)}</strong> · Dorada desde ${_fechaCortaRef(it.fechaDorada)} · Vence ${_fechaCortaRef(it.venceEl)}${it.finVigencia&&!it.esBecado&&!it.esPersonalizado?' · Su vigencia termina: <strong>'+_fechaCortaRef(it.finVigencia)+'</strong>':''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn-validar-ce" style="background:var(--verde);color:#fff;border-color:var(--verde);" onclick="abrirModalCanjeRef('${it.idReferido}')">${solicitado?'✓ Validar canje':'🎁 Canjear por el alumno'}</button>
+      </div>
+    </div>`;
+
+  let html='';
+  html+=`<h3 style="font-size:14px;font-weight:800;color:#fde68a;margin:4px 0 10px;text-shadow:0 1px 3px rgba(0,0,0,.6);">Por validar (${nPend})</h3>`;
+  html+= nPend ? refAsis.porValidar.map(it=>tarjeta(it,true)).join('')
+               : `<div class="empty-state" style="padding:18px;"><div class="empty-icon">✅</div><h3>Sin canjes pendientes</h3></div>`;
+  html+=`<h3 style="font-size:14px;font-weight:800;color:#fde68a;margin:22px 0 6px;text-shadow:0 1px 3px rgba(0,0,0,.6);">Calcomanías doradas sin canjear (${refAsis.doradas.length})</h3>`;
+  html+=`<p style="font-size:12px;color:#e2e8f0;margin:0 0 10px;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.6);">El alumno puede canjearlas cuando quiera. Si está por caer en baja o ya está en baja, puedes canjearla por él para cubrir su siguiente semana (si está en baja, se reactiva).</p>`;
+  html+= refAsis.doradas.length ? refAsis.doradas.map(it=>tarjeta(it,false)).join('')
+               : `<div class="empty-state" style="padding:18px;"><div class="empty-icon">⭐</div><h3>Ninguna por ahora</h3></div>`;
+  cont.innerHTML=html;
+}
+
+function _buscarRef(idReferido){
+  return refAsis.porValidar.concat(refAsis.doradas).find(x=>x.idReferido===idReferido)||null;
+}
+
+function abrirModalCanjeRef(idReferido){
+  const it=_buscarRef(idReferido);
+  if(!it) return;
+  refCanjeActual=it;
+  const solicitado = it.estado==='canje_solicitado';
+  document.getElementById('ref-canje-titulo').textContent = solicitado ? '🎁 Validar canje de referido' : '🎁 Canjear calcomanía por el alumno';
+  document.getElementById('ref-canje-info').innerHTML =
+    `<strong style="color:#f1f5f9;">${it.nombre}</strong> (${it.idAlumno}) · ${it.grupo}<br>`+
+    `Invitó a <strong style="color:#f1f5f9;">${it.invitado||it.idInvitado}</strong>, que ya cumplió 4 semanas pagadas.<br>`+
+    `Premio: <strong style="color:#fbbf24;">${_premioRef(it)}</strong>`+
+    (it.finVigencia&&!it.esBecado&&!it.esPersonalizado?`<br>Su vigencia actual termina: <strong style="color:#f1f5f9;">${_fechaCortaRef(it.finVigencia)}</strong>`:'')+
+    (it.estatusAlumno==='Baja'?`<br><span style="color:#f87171;font-weight:700;">Está en baja: al validar con una semana que llegue a hoy o después, se reactiva.</span>`:'');
+
+  const calBox=document.getElementById('ref-canje-cal-box');
+  const nota=document.getElementById('ref-canje-nota');
+  if(it.esBecado){
+    calBox.style.display='none';
+    nota.textContent='Becado: no se le da semana. Al validar, la calcomanía queda como "Cobrada" y a Coordinación IT le llega un WhatsApp para transferirle $100.';
+  } else if(it.esPersonalizado){
+    calBox.style.display='none';
+    nota.textContent='Personalizado: se registra "1 clase sin costo" en sus pagos. Descuéntala en su control de clases.';
+  } else {
+    calBox.style.display='';
+    nota.textContent='Elige la semana que cubre. Ya está marcada la que sigue después de su vigencia actual; cámbiala si hace falta.';
+    calInit('cal-ref', !!it.esSabatino);
+    _preseleccionarSemanaRef(it);
+  }
+  document.getElementById('btn-ref-rechazar').style.display = solicitado ? '' : 'none';
+  const st=document.getElementById('ref-canje-status'); st.style.display='none'; st.textContent='';
+  const bv=document.getElementById('btn-ref-validar'); bv.disabled=false; bv.textContent='✓ Validar';
+  document.getElementById('modal-ref-canje').style.display='flex';
+}
+
+// Marca en el calendario la semana siguiente a su vigencia actual (o la de
+// esta semana si ya vencio).
+function _preseleccionarSemanaRef(it){
+  const st=calendarios['cal-ref']; if(!st) return;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  let base = it.finVigencia ? new Date(it.finVigencia+'T12:00:00') : null;
+  if(base) base.setHours(0,0,0,0);
+  let ini, fin;
+  if(st.sabatino){
+    let s = base ? new Date(base) : new Date(hoy);
+    if(base){ s.setDate(s.getDate()+1); }
+    while(s.getDay()!==6) s.setDate(s.getDate()+1);
+    const hoySab=new Date(hoy); while(hoySab.getDay()!==6) hoySab.setDate(hoySab.getDate()+1);
+    if(s<hoySab) s=hoySab;
+    ini=s; fin=new Date(s);
+  } else {
+    // Lunes de la semana siguiente a la de su ultima vigencia
+    let l = base ? new Date(calLunesDe(base).getTime()+7*86400000) : calLunesDe(hoy);
+    l.setHours(0,0,0,0);
+    const estaSemana=calLunesDe(hoy);
+    if(l<estaSemana) l=estaSemana;
+    ini=l; fin=calJuevesDe(l);
+  }
+  st.inicio=ini; st.fin=fin; st.paso=2; st.mes=new Date(ini.getFullYear(), ini.getMonth(), 1);
+  calRender('cal-ref');
+}
+
+function cerrarModalCanjeRef(){ document.getElementById('modal-ref-canje').style.display='none'; refCanjeActual=null; }
+
+async function validarCanjeRef(){
+  const it=refCanjeActual; if(!it) return;
+  const st=document.getElementById('ref-canje-status');
+  let url=`${APPS_SCRIPT}?action=validarCanjeReferido&idReferido=${encodeURIComponent(it.idReferido)}&idAsistente=${encodeURIComponent(asistente.id)}`;
+  if(!it.esBecado && !it.esPersonalizado){
+    const cal=calendarios['cal-ref'];
+    if(!cal||!cal.inicio||!cal.fin){
+      st.style.display='block'; st.style.background='rgba(239,68,68,0.15)'; st.style.color='#f87171';
+      st.textContent='Elige en el calendario la semana que cubre.'; return;
+    }
+    url+=`&coberturaInicio=${encodeURIComponent(cal.inicio.toISOString())}&coberturaFin=${encodeURIComponent(cal.fin.toISOString())}`;
+  }
+  const bv=document.getElementById('btn-ref-validar'); bv.disabled=true; bv.textContent='Validando...';
+  try{
+    const res=await (await fetch(url)).json();
+    if(!res.success){
+      bv.disabled=false; bv.textContent='✓ Validar';
+      st.style.display='block'; st.style.background='rgba(239,68,68,0.15)'; st.style.color='#f87171';
+      st.textContent=res.error||'No se pudo validar.'; return;
+    }
+    mostrarToast(res.reactivado?'✓ Canje validado · alumno reactivado':'✓ Canje validado','success');
+    // Mensaje para el alumno
+    if(it.whatsapp){
+      let msg='Hola '+it.nombre+' 🎉 Tu calcomanía dorada del programa de referidos ya quedó validada. ';
+      if(res.tipo==='becado') msg+='En breve se te transfieren tus $100. ';
+      else if(res.tipo==='personalizado') msg+='Tienes 1 clase sin costo. ';
+      else msg+='Tu semana sin costo cubre del '+res.detalle.replace(' al ',' al ')+'. ';
+      msg+='¡Gracias por recomendar Organic English! 🌱';
+      st.style.display='block'; st.style.background='rgba(34,197,94,0.12)'; st.style.color='#4ade80';
+      st.innerHTML='✓ Validado. <a href="https://wa.me/'+cleanWA(it.whatsapp)+'?text='+encodeURIComponent(msg)+'" target="_blank" style="color:#fff;background:#16a34a;border-radius:999px;padding:6px 12px;text-decoration:none;font-weight:700;display:inline-block;margin-top:6px;">📱 Avisar al alumno</a>';
+      bv.style.display='none';
+    } else {
+      cerrarModalCanjeRef();
+    }
+    cargarReferidosAsistente();
+    cargarDatos(true);
+  }catch(e){
+    bv.disabled=false; bv.textContent='✓ Validar';
+    st.style.display='block'; st.style.background='rgba(239,68,68,0.15)'; st.style.color='#f87171'; st.textContent='Error de conexión.';
+  }
+}
+
+async function rechazarCanjeRef(){
+  const it=refCanjeActual; if(!it) return;
+  const motivo=prompt('¿Por qué regresas este canje? (el alumno conserva su calcomanía dorada)');
+  if(motivo===null) return;
+  try{
+    const res=await (await fetch(`${APPS_SCRIPT}?action=rechazarCanjeReferido&idReferido=${encodeURIComponent(it.idReferido)}&idAsistente=${encodeURIComponent(asistente.id)}&motivo=${encodeURIComponent(motivo)}`)).json();
+    if(res.success){ mostrarToast('Canje regresado: la calcomanía sigue dorada','success'); cerrarModalCanjeRef(); cargarReferidosAsistente(); }
+    else mostrarToast(res.error||'No se pudo regresar','error');
+  }catch(e){ mostrarToast('Error de conexión','error'); }
+}
+
 function renderAlertas(){
   const cont=document.getElementById('lista-alertas');
   const lista=datosPanel?.sin_pago||[];
@@ -1442,7 +1642,7 @@ Si ya realizaste tu pago, por favor comparte tu comprobante para actualizar tu r
         <div class="alerta-info" style="flex:1;min-width:0;">
           <div class="alerta-nombre" style="cursor:pointer;display:flex;align-items:center;gap:6px;"
                onclick="toggleInfoAlerta(this,'${a.id}','${a.ultimo_pago_fecha||''}','${a.ultimo_pago_monto||''}','${(a.comprobante_url||'').replace(/'/g,'%27')}','${(a.comentario||'').replace(/'/g,'%27')}','${a.fecha_vencimiento||''}','${encodeURIComponent(a.correo||a.email||'')}')">
-            ${a.nombre}${tipoChip}
+            ${a.nombre}${tipoChip}${badgeDoradas(a.id)}
             <span style="font-size:10px;color:#64748b;font-weight:600;">▼ ver más</span>
           </div>
           <div class="alerta-sub">
@@ -1634,7 +1834,7 @@ function renderBajas(){
       <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
         <div class="alerta-icon">🔒</div>
         <div class="alerta-info" style="flex:1;min-width:0;">
-          <div class="alerta-nombre" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" onclick="abrirReportePagosAlumno('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Ver historial completo de pagos">${a.nombre}</div>
+          <div class="alerta-nombre" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" onclick="abrirReportePagosAlumno('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Ver historial completo de pagos">${a.nombre}</div>${badgeDoradas(a.id)}
           <div class="alerta-meta">${a.id} · Grupo ${a.grupo}${a.fecha_baja ? ' · Baja: '+a.fecha_baja : ''}${diasTexto ? ' · '+diasTexto : ''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -3272,6 +3472,28 @@ function contactarAlumnoInasistencia(idAlumno, nombre, whatsapp, racha) {
       <button onclick="cerrarModalValidarCE()" id="btn-cancelar-validar-ce" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:12px 16px;cursor:pointer;">Cancelar</button>
     </div>
     <div id="validar-ce-status" style="display:none;margin-top:12px;text-align:center;font-size:13px;border-radius:8px;padding:10px;"></div>
+  </div>
+</div>
+
+<!-- ══ PROGRAMA DE REFERIDOS: validar canje ══ -->
+<div id="modal-ref-canje" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;width:92%;max-width:440px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,0.5);max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="ref-canje-titulo" style="color:#f1f5f9;margin:0;font-size:16px;">🎁 Validar canje de referido</h3>
+      <button onclick="cerrarModalCanjeRef()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:4px 12px;cursor:pointer;">✕</button>
+    </div>
+    <div id="ref-canje-info" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:#94a3b8;line-height:1.55;"></div>
+    <div id="ref-canje-cal-box" class="cal-cobertura cal-dark">
+      <span class="cal-cobertura-label">¿Qué semana cubre? <span style="color:#f87171;">*</span></span>
+      <div id="cal-ref"></div>
+    </div>
+    <p id="ref-canje-nota" style="font-size:12px;color:#94a3b8;margin:10px 0 16px;line-height:1.5;"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="validarCanjeRef()" id="btn-ref-validar" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">✓ Validar</button>
+      <button onclick="rechazarCanjeRef()" id="btn-ref-rechazar" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:10px;padding:12px 14px;cursor:pointer;font-weight:700;">Regresar</button>
+      <button onclick="cerrarModalCanjeRef()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:10px;padding:12px 14px;cursor:pointer;">Cancelar</button>
+    </div>
+    <div id="ref-canje-status" style="display:none;margin-top:12px;text-align:center;font-size:13px;border-radius:8px;padding:10px;"></div>
   </div>
 </div>
 
