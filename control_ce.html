@@ -1342,6 +1342,8 @@ function abrirFichaAlumno(idAlumno) {
 
   // Guardar referencia al alumno actual
   estado.fichaAlumnoEnModal = idAlumno;
+  document.getElementById('ficha-codigo-referido').value = '';
+  fichaToggleReferido();
 
   // Limpiar mensajes
   document.getElementById('ficha-msg').className = 'modal-msg';
@@ -1349,6 +1351,15 @@ function abrirFichaAlumno(idAlumno) {
   document.getElementById('btn-whatsapp-ficha').style.display = 'none';
 
   document.getElementById('modal-ficha').classList.add('abierto');
+}
+
+// PROGRAMA DE REFERIDOS: el campo aparece solo al reactivar (Baja/Cancelado -> Validado).
+function fichaToggleReferido() {
+  var a = estado.todosAlumnos.find(function(x){ return x.idAlumno === estado.fichaAlumnoEnModal; });
+  var antes = a ? String(a.estatus || '') : '';
+  var nuevo = document.getElementById('ficha-estatus').value;
+  var mostrar = (antes === 'Baja' || antes === 'Cancelado') && nuevo === 'Validado';
+  document.getElementById('ficha-bloque-referido').style.display = mostrar ? '' : 'none';
 }
 
 function guardarFichaAlumno() {
@@ -1405,6 +1416,16 @@ function guardarFichaAlumno() {
         if (res2.ok) {
           msgEl.textContent = 'Datos guardados. Estatus cambiado a "'+nuevoEst+'". '+(res2.correoEnviado ? 'Correo enviado.' : '');
           msgEl.className = 'modal-msg ok';
+          var codigoRef = (document.getElementById('ficha-codigo-referido').value || '').trim().toUpperCase();
+          if (codigoRef && nuevoEst === 'Validado' && (estatusAnterior === 'Baja' || estatusAnterior === 'Cancelado')) {
+            api({ action: 'registrarReferidoReactivacion', codigo: codigoRef, idAlumno: idAlumno, idCE: estado.idCE })
+              .then(function (r3) {
+                msgEl.textContent += r3.success
+                  ? ' 🎁 Recomendación registrada: lo recomendó ' + r3.nombreRecomienda + ' (' + r3.recomienda + ').'
+                  : ' ⚠️ La recomendación no se registró: ' + (r3.error || 'error');
+              })
+              .catch(function () { msgEl.textContent += ' ⚠️ La recomendación no se registró (conexión).'; });
+          }
           // Botón WhatsApp si hay número
           var phone = (whatsapp || '').replace(/\D/g,'');
           if (phone.length === 10) phone = '52' + phone;
@@ -3157,13 +3178,18 @@ function cerrarModalFusion() {
     </div>
     <div class="modal-campo">
       <label>Estatus</label>
-      <select id="ficha-estatus" style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.88rem;background:var(--fondo);color:var(--texto);">
+      <select id="ficha-estatus" onchange="fichaToggleReferido()" style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.88rem;background:var(--fondo);color:var(--texto);">
         <option value="Validado">Validado — Acceso activo</option>
         <option value="Pendiente">Pendiente — En revision</option>
         <option value="Baja">Baja — Acceso suspendido</option>
         <option value="Becado">Becado — Beca autorizada</option>
       </select>
       <div style="font-size:.72rem;color:var(--gris);margin-top:.3rem;">Si cambias el estatus se enviara correo automatico al alumno.</div>
+    </div>
+    <div class="modal-campo" id="ficha-bloque-referido" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:.75rem;">
+      <label style="color:#15803d;">🎁 ¿Regresa recomendado por un alumno? (opcional)</label>
+      <input type="text" id="ficha-codigo-referido" placeholder="Código de quien lo recomendó, ej. OE-339" style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--borde);border-radius:8px;font-size:.88rem;background:#fff;color:var(--texto);text-transform:uppercase;box-sizing:border-box;">
+      <div style="font-size:.72rem;color:#166534;margin-top:.3rem;">Si lo escribes, cuenta para el programa de referidos de ese alumno. Las semanas del exalumno se empiezan a contar desde hoy.</div>
     </div>
 
     <div class="modal-acciones" style="margin-top:1.25rem;flex-wrap:wrap;gap:.5rem;">
