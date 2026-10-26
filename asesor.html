@@ -2985,8 +2985,10 @@ function cmRegresar(idReferido) {
       <input class="pr-input" id="prNombre" placeholder="Ej. Laura Méndez" autocomplete="off">
       <label>WhatsApp (10 dígitos)</label>
       <input class="pr-input" id="prWA" placeholder="Ej. 272 123 4567" inputmode="tel" autocomplete="off">
+      <label>¿Para quién son las clases?</label>
+      <div class="pr-etapas-sel" id="prPublicoSel"></div>
       <div class="pr-fila2">
-        <div><label>Le interesa</label><select class="pr-input" id="prNivel"></select></div>
+        <div><label>Nivel</label><select class="pr-input" id="prNivel"></select></div>
         <div><label>¿Cómo llegó?</label>
           <select class="pr-input" id="prOrigen">
             <option value="">—</option><option>Facebook</option><option>Instagram</option><option>TikTok</option>
@@ -3022,7 +3024,9 @@ function cmRegresar(idReferido) {
       <button class="pr-btn pr-btn-verde" style="flex:1;" onclick="prAbrirMensaje(prDetalleId)">💬 Mandar mensaje</button>
       <button class="pr-btn pr-btn-morado" style="flex:1;" id="prDetBtnInscribir" onclick="prInscribir(prDetalleId)">⚡ Inscribir</button>
     </div>
-    <label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin:14px 0 2px;">Etapa</label>
+    <label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin:14px 0 2px;">¿Para quién?</label>
+    <div class="pr-etapas-sel" id="prDetPublico"></div>
+    <label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin:10px 0 2px;">Etapa</label>
     <div class="pr-etapas-sel" id="prDetEtapas"></div>
     <label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin:12px 0 4px;">📅 ¿Cuándo quedó de pagar o de contestar?</label>
     <div style="display:flex;gap:8px;">
@@ -3045,8 +3049,12 @@ function cmRegresar(idReferido) {
   <div class="pr-box" style="max-width:480px;">
     <button class="pr-cerrar" onclick="prCerrarMensaje()">×</button>
     <div class="pr-titulo">💬 Mensaje para <span id="prMsjNombre"></span></div>
-    <label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin:-6px 0 4px;">Nivel para los horarios</label>
-    <select class="pr-input" id="prMsjNivel" style="margin-bottom:12px;"></select>
+    <div class="pr-fila2" style="margin:-6px 0 12px;">
+      <div><label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:4px;">Grupos de</label>
+        <select class="pr-input" id="prMsjPublico" onchange="prPintarPlantillas()"></select></div>
+      <div><label style="display:block;font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:4px;">Nivel para los horarios</label>
+        <select class="pr-input" id="prMsjNivel" onchange="prPintarPlantillas()"></select></div>
+    </div>
     <div id="prMsjPlantillas"></div>
     <button class="pr-plantilla" onclick="prEnviarPlantilla('')"><span class="pp-emoji">✍️</span><span><div class="pp-titulo">Escribir yo mismo</div><div class="pp-prev">Solo abrir el chat</div></span></button>
   </div>
@@ -3064,6 +3072,9 @@ var prFiltroEtapa = 'abiertos';
 var prDetalleId = '';
 var prMensajeId = '';
 var PR_CLASE_ETAPA = { 'Nuevo': 'pr-e-nuevo', 'Interesado': 'pr-e-interesado', 'Esperando pago': 'pr-e-esperando', 'Inscrito': 'pr-e-inscrito', 'No le interesó': 'pr-e-no' };
+var PR_PUBLICOS = [['ADULTS', '👨 Adults'], ['TEENS', '🧑 Teens'], ['KIDS', '🧒 Kids'], ['KIDS JR', '👶 Kids Jr']];
+var prPublicoForm = '';
+function prEtiquetaPublico(v) { for (var i = 0; i < PR_PUBLICOS.length; i++) if (PR_PUBLICOS[i][0] === v) return PR_PUBLICOS[i][1]; return v || ''; }
 var PR_EMOJI_ETAPA = { 'Nuevo': '🆕', 'Interesado': '🤔', 'Esperando pago': '💵', 'Inscrito': '🎓', 'No le interesó': '🚫' };
 
 function prEsc(s) {
@@ -3167,9 +3178,8 @@ function prLlenarNiveles() {
   var niveles = prNivelesDisponibles();
   var sel = document.getElementById('prNivel');
   var actual = sel.value;
-  var base = ['Desde cero', 'Ya sabe algo', 'No sabe'];
-  var todos = niveles.concat(base.filter(function (b) { return niveles.indexOf(b) < 0; }));
-  sel.innerHTML = '<option value="">—</option>' + todos.map(function (n) { return '<option>' + prEsc(n) + '</option>'; }).join('');
+  sel.innerHTML = '<option value="">—</option><option>Desde cero</option><option>Examen de colocación</option>' +
+    niveles.map(function (n) { return '<option>' + prEsc(n) + '</option>'; }).join('') + '<option>No sabe</option>';
   sel.value = actual;
 }
 
@@ -3239,7 +3249,7 @@ function prPintarLista() {
   cont.innerHTML = l.map(function (p) {
     var cerrado = p.etapa === 'Inscrito' || p.etapa === 'No le interesó';
     var diasEsc = Math.max(0, escudo - prDias(p.ultimoSeguimiento));
-    var info = '📱 ' + prWAbonito(p.whatsapp) + (p.nivel ? ' · ' + prEsc(p.nivel) : '') + (p.origen ? ' · ' + prEsc(p.origen) : '') + '<br>';
+    var info = '📱 ' + prWAbonito(p.whatsapp) + (p.publico ? ' · ' + prEtiquetaPublico(p.publico) : '') + (p.nivel ? ' · ' + prEsc(p.nivel) : '') + (p.origen ? ' · ' + prEsc(p.origen) : '') + '<br>';
     if (p.etapa === 'Inscrito') info += '🎓 Inscrito' + (p.idAlumno ? ' como <b>' + prEsc(p.idAlumno) + '</b>' : '');
     else {
       info += 'Último contacto: <b>' + prHace(p.ultimoSeguimiento) + '</b>';
@@ -3266,9 +3276,16 @@ function prToggleForm(mostrar) {
   if (ver) {
     ['prNombre', 'prWA', 'prNota'].forEach(function (id) { document.getElementById(id).value = ''; });
     document.getElementById('prNivel').value = ''; document.getElementById('prOrigen').value = '';
+    prPublicoForm = ''; prPintarPublicoForm();
     document.getElementById('prFormMsg').style.display = 'none';
     setTimeout(function () { document.getElementById('prNombre').focus(); }, 50);
   }
+}
+
+function prPintarPublicoForm() {
+  document.getElementById('prPublicoSel').innerHTML = PR_PUBLICOS.map(function (x) {
+    return '<button type="button" class="pr-chip' + (prPublicoForm === x[0] ? ' sel' : '') + '" onclick="prPublicoForm=\'' + x[0] + '\';prPintarPublicoForm();">' + x[1] + '</button>';
+  }).join('');
 }
 
 function prMsg(id, clase, html) {
@@ -3282,11 +3299,13 @@ function prGuardarNuevo() {
   if (wa.length > 10) wa = wa.slice(-10);
   if (!nombre) { prMsg('prFormMsg', 'err', 'Escribe el nombre.'); return; }
   if (wa.length !== 10) { prMsg('prFormMsg', 'err', 'El WhatsApp debe tener 10 dígitos.'); return; }
+  if (!prPublicoForm) { prMsg('prFormMsg', 'err', 'Elige para quién son las clases (Adults, Teens, Kids o Kids Jr).'); return; }
   var btn = document.getElementById('prBtnGuardar');
   btn.disabled = true; btn.textContent = 'Guardando...';
   var url = APPS_SCRIPT + '?action=guardarProspecto&idAsesor=' + encodeURIComponent(asesorData.id) +
     '&nombre=' + encodeURIComponent(nombre) + '&whatsapp=' + encodeURIComponent(wa) +
     '&nivel=' + encodeURIComponent(document.getElementById('prNivel').value) +
+    '&publico=' + encodeURIComponent(prPublicoForm) +
     '&origen=' + encodeURIComponent(document.getElementById('prOrigen').value) +
     '&nota=' + encodeURIComponent(document.getElementById('prNota').value.trim());
   fetch(url, { redirect: 'follow' })
@@ -3326,6 +3345,9 @@ function prAbrirDetalle(id) {
   if (!p) return;
   prDetalleId = id;
   document.getElementById('prDetNombre').textContent = p.nombre;
+  document.getElementById('prDetPublico').innerHTML = PR_PUBLICOS.map(function (x) {
+    return '<button class="pr-chip' + (p.publico === x[0] ? ' sel' : '') + '" onclick="prCambiarPublico(\'' + x[0] + '\')">' + x[1] + '</button>';
+  }).join('');
   document.getElementById('prDetInfo').innerHTML = '📱 ' + prWAbonito(p.whatsapp) + (p.nivel ? ' · ' + prEsc(p.nivel) : '') +
     (p.origen ? ' · ' + prEsc(p.origen) : '') + ' · alta ' + prFechaCorta(p.fechaAlta);
   document.getElementById('prDetCompromiso').value = p.compromiso || '';
@@ -3386,6 +3408,14 @@ function prCambiarEtapa(etapa) {
     .catch(function (e) { prMsg('prDetMsg', 'err', '⚠️ ' + prEsc(e.message)); });
 }
 
+function prCambiarPublico(v) {
+  var p = prBuscarP(prDetalleId);
+  if (!p || p.publico === v) return;
+  prActualizar({ idProspecto: prDetalleId, publico: v }, 'Para: ' + prEtiquetaPublico(v))
+    .then(function () { prAbrirDetalle(prDetalleId); })
+    .catch(function (e) { prMsg('prDetMsg', 'err', '⚠️ ' + prEsc(e.message)); });
+}
+
 function prGuardarCompromiso(quitar) {
   var v = document.getElementById('prDetCompromiso').value;
   if (!quitar && !v) { prMsg('prDetMsg', 'err', 'Elige la fecha.'); return; }
@@ -3409,24 +3439,53 @@ function prAbrirMensaje(id) {
   if (!p) return;
   prMensajeId = id;
   document.getElementById('prMsjNombre').textContent = prPila(p.nombre) || p.nombre;
+  var selP = document.getElementById('prMsjPublico');
+  selP.innerHTML = '<option value="">Todos</option>' + PR_PUBLICOS.map(function (x) { return '<option value="' + x[0] + '">' + x[1] + '</option>'; }).join('');
+  selP.value = p.publico || '';
   var niveles = prNivelesDisponibles();
   var sel = document.getElementById('prMsjNivel');
   sel.innerHTML = '<option value="">Todos los niveles</option>' + niveles.map(function (n) { return '<option>' + prEsc(n) + '</option>'; }).join('');
   var nivelP = normalizarNivel(p.nivel);
   sel.value = niveles.indexOf(nivelP) >= 0 ? nivelP : '';
-  document.getElementById('prMsjPlantillas').innerHTML = (prData.plantillas || []).map(function (t) {
+  prPintarPlantillas();
+  document.getElementById('modalProMensaje').classList.add('active');
+}
+
+// Una plantilla por tipo: la del publico elegido (KIDS JR usa KIDS) o la de "Todos".
+function prPlantillasPara(publico) {
+  var orden = [], porTipo = {};
+  var buscar = publico ? [publico, publico === 'KIDS JR' ? 'KIDS' : publico, 'Todos'] : ['Todos'];
+  (prData.plantillas || []).forEach(function (t) {
+    var tipo = t.tipo || t.clave;
+    if (orden.indexOf(tipo) < 0) orden.push(tipo);
+    var rank = buscar.indexOf(t.publico || 'Todos');
+    if (rank < 0) { if (publico) return; rank = 9; }
+    if (!porTipo[tipo] || rank < porTipo[tipo].rank) porTipo[tipo] = { t: t, rank: rank };
+  });
+  return orden.filter(function (k) { return porTipo[k]; }).map(function (k) { return porTipo[k].t; });
+}
+
+function prPintarPlantillas() {
+  var p = prBuscarP(prMensajeId);
+  if (!p) return;
+  var publico = document.getElementById('prMsjPublico').value;
+  document.getElementById('prMsjPlantillas').innerHTML = prPlantillasPara(publico).map(function (t) {
     var prev = prArmarTexto(t, p).replace(/\s+/g, ' ');
     return '<button class="pr-plantilla" onclick="prEnviarPlantilla(\'' + t.clave + '\')"><span class="pp-emoji">' + prEsc(t.emoji) + '</span>' +
-      '<span style="min-width:0;"><div class="pp-titulo">' + prEsc(t.titulo) + '</div><div class="pp-prev">' + prEsc(prev.slice(0, 90)) + '</div></span></button>';
+      '<span style="min-width:0;"><div class="pp-titulo">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</div><div class="pp-prev">' + prEsc(prev.slice(0, 90)) + '</div></span></button>';
   }).join('');
-  document.getElementById('modalProMensaje').classList.add('active');
 }
 
 function prCerrarMensaje() { document.getElementById('modalProMensaje').classList.remove('active'); }
 
 function prTextoHorarios() {
   var nivel = document.getElementById('prMsjNivel') ? document.getElementById('prMsjNivel').value : '';
-  var grupos = (gruposCache || []).filter(function (g) { return !nivel || normalizarNivel(g.nivel) === nivel; });
+  var publico = document.getElementById('prMsjPublico') ? document.getElementById('prMsjPublico').value : '';
+  var grupos = (gruposCache || []).filter(function (g) {
+    if (nivel && normalizarNivel(g.nivel) !== nivel) return false;
+    if (publico && String(g.nombre || '').toUpperCase().replace(/-SAT$/, '').trim() !== publico) return false;
+    return true;
+  });
   if (!grupos.length) return '(Pregúntame por los próximos grupos y te aviso en cuanto abramos uno 😉)';
   grupos.sort(function (a, b) { return (a.fechaObj ? a.fechaObj.getTime() : 0) - (b.fechaObj ? b.fechaObj.getTime() : 0); });
   var porNivel = {};
@@ -3451,7 +3510,7 @@ function prArmarTexto(t, p) {
     .replace(/\{nombre\}/g, prPila(p.nombre) || '')
     .replace(/\{asesor\}/g, asesorPila || 'tu asesor')
     .replace(/\{compromiso\}/g, compromiso)
-    .replace(/\{horarios\}/g, t.clave === 'horarios' || /\{horarios\}/.test(t.texto) ? prTextoHorarios() : '');
+    .replace(/\{horarios\}/g, /\{horarios\}/.test(t.texto) ? prTextoHorarios() : '');
 }
 
 function prEnviarPlantilla(clave) {
@@ -3466,8 +3525,11 @@ function prEnviarPlantilla(clave) {
   // mandan horarios, precios o datos de pago pasa a Interesado.
   var params = { idProspecto: p.id };
   if (t) params.plantilla = t.titulo; else params.seguimiento = 1;
-  if (p.etapa === 'Nuevo' && (clave === 'horarios' || clave === 'precios')) params.etapa = 'Interesado';
-  if ((p.etapa === 'Nuevo' || p.etapa === 'Interesado') && clave === 'pago') params.etapa = 'Esperando pago';
+  var tipo = t ? (t.tipo || t.clave) : '';
+  if (p.etapa === 'Nuevo' && (tipo === 'horarios' || tipo === 'precios' || tipo === 'colocacion')) params.etapa = 'Interesado';
+  if ((p.etapa === 'Nuevo' || p.etapa === 'Interesado') && tipo === 'pago') params.etapa = 'Esperando pago';
+  var publicoMsj = document.getElementById('prMsjPublico').value;
+  if (publicoMsj && !p.publico) params.publico = publicoMsj;
   prActualizar(params, params.etapa === 'Esperando pago' ? '💵 Pasó a Esperando pago · +$' + (prData.comxInsc || 100) + ' a tu mesa' : '🛡️ Seguimiento guardado').catch(function () {});
 }
 
