@@ -193,10 +193,11 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
     </div>
 
     <!-- TABS -->
-    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid rgba(255,255,255,0.07);padding-bottom:0;">
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid rgba(255,255,255,0.07);padding-bottom:0;overflow-x:auto;white-space:nowrap;">
       <button id="tabGruposBtn" onclick="cambiarTab('grupos')" style="padding:10px 20px;border:none;background:none;color:#f97316;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid #f97316;margin-bottom:-2px;">📅 Grupos</button>
       <button id="tabAsesoresBtn" onclick="cambiarTab('asesores')" style="padding:10px 20px;border:none;background:none;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;">👥 Asesores</button>
       <button id="tabAltaAsesorBtn" onclick="cambiarTab('altaAsesor')" style="padding:10px 20px;border:none;background:none;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;">➕ Alta de asesor</button>
+      <button id="tabProspectosBtn" onclick="cambiarTab('prospectos')" style="padding:10px 20px;border:none;background:none;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;">📇 Prospectos</button>
     </div>
 
     <!-- SECCION GRUPOS -->
@@ -240,6 +241,14 @@ body::before{content:'';position:fixed;inset:0;background:rgba(11,17,32,0.85);z-
         <button onclick="abrirHistoricoComisionesTodos()" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.35);color:#fb923c;border-radius:100px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📊 Histórico de comisiones</button>
       </div>
       <div id="listaAsesores"><div style="text-align:center;color:#64748b;padding:40px;">Cargando asesores...</div></div>
+    </div>
+
+    <!-- SECCION PROSPECTOS -->
+    <div id="secProspectos" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button onclick="cargarProspectosCoord()" class="cp-btn cp-btn-gris">🔄 Actualizar</button>
+      </div>
+      <div id="cpContenido"></div>
     </div>
 
     <!-- SECCION ALTA DE ASESOR (a prueba de errores: ID y Clave se generan solos) -->
@@ -979,6 +988,10 @@ function cambiarTab(tab) {
   document.getElementById('tabAltaAsesorBtn').style.color      = tab==='altaAsesor' ? '#f97316' : '#64748b';
   document.getElementById('tabAltaAsesorBtn').style.borderBottomColor = tab==='altaAsesor' ? '#f97316' : 'transparent';
   if (tab==='altaAsesor') actualizarPreviewAltaAsesor();
+  document.getElementById('secProspectos').style.display = tab==='prospectos' ? '' : 'none';
+  document.getElementById('tabProspectosBtn').style.color = tab==='prospectos' ? '#f97316' : '#64748b';
+  document.getElementById('tabProspectosBtn').style.borderBottomColor = tab==='prospectos' ? '#f97316' : 'transparent';
+  if (tab==='prospectos') cargarProspectosCoord();
 }
 
 // ── ALTA DE ASESOR ───────────────────────────────────────────────────────
@@ -1572,6 +1585,182 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
 </script>
 
 
+
+
+<style>
+.cp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.cp-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;}
+.cp-stat b{display:block;font-size:22px;font-weight:800;}
+.cp-stat span{font-size:11px;color:var(--muted);}
+.cp-titulo{font-size:12px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:#a78bfa;margin:18px 0 10px;}
+.cp-ase{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.cp-ase-nombre{font-size:14px;font-weight:700;min-width:150px;flex:1;}
+.cp-ase-num{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+.cp-ase-num b{color:var(--text);font-size:14px;}
+.cp-btn{border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.cp-btn-morado{background:#7c3aed;color:#fff;}
+.cp-btn-gris{background:rgba(255,255,255,0.07);color:#cbd5e1;border:1px solid var(--border);}
+.cp-btn-verde{background:#22c55e;color:#fff;}
+.cp-sel{background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;}
+.cp-filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.cp-tabla{width:100%;border-collapse:collapse;font-size:12.5px;}
+.cp-tabla th{text-align:left;color:var(--muted);font-weight:700;font-size:11px;padding:8px 6px;border-bottom:1px solid var(--border);}
+.cp-tabla td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cp-tabla tr:hover td{background:rgba(255,255,255,0.02);}
+.cp-etapa{font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;white-space:nowrap;}
+.cp-plant{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+.cp-plant textarea{width:100%;min-height:130px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;font-family:inherit;outline:none;resize:vertical;box-sizing:border-box;}
+@media(max-width:700px){.cp-stats{grid-template-columns:repeat(2,1fr);}.cp-ocultar-movil{display:none;}}
+</style>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+//  PROSPECTOS (oct-2026) -- vista del coordinador de asesores.
+//  Datos: getProspectosCoordinador / reasignarProspectos / guardarPlantillaProspecto
+// ══════════════════════════════════════════════════════════════════════════
+var cpData = null;
+var CP_COLOR_ETAPA = { 'Nuevo':'background:rgba(148,163,184,0.18);color:#cbd5e1;', 'Interesado':'background:rgba(6,182,212,0.18);color:#67e8f9;',
+  'Esperando pago':'background:rgba(251,191,36,0.2);color:#fde68a;', 'Inscrito':'background:rgba(34,197,94,0.2);color:#86efac;', 'No le interesó':'background:rgba(100,116,139,0.2);color:#94a3b8;' };
+
+function cpEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function cpDias(iso){return iso?Math.floor((Date.now()-new Date(iso).getTime())/86400000):999;}
+function cpFecha(iso){if(!iso)return '';var p=iso.slice(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+
+function cargarProspectosCoord(){
+  var cont=document.getElementById('cpContenido');
+  if(!cpData) cont.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Cargando prospectos...</div>';
+  fetch(APPS+'?action=getProspectosCoordinador&t='+Date.now(),{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.success){cont.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Error: '+cpEsc(d.error)+'</div>';return;}
+      cpData=d;cpPintar();
+    })
+    .catch(function(){cont.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Error de conexión.</div>';});
+}
+
+function cpOpcionesAsesores(conVacio){
+  return (conVacio?'<option value="">— Elige asesor —</option>':'')+(cpData.resumen||[]).filter(function(a){return a.activo;}).map(function(a){
+    return '<option value="'+cpEsc(a.id)+'">'+cpEsc(a.nombre)+' ('+cpEsc(a.id)+')</option>';}).join('');
+}
+
+function cpPintar(){
+  var d=cpData,g=d.global;
+  var html='<div class="cp-stats">'+
+    '<div class="cp-stat"><b>'+g.activos+'</b><span>Prospectos activos</span></div>'+
+    '<div class="cp-stat"><b style="color:#fbbf24;">'+g.esperando+'</b><span>Esperando pago</span></div>'+
+    '<div class="cp-stat"><b style="color:#22c55e;">'+g.inscritosMes+'</b><span>Inscritos este mes</span></div>'+
+    '<div class="cp-stat"><b style="color:#a78bfa;">'+g.conversion+'%</b><span>Conversión del mes</span></div></div>';
+
+  html+='<div class="cp-titulo">👥 Por asesor</div>';
+  html+=(d.resumen||[]).map(function(a){
+    var n=a.numeros;
+    return '<div class="cp-ase"><div class="cp-ase-nombre">'+cpEsc(a.nombre)+' <span style="color:var(--muted);font-weight:600;">('+cpEsc(a.id)+')</span>'+(a.activo?'':' <span style="color:#f87171;font-size:11px;">· inactivo</span>')+'</div>'+
+      '<div class="cp-ase-num"><span><b>'+n.activos+'</b> activos</span><span><b style="color:#f87171;">'+n.rojos+'</b> enfriándose</span><span><b style="color:#fbbf24;">'+n.esperando+'</b> esperando pago</span>'+
+      '<span><b style="color:#22c55e;">'+n.inscritosMes+'</b> inscritos mes</span><span><b style="color:#a78bfa;">'+n.conversion+'%</b> conv.</span></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="cp-btn cp-btn-gris" onclick="document.getElementById(\'cpFAsesor\').value=\''+cpEsc(a.id)+'\';cpPintarLista();document.getElementById(\'cpLista\').scrollIntoView({behavior:\'smooth\'});">Ver</button>'+
+      (n.activos?'<button class="cp-btn cp-btn-morado" onclick="cpPasarTodos(\''+cpEsc(a.id)+'\',\''+cpEsc(a.nombre).replace(/\'/g,'')+'\')">Pasar sus activos a…</button>':'')+'</div></div>';
+  }).join('')||'<div style="color:var(--muted);">Sin asesores.</div>';
+
+  html+='<div class="cp-titulo">📋 Todos los prospectos</div>'+
+    '<div class="cp-filtros">'+
+      '<select class="cp-sel" id="cpFAsesor" onchange="cpPintarLista()"><option value="">Todos los asesores</option>'+(d.resumen||[]).map(function(a){return '<option value="'+cpEsc(a.id)+'">'+cpEsc(a.nombre)+'</option>';}).join('')+'</select>'+
+      '<select class="cp-sel" id="cpFEtapa" onchange="cpPintarLista()"><option value="abiertos">Activos</option>'+(d.etapas||[]).map(function(e){return '<option>'+e+'</option>';}).join('')+'<option value="">Todas las etapas</option></select>'+
+      '<input class="cp-sel" id="cpFBuscar" placeholder="Buscar nombre o número" oninput="cpPintarLista()" style="flex:1;min-width:160px;">'+
+    '</div>'+
+    '<div class="cp-filtros" style="align-items:center;"><span style="font-size:12px;color:var(--muted);">Seleccionados: <b id="cpNSel">0</b></span>'+
+      '<select class="cp-sel" id="cpDestino">'+cpOpcionesAsesores(true)+'</select>'+
+      '<button class="cp-btn cp-btn-morado" onclick="cpReasignarSeleccion()">Reasignar seleccionados</button></div>'+
+    '<div id="cpLista" style="overflow-x:auto;"></div>';
+
+  html+='<div class="cp-titulo">💬 Plantillas de mensajes</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">Las ven todos los asesores en su panel. Puedes usar: <b>{nombre}</b> (nombre del prospecto), <b>{asesor}</b> (nombre del asesor), <b>{horarios}</b> (grupos con lugar, se arma solo) y <b>{compromiso}</b> (fecha en que quedó de pagar). Para negritas en WhatsApp usa *texto*.</div>'+
+    (d.plantillas||[]).map(function(t){
+      return '<div class="cp-plant"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'+
+        '<input class="cp-sel" id="cpE_'+t.clave+'" value="'+cpEsc(t.emoji)+'" style="width:56px;text-align:center;">'+
+        '<input class="cp-sel" id="cpT_'+t.clave+'" value="'+cpEsc(t.titulo)+'" style="flex:1;min-width:160px;">'+
+        '<label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;"><input type="checkbox" id="cpA_'+t.clave+'"'+(t.activa?' checked':'')+'> Visible</label></div>'+
+        '<textarea id="cpX_'+t.clave+'">'+cpEsc(t.texto)+'</textarea>'+
+        '<div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:8px;"><span id="cpS_'+t.clave+'" style="font-size:12px;"></span>'+
+        '<button class="cp-btn cp-btn-verde" onclick="cpGuardarPlantilla(\''+t.clave+'\')">💾 Guardar</button></div></div>';
+    }).join('');
+
+  document.getElementById('cpContenido').innerHTML=html;
+  cpPintarLista();
+}
+
+function cpPintarLista(){
+  if(!cpData)return;
+  var fa=document.getElementById('cpFAsesor').value,fe=document.getElementById('cpFEtapa').value;
+  var q=String(document.getElementById('cpFBuscar').value||'').toLowerCase().trim(),qn=q.replace(/\D/g,'');
+  var l=(cpData.prospectos||[]).filter(function(p){
+    if(fa&&p.idAsesor.toUpperCase()!==fa.toUpperCase())return false;
+    if(fe==='abiertos'){if(p.etapa==='Inscrito'||p.etapa==='No le interesó')return false;}
+    else if(fe&&p.etapa!==fe)return false;
+    if(q&&p.nombre.toLowerCase().indexOf(q)<0&&!(qn&&p.whatsapp.indexOf(qn)>=0))return false;
+    return true;
+  });
+  l.sort(function(a,b){return a.ultimoSeguimiento<b.ultimoSeguimiento?1:-1;});
+  var cont=document.getElementById('cpLista');
+  if(!l.length){cont.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;">Sin prospectos con estos filtros.</div>';cpContarSel();return;}
+  cont.innerHTML='<table class="cp-tabla"><thead><tr><th><input type="checkbox" onchange="cpMarcarTodos(this.checked)"></th><th>Prospecto</th><th>Asesor</th><th>Etapa</th><th class="cp-ocultar-movil">Último contacto</th><th class="cp-ocultar-movil">Escudo</th></tr></thead><tbody>'+
+    l.slice(0,400).map(function(p){
+      var dias=cpDias(p.ultimoSeguimiento),rojo=dias>(cpData.diasRojo||3)&&p.etapa!=='Inscrito'&&p.etapa!=='No le interesó';
+      return '<tr><td><input type="checkbox" class="cp-chk" value="'+cpEsc(p.id)+'" onchange="cpContarSel()"></td>'+
+        '<td><b>'+cpEsc(p.nombre)+'</b><div style="color:var(--muted);font-size:11px;">'+cpEsc(p.whatsapp)+(p.nivel?' · '+cpEsc(p.nivel):'')+(p.origen?' · '+cpEsc(p.origen):'')+' · alta '+cpFecha(p.fechaAlta)+'</div></td>'+
+        '<td>'+cpEsc(p.nombreAsesor)+'</td>'+
+        '<td><span class="cp-etapa" style="'+(CP_COLOR_ETAPA[p.etapa]||'')+'">'+cpEsc(p.etapa)+'</span>'+(p.idAlumno?'<div style="font-size:11px;color:#86efac;">'+cpEsc(p.idAlumno)+'</div>':'')+'</td>'+
+        '<td class="cp-ocultar-movil" style="'+(rojo?'color:#f87171;font-weight:700;':'')+'">'+(dias<=0?'hoy':'hace '+dias+' d')+'</td>'+
+        '<td class="cp-ocultar-movil">'+(p.escudo?'🛡️ '+Math.max(0,(cpData.diasEscudo||15)-dias)+' d':'<span style="color:var(--muted);">libre</span>')+'</td></tr>';
+    }).join('')+'</tbody></table>'+(l.length>400?'<div style="color:var(--muted);font-size:12px;padding:8px;">Mostrando 400 de '+l.length+'. Usa los filtros.</div>':'');
+  cpContarSel();
+}
+
+function cpMarcarTodos(v){document.querySelectorAll('.cp-chk').forEach(function(c){c.checked=v;});cpContarSel();}
+function cpContarSel(){var n=document.querySelectorAll('.cp-chk:checked').length;var e=document.getElementById('cpNSel');if(e)e.textContent=n;}
+
+function cpReasignar(params,txtOk){
+  var url=APPS+'?action=reasignarProspectos&idCoord='+encodeURIComponent((caData&&caData.id)||'COORD');
+  Object.keys(params).forEach(function(k){url+='&'+k+'='+encodeURIComponent(params[k]);});
+  return fetch(url,{redirect:'follow'}).then(function(r){return r.json();}).then(function(res){
+    if(!res.success){alert('⚠️ '+(res.error||'No se pudo reasignar.'));return;}
+    alert('✅ '+res.reasignados+' prospecto'+(res.reasignados===1?'':'s')+' pasado'+(res.reasignados===1?'':'s')+' a '+res.destino+'.');
+    cargarProspectosCoord();
+  }).catch(function(){alert('Error de conexión.');});
+}
+
+function cpReasignarSeleccion(){
+  var ids=Array.prototype.map.call(document.querySelectorAll('.cp-chk:checked'),function(c){return c.value;});
+  var dest=document.getElementById('cpDestino').value;
+  if(!ids.length){alert('Selecciona al menos un prospecto.');return;}
+  if(!dest){alert('Elige el asesor que los recibe.');return;}
+  if(!confirm('¿Pasar '+ids.length+' prospecto(s) a '+dest+'?'))return;
+  cpReasignar({ids:ids.join(','),aAsesor:dest});
+}
+
+function cpPasarTodos(idDe,nombre){
+  var opciones=(cpData.resumen||[]).filter(function(a){return a.activo&&a.id!==idDe;});
+  var lista=opciones.map(function(a,i){return (i+1)+'. '+a.nombre+' ('+a.id+')';}).join('\n');
+  var r=prompt('¿A quién pasas TODOS los prospectos activos de '+nombre+'?\nEscribe el número:\n\n'+lista,'');
+  if(r===null)return;
+  var a=opciones[parseInt(r,10)-1];
+  if(!a){alert('Número no válido.');return;}
+  cpReasignar({deAsesor:idDe,aAsesor:a.id});
+}
+
+function cpGuardarPlantilla(clave){
+  var s=document.getElementById('cpS_'+clave);
+  s.style.color='var(--muted)';s.textContent='Guardando...';
+  var url=APPS+'?action=guardarPlantillaProspecto&clave='+encodeURIComponent(clave)+
+    '&emoji='+encodeURIComponent(document.getElementById('cpE_'+clave).value)+
+    '&titulo='+encodeURIComponent(document.getElementById('cpT_'+clave).value)+
+    '&texto='+encodeURIComponent(document.getElementById('cpX_'+clave).value)+
+    '&activa='+(document.getElementById('cpA_'+clave).checked?'1':'0');
+  fetch(url,{redirect:'follow'}).then(function(r){return r.json();}).then(function(res){
+    if(res.success){s.style.color='#4ade80';s.textContent='✅ Guardada. Los asesores la verán al abrir sus prospectos.';}
+    else{s.style.color='#f87171';s.textContent='⚠️ '+(res.error||'No se pudo guardar.');}
+  }).catch(function(){s.style.color='#f87171';s.textContent='⚠️ Error de conexión.';});
+}
+</script>
 
 </body>
 </html>
