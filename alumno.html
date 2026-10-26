@@ -952,6 +952,12 @@
 .ref-btn[disabled] { opacity: .55; cursor: default; box-shadow: none; }
 .ref-nota { font-size: 12px; color: #64748b; line-height: 1.45; margin-top: 12px; }
 .ref-preview { display: block; width: 74%; max-width: 260px; margin: 0 auto 14px; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+.ref-aviso-baja {
+  margin: 12px auto 0; max-width: 360px; background: #fef3c7; color: #78350f; border: 2px solid #f59e0b;
+  border-radius: 12px; padding: 9px 12px; font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 700;
+  line-height: 1.35; text-align: center; cursor: pointer; box-shadow: 2px 4px 10px rgba(0,0,0,0.35);
+  animation: postItAlertaPulse 1.5s ease-in-out infinite;
+}
 .ref-aviso { font-size: 12.5px; color: #92400e; background: #fef3c7; border-radius: 10px; padding: 9px 12px; margin-top: 10px; line-height: 1.45; display: none; }
 </style>
 </head>
@@ -1197,6 +1203,7 @@
         <div class="ref-zona" id="refZona" style="display:none;">
           <div class="ref-zona-titulo">⭐ MIS REFERIDOS</div>
           <div class="ref-stickers" id="refStickers"></div>
+          <div class="ref-aviso-baja" id="refAvisoBaja" style="display:none;" onclick="abrirPrimeraDorada()"></div>
         </div>
         <div class="student-board-grid">
           <div class="post-it post-it-verde" id="postitReferidos" style="display:none;" onclick="abrirReferidos()">
@@ -9687,8 +9694,24 @@ var MISIONES_KIDS_A12_LISTA = [
     }
 
     var lista = d.calcomanias || [];
-    if (!lista.length) { zona.style.display = 'none'; cont.innerHTML = ''; return; }
+    var avisoBaja = document.getElementById('refAvisoBaja');
+    if (!lista.length) { zona.style.display = 'none'; cont.innerHTML = ''; if (avisoBaja) avisoBaja.style.display = 'none'; return; }
     zona.style.display = '';
+
+    // Aviso: tiene doradas y su pago esta por vencer (o ya vencio).
+    var nDoradas = lista.filter(function (c) { return c.estado === 'dorada'; }).length;
+    var pagoA = alumnoData && alumnoData.pago;
+    var diasVence = (pagoA && pagoA.periodoFin) ? Math.ceil((new Date(pagoA.periodoFin).getTime() - Date.now()) / 86400000) : null;
+    if (avisoBaja) {
+      if (nDoradas && !d.esBecado && diasVence !== null && diasVence <= 4) {
+        avisoBaja.textContent = '⚠️ ' + (diasVence < 0 ? 'Tu pago venció.' : 'Tu pago está por vencer.') +
+          ' Tienes ' + nDoradas + ' calcomanía' + (nDoradas > 1 ? 's' : '') + ' dorada' + (nDoradas > 1 ? 's' : '') +
+          ': úsala para seguir en tus clases. ¡Toca aquí!';
+        avisoBaja.style.display = '';
+      } else {
+        avisoBaja.style.display = 'none';
+      }
+    }
     cont.innerHTML = lista.map(function (c, i) {
       var dorada = c.estado === 'dorada' || c.estado === 'canje_solicitado';
       var cinta = '';
@@ -9724,6 +9747,9 @@ var MISIONES_KIDS_A12_LISTA = [
 
     var btn = document.getElementById('refBtnCanjear');
     btn.dataset.idx = i;
+    document.getElementById('refBtnAvisarAsis').style.display = 'none';
+    document.getElementById('refBtnGuardar').style.display = '';
+    document.getElementById('refBtnGuardar').textContent = 'Guardarla para después';
     var nota = document.getElementById('refDoradaNota');
     if (c.estado === 'canje_solicitado') {
       btn.style.display = 'none';
@@ -9746,10 +9772,61 @@ var MISIONES_KIDS_A12_LISTA = [
 
   function cerrarRefDorada() { document.getElementById('modalRefDorada').classList.remove('visible'); }
 
-  // Etapa 2: aquí se conecta el canje con el asistente.
+  function abrirPrimeraDorada() {
+    var lista = (refData && refData.calcomanias) || [];
+    for (var i = 0; i < lista.length; i++) { if (lista[i].estado === 'dorada') { abrirCalcomania(i); return; } }
+  }
+
+  // Canje: se marca en el sistema y despues el alumno avisa a su asistente
+  // por WhatsApp (boton real: los navegadores bloquean abrir WhatsApp solo).
   function canjearCalcomania() {
     if (!refData || !refData.canjeDisponible) return;
+    var btn = document.getElementById('refBtnCanjear');
+    var c = refData.calcomanias[parseInt(btn.dataset.idx, 10)];
+    if (!c) return;
+    var textoBtn = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    fetch(APPS_SCRIPT + '?action=solicitarCanjeReferido&idAlumno=' + encodeURIComponent(refData.idAlumno) +
+          '&idReferido=' + encodeURIComponent(c.idReferido), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.success) {
+          btn.disabled = false;
+          btn.textContent = textoBtn;
+          document.getElementById('refDoradaNota').textContent = '⚠️ ' + (res.error || 'No se pudo enviar. Intenta de nuevo.');
+          return;
+        }
+        c.estado = 'canje_solicitado';
+        renderReferidos();
+        btn.style.display = 'none';
+        document.getElementById('refBtnGuardar').style.display = 'none';
+        var premio = refData.esBecado ? 'cobrar mis $100' : (refData.esPersonalizado ? 'usar mi clase sin costo' : 'usar mi semana sin costo');
+        document.getElementById('refDoradaTexto').innerHTML = '¡Listo! Tu canje quedó registrado. Ahora avísale a tu asistente para que lo valide.';
+        var asis = res.asistente || (alumnoData && alumnoData.asistente) || {};
+        var wa = asis.whatsapp ? cleanWA(asis.whatsapp) : '';
+        var aBtn = document.getElementById('refBtnAvisarAsis');
+        if (wa) {
+          var msg = 'Hola' + (asis.nombre ? ' ' + asis.nombre : '') + ', soy ' + (refData.nombre || refData.nombrePila) + ' (' + refData.idAlumno + '). ' +
+                    'Mi invitado ' + (c.nombrePila || '') + ' ya cumplió 4 semanas y quiero ' + premio + ' 🎁. ' +
+                    'Ya aparece en tu panel, en la pestaña Referidos. ¡Gracias!';
+          aBtn.href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
+          aBtn.style.display = '';
+          document.getElementById('refDoradaNota').textContent = 'Tu asistente valida la calcomanía y ' +
+            (refData.esBecado ? 'se te transfieren los $100.' : 'se suma a tu vigencia.');
+        } else {
+          document.getElementById('refDoradaNota').textContent = 'Tu asistente ya lo ve en su panel y lo validará pronto.';
+          var g = document.getElementById('refBtnGuardar');
+          g.style.display = ''; g.textContent = 'Cerrar';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = textoBtn;
+        document.getElementById('refDoradaNota').textContent = '⚠️ Error de conexión. Intenta de nuevo.';
+      });
   }
+
 
   function abrirReferidos() {
     if (!refData) return;
@@ -12521,7 +12598,8 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     <div class="ref-modal-titulo" id="refDoradaTitulo">⭐ ¡Cumplió 4 semanas!</div>
     <p class="ref-modal-texto" id="refDoradaTexto"></p>
     <button class="ref-btn ref-btn-verde" id="refBtnCanjear" onclick="canjearCalcomania()">Canjear ahora · avisar a mi asistente</button>
-    <button class="ref-btn ref-btn-gris" onclick="cerrarRefDorada()">Guardarla para después</button>
+    <a class="ref-btn ref-btn-verde" id="refBtnAvisarAsis" href="#" target="_blank" style="display:none;" onclick="cerrarRefDorada()">📲 Avisar a mi asistente por WhatsApp</a>
+    <button class="ref-btn ref-btn-gris" id="refBtnGuardar" onclick="cerrarRefDorada()">Guardarla para después</button>
     <div class="ref-nota" id="refDoradaNota">Tu asistente valida la calcomanía y la semana se suma a tu vigencia.</div>
   </div>
 </div>
