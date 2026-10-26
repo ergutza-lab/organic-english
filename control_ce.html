@@ -2292,6 +2292,20 @@ function guardarEdicionPago() {
   var p = pagosAlumnosCache[epIdxActual];
   if (!p) return;
   var status = document.getElementById('ep-status');
+  var ciEP = document.getElementById('ep-cobertura-inicio').value;
+  var cfEP = document.getElementById('ep-cobertura-fin').value;
+  var montoEP = Number(document.getElementById('ep-monto').value) || 0;
+  var valEP = document.getElementById('ep-validado-por').value.trim();
+  if (montoEP > 0 && valEP && (!ciEP || !cfEP)) {
+    status.style.display = 'block'; status.style.color = '#c62828';
+    status.textContent = '❌ Este pago tiene monto: elige la fecha de inicio y la de fin de la vigencia antes de guardar.';
+    return;
+  }
+  if (ciEP && cfEP && cfEP < ciEP) {
+    status.style.display = 'block'; status.style.color = '#c62828';
+    status.textContent = '❌ La fecha de fin no puede ser anterior a la de inicio.';
+    return;
+  }
   status.style.display = 'block'; status.style.color = '#666';
   status.textContent = 'Guardando...';
 
