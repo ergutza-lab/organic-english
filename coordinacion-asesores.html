@@ -1587,6 +1587,7 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
 
 
 
+
 <style>
 .cp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
 .cp-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;}
@@ -1651,12 +1652,24 @@ function cpPintar(){
     '<div class="cp-stat"><b style="color:#22c55e;">'+g.inscritosMes+'</b><span>Inscritos este mes</span></div>'+
     '<div class="cp-stat"><b style="color:#a78bfa;">'+g.conversion+'%</b><span>Conversión del mes</span></div></div>';
 
+  var em=d.embudo||{semana:{},mes:{}};
+  function barra(x,color){var pct=x.pct||0;return '<div style="height:10px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;margin-top:8px;"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:999px;"></div></div>';}
+  html+='<div class="cp-titulo">🎯 Inscripciones que vienen de prospectos</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
+      '<div class="cp-stat" style="text-align:left;padding:14px 16px;"><span>Esta semana (vie a jue)</span><b style="color:#a78bfa;">'+(em.semana.pct||0)+'%</b>'+
+        '<span>'+(em.semana.prospectos||0)+' de '+(em.semana.total||0)+' inscripciones</span>'+barra(em.semana,'#a78bfa')+'</div>'+
+      '<div class="cp-stat" style="text-align:left;padding:14px 16px;"><span>Este mes</span><b style="color:#22c55e;">'+(em.mes.pct||0)+'%</b>'+
+        '<span>'+(em.mes.prospectos||0)+' de '+(em.mes.total||0)+' inscripciones</span>'+barra(em.mes,'#22c55e')+'</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;">Las inscripciones que no venían de un prospecto se registran solas como "Directo". La meta es que casi todas vengan de prospectos.</div>';
+
   html+='<div class="cp-titulo">👥 Por asesor</div>';
   html+=(d.resumen||[]).map(function(a){
     var n=a.numeros;
     return '<div class="cp-ase"><div class="cp-ase-nombre">'+cpEsc(a.nombre)+' <span style="color:var(--muted);font-weight:600;">('+cpEsc(a.id)+')</span>'+(a.activo?'':' <span style="color:#f87171;font-size:11px;">· inactivo</span>')+'</div>'+
       '<div class="cp-ase-num"><span><b>'+n.activos+'</b> activos</span><span><b style="color:#f87171;">'+n.rojos+'</b> enfriándose</span><span><b style="color:#fbbf24;">'+n.esperando+'</b> esperando pago</span>'+
-      '<span><b style="color:#22c55e;">'+n.inscritosMes+'</b> inscritos mes</span><span><b style="color:#a78bfa;">'+n.conversion+'%</b> conv.</span></div>'+
+      '<span><b style="color:#22c55e;">'+n.inscritosMes+'</b> inscritos mes</span><span><b style="color:#a78bfa;">'+n.conversion+'%</b> conv.</span>'+
+      (a.embudo&&a.embudo.semana.total?'<span>🎯 <b style="color:'+(a.embudo.semana.pct>=70?'#4ade80':(a.embudo.semana.pct>=40?'#fbbf24':'#f87171'))+';">'+a.embudo.semana.prospectos+'/'+a.embudo.semana.total+'</b> de prospectos esta semana</span>':'<span>🎯 sin inscripciones esta semana</span>')+'</div>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="cp-btn cp-btn-gris" onclick="document.getElementById(\'cpFAsesor\').value=\''+cpEsc(a.id)+'\';cpPintarLista();document.getElementById(\'cpLista\').scrollIntoView({behavior:\'smooth\'});">Ver</button>'+
       (n.activos?'<button class="cp-btn cp-btn-morado" onclick="cpPasarTodos(\''+cpEsc(a.id)+'\',\''+cpEsc(a.nombre).replace(/\'/g,'')+'\')">Pasar sus activos a…</button>':'')+'</div></div>';
   }).join('')||'<div style="color:var(--muted);">Sin asesores.</div>';
