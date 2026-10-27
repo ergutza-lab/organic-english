@@ -4495,7 +4495,9 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
           var _idAlumnoSab = (alumnoData && alumnoData.alumno && alumnoData.alumno.id) ? alumnoData.alumno.id : ((d.alumno && d.alumno.id) ? d.alumno.id : ''); // ✅ FIX 1
     var clickSab = "abrirModalEditarEval('" + _idAlumnoSab + "','" + sabadoISO + "'," + cn + "," + (idxSab + 1) + "," + bloqueActualSab + ",true," + (colorVal || 'null') + "," + (reg && reg.asistio !== false ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
 
-      if (reg && reg.asistio !== false && reg.color) {
+      if (reg && reg.practica) {
+        html += '<div style="background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;" title="Práctica (repaso por cambio de grupo) · no cuenta en el promedio"><div style="font-size:9px;color:#a78bfa;font-weight:700;">C' + cn + '</div><div style="color:#c4b5fd;font-size:14px;font-weight:900;">P</div></div>';
+      } else if (reg && reg.asistio !== false && reg.color) {
         var col = colorMap[reg.color] || '#94a3b8';
         var marcaR = reg.esRecuperacion ? '<span style="position:absolute;top:2px;right:2px;font-size:11px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
         var tooltipR = reg.esRecuperacion ? ' · recuperada' : '';
@@ -4550,7 +4552,7 @@ function renderDetalleEvalDer(d) {
   html += '</div>';
 
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#94a3b8;">';
-  html += '<span>🔵 Azul</span><span>🟢 Verde</span><span>🟡 Amarillo</span><span>🔴 Rojo</span><span>F Falta</span>';
+  html += '<span>🔵 Azul</span><span>🟢 Verde</span><span>🟡 Amarillo</span><span>🔴 Rojo</span><span>F Falta</span><span style="color:#c4b5fd;">P Práctica (no cuenta)</span>';
   html += '</div>';
 
   var colorMap = { 1:'#ef4444', 2:'#facc15', 3:'#22c55e', 4:'#3b82f6' };
@@ -4642,6 +4644,10 @@ function renderDetalleEvalDer(d) {
       var claseCel = (rec && rec.claseNum) ? rec.claseNum : 1;   // entre semana: 1 clase por dia (antes mandaba la posicion del dia)
       var clickCel = "abrirModalEditarEval('" + _idAlumnoCel + "','" + fechaCelISO + "'," + claseCel + "," + s + "," + bloqueActualAl + ",false," + (colorVal || 'null') + "," + (asistioVal ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
 
+      if (rec && rec.practica) {
+        html += '<div title="Práctica (repaso por cambio de grupo) · no se evalúa y no cuenta en el promedio" style="flex:1;height:34px;background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#c4b5fd;font-size:12px;font-weight:900;">P</span><span style="color:#a78bfa;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        continue;
+      }
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
           html += '<div onclick="' + clickCel + '" title="Falta · Toca para editar" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
