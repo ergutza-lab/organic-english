@@ -216,21 +216,84 @@
         <h2 id="asesorNombre">—</h2>
       </div>
     </div>
-    <button class="btn-prospectos" onclick="abrirProspectos()">
-      <span class="bp-emoji">📇</span>
-      <span><div class="bp-titulo">Mis prospectos</div><div class="bp-sub" id="bpSub">Registra tus candidatos y no pierdas ninguna venta</div></span>
-      <span class="bp-badge" id="bpBadge">0</span>
-    </button>
-    <div style="display:flex;gap:10px;margin-bottom:10px;">
-      <button class="btn-nueva-inscripcion" onclick="abrirModalNuevaInscripcion()">➕ Nueva inscripción</button>
-      <button class="btn-mis-alumnos" onclick="abrirModalMisAlumnos()">👥 Mis alumnos</button>
+    <!-- ══ CENTRO DE VENTAS: resumen ══ -->
+    <div class="cv-resumen">
+      <div class="cv-card cv-ganado" onclick="cvTab('comisiones')">
+        <div class="cv-lbl">✅ Ganado esta semana</div>
+        <div class="cv-monto" id="cvGanado">$0</div>
+        <div class="cv-sub" id="cvGanadoSub">0 inscripciones (vie a jue)</div>
+        <div class="cv-barra"><div id="cvBonoBarra"></div></div>
+        <div class="cv-sub" id="cvBonoTxt" style="margin-top:4px;"></div>
+      </div>
+      <div class="cv-card cv-mesa" onclick="cvTab('prospectos')">
+        <div class="cv-lbl">💵 En la mesa</div>
+        <div class="cv-monto" id="cvMesa">$0</div>
+        <div class="cv-sub" id="cvMesaSub">por ganar</div>
+      </div>
+      <div class="cv-card cv-hoy" onclick="cvTab('hoy')">
+        <div class="cv-lbl">🚦 Por atender</div>
+        <div class="cv-monto" id="cvPendientes">0</div>
+        <div class="cv-sub" id="cvPendientesSub">hoy</div>
+      </div>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:10px;">
-      <button class="btn-mis-alumnos" style="width:100%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;" onclick="abrirModalReembolsos()">💸 Reembolsos pendientes</button>
+
+    <button class="btn-nueva-inscripcion" style="width:100%;margin-bottom:14px;" onclick="abrirModalNuevaInscripcion()">➕ Nueva inscripción</button>
+
+    <div class="cv-tabs">
+      <button id="cvTabBtn-hoy" class="cv-tab sel" onclick="cvTab('hoy')"><span class="cv-ico">🚦</span>Hoy<span class="cv-badge" id="cvBadgeHoy"></span></button>
+      <button id="cvTabBtn-prospectos" class="cv-tab" onclick="cvTab('prospectos')"><span class="cv-ico">📇</span>Prospectos</button>
+      <button id="cvTabBtn-alumnos" class="cv-tab" onclick="cvTab('alumnos')"><span class="cv-ico">🎓</span>Mis alumnos</button>
+      <button id="cvTabBtn-comisiones" class="cv-tab" onclick="cvTab('comisiones')"><span class="cv-ico">💰</span>Comisiones<span class="cv-badge" id="cvBadgeReemb"></span></button>
     </div>
-    <div id="bloque-comisiones-maestros" style="display:none;margin-bottom:10px;">
+
+    <!-- HOY -->
+    <div class="cv-panel" id="cvPanel-hoy">
+      <div class="pr-seccion" style="margin-top:4px;">🚦 Mi día</div>
+      <div id="prMiDia"><div class="pr-vacio">Cargando...</div></div>
+      <button class="pr-btn pr-btn-nuevo" style="margin-top:12px;" onclick="cvTab('prospectos');prToggleForm(true);">➕ Registrar un prospecto</button>
+    <div id="bloque-comisiones-maestros" style="display:none;margin:12px 0 0;">
       <button class="btn-mis-alumnos" style="width:100%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);color:#4ade80;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="abrirComisionesMaestros()">🎁 Comisiones de maestros <span id="badgeComisionesMaestros" style="display:none;background:#fbbf24;color:#78350f;font-size:11px;font-weight:900;min-width:20px;height:20px;padding:0 6px;border-radius:999px;align-items:center;justify-content:center;">0</span></button>
     </div>
+    </div>
+
+    <!-- PROSPECTOS -->
+    <div class="cv-panel" id="cvPanel-prospectos" style="display:none;">
+    <div class="pr-stats">
+      <div class="pr-stat"><b id="prStAltas">0</b><span>nuevos este mes</span></div>
+      <div class="pr-stat"><b id="prStInscritos">0</b><span>inscritos este mes</span></div>
+      <div class="pr-stat"><b id="prStConv">0%</b><span>conversión</span></div>
+    </div>
+
+    <button class="pr-btn pr-btn-nuevo" onclick="prToggleForm()">➕ Nuevo prospecto</button>
+    <div class="pr-form" id="prForm">
+      <label>Nombre</label>
+      <input class="pr-input" id="prNombre" placeholder="Ej. Laura Méndez" autocomplete="off">
+      <label>WhatsApp (10 dígitos)</label>
+      <input class="pr-input" id="prWA" placeholder="Ej. 272 123 4567" inputmode="tel" autocomplete="off">
+      <label>¿Para quién son las clases?</label>
+      <div class="pr-etapas-sel" id="prPublicoSel"></div>
+      <div class="pr-fila2">
+        <div><label>Nivel</label><select class="pr-input" id="prNivel"></select></div>
+        <div><label>¿Cómo llegó?</label>
+          <select class="pr-input" id="prOrigen">
+            <option value="">—</option><option>Facebook</option><option>Instagram</option><option>TikTok</option>
+            <option>WhatsApp</option><option>Recomendado</option><option>Exalumno</option><option>Otro</option>
+          </select></div>
+      </div>
+      <label>Nota (opcional)</label>
+      <input class="pr-input" id="prNota" placeholder="Ej. Quiere sabatino, es para su hija de 12 años" autocomplete="off">
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="pr-btn pr-btn-gris" style="flex:1;" onclick="prToggleForm(false)">Cancelar</button>
+        <button class="pr-btn pr-btn-verde" style="flex:2;" id="prBtnGuardar" onclick="prGuardarNuevo()">💾 Guardar</button>
+      </div>
+      <div class="pr-msg" id="prFormMsg"></div>
+    </div>
+
+    <div class="pr-seccion">📋 Todos mis prospectos</div>
+    <input class="pr-input" id="prBuscar" placeholder="🔎 Buscar por nombre o número" oninput="prPintarLista()">
+    <div class="pr-filtros" id="prFiltros"></div>
+    <div id="prLista"></div>
+    <div style="font-size:11px;color:#64748b;text-align:center;margin-top:12px;line-height:1.5;">🛡️ Cada prospecto es tuyo por <span id="prDiasEscudo">15</span> días desde tu último seguimiento. Cada mensaje que mandas desde aquí cuenta como seguimiento.</div>
     <div id="bloque-compartir-grupos" style="margin-top:20px;padding:18px 20px;background:#1e2a4a;border-radius:14px;border:1px solid rgba(255,255,255,0.06);text-align:center;">
       <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Compartir con candidatos</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Selecciona un nivel y comparte los grupos disponibles por WhatsApp</div>
@@ -239,14 +302,30 @@
       </select>
       <button class="btn-compartir-wa" onclick="compartirGruposWA(this)">Compartir grupos</button>
     </div>
-    <div style="margin-top:16px;padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="color:#64748b;font-size:12px">Comisiones esta semana</span>
-        <span id="comisionCatorcena" style="color:#fb923c;font-size:14px;font-weight:700">$0 MXN</span>
+    </div>
+
+    <!-- MIS ALUMNOS -->
+    <div class="cv-panel" id="cvPanel-alumnos" style="display:none;">
+      <input class="pr-input" id="cvBuscarAlumno" placeholder="🔎 Buscar por nombre, ID o grupo" oninput="cvPintarAlumnos()" style="margin-bottom:8px;">
+      <div class="pr-filtros" id="cvFiltrosAlumnos"></div>
+      <div id="ma-lista"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <!-- MIS COMISIONES -->
+    <div class="cv-panel" id="cvPanel-comisiones" style="display:none;">
+      <div style="padding:14px 18px;background:#1e2a4a;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="color:#94a3b8;font-size:12px;font-weight:700;">Comisiones esta semana (vie a jue)</span>
+          <span id="comisionCatorcena" style="color:#fb923c;font-size:16px;font-weight:800">$0 MXN</span>
+        </div>
+        <div id="comisionDesglose" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#94a3b8;line-height:1.6;"></div>
+        <button onclick="abrirReglasComisiones()" style="width:100%;margin-top:10px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:#fb923c;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">💡 ¿Cómo funcionan mis comisiones?</button>
       </div>
-      <div id="comisionDesglose" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:#94a3b8;line-height:1.6;"></div>
-      <button onclick="abrirHistoricoComisiones()" style="width:100%;margin-top:10px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📊 Ver histórico de comisiones</button>
-      <button onclick="abrirReglasComisiones()" style="width:100%;margin-top:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:#fb923c;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">💡 ¿Cómo funcionan mis comisiones?</button>
+      <div class="pr-seccion">📊 Histórico de comisiones</div>
+      <div id="hc-lista"><div class="loading">Cargando...</div></div>
+      <div class="pr-seccion" style="color:#f87171;">💸 Reembolsos pendientes</div>
+      <div style="font-size:11.5px;color:#94a3b8;margin:-2px 2px 8px;line-height:1.5;">Alumnos tuyos a los que no se les pudo ofrecer un grupo. Contáctalos para pedirles sus datos bancarios y reenvíalos a finanzas.</div>
+      <div id="re-lista"><div class="loading">Cargando...</div></div>
     </div>
   </div>
 </div>
@@ -525,7 +604,7 @@
   <div class="modal-box" style="max-width:520px;max-height:88vh;overflow-y:auto;">
     <div class="modal-titulo">👥 Mis alumnos registrados</div>
     <div class="modal-sub">Alumnos que tú has registrado. Puedes editar sus datos.</div>
-    <div id="ma-lista"><div class="loading">Cargando...</div></div>
+    <div id="ma-lista-modal-viejo"></div>
     <div class="modal-actions-row">
       <button class="btn-cancelar" onclick="cerrarModalMisAlumnos()">Cerrar</button>
     </div>
@@ -537,7 +616,7 @@
   <div class="modal-box" style="max-width:520px;max-height:88vh;overflow-y:auto;">
     <div class="modal-titulo">💸 Reembolsos pendientes</div>
     <div class="modal-sub">Alumnos tuyos a los que no se les pudo ofrecer un grupo. Contáctalos para pedirles sus datos bancarios y reenvíalos a finanzas.</div>
-    <div id="re-lista"><div class="loading">Cargando...</div></div>
+    <div id="re-lista-modal-viejo"></div>
     <div class="modal-actions-row">
       <button class="btn-cancelar" onclick="cerrarModalReembolsos()">Cerrar</button>
     </div>
@@ -549,7 +628,7 @@
   <div class="modal-box" style="max-width:560px;max-height:88vh;overflow-y:auto;">
     <div class="modal-titulo">📊 Histórico de comisiones</div>
     <div class="modal-sub">Comisiones por inscripción y por bonificación, semana a semana.</div>
-    <div id="hc-lista"><div class="loading">Cargando...</div></div>
+    <div id="hc-lista-modal-viejo"></div>
     <div class="modal-actions-row">
       <button class="btn-cancelar" onclick="cerrarHistoricoComisiones()">Cerrar</button>
     </div>
@@ -809,6 +888,7 @@ function toggleLadaLibre(selectId, ladaInputId) {
         '(esos alumnos ya no quedaron inscritos, así que no generan comisión).</span>';
     }
     desglose.innerHTML = html;
+    if (typeof cvPintarGanado === 'function') cvPintarGanado();
   }
 
   function mostrarPanel() {
@@ -825,7 +905,7 @@ function toggleLadaLibre(selectId, ladaInputId) {
     cmDatos = null;
     if (typeof cargarComisionesMaestros === 'function') cargarComisionesMaestros();
     prData = null;
-    if (typeof cargarProspectos === 'function') cargarProspectos();
+    if (typeof cvIniciar === 'function') cvIniciar();
   }
 
   var historicoComisionesData = [];
@@ -1716,7 +1796,8 @@ function abrirModalNuevaInscripcion() {
 function cerrarModalNuevaInscripcion() {
   document.getElementById('modalNuevaInscripcion').classList.remove('active');
   refrescarComisionAsesor();
-  if (typeof cargarProspectos === 'function') cargarProspectos();   // un prospecto recien inscrito pasa solo a Inscrito
+  if (typeof cargarProspectos === 'function') cargarProspectos().then(function (d) { if (d && typeof prPintarTodo === 'function') prPintarTodo(); });   // un prospecto recien inscrito pasa solo a Inscrito
+  if (typeof cvAlumnosCargados !== 'undefined') cvAlumnosCargados = false;
 }
 
 function niCargarGrupos() {
@@ -2963,58 +3044,6 @@ function cmRegresar(idReferido) {
   .pr-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #22c55e; color: #fff; font-weight: 800; font-size: 13px; padding: 11px 18px; border-radius: 999px; z-index: 2000; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; max-width: 92vw; text-align: center; }
 </style>
 
-<div class="pr-overlay" id="modalProspectos" onclick="if(event.target===this)cerrarProspectos()">
-  <div class="pr-box">
-    <button class="pr-cerrar" onclick="cerrarProspectos()">×</button>
-    <div class="pr-titulo">📇 Mis prospectos</div>
-
-    <div class="pr-mesa">
-      <div class="pr-mesa-label">Lo que tienes en la mesa</div>
-      <div class="pr-mesa-monto" id="prMesaMonto">$0</div>
-      <div class="pr-mesa-txt" id="prMesaTxt">en comisiones por cerrar</div>
-    </div>
-    <div class="pr-stats">
-      <div class="pr-stat"><b id="prStAltas">0</b><span>nuevos este mes</span></div>
-      <div class="pr-stat"><b id="prStInscritos">0</b><span>inscritos este mes</span></div>
-      <div class="pr-stat"><b id="prStConv">0%</b><span>conversión</span></div>
-    </div>
-
-    <button class="pr-btn pr-btn-nuevo" onclick="prToggleForm()">➕ Nuevo prospecto</button>
-    <div class="pr-form" id="prForm">
-      <label>Nombre</label>
-      <input class="pr-input" id="prNombre" placeholder="Ej. Laura Méndez" autocomplete="off">
-      <label>WhatsApp (10 dígitos)</label>
-      <input class="pr-input" id="prWA" placeholder="Ej. 272 123 4567" inputmode="tel" autocomplete="off">
-      <label>¿Para quién son las clases?</label>
-      <div class="pr-etapas-sel" id="prPublicoSel"></div>
-      <div class="pr-fila2">
-        <div><label>Nivel</label><select class="pr-input" id="prNivel"></select></div>
-        <div><label>¿Cómo llegó?</label>
-          <select class="pr-input" id="prOrigen">
-            <option value="">—</option><option>Facebook</option><option>Instagram</option><option>TikTok</option>
-            <option>WhatsApp</option><option>Recomendado</option><option>Exalumno</option><option>Otro</option>
-          </select></div>
-      </div>
-      <label>Nota (opcional)</label>
-      <input class="pr-input" id="prNota" placeholder="Ej. Quiere sabatino, es para su hija de 12 años" autocomplete="off">
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="pr-btn pr-btn-gris" style="flex:1;" onclick="prToggleForm(false)">Cancelar</button>
-        <button class="pr-btn pr-btn-verde" style="flex:2;" id="prBtnGuardar" onclick="prGuardarNuevo()">💾 Guardar</button>
-      </div>
-      <div class="pr-msg" id="prFormMsg"></div>
-    </div>
-
-    <div class="pr-seccion">🚦 Mi día</div>
-    <div id="prMiDia"><div class="pr-vacio">Cargando...</div></div>
-
-    <div class="pr-seccion">📋 Todos mis prospectos</div>
-    <input class="pr-input" id="prBuscar" placeholder="🔎 Buscar por nombre o número" oninput="prPintarLista()">
-    <div class="pr-filtros" id="prFiltros"></div>
-    <div id="prLista"></div>
-    <div style="font-size:11px;color:#64748b;text-align:center;margin-top:12px;line-height:1.5;">🛡️ Cada prospecto es tuyo por <span id="prDiasEscudo">15</span> días desde tu último seguimiento. Cada mensaje que mandas desde aquí cuenta como seguimiento.</div>
-  </div>
-</div>
-
 <div class="pr-overlay pr-sub-overlay" id="modalProDetalle" onclick="if(event.target===this)prCerrarDetalle()">
   <div class="pr-box" style="max-width:480px;">
     <button class="pr-cerrar" onclick="prCerrarDetalle()">×</button>
@@ -3133,19 +3162,17 @@ function cargarProspectos() {
 
 function prActualizarBoton() {
   var n = prData ? prData.numeros : null;
-  var badge = document.getElementById('bpBadge'), sub = document.getElementById('bpSub');
-  if (!n || !badge) return;
-  var pendientes = n.hoy + n.rojos;
-  badge.textContent = pendientes;
-  badge.style.display = pendientes ? 'flex' : 'none';
-  if (pendientes) sub.textContent = pendientes + ' por atender hoy' + (n.enMesa ? ' · $' + n.enMesa + ' en la mesa' : '');
-  else if (n.enMesa) sub.textContent = '$' + n.enMesa + ' en la mesa · todo al día ✨';
-  else sub.textContent = n.activos ? n.activos + ' prospectos activos · todo al día ✨' : 'Registra tus candidatos y no pierdas ninguna venta';
+  if (!n) return;
+  var pend = n.hoy + n.rojos;
+  document.getElementById('cvMesa').textContent = '$' + Number(n.enMesa || 0).toLocaleString('es-MX');
+  document.getElementById('cvMesaSub').textContent = n.esperando ? n.esperando + ' esperando pago' : 'nadie esperando pago';
+  document.getElementById('cvPendientes').textContent = pend;
+  document.getElementById('cvPendientesSub').textContent = pend ? 'prospectos hoy' : 'todo al día ✨';
+  var b = document.getElementById('cvBadgeHoy');
+  b.textContent = pend; b.style.display = pend ? 'inline-flex' : 'none';
 }
 
 function abrirProspectos() {
-  document.getElementById('modalProspectos').classList.add('active');
-  document.body.style.overflow = 'hidden';
   if (prData) prPintarTodo();
   else document.getElementById('prMiDia').innerHTML = '<div class="pr-vacio">Cargando...</div>';
   if (!gruposCache.length && typeof gvizJSONP === 'function') {
@@ -3155,16 +3182,13 @@ function abrirProspectos() {
       prLlenarNiveles();
     });
   }
-  cargarProspectos().then(function (d) {
+  return cargarProspectos().then(function (d) {
     if (d) prPintarTodo();
     else if (!prData) document.getElementById('prMiDia').innerHTML = '<div class="pr-vacio">⚠️ No se pudieron cargar tus prospectos. Revisa tu conexión.</div>';
   });
 }
 
-function cerrarProspectos() {
-  document.getElementById('modalProspectos').classList.remove('active');
-  document.body.style.overflow = '';
-}
+function cerrarProspectos() {}   // los prospectos ya viven en el panel (pestañas)
 
 function prNivelesDisponibles() {
   var vistos = {}, lista = [];
@@ -3185,10 +3209,6 @@ function prLlenarNiveles() {
 
 function prPintarTodo() {
   var d = prData, n = d.numeros;
-  document.getElementById('prMesaMonto').textContent = '$' + Number(n.enMesa || 0).toLocaleString('es-MX');
-  document.getElementById('prMesaTxt').textContent = n.esperando
-    ? 'en comisiones por cerrar · ' + n.esperando + ' prospecto' + (n.esperando > 1 ? 's' : '') + ' esperando pago'
-    : 'Pasa a "Esperando pago" a quien ya va a pagar y aquí verás lo que vas a ganar.';
   document.getElementById('prStAltas').textContent = n.altasMes;
   document.getElementById('prStInscritos').textContent = n.inscritosMes;
   document.getElementById('prStConv').textContent = n.conversion + '%';
@@ -3546,6 +3566,173 @@ function prInscribir(id) {
   document.getElementById('ni-whatsapp').value = p.whatsapp;
   if (typeof actualizarPreviewWA === 'function') actualizarPreviewWA('ni-whatsapp');
   prToast('⚡ Datos de ' + prPila(p.nombre) + ' listos. Al inscribirlo pasa solo a 🎓 Inscrito.', '#7c3aed');
+}
+</script>
+
+
+<!-- ══ CENTRO DE VENTAS DEL ASESOR (pestañas) ══════════════════════════ -->
+<style>
+  .cv-resumen { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .cv-card { border-radius: 14px; padding: 12px 12px 10px; cursor: pointer; position: relative; overflow: hidden; transition: transform .15s; }
+  .cv-card:hover { transform: translateY(-1px); }
+  .cv-ganado { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+  .cv-mesa { background: linear-gradient(135deg, #fbbf24, #d97706); color: #451a03; }
+  .cv-hoy { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; }
+  .cv-lbl { font-size: 10.5px; font-weight: 900; letter-spacing: .6px; text-transform: uppercase; opacity: .95; }
+  .cv-monto { font-size: 26px; font-weight: 900; line-height: 1.15; margin: 3px 0 1px; }
+  .cv-sub { font-size: 11px; font-weight: 600; opacity: .92; line-height: 1.35; }
+  .cv-barra { height: 7px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; margin-top: 7px; }
+  .cv-barra > div { height: 100%; width: 0; background: #fde047; border-radius: 999px; transition: width .6s; }
+  .cv-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .cv-tab { position: relative; background: #1e2a4a; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 4px 7px; font-size: 11.5px; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center; }
+  .cv-tab .cv-ico { display: block; font-size: 18px; margin-bottom: 2px; }
+  .cv-tab .cv-badge { position: absolute; top: -6px; right: -4px; margin: 0; }
+  .cv-tab.sel { background: #f97316; border-color: #f97316; color: #fff; box-shadow: 0 4px 14px rgba(249,115,22,0.35); }
+  .cv-badge { display: none; margin-left: 6px; background: #fbbf24; color: #78350f; font-size: 10.5px; font-weight: 900; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; align-items: center; justify-content: center; vertical-align: 1px; }
+  .cv-panel { animation: prEntra .2s ease both; }
+  .cv-alumno { background: #1e2a4a; border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; display: flex; gap: 10px; align-items: center; }
+  .cv-alumno-main { flex: 1; min-width: 0; }
+  .cv-alumno-nombre { font-size: 13.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cv-alumno-info { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  .cv-alumno-acc { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+  .cv-alumno-acc a { font-size: 11.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  @media (max-width: 420px) { .cv-monto { font-size: 21px; } .cv-resumen { gap: 6px; } .cv-card { padding: 10px 9px 9px; } }
+</style>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+//  CENTRO DE VENTAS (oct-2026): resumen (ganado / en la mesa / por atender)
+//  + pestañas Hoy, Prospectos, Mis alumnos y Mis comisiones.
+// ══════════════════════════════════════════════════════════════════════════
+var cvTabActual = 'hoy';
+var cvAlumnosCargados = false;
+var cvComisionesCargadas = false;
+var cvFiltroAlumnos = 'todos';
+
+function cvIniciar() {
+  cvAlumnosCargados = false; cvComisionesCargadas = false;
+  cvPintarGanado();
+  abrirProspectos();
+  cvTab('hoy');
+  cvContarReembolsos();
+}
+
+function cvTab(t) {
+  cvTabActual = t;
+  ['hoy', 'prospectos', 'alumnos', 'comisiones'].forEach(function (k) {
+    document.getElementById('cvPanel-' + k).style.display = k === t ? '' : 'none';
+    document.getElementById('cvTabBtn-' + k).classList.toggle('sel', k === t);
+  });
+  if (t === 'alumnos' && !cvAlumnosCargados) cvCargarAlumnos();
+  if (t === 'comisiones' && !cvComisionesCargadas) cvCargarComisiones();
+}
+
+// ── Ganado esta semana + avance al bono ────────────────────────────────────
+function cvPintarGanado() {
+  if (!asesorData) return;
+  var monto = Number(asesorData.comisionCatorcena) || 0;
+  var ins = Number(asesorData.inscritosCatorcena) || 0;
+  document.getElementById('cvGanado').textContent = '$' + monto.toLocaleString('es-MX');
+  document.getElementById('cvGanadoSub').textContent = ins + ' inscripci' + (ins === 1 ? 'ón' : 'ones') + ' (vie a jue)';
+  var siguiente = Math.floor(ins / 10) * 10 + 10;
+  var faltan = siguiente - ins;
+  var tasa = siguiente >= 30 ? 3 : 2;
+  var bonoEn = tasa * (siguiente / 10);
+  document.getElementById('cvBonoBarra').style.width = ((ins % 10) * 10) + '%';
+  document.getElementById('cvBonoTxt').textContent = ins >= 30
+    ? '🔥 ¡Bono máximo! Faltan ' + faltan + ' para otro bloque'
+    : '🎯 Faltan ' + faltan + ' para bono de +' + bonoEn + ' comisiones';
+}
+
+// ── Mis alumnos ────────────────────────────────────────────────────────────
+var CV_ESTATUS = {
+  'VALIDADO': ['Activo', 'rgba(34,197,94,0.2)', '#86efac'], 'BECADO': ['Becado', 'rgba(167,139,250,0.2)', '#c4b5fd'],
+  'PENDIENTE': ['Pendiente', 'rgba(251,191,36,0.2)', '#fde68a'], 'BAJA': ['Baja', 'rgba(239,68,68,0.18)', '#fca5a5'],
+  'CANCELADO': ['Cancelado', 'rgba(100,116,139,0.25)', '#94a3b8']
+};
+
+function cvCargarAlumnos() {
+  var lista = document.getElementById('ma-lista');
+  lista.innerHTML = '<div class="loading">Cargando...</div>';
+  fetch(APPS_SCRIPT + '?action=getMisAlumnosAsesor&idAsesor=' + encodeURIComponent(asesorData.id))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) { lista.innerHTML = '<div class="pr-vacio">Error al cargar.</div>'; return; }
+      misAlumnosCache = data.alumnos || [];
+      cvAlumnosCargados = true;
+      cvPintarAlumnos();
+    })
+    .catch(function () { lista.innerHTML = '<div class="pr-vacio">Error de conexión.</div>'; });
+}
+
+function cvPintarAlumnos() {
+  var lista = document.getElementById('ma-lista');
+  var todos = misAlumnosCache || [];
+  var cuenta = { todos: todos.length, activos: 0, pendientes: 0, bajas: 0 };
+  todos.forEach(function (a) {
+    var e = String(a.estatus || '').toUpperCase();
+    if (e === 'VALIDADO' || e === 'BECADO') cuenta.activos++;
+    else if (e === 'PENDIENTE') cuenta.pendientes++;
+    else if (e === 'BAJA' || e === 'CANCELADO') cuenta.bajas++;
+  });
+  document.getElementById('cvFiltrosAlumnos').innerHTML = [['todos', 'Todos'], ['activos', '🟢 Activos'], ['pendientes', '🟡 Pendientes'], ['bajas', '🔴 Bajas']].map(function (f) {
+    return '<button class="pr-chip' + (cvFiltroAlumnos === f[0] ? ' sel' : '') + '" onclick="cvFiltroAlumnos=\'' + f[0] + '\';cvPintarAlumnos();">' + f[1] + ' (' + cuenta[f[0]] + ')</button>';
+  }).join('');
+  if (!todos.length) { lista.innerHTML = '<div class="pr-vacio">👤 Aún no has registrado alumnos.</div>'; return; }
+  var q = String(document.getElementById('cvBuscarAlumno').value || '').toLowerCase().trim();
+  var dePros = {};
+  ((prData && prData.prospectos) || []).forEach(function (p) { if (p.idAlumno && p.origen !== 'Directo') dePros[String(p.idAlumno).toUpperCase()] = 1; });
+  var idxs = [];
+  todos.forEach(function (a, idx) {
+    var e = String(a.estatus || '').toUpperCase();
+    if (cvFiltroAlumnos === 'activos' && e !== 'VALIDADO' && e !== 'BECADO') return;
+    if (cvFiltroAlumnos === 'pendientes' && e !== 'PENDIENTE') return;
+    if (cvFiltroAlumnos === 'bajas' && e !== 'BAJA' && e !== 'CANCELADO') return;
+    if (q && (String(a.nombre) + ' ' + a.idAlumno + ' ' + (a.idGrupo || '')).toLowerCase().indexOf(q) < 0) return;
+    idxs.push(idx);
+  });
+  idxs.sort(function (x, y) { return new Date(todos[y].fecha || 0) - new Date(todos[x].fecha || 0); });
+  if (!idxs.length) { lista.innerHTML = '<div class="pr-vacio">Sin alumnos con este filtro.</div>'; return; }
+  lista.innerHTML = idxs.map(function (idx) {
+    var a = todos[idx];
+    var e = CV_ESTATUS[String(a.estatus || '').toUpperCase()] || [a.estatus || '—', 'rgba(148,163,184,0.18)', '#cbd5e1'];
+    var f = a.fecha ? new Date(a.fecha) : null;
+    var fecha = f && !isNaN(f) ? formatFechaDDMMM(f) : '';
+    return '<div class="cv-alumno">' +
+      '<div class="cv-alumno-main">' +
+        '<div class="cv-alumno-nombre">' + prEsc(a.nombre) + (dePros[String(a.idAlumno).toUpperCase()] ? ' <span title="Vino de tus prospectos">📇</span>' : '') + '</div>' +
+        '<div class="cv-alumno-info">' + prEsc(a.idAlumno) + (a.idGrupo ? ' · ' + prEsc(a.idGrupo) : ' · sin grupo') + (fecha ? ' · ' + fecha : '') + '</div>' +
+        '<span class="pr-etapa" style="display:inline-block;margin-top:5px;background:' + e[1] + ';color:' + e[2] + ';">' + prEsc(e[0]) + '</span>' +
+      '</div>' +
+      '<div class="cv-alumno-acc">' +
+        '<a class="ma-fila-editar" onclick="abrirModalEditarAlumno(' + idx + ')">✏️ Editar</a>' +
+        '<a class="ma-fila-reenviar" id="ma-reenviar-' + a.idAlumno + '" onclick="reenviarCorreoDesdeMisAlumnos(\'' + a.idAlumno + '\')">✉️ Reenviar correo</a>' +
+      '</div></div>';
+  }).join('');
+}
+
+// Al guardar la edicion de un alumno, el codigo existente llama a
+// abrirModalMisAlumnos(): ahora solo recarga la pestaña.
+abrirModalMisAlumnos = function () { cvTab('alumnos'); cvCargarAlumnos(); };
+
+// ── Mis comisiones: historico + reembolsos (las funciones de siempre,
+//    pero dibujando en la pestaña en vez de abrir ventanas) ─────────────────
+function cvCargarComisiones() {
+  cvComisionesCargadas = true;
+  abrirHistoricoComisiones();
+  document.getElementById('modalHistoricoComisiones').classList.remove('active');
+  abrirModalReembolsos();
+  document.getElementById('modalReembolsos').classList.remove('active');
+}
+
+function cvContarReembolsos() {
+  fetch(APPS_SCRIPT + '?action=getReembolsosPendientesAsesor&idAsesor=' + encodeURIComponent(asesorData.id))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var n = (data && data.success && data.reembolsos) ? data.reembolsos.length : 0;
+      var b = document.getElementById('cvBadgeReemb');
+      b.textContent = n; b.style.display = n ? 'inline-flex' : 'none';
+    }).catch(function () {});
 }
 </script>
 
