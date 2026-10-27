@@ -2452,9 +2452,10 @@ async function rechazarPago(idAlumno,fila,motivo){
   }
 }
 
-async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin){
+async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin,confirmarDuplicado){
   try{
     let url=`${APPS_SCRIPT}?action=validarPagoAsistente&idAlumno=${encodeURIComponent(idAlumno)}&fechaPago=${encodeURIComponent(fechaPago)}&idAsistente=${encodeURIComponent(asistente.id)}&monto=${encodeURIComponent(monto||0)}`;
+    if(confirmarDuplicado) url += '&confirmarDuplicado=1';
     if(coberturaInicio) url += `&coberturaInicio=${encodeURIComponent(coberturaInicio.toISOString())}`;
     if(coberturaFin)    url += `&coberturaFin=${encodeURIComponent(coberturaFin.toISOString())}`;
     const resp=await fetch(url);
@@ -2468,6 +2469,12 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
       document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
       document.getElementById('modal-notif-pago').classList.add('open');
       await cargarDatos();
+    }
+    else if(data.posibleDuplicado && !confirmarDuplicado){
+      // Pago adicional del mismo dia: la asistente decide (antes era un candado).
+      if (confirm('⚠️ ' + data.mensaje + '\n\n¿Es un pago adicional? Por ejemplo, la semana pagada en dos partes ($60 + $40) o dos semanas pagadas por separado.\n\nAceptar = validarlo también · Cancelar = no validar')) {
+        return validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin,true);
+      }
     }
     else mostrarToast(data.mensaje||'Error al validar','error');
   }catch(e){mostrarToast('Error de conexión','error');}
@@ -3048,8 +3055,20 @@ async function ejecutarValidarCE() {
   btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
   try {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
-    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify({action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),coberturaInicio:cal.inicio.toISOString(),coberturaFin:cal.fin.toISOString(),base64:base64,mimeType:file.type,nombreArchivo:file.name})});
+    var cuerpo={action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),coberturaInicio:cal.inicio.toISOString(),coberturaFin:cal.fin.toISOString(),base64:base64,mimeType:file.type,nombreArchivo:file.name};
+    var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify(cuerpo)});
     var data=await resp.json();
+    // Pago adicional del mismo dia: la asistente decide (antes era un candado).
+    if(!data.success && data.posibleDuplicado){
+      if(!confirm('⚠️ ' + data.error + '\n\n¿Es un pago adicional? Por ejemplo, la semana pagada en dos partes ($60 + $40) o dos semanas pagadas por separado.\n\nAceptar = validarlo también · Cancelar = no validar')){
+        btn.textContent='✓ Validar pago';btn.disabled=false;
+        status.style.display='block';status.style.background='rgba(251,191,36,0.15)';status.style.color='#fbbf24';status.textContent='No se validó. '+data.error;
+        return;
+      }
+      cuerpo.confirmarDuplicado=true;
+      resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify(cuerpo)});
+      data=await resp.json();
+    }
     if(data.success){
       status.style.display='block';status.style.background='rgba(34,197,94,0.12)';status.style.color='#4ade80';status.textContent='✅ Pago validado correctamente.';
       // Recargar datos en segundo plano de una vez, sin esperar a que cierren el modal
