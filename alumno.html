@@ -11599,7 +11599,14 @@ function renderDetalleEvalDerSabatino_(d, cal, diasNombres, colorMap) {
       var lessonNum = (idxSab * 4) + cn;
 
       var cajaHtml = '';
-      if (reg) {
+      if (reg && reg.practica) {
+        cajaHtml =
+          '<div style="background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:8px;padding:8px 4px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" title="Práctica: repaso por cambio de grupo · no cuenta en tu promedio">' +
+            '<div style="font-size:9px;color:#a78bfa;font-weight:700;">C' + cn + '</div>' +
+            '<div style="color:#c4b5fd;font-size:14px;font-weight:900;">P</div>' +
+            '<div style="font-size:8px;color:#a78bfa;">Práctica</div>' +
+          '</div>';
+      } else if (reg) {
         if (!_tieneColor_(reg)) {
           // Falta o sin color → mostrar F
           cajaHtml =
@@ -11718,6 +11725,7 @@ function renderDetalleEvalDer(d) {
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;vertical-align:middle;"></span> Amarillo</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;"></span> Rojo</span>';
   html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#334155;color:#cbd5e1;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">F</span> Falta</span>';
+  html += '<span><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:rgba(139,92,246,0.22);border:1px solid rgba(167,139,250,0.6);color:#c4b5fd;font-size:9px;font-weight:800;border-radius:2px;vertical-align:middle;">P</span> Práctica (repaso, no cuenta)</span>';
   html += '<span><span style="display:inline-block;width:14px;height:14px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);border-radius:2px;vertical-align:middle;"></span> Festivo</span>';
   html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;"></span> Sin clase / pendiente</span>';
   html += '</div>';
@@ -11860,6 +11868,14 @@ function renderDetalleEvalDer(d) {
         yaEmpezó = fechaDiaNorm.getTime() >= fechaReferencia.getTime();
       }
 
+      // Práctica (repaso por cambio de grupo): ni falta ni evaluación
+      if (rec && rec.practica) {
+        html += '<div title="Práctica: repaso por cambio de grupo · no cuenta en tu promedio · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+          '<span style="color:#c4b5fd;font-size:12px;font-weight:900;">P</span>' +
+          '<span style="color:#a78bfa;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
+        '</div>';
+        continue;
+      }
       // Si hay registro → mostrar color o F
       if (rec) {
         if (!_tieneColor_(rec)) {
