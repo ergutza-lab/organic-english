@@ -11704,8 +11704,33 @@ function renderDetalleEvalDer(d) {
     '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
     '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia', esBandera: true },
     '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
+    '11-16': { emoji: '🇲🇽', nombre: 'Día de la Revolución', esBandera: true },
     '12-25': { emoji: '🎄', nombre: 'Navidad' }
   };
+
+  // Burbuja con el detalle de la casilla (celular: al tocar)
+  if (!window._infoCelda_) {
+    window._infoCelda_ = function (el) {
+      var t = el.getAttribute('data-tip') || el.getAttribute('title') || '';
+      if (!t) return;
+      var b = document.getElementById('burbujaCelda');
+      if (!b) {
+        b = document.createElement('div'); b.id = 'burbujaCelda';
+        b.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:88vw;background:#0f172a;color:#f1f5f9;border:1.5px solid #60a5fa;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.45;white-space:pre-line;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,0.5);';
+        document.body.appendChild(b);
+      }
+      b.textContent = t; b.style.display = 'block';
+      clearTimeout(window._tmBurbuja_);
+      window._tmBurbuja_ = setTimeout(function(){ b.style.display = 'none'; }, 4000);
+    };
+  }
+  function _fechaCortaAl_(iso) {
+    if (!iso) return '';
+    var p = String(iso).substring(0, 10).split('-');
+    var f = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (isNaN(f.getTime())) return String(iso);
+    return ['dom','lun','mar','mié','jue','vie','sáb'][f.getDay()] + ' ' + f.getDate() + ' ' + mesCortoAl_(f);
+  }
 
   function mesCortoAl_(fecha) {
     if (!fecha) return '';
@@ -11842,6 +11867,19 @@ function renderDetalleEvalDer(d) {
         continue;
       }
 
+      // ── LECCIÓN de esta casilla + detalle (mouse / toque) ──
+      var lecIni = esSabatino2 ? (offsetSemanasAl * 4 + (s - 1) * 4 + 1) : (offsetSemanasAl * 4 + (s - 1) * 4 + di + 1);
+      var etqLec = esSabatino2
+        ? ('Lecciones ' + ((lecIni - 1) % 32 + 1) + ' a ' + ((lecIni - 1) % 32 + 4))
+        : ('Lección ' + ((lecIni - 1) % 32 + 1));
+      var progIso = fechaDia ? (fechaDia.getFullYear() + '-' + String(fechaDia.getMonth()+1).padStart(2,'0') + '-' + String(fechaDia.getDate()).padStart(2,'0')) : '';
+      var tipTxt = etqLec + ' · Bloque ' + bloqueActualAl +
+        '\nProgramada: ' + _fechaCortaAl_(progIso) + (esFestivo ? ' (' + festivoInfo.nombre + ')' : '') +
+        (rec && rec.fecha ? '\nEvaluada: ' + _fechaCortaAl_(rec.fecha) : '') +
+        (rec ? (rec.practica ? ' · Práctica (no cuenta)' : (!_tieneColor_(rec) ? ' · Falta' : ' · ' + ({1:'🔴 Rojo',2:'🟡 Amarillo',3:'🟢 Verde',4:'🔵 Azul'}[rec.color] || ''))) : '') +
+        (rec && _esRecup_(rec) ? ' · recuperada' : '');
+      var tipA = ' data-tip="' + tipTxt.replace(/"/g, '&quot;') + '" title="' + tipTxt.replace(/"/g, '&quot;') + '" onclick="_infoCelda_(this)" ';
+
       if (esFestivo) {
         var iconoHtml;
         if (festivoInfo.esBandera) {
@@ -11849,9 +11887,12 @@ function renderDetalleEvalDer(d) {
         } else {
           iconoHtml = '<span style="font-size:14px;line-height:1;">' + festivoInfo.emoji + '</span>';
         }
-        html += '<div title="' + festivoInfo.nombre + ' · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+        var bgF = 'linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05))', txF = '#93c5fd';
+        if (rec && !rec.practica && _tieneColor_(rec)) { bgF = colorMap[rec.color] || '#94a3b8'; txF = 'rgba(255,255,255,0.9)'; }
+        else if (rec && !rec.practica) { bgF = '#334155'; txF = '#cbd5e1'; }
+        html += '<div' + tipA + 'style="cursor:pointer;flex:1;height:34px;background:' + bgF + ';border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
           iconoHtml +
-          '<span style="font-size:7px;color:#93c5fd;font-weight:700;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
+          '<span style="font-size:7px;color:' + txF + ';font-weight:700;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
         '</div>';
         continue;
       }
@@ -11870,7 +11911,7 @@ function renderDetalleEvalDer(d) {
 
       // Práctica (repaso por cambio de grupo): ni falta ni evaluación
       if (rec && rec.practica) {
-        html += '<div title="Práctica: repaso por cambio de grupo · no cuenta en tu promedio · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+        html += '<div' + tipA + 'style="cursor:pointer;flex:1;height:34px;background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
           '<span style="color:#c4b5fd;font-size:12px;font-weight:900;">P</span>' +
           '<span style="color:#a78bfa;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
         '</div>';
@@ -11879,7 +11920,7 @@ function renderDetalleEvalDer(d) {
       // Si hay registro → mostrar color o F
       if (rec) {
         if (!_tieneColor_(rec)) {
-          html += '<div title="' + (rec.fecha || '') + ' · Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+          html += '<div' + tipA + 'style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
             '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
             '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
           '</div>';
@@ -11888,7 +11929,7 @@ function renderDetalleEvalDer(d) {
           var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
           var marcaR = _esRecup_(rec) ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
           var tooltipR = _esRecup_(rec) ? ' · recuperada' : '';
-          html += '<div title="' + (rec.fecha || '') + ' · ' + labelCol + tooltipR + ' · ' + diaNum + ' ' + mesStr + '" style="position:relative;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+          html += '<div' + tipA + 'style="cursor:pointer;position:relative;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
             marcaR +
             '<span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span>' +
             '<span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span>' +
@@ -11917,7 +11958,7 @@ function renderDetalleEvalDer(d) {
         '</div>';
       } else {
         // Día de clase pasado con maestro activo → F real
-        html += '<div title="Falta · ' + diaNum + ' ' + mesStr + '" style="flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
+        html += '<div' + tipA + 'style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' +
           '<span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span>' +
           '<span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span>' +
         '</div>';
