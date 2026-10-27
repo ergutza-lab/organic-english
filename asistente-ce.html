@@ -2095,6 +2095,48 @@ var calendarios = {};
 function calLunesDe(d){var x=new Date(d);x.setHours(0,0,0,0);var dia=x.getDay();x.setDate(x.getDate()-(dia===0?6:dia-1));return x;}
 function calJuevesDe(lunes){var j=new Date(lunes);j.setDate(j.getDate()+3);return j;}
 
+
+// ═══ SABATINOS: solo se marca el/los sábado(s) que cubre el pago ═══
+var PRECIO_SABADO = 100;
+var CAL_MONTO_INPUT = {'cal-comp':'input-monto-validar','cal-ce':'validar-ce-monto'};
+function _calEsSab_(st){ return !!st && (st.sabatino === true || st.tipoHorario === 'sabado'); }
+function _calSabados_(st){ return Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1; }
+function _calMontoDe_(containerId){
+  var id = CAL_MONTO_INPUT[containerId]; var el = id ? document.getElementById(id) : null;
+  return el ? (Number(el.value) || 0) : 0;
+}
+function _calMaxSabados_(monto){ return monto > 0 ? Math.max(1, Math.ceil(monto / PRECIO_SABADO - 0.001)) : 0; }
+function calValidarSabatino(containerId){
+  var st = calendarios[containerId];
+  if (!_calEsSab_(st) || !st.inicio || !st.fin) return '';
+  var monto = _calMontoDe_(containerId), max = _calMaxSabados_(monto), sab = _calSabados_(st);
+  if (max && sab > max) {
+    return 'Con $' + monto + ' se cubre' + (max > 1 ? 'n ' + max + ' sábados' : ' 1 sábado') + ' y marcaste ' + sab +
+           '. Marca SOLO el/los sábado(s) que cubre el pago: el sistema agrega los días de gracia.';
+  }
+  return '';
+}
+function _calResumenSab_(containerId, st){
+  if (!st.inicio || !st.fin) {
+    return '📅 Toca SOLO el sábado que cubre este pago (si cubre varios, toca el primero y luego el último).' +
+           '<br><span style="color:#a5b4fc;font-weight:600;">✨ No marques semanas extra: el sistema agrega los días de gracia.</span>';
+  }
+  var sab = _calSabados_(st);
+  var acceso = new Date(st.fin); acceso.setDate(acceso.getDate() + 7);
+  var txt = 'Cubre el ' + calFormatoCorto(st.inicio) + (st.fin.getTime() !== st.inicio.getTime() ? ' al ' + calFormatoCorto(st.fin) : '') +
+            ' (' + sab + ' sábado' + (sab !== 1 ? 's' : '') + ')' +
+            '<br><span style="color:#4ade80;font-weight:600;">✅ Acceso hasta el sáb ' + calFormatoCorto(acceso) + ', 3:00 PM (incluye la gracia)</span>';
+  var err = calValidarSabatino(containerId);
+  if (err) txt += '<br><span style="color:#f87171;">⛔ ' + err + '</span>';
+  return txt;
+}
+document.addEventListener('input', function(e){
+  if (!e.target || !e.target.id) return;
+  Object.keys(CAL_MONTO_INPUT).forEach(function(k){
+    if (CAL_MONTO_INPUT[k] === e.target.id && calendarios[k] && _calEsSab_(calendarios[k])) calRender(k);
+  });
+});
+
 function calInit(containerId, esSabatino){
   calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0, sabatino: !!esSabatino };
   calRender(containerId);
@@ -2185,7 +2227,9 @@ function calRender(containerId){
   html += '</div>';
 
   var resumen = 'Toca cualquier día lunes a jueves para elegir la semana que cubre el pago.';
-  if (st.inicio && st.fin) {
+  if (st.sabatino) {
+    resumen = _calResumenSab_(containerId, st);
+  } else if (st.inicio && st.fin) {
     var semanas = Math.round((st.fin - st.inicio) / (7*24*60*60*1000)) + 1;
     resumen = 'Cubre del ' + calFormatoCorto(st.inicio) + ' al ' + calFormatoCorto(st.fin) + ' ('+semanas+' semana'+(semanas!==1?'s':'')+')';
   }
@@ -2420,6 +2464,8 @@ async function validarDesdeModal(){
     mostrarToast('Selecciona la semana (o semanas) que cubre este pago','error');
     return;
   }
+  var errSabComp = calValidarSabatino('cal-comp');
+  if (errSabComp) { mostrarToast(errSabComp,'error'); return; }
   await validarPago(pagoActivoId,pagoActivoFecha,Number(monto),cal.inicio,cal.fin);
   cerrarModalComp();
 }
@@ -3052,6 +3098,8 @@ async function ejecutarValidarCE() {
   if (!file){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona el comprobante.';return;}
   var cal = calendarios['cal-ce'];
   if (!cal || !cal.inicio || !cal.fin){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona la semana (o semanas) que cubre este pago.';return;}
+  var errSabCE = calValidarSabatino('cal-ce');
+  if (errSabCE){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='⛔ '+errSabCE;return;}
   btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
   try {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
