@@ -550,6 +550,14 @@
           <label>Fecha de clase:</label>
           <input type="date" id="fechaClase" onchange="actualizarEstadoFecha(this.value)" />
         </div>
+        <div id="filaLeccion" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(168,85,247,0.14));border:1.5px solid rgba(96,165,250,0.5);border-radius:12px;padding:10px 12px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="font-size:22px;">📘</span>
+            <label for="leccionClase" style="font-size:13px;font-weight:800;color:#e0e7ff;">Lección que vas a evaluar:</label>
+            <select id="leccionClase" onchange="actualizarAvisoLeccion()" style="flex:1;min-width:190px;background:#0f172a;color:#fff;border:1px solid rgba(96,165,250,0.6);border-radius:8px;padding:8px 10px;font-size:14px;font-weight:700;"></select>
+          </div>
+          <div id="avisoLeccion" style="font-size:11px;color:#bfdbfe;margin-top:6px;"></div>
+        </div>
         <div id="avisoFecha" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 12px;color:#f87171;font-size:12px;margin-bottom:12px;"></div>
         <div class="leyenda" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
           <div class="ley-item" style="color:#fca5a5;flex-direction:column;align-items:center;text-align:center;">
@@ -712,6 +720,92 @@ var _linksVideo = {1:{},2:{}};
   var modalAbierto = false;
   var fechasRegistradas = [];
   var clasesPorFechaActual = {};
+  var leccionesEvaluadas = {};   // { pos(1..64): 'yyyy-MM-dd' }
+  var leccionesPorFecha  = {};   // { 'yyyy-MM-dd': [pos,...] }
+
+  // ── LECCIÓN AMARRADA: utilidades ──
+  function _etqLeccion_(pos) {
+    pos = parseInt(pos, 10) || 0;
+    return 'Lección ' + (pos > 32 ? pos - 32 : pos) + ' · Bloque ' + (pos > 32 ? 2 : 1);
+  }
+  function _fechaCorta_(iso) {
+    if (!iso) return '';
+    var p = String(iso).substring(0, 10).split('-');
+    var f = new Date(+p[0], +p[1] - 1, +p[2]);
+    return ['dom','lun','mar','mié','jue','vie','sáb'][f.getDay()] + ' ' + f.getDate() + ' ' +
+           ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][f.getMonth()];
+  }
+  function _maxLeccionEvaluada_() {
+    var m = 0;
+    Object.keys(leccionesEvaluadas).forEach(function(k){ m = Math.max(m, parseInt(k, 10) || 0); });
+    return m;
+  }
+  // Lección que marca el CALENDARIO del grupo para una fecha (lun-jue desde el inicio)
+  function _posCalendarioFecha_(fechaIso) {
+    if (!grupoActual || !grupoActual.fechaInicio || !fechaIso) return 0;
+    var ini = _parseFechaLocal_(grupoActual.fechaInicio);
+    var p = String(fechaIso).substring(0, 10).split('-');
+    var f = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (!ini || isNaN(ini.getTime()) || isNaN(f.getTime())) return 0;
+    ini = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
+    if (f < ini) return 0;
+    var n = 0, d = new Date(ini);
+    while (d <= f) { var w = d.getDay(); if (w >= 1 && w <= 4) n++; d.setDate(d.getDate() + 1); }
+    return Math.min(64, n);
+  }
+  function _fechaRegistroSel_() {
+    var el = document.getElementById('fechaClase');
+    return el ? el.value : '';
+  }
+  function poblarSelectorLeccion() {
+    var fila = document.getElementById('filaLeccion');
+    var sel  = document.getElementById('leccionClase');
+    if (!fila || !sel) return;
+    var esSab = grupoActual && grupoActual.tipoHorario === 'sabado';
+    if (esSab) { fila.style.display = 'none'; return; }
+    fila.style.display = 'block';
+    var max = _maxLeccionEvaluada_();
+    var cal = _posCalendarioFecha_(_fechaRegistroSel_());
+    var sugerida = 0;
+    if (cal > 0) {
+      // La lección más antigua sin evaluar de la semana, sin pasar la que marca el calendario
+      for (var q = Math.max(1, cal - 4); q <= cal; q++) { if (!leccionesEvaluadas[q]) { sugerida = q; break; } }
+    }
+    if (!sugerida) sugerida = Math.min(64, max + 1);
+    var html = '';
+    for (var p = 1; p <= 64; p++) {
+      var ev = leccionesEvaluadas[p];
+      html += '<option value="' + p + '"' + (ev ? ' disabled' : '') + (p === sugerida ? ' selected' : '') + '>' +
+              (ev ? '✅ ' : (p === sugerida ? '👉 ' : '')) + _etqLeccion_(p) +
+              (ev ? ' — evaluada ' + _fechaCorta_(ev) : '') + '</option>';
+    }
+    sel.innerHTML = html;
+    actualizarAvisoLeccion();
+  }
+  function actualizarAvisoLeccion() {
+    var sel = document.getElementById('leccionClase');
+    var av  = document.getElementById('avisoLeccion');
+    if (!sel || !av) return;
+    var pos = parseInt(sel.value, 10) || 0;
+    var fechaSel = _fechaRegistroSel_();
+    var cal = _posCalendarioFecha_(fechaSel);
+    var base = cal ? '📅 Según el inicio del grupo, el <b>' + _fechaCorta_(fechaSel) + '</b> corresponde la <b>' + _etqLeccion_(cal) + '</b>.<br>' : '';
+    var faltan = [];
+    for (var p = Math.max(1, pos - 4); p < pos; p++) if (!leccionesEvaluadas[p]) faltan.push(p);
+    if (cal && pos > cal) {
+      av.style.color = '#fca5a5';
+      av.innerHTML = base + '⛔ La lección elegida va <b>adelantada</b> al calendario del grupo. Revisa antes de guardar.';
+    } else if (cal && pos < cal - 4) {
+      av.style.color = '#fde047';
+      av.innerHTML = base + '⚠️ La lección elegida está <b>atrasada</b> respecto al calendario del grupo. Revisa antes de guardar.';
+    } else if (faltan.length) {
+      av.style.color = '#fde047';
+      av.innerHTML = base + '⚠️ Antes de esta lección falta evaluar: <b>' + faltan.map(function(x){ return 'L' + (x > 32 ? x - 32 : x); }).join(', ') + '</b>.';
+    } else {
+      av.style.color = '#bfdbfe';
+      av.innerHTML = base + 'En semanas con día festivo registra las 4 lecciones aunque solo hayan sido 3 días (puedes registrar 2 lecciones el mismo día).';
+    }
+  }
 
   const COLORES_EVAL = [
     { val:1, emoji:'🔴', label:'Mejorable', color:'#ef4444' },
@@ -1670,6 +1764,8 @@ function renderPatronMaestro(patron) {
     var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
     document.getElementById('fechaClase').value=hoyStr;
     fechasRegistradas=[];
+    leccionesEvaluadas={}; leccionesPorFecha={};
+    var _filaLec = document.getElementById('filaLeccion'); if (_filaLec) _filaLec.style.display='none';
 
     // VELOCIDAD: los links de Zoom y WhatsApp ya vienen en los datos del
     // maestro; los botones quedan listos sin esperar el mapa del grupo.
@@ -1687,6 +1783,9 @@ function renderPatronMaestro(patron) {
         if(d.success) {
           fechasRegistradas=d.fechas||[];
           clasesPorFechaActual=d.clasesPorFecha||{};
+          leccionesEvaluadas=d.leccionesEvaluadas||{};
+          leccionesPorFecha=d.leccionesPorFecha||{};
+          poblarSelectorLeccion();
           actualizarEstadoFecha(hoyStr);
         }
       });
@@ -1713,6 +1812,7 @@ function siguienteClaseDisponible(fechaStr) {
 }
 
 function actualizarEstadoFecha(fechaStr) {
+    try { if (Object.keys(leccionesEvaluadas).length || fechasRegistradas.length) poblarSelectorLeccion(); } catch (eSel) {}
     var input = document.getElementById('fechaClase');
     var aviso = document.getElementById('avisoFecha');
     var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
@@ -1759,7 +1859,9 @@ function actualizarEstadoFecha(fechaStr) {
       input.style.borderColor = '#ef4444';
       if (aviso) {
         aviso.style.display='block'; aviso.style.color='';
-        aviso.innerHTML = '⚠️ Esta fecha ya tiene registro. Selecciona otra fecha.'
+        var lecsDia = (leccionesPorFecha[fechaStr] || []).map(function(p){ return _etqLeccion_(p); }).join(', ');
+        aviso.innerHTML = '⚠️ Este día ya tiene registrada: <b>' + (lecsDia || 'una clase') + '</b>.'
+          + '<div style="margin-top:6px;color:#bfdbfe;">Si es <b>semana con día festivo</b>, elige la siguiente lección arriba y guarda: puedes registrar 2 lecciones el mismo día.</div>'
           + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(239,68,68,0.25);color:#fecaca;">'
           + '¿O quieres <b>borrar todos los registros de este día</b> para volver a evaluar a los alumnos?'
           + '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">'
@@ -2300,7 +2402,19 @@ function guardarRegistroSabatinoMasivo() {
       claseNum = siguienteClaseDisponible(fecha);
       if (claseNum === null) { mostrarToast('Ya se registraron las 4 clases de este sábado','error'); return; }
     } else {
-      if (fechasRegistradas.indexOf(fecha) !== -1) { mostrarToast('Esta fecha ya tiene registro','error'); return; }
+      var _sel = document.getElementById('leccionClase');
+      var leccionSel = _sel ? (parseInt(_sel.value, 10) || 0) : 0;
+      if (!leccionSel) { mostrarToast('Selecciona la lección que vas a evaluar','error'); return; }
+      if (leccionesEvaluadas[leccionSel]) { mostrarToast(_etqLeccion_(leccionSel) + ' ya fue evaluada. Elige otra.','error'); return; }
+      var lecsMismoDia = leccionesPorFecha[fecha] || [];
+      if (lecsMismoDia.length >= 2) { mostrarToast('Este día ya tiene 2 lecciones registradas','error'); return; }
+      var _max = _maxLeccionEvaluada_();
+      var msgConf = '¿Confirmas que vas a evaluar la ' + _etqLeccion_(leccionSel) + ' el ' + _fechaCorta_(fecha) + '?';
+      if (lecsMismoDia.length) msgConf += '\n\nEste día ya tiene la ' + _etqLeccion_(lecsMismoDia[0]) + '. Solo registra 2 lecciones el mismo día en semanas con día festivo.';
+      var _cal = _posCalendarioFecha_(fecha);
+      if (_cal && leccionSel > _cal) msgConf += '\n\n⛔ OJO: según el inicio del grupo, este día corresponde la ' + _etqLeccion_(_cal) + '. La lección elegida va ADELANTADA.';
+      else if (leccionSel > _max + 1) msgConf += '\n\n⚠️ Te estás saltando lecciones: la última evaluada es la ' + (_max ? _etqLeccion_(_max) : 'ninguna') + '.';
+      if (!confirm(msgConf)) return;
     }
 
     var alumnos=grupoActual.alumnos||[];
@@ -2336,6 +2450,8 @@ function guardarRegistroSabatinoMasivo() {
     fetch(APPS_SCRIPT+'?action=registrarDia&idGrupo='+encodeURIComponent(grupoActual.id)+
       '&fecha='+encodeURIComponent(fecha)+'&bloque='+bw.bloque+'&semana='+bw.semana+
       '&claseNum='+claseNum+
+      (esSabatino ? '' : '&leccion='+leccionSel)+
+      '&idMaestro='+encodeURIComponent(maestroData ? maestroData.id : '')+
       '&registros='+encodeURIComponent(JSON.stringify(registros)))
       .then(r=>r.json())
       .then(data=>{
@@ -2353,8 +2469,13 @@ function guardarRegistroSabatinoMasivo() {
               limpiarRegistro();
             }
           } else {
-            mostrarToast('Registro guardado correctamente','success');
+            leccionesEvaluadas[leccionSel] = fecha;
+            if (!leccionesPorFecha[fecha]) leccionesPorFecha[fecha] = [];
+            leccionesPorFecha[fecha].push(leccionSel);
+            mostrarToast('✅ ' + _etqLeccion_(leccionSel) + ' guardada (' + _fechaCorta_(fecha) + ')','success');
             limpiarRegistro();
+            poblarSelectorLeccion();
+            if (grupoActual) { grupoActual._mapaData = null; grupoActual._mapaPromise = null; }
           }
         }
         else mostrarToast('Error: '+data.error,'error');
@@ -4541,6 +4662,7 @@ function renderDetalleEvalDer(d) {
     '05-01': { emoji: '👷', nombre: 'Día del Trabajo' },
     '09-16': { emoji: '🇲🇽', nombre: 'Día de la Independencia', esBandera: true },
     '11-02': { emoji: '💀', nombre: 'Día de Muertos' },
+    '11-16': { emoji: '🇲🇽', nombre: 'Día de la Revolución', esBandera: true },
     '12-25': { emoji: '🎄', nombre: 'Navidad' }
   };
   function mesCortoAl_(f) { if (!f) return ''; return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][f.getMonth()]; }
@@ -4621,11 +4743,28 @@ function renderDetalleEvalDer(d) {
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);"></div>';
         continue;
       }
+      // ── LECCIÓN de esta casilla (fija, nunca se recorre) ──
+      var posCel = offsetSemanasAl * 4 + (s - 1) * 4 + di + 1;
+      var etqCel = _etqLeccion_(posCel);
+      var progCel = fechaDia ? _fechaCorta_(fechaDia.getFullYear() + '-' + String(fechaDia.getMonth()+1).padStart(2,'0') + '-' + String(fechaDia.getDate()).padStart(2,'0')) : '';
+      var tipCel = etqCel + '\nProgramada: ' + progCel + (esFest ? ' (' + festInfo.nombre + ')' : '') +
+        (rec && rec.fecha ? '\nEvaluada: ' + _fechaCorta_(rec.fecha) : '\nSin evaluación') +
+        (rec && !rec.practica ? (rec.asistio === false || rec.color == null ? ' · Falta' : ' · ' + ({1:'🔴 Rojo',2:'🟡 Amarillo',3:'🟢 Verde',4:'🔵 Azul'}[rec.color] || '')) : '') +
+        (rec && rec.esRecuperacion ? ' · recuperada' : '') + '\nToca para editar';
+      var _idAlFest = (alumnoData && alumnoData.alumno && alumnoData.alumno.id) ? alumnoData.alumno.id : ((d.alumno && d.alumno.id) ? d.alumno.id : '');
+      var fechaClickFest = (rec && rec.fecha) ? String(rec.fecha).substring(0,10) : (fechaDia ? (fechaDia.getFullYear() + '-' + String(fechaDia.getMonth()+1).padStart(2,'0') + '-' + String(fechaDia.getDate()).padStart(2,'0')) : '');
+
       if (esFest) {
         var ic = festInfo.esBandera
           ? '<img src="https://flagcdn.com/w40/mx.png" alt="MX" style="width:22px;height:14px;border-radius:2px;display:block;" />'
           : '<span style="font-size:14px;line-height:1;">' + festInfo.emoji + '</span>';
-        html += '<div title="' + festInfo.nombre + '" style="flex:1;height:34px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;">' + ic + '<span style="font-size:7px;color:#93c5fd;font-weight:700;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        var clickFest = "abrirModalEditarEval('" + _idAlFest + "','" + fechaClickFest + "',1," + s + "," + bloqueActualAl + ",false," +
+          ((rec && rec.color) || 'null') + "," + (rec && rec.asistio !== false ? 'true' : 'false') + ",'" + String((rec && rec.observacion) || '').replace(/'/g, "\\'") + "'," + posCel + ")";
+        var bgFest, txtFest;
+        if (rec && !rec.practica && rec.asistio !== false && rec.color != null) { bgFest = colorMap[rec.color] || '#94a3b8'; txtFest = 'rgba(255,255,255,0.9)'; }
+        else if (rec && !rec.practica) { bgFest = '#334155'; txtFest = '#cbd5e1'; }
+        else { bgFest = 'linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05))'; txtFest = '#93c5fd'; }
+        html += '<div onclick="' + clickFest + '" title="' + tipCel.replace(/"/g, '&quot;') + '" style="cursor:pointer;flex:1;height:34px;background:' + bgFest + ';border:1px solid rgba(59,130,246,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.2);">' + ic + '<span style="font-size:7px;color:' + txtFest + ';font-weight:700;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
         continue;
       }
 
@@ -4642,21 +4781,23 @@ function renderDetalleEvalDer(d) {
       var fechaCelISO = fechaDia ? (fechaDia.getFullYear() + '-' + String(fechaDia.getMonth()+1).padStart(2,'0') + '-' + String(fechaDia.getDate()).padStart(2,'0')) : '';
       var _idAlumnoCel = (alumnoData && alumnoData.alumno && alumnoData.alumno.id) ? alumnoData.alumno.id : ((d.alumno && d.alumno.id) ? d.alumno.id : ''); // ✅ FIX 2
       var claseCel = (rec && rec.claseNum) ? rec.claseNum : 1;   // entre semana: 1 clase por dia (antes mandaba la posicion del dia)
-      var clickCel = "abrirModalEditarEval('" + _idAlumnoCel + "','" + fechaCelISO + "'," + claseCel + "," + s + "," + bloqueActualAl + ",false," + (colorVal || 'null') + "," + (asistioVal ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "')";
+      var fechaClickCel = (rec && rec.fecha) ? String(rec.fecha).substring(0,10) : fechaCelISO;
+      var clickCel = "abrirModalEditarEval('" + _idAlumnoCel + "','" + fechaClickCel + "'," + claseCel + "," + s + "," + bloqueActualAl + ",false," + (colorVal || 'null') + "," + (asistioVal ? 'true' : 'false') + ",'" + String(obsVal).replace(/'/g, "\\'") + "'," + posCel + ")";
+      var tipAttr = tipCel.replace(/"/g, '&quot;');
 
       if (rec && rec.practica) {
-        html += '<div onclick="' + clickCel + '" title="Práctica (repaso por cambio de grupo) · no cuenta en el promedio · Si esta clase SÍ debía evaluarse, tócala para ponerle su color" style="cursor:pointer;flex:1;height:34px;background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#c4b5fd;font-size:12px;font-weight:900;">P</span><span style="color:#a78bfa;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        html += '<div onclick="' + clickCel + '" title="' + tipAttr + '&#10;Práctica (repaso) · no cuenta en el promedio" style="cursor:pointer;flex:1;height:34px;background:rgba(139,92,246,0.22);border:1.5px solid rgba(167,139,250,0.6);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#c4b5fd;font-size:12px;font-weight:900;">P</span><span style="color:#a78bfa;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
         continue;
       }
       if (rec) {
         if (rec.asistio === false || rec.color == null) {
-          html += '<div onclick="' + clickCel + '" title="Falta · Toca para editar" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+          html += '<div onclick="' + clickCel + '" title="' + tipAttr + '" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
         } else {
           var col = colorMap[rec.color] || '#94a3b8';
           var labelCol = { 1: 'Rojo', 2: 'Amarillo', 3: 'Verde', 4: 'Azul' }[rec.color] || '';
           var marcaR = rec.esRecuperacion ? '<span style="position:absolute;top:1px;right:2px;font-size:10px;font-weight:900;color:#000;background:#fbbf24;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.5);border:1.5px solid #fff;">r</span>' : '';
           var tooltipR = rec.esRecuperacion ? ' · recuperada' : '';
-          html += '<div onclick="' + clickCel + '" title="' + (rec.fecha || '') + ' · ' + labelCol + tooltipR + ' · Toca para editar" style="position:relative;cursor:pointer;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
+          html += '<div onclick="' + clickCel + '" title="' + tipAttr + '" style="position:relative;cursor:pointer;flex:1;height:34px;background:' + col + ';border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.25);">' +
             marcaR +
             '<span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:800;">' + diaNum + '</span>' +
             '<span style="color:rgba(255,255,255,0.7);font-size:7px;margin-top:1px;">' + mesStr + '</span>' +
@@ -4669,7 +4810,7 @@ function renderDetalleEvalDer(d) {
       } else if (!yaEmpezó) {
         html += '<div style="flex:1;height:34px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#475569;font-size:10px;">' + diaNum + '</span><span style="color:#334155;font-size:7px;">' + mesStr + '</span></div>';
       } else {
-        html += '<div onclick="' + clickCel + '" title="Toca para registrar evaluación" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
+        html += '<div onclick="' + clickCel + '" title="' + tipAttr + '" style="cursor:pointer;flex:1;height:34px;background:#334155;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;"><span style="color:#cbd5e1;font-size:12px;font-weight:900;">F</span><span style="color:#94a3b8;font-size:7px;margin-top:1px;">' + diaNum + ' ' + mesStr + '</span></div>';
       }
     }
     html += '</div>';
@@ -4873,7 +5014,7 @@ function abrirDetalleEvalMaestro(idAlumno) {
 // ═══════════════════════════════════════════════════════════════════════
 var _editEvalCtx = null;   // { idAlumno, idGrupo, fecha, claseNum, semana, bloque, esSabatino, valorSel }
 
-function abrirModalEditarEval(idAlumno, fechaISO, claseNum, semana, bloque, esSabatino, colorActual, asistio, obsActual) {
+function abrirModalEditarEval(idAlumno, fechaISO, claseNum, semana, bloque, esSabatino, colorActual, asistio, obsActual, leccion) {
   // Si no hay fecha válida, no hacemos nada (día no evaluable)
   if (!fechaISO) {
     mostrarToast('Esta clase aún no tiene fecha asignada', 'error');
@@ -4888,6 +5029,7 @@ function abrirModalEditarEval(idAlumno, fechaISO, claseNum, semana, bloque, esSa
     semana: semana,
     bloque: bloque,
     esSabatino: !!esSabatino,
+    leccion: parseInt(leccion, 10) || 0,
     valorSel: null
   };
 
@@ -4897,7 +5039,7 @@ function abrirModalEditarEval(idAlumno, fechaISO, claseNum, semana, bloque, esSa
     ? f.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][f.getMonth()] + ' ' + f.getFullYear()
     : fechaISO;
 
-  document.getElementById('editarEvalSub').textContent = fechaBonita + ' · Clase ' + claseNum + ' · Semana ' + semana;
+  document.getElementById('editarEvalSub').textContent = (parseInt(leccion, 10) ? _etqLeccion_(leccion) + ' · ' : '') + fechaBonita + (parseInt(leccion, 10) ? '' : ' · Clase ' + claseNum) + ' · Semana ' + semana;
 
   // Pintar estado actual
   var actual = '';
@@ -4977,6 +5119,7 @@ function guardarEdicionEval() {
     + '&color='       + color
     + '&observacion=' + encodeURIComponent(obs)
     + '&esSabatino='  + (ctx.esSabatino ? 'true' : 'false')
+    + (ctx.leccion ? '&leccion=' + ctx.leccion : '')
     + '&idMaestro='   + encodeURIComponent(maestroData ? maestroData.id : '');
 
   fetch(url, { redirect: 'follow' })
@@ -4993,6 +5136,10 @@ function guardarEdicionEval() {
 
       status.style.color = '#4ade80';
       status.textContent = '✅ Evaluación actualizada';
+      if (ctx.leccion && !ctx.esSabatino && !leccionesEvaluadas[ctx.leccion]) {
+        leccionesEvaluadas[ctx.leccion] = ctx.fecha;
+        poblarSelectorLeccion();
+      }
 
       // Refrescar el detalle (recargar el modal sin cerrarlo)
       var alumnoId = ctx.idAlumno;
