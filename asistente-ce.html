@@ -403,6 +403,7 @@
     <div class="tab" onclick="cambiarTab('ausencias',this)">🚨 Inasistencias <span class="tab-badge cero" id="badge-ausencias">0</span></div>
     <div class="tab" onclick="cambiarTab('bajas',this)">Bajas <span class="tab-badge cero" id="badge-bajas">0</span></div>
     <div class="tab" onclick="cambiarTab('cambios',this)">Cambios de Grupo</div>
+    <div class="tab" onclick="cambiarTab('tramites',this);tramInit();">🧾 Trámites</div>
   </div>
 
   <div class="content">
@@ -450,6 +451,32 @@
       <div class="sec-header"><h2 class="sec-title">Alumnos dados de baja</h2></div>
       <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">Solo de tus grupos. Si un alumno te manda su comprobante para reactivarse, valida su pago aquí — se reactiva y se le manda su correo automáticamente.</p>
       <div id="lista-bajas"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
+    </div>
+
+    <div id="sec-tramites" class="section">
+      <div class="sec-header"><h2 class="sec-title">🧾 Trámites y pagos especiales</h2></div>
+      <div style="background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(59,130,246,0.12));border:1.5px solid rgba(167,139,250,0.45);border-radius:16px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:12px;color:#c4b5fd;margin-bottom:12px;">Pagos que <b>no son colegiatura</b> (constancias, etc.). No cambian la vigencia del alumno. Al registrar se genera un <b>comprobante digital</b> para enviárselo.</div>
+        <label class="tram-lbl">Alumno</label>
+        <input id="tram-buscar" list="tram-alumnos" placeholder="Escribe ID o nombre…" class="tram-in" oninput="tramElegirAlumno()" autocomplete="off">
+        <datalist id="tram-alumnos"></datalist>
+        <div id="tram-alumno-info" style="font-size:12px;color:#a5b4fc;margin:-6px 0 10px;min-height:14px;"></div>
+        <label class="tram-lbl">Concepto</label>
+        <select id="tram-concepto" class="tram-in" onchange="tramConcepto()"><option value="">Cargando…</option></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label class="tram-lbl">Monto pagado</label><input id="tram-monto" type="number" min="1" class="tram-in" placeholder="Ej. 50"></div>
+          <div><label class="tram-lbl">Fecha del depósito</label><input id="tram-fecha" type="date" class="tram-in"></div>
+        </div>
+        <label class="tram-lbl">Comprobante del depósito</label>
+        <input id="tram-file" type="file" accept="image/*,application/pdf" class="tram-in">
+        <label class="tram-lbl">Nota (opcional)</label>
+        <input id="tram-notas" class="tram-in" placeholder="Ej. Constancia para trámite de beca">
+        <button id="tram-btn" onclick="tramRegistrar()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:14px;cursor:pointer;margin-top:6px;">🧾 Registrar y generar comprobante</button>
+        <div id="tram-status" style="display:none;margin-top:10px;border-radius:10px;padding:10px 12px;font-size:13px;"></div>
+      </div>
+      <div class="sec-header" style="display:flex;justify-content:space-between;align-items:center;"><h2 class="sec-title" style="font-size:15px;">Historial</h2>
+        <button onclick="tramCargarHistorial()" style="background:rgba(255,255,255,0.08);color:#e2e8f0;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">↻ Actualizar</button></div>
+      <div id="tram-historial" style="font-size:13px;color:#94a3b8;">—</div>
     </div>
 
     <div id="sec-cambios" class="section">
@@ -3845,5 +3872,108 @@ setInterval(revisarActividadAgenda, 60000); // revisar cada minuto
   })();
 </script>
 
+<style>
+.tram-lbl{display:block;font-size:11px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.tram-in{width:100%;box-sizing:border-box;background:rgba(15,23,42,0.85);color:#f1f5f9;border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:10px;outline:none}
+.tram-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.tram-btn-s{border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;margin:6px 6px 0 0}
+</style>
+<script>
+var _tramConceptos = [], _tramAlumnos = [], _tramSel = null, _tramIniciado = false;
+
+function tramInit(){
+  // Lista de alumnos (activos y bajas) del panel
+  var lista = [];
+  (datosPanel && datosPanel.grupos || []).forEach(function(g){ (g.alumnos||[]).forEach(function(a){ lista.push({id:a.id,nombre:a.nombre||'',grupo:g.id,whatsapp:a.whatsapp||''}); }); });
+  (datosPanel && datosPanel.alumnos_baja || []).forEach(function(a){ if(!lista.some(function(x){return x.id===a.id;})) lista.push({id:a.id,nombre:a.nombre||'',grupo:a.grupo||a.idGrupo||'',whatsapp:a.whatsapp||''}); });
+  _tramAlumnos = lista;
+  document.getElementById('tram-alumnos').innerHTML = lista.map(function(a){ return '<option value="'+a.id+' — '+String(a.nombre).replace(/"/g,'')+'">'; }).join('');
+  var f = document.getElementById('tram-fecha'); if (f && !f.value) { var h=new Date(); f.value = h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0'); }
+  if (!_tramIniciado) {
+    _tramIniciado = true;
+    fetch(APPS_SCRIPT+'?action=getConceptosPago').then(function(r){return r.json();}).then(function(d){
+      _tramConceptos = (d && d.conceptos) || [];
+      document.getElementById('tram-concepto').innerHTML = '<option value="">— Elige el concepto —</option>' +
+        _tramConceptos.map(function(c,i){ return '<option value="'+i+'">'+c.concepto+' · $'+c.precio+'</option>'; }).join('');
+    }).catch(function(){ document.getElementById('tram-concepto').innerHTML='<option value="">Error al cargar conceptos</option>'; });
+  }
+  tramCargarHistorial();
+}
+function tramElegirAlumno(){
+  var v = String(document.getElementById('tram-buscar').value||'').split('—')[0].trim().toUpperCase();
+  _tramSel = _tramAlumnos.find(function(a){ return String(a.id).toUpperCase()===v; }) || null;
+  document.getElementById('tram-alumno-info').textContent = _tramSel ? ('✅ '+_tramSel.nombre+' · Grupo '+(_tramSel.grupo||'—')) : '';
+}
+function tramConcepto(){
+  var c = _tramConceptos[parseInt(document.getElementById('tram-concepto').value,10)];
+  if (c) document.getElementById('tram-monto').value = c.precio;
+}
+function _tramMsg(ok, html){
+  var st=document.getElementById('tram-status'); st.style.display='block';
+  st.style.background= ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.15)'; st.style.color= ok ? '#4ade80' : '#f87171'; st.innerHTML=html;
+}
+function _tramWa(numero, nombre, concepto, folio, url){
+  var n = String(numero||'').replace(/\D/g,''); if (n.length===10) n='52'+n;
+  var txt = '¡Hola, '+(String(nombre).split(' ')[0]||'')+'! 😊 Te comparto tu comprobante de pago de *'+concepto+'* en Organic English 🌱\n\nFolio: *'+folio+'*\n📄 '+url+'\n\n¡Gracias!';
+  return 'https://wa.me/'+n+'?text='+encodeURIComponent(txt);
+}
+async function tramRegistrar(){
+  tramElegirAlumno();
+  var c = _tramConceptos[parseInt(document.getElementById('tram-concepto').value,10)];
+  var monto = Number(document.getElementById('tram-monto').value)||0;
+  var file = document.getElementById('tram-file').files[0];
+  if (!_tramSel) return _tramMsg(false,'Elige un alumno de la lista.');
+  if (!c) return _tramMsg(false,'Elige el concepto.');
+  if (monto<=0) return _tramMsg(false,'Escribe el monto pagado.');
+  if (!file) return _tramMsg(false,'Sube el comprobante del depósito.');
+  if (monto < c.precio && !confirm('El monto ($'+monto+') es menor al precio de '+c.concepto+' ($'+c.precio+'). ¿Registrar de todos modos?')) return;
+  var btn=document.getElementById('tram-btn'); btn.disabled=true; btn.textContent='Generando comprobante…';
+  try{
+    var base64 = await new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(e){res(e.target.result.split(',')[1]);}; r.onerror=rej; r.readAsDataURL(file); });
+    var cuerpo = { action:'registrarPagoEspecial', idAlumno:_tramSel.id, nombre:_tramSel.nombre, grupo:_tramSel.grupo, whatsapp:_tramSel.whatsapp,
+      concepto:c.concepto, monto:monto, fechaDeposito:document.getElementById('tram-fecha').value, notas:document.getElementById('tram-notas').value.trim(),
+      idAsistente: asistente?asistente.id:'', nombreAsistente: asistente?(asistente.nombre||''):'', base64:base64, mimeType:file.type, nombreArchivo:file.name };
+    var d = await (await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify(cuerpo)})).json();
+    if (!d.success) { _tramMsg(false,'❌ '+(d.error||'No se pudo registrar.')); return; }
+    _tramMsg(true,'✅ Registrado con folio <b>'+d.folio+'</b><br>'+
+      '<a href="'+_tramWa(_tramSel.whatsapp,_tramSel.nombre,c.concepto,d.folio,d.urlRecibo)+'" target="_blank" class="tram-btn-s" style="display:inline-block;background:#22c55e;color:#fff;text-decoration:none;">📲 Enviar por WhatsApp</a>'+
+      '<a href="'+d.urlRecibo+'" target="_blank" class="tram-btn-s" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;">📄 Ver comprobante</a>');
+    document.getElementById('tram-file').value=''; document.getElementById('tram-notas').value='';
+    tramCargarHistorial();
+  } catch(e){ _tramMsg(false,'❌ Error de conexión.'); }
+  finally { btn.disabled=false; btn.textContent='🧾 Registrar y generar comprobante'; }
+}
+function tramCargarHistorial(){
+  var cont=document.getElementById('tram-historial'); cont.textContent='Cargando…';
+  fetch(APPS_SCRIPT+'?action=getPagosEspeciales&t='+Date.now()).then(function(r){return r.json();}).then(function(d){
+    var l=(d&&d.pagos)||[];
+    if(!l.length){ cont.innerHTML='<div style="text-align:center;padding:14px;">Aún no hay trámites registrados.</div>'; return; }
+    cont.innerHTML = l.map(function(p){
+      var est=String(p.estatus||''), canc=est.indexOf('Cancelado')===0, ent=est==='Entregado';
+      var color = canc?'#f87171':(ent?'#4ade80':'#fbbf24');
+      return '<div class="tram-card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">'+
+        '<b style="color:#e2e8f0;">'+p.folio+' · '+p.concepto+' · $'+p.monto+'</b><span style="color:'+color+';font-weight:700;">'+(canc?'Cancelado':est)+(ent&&p.fechaEntrega?' '+p.fechaEntrega:'')+'</span></div>'+
+        '<div>'+p.idAlumno+' — '+p.nombre+' · '+(p.grupo||'')+' · depósito '+p.fechaDeposito+' · registró '+(p.registro||'')+'</div>'+
+        (canc?'<div style="color:#f87171;font-size:12px;">'+est+'</div>':
+          '<a href="'+p.urlRecibo+'" target="_blank" class="tram-btn-s" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;">📄 Comprobante</a>'+
+          (p.whatsapp?'<a href="'+_tramWa(p.whatsapp,p.nombre,p.concepto,p.folio,p.urlRecibo)+'" target="_blank" class="tram-btn-s" style="display:inline-block;background:#22c55e;color:#fff;text-decoration:none;">📲 WhatsApp</a>':'')+
+          (ent?'':'<button class="tram-btn-s" style="background:#0ea5e9;color:#fff;" onclick="tramEntregar(\''+p.folio+'\')">✔ Entregado</button>')+
+          '<button class="tram-btn-s" style="background:rgba(239,68,68,0.2);color:#fca5a5;" onclick="tramCancelar(\''+p.folio+'\')">✖ Cancelar</button>')+
+        '</div>';
+    }).join('');
+  }).catch(function(){ cont.textContent='No se pudo cargar el historial.'; });
+}
+function tramEntregar(folio){
+  if(!confirm('¿Marcar el trámite '+folio+' como ENTREGADO?')) return;
+  fetch(APPS_SCRIPT+'?action=marcarTramiteEntregado&folio='+encodeURIComponent(folio)+'&idAsistente='+encodeURIComponent(asistente?asistente.id:''))
+    .then(function(r){return r.json();}).then(function(d){ mostrarToast(d.success?'✔ Marcado como entregado':(d.error||'Error'), d.success?'success':'error'); tramCargarHistorial(); });
+}
+function tramCancelar(folio){
+  var motivo = prompt('Motivo de la cancelación del trámite '+folio+':','');
+  if(!motivo) return;
+  fetch(APPS_SCRIPT+'?action=cancelarPagoEspecial&folio='+encodeURIComponent(folio)+'&motivo='+encodeURIComponent(motivo)+'&idAsistente='+encodeURIComponent(asistente?asistente.id:''))
+    .then(function(r){return r.json();}).then(function(d){ mostrarToast(d.success?'Trámite cancelado':(d.error||'Error'), d.success?'success':'error'); tramCargarHistorial(); });
+}
+</script>
 </body>
 </html>
