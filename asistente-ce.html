@@ -463,6 +463,11 @@
         <div id="tram-alumno-info" style="font-size:12px;color:#a5b4fc;margin:-6px 0 10px;min-height:14px;"></div>
         <label class="tram-lbl">Concepto</label>
         <select id="tram-concepto" class="tram-in" onchange="tramConcepto()"><option value="">Cargando…</option></select>
+        <div id="tram-otro-wrap" style="display:none;">
+          <label class="tram-lbl">Escribe el concepto</label>
+          <input id="tram-otro" class="tram-in" maxlength="80" placeholder="Ej. Reposición de credencial">
+          <div style="font-size:11px;color:#fbbf24;margin:-6px 0 10px;">✍️ Usa esta opción solo si el concepto no está en la lista. Escríbelo claro: así aparecerá en el comprobante.</div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div><label class="tram-lbl">Monto pagado</label><input id="tram-monto" type="number" min="1" class="tram-in" placeholder="Ej. 50"></div>
           <div><label class="tram-lbl">Fecha del depósito</label><input id="tram-fecha" type="date" class="tram-in"></div>
@@ -3894,7 +3899,8 @@ function tramInit(){
     fetch(APPS_SCRIPT+'?action=getConceptosPago').then(function(r){return r.json();}).then(function(d){
       _tramConceptos = (d && d.conceptos) || [];
       document.getElementById('tram-concepto').innerHTML = '<option value="">— Elige el concepto —</option>' +
-        _tramConceptos.map(function(c,i){ return '<option value="'+i+'">'+c.concepto+' · $'+c.precio+'</option>'; }).join('');
+        _tramConceptos.map(function(c,i){ return '<option value="'+i+'">'+c.concepto+' · $'+c.precio+'</option>'; }).join('') +
+        '<option value="otro">✍️ Otro (escribir concepto)</option>';
     }).catch(function(){ document.getElementById('tram-concepto').innerHTML='<option value="">Error al cargar conceptos</option>'; });
   }
   tramCargarHistorial();
@@ -3905,8 +3911,21 @@ function tramElegirAlumno(){
   document.getElementById('tram-alumno-info').textContent = _tramSel ? ('✅ '+_tramSel.nombre+' · Grupo '+(_tramSel.grupo||'—')) : '';
 }
 function tramConcepto(){
-  var c = _tramConceptos[parseInt(document.getElementById('tram-concepto').value,10)];
+  var v = document.getElementById('tram-concepto').value;
+  var esOtro = v === 'otro';
+  document.getElementById('tram-otro-wrap').style.display = esOtro ? 'block' : 'none';
+  if (esOtro) { document.getElementById('tram-monto').value = ''; document.getElementById('tram-otro').focus(); return; }
+  var c = _tramConceptos[parseInt(v,10)];
   if (c) document.getElementById('tram-monto').value = c.precio;
+}
+function _tramConceptoElegido_(){
+  var v = document.getElementById('tram-concepto').value;
+  if (v === 'otro') {
+    var t = document.getElementById('tram-otro').value.trim().replace(/\s+/g,' ');
+    if (t.length < 4) return null;
+    return { concepto: t.charAt(0).toUpperCase() + t.slice(1), precio: 0, otro: true };
+  }
+  return _tramConceptos[parseInt(v,10)] || null;
 }
 function _tramMsg(ok, html){
   var st=document.getElementById('tram-status'); st.style.display='block';
@@ -3919,14 +3938,15 @@ function _tramWa(numero, nombre, concepto, folio, url){
 }
 async function tramRegistrar(){
   tramElegirAlumno();
-  var c = _tramConceptos[parseInt(document.getElementById('tram-concepto').value,10)];
+  var c = _tramConceptoElegido_();
   var monto = Number(document.getElementById('tram-monto').value)||0;
   var file = document.getElementById('tram-file').files[0];
   if (!_tramSel) return _tramMsg(false,'Elige un alumno de la lista.');
-  if (!c) return _tramMsg(false,'Elige el concepto.');
+  if (!c) return _tramMsg(false, document.getElementById('tram-concepto').value==='otro' ? 'Escribe el concepto (mínimo 4 letras).' : 'Elige el concepto.');
   if (monto<=0) return _tramMsg(false,'Escribe el monto pagado.');
   if (!file) return _tramMsg(false,'Sube el comprobante del depósito.');
-  if (monto < c.precio && !confirm('El monto ($'+monto+') es menor al precio de '+c.concepto+' ($'+c.precio+'). ¿Registrar de todos modos?')) return;
+  if (c.otro && !confirm('Vas a registrar un concepto que no está en la lista:\n\n"'+c.concepto+'" · $'+monto+'\n\nAsí aparecerá en el comprobante. ¿Continuar?')) return;
+  if (!c.otro && monto < c.precio && !confirm('El monto ($'+monto+') es menor al precio de '+c.concepto+' ($'+c.precio+'). ¿Registrar de todos modos?')) return;
   var btn=document.getElementById('tram-btn'); btn.disabled=true; btn.textContent='Generando comprobante…';
   try{
     var base64 = await new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(e){res(e.target.result.split(',')[1]);}; r.onerror=rej; r.readAsDataURL(file); });
@@ -3938,7 +3958,7 @@ async function tramRegistrar(){
     _tramMsg(true,'✅ Registrado con folio <b>'+d.folio+'</b><br>'+
       '<a href="'+_tramWa(_tramSel.whatsapp,_tramSel.nombre,c.concepto,d.folio,d.urlRecibo)+'" target="_blank" class="tram-btn-s" style="display:inline-block;background:#22c55e;color:#fff;text-decoration:none;">📲 Enviar por WhatsApp</a>'+
       '<a href="'+d.urlRecibo+'" target="_blank" class="tram-btn-s" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;">📄 Ver comprobante</a>');
-    document.getElementById('tram-file').value=''; document.getElementById('tram-notas').value='';
+    document.getElementById('tram-file').value=''; document.getElementById('tram-notas').value=''; document.getElementById('tram-otro').value='';
     tramCargarHistorial();
   } catch(e){ _tramMsg(false,'❌ Error de conexión.'); }
   finally { btn.disabled=false; btn.textContent='🧾 Registrar y generar comprobante'; }
