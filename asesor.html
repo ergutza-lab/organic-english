@@ -3017,7 +3017,7 @@ function cmRegresar(idReferido) {
   .pr-overlay.active { display: flex; }
   .pr-box { position: relative; width: 100%; max-width: 560px; background: #111a33; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 18px 16px 20px; color: #f1f5f9; font-family: inherit; animation: prEntra .22s ease both; }
   @keyframes prEntra { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .pr-sub-overlay { z-index: 1600; align-items: center; }
+  .pr-sub-overlay { z-index: 1600; align-items: safe center; }
   .pr-cerrar { position: absolute; top: 10px; right: 12px; background: rgba(255,255,255,0.06); border: none; color: #94a3b8; width: 34px; height: 34px; border-radius: 50%; font-size: 20px; cursor: pointer; }
   .pr-titulo { font-size: 20px; font-weight: 800; margin: 2px 40px 14px 2px; }
 
@@ -3594,6 +3594,58 @@ function prFormatoWA(txt) {
     .replace(/(^|[\s(])_([^_\n]+)_/g, '$1<i>$2</i>')
     .replace(/(https?:\/\/[^\s<]+)/g, '<span style="color:#027eb5;text-decoration:underline;">$1</span>');
 }
+// Imagen base por tipo de plantilla (se sube a GitHub /images)
+var PR_IMG_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/';
+var PR_IMAGENES = {
+  pago:       { archivo: 'cuenta.webp',        nombre: 'Datos-de-pago-Organic-English' },
+  bienvenida: { archivo: 'TE OFRECEMOS.webp',  nombre: 'Organic-English-te-ofrecemos' },
+  colocacion: { archivo: 'COLOCACION.webp',    nombre: 'Proceso-de-colocacion-Organic-English' }
+};
+function prImagenDe(t) {
+  var i = PR_IMAGENES[t.tipo || t.clave];
+  return i ? { url: PR_IMG_BASE + encodeURIComponent(i.archivo), nombre: i.nombre } : null;
+}
+// Convierte la imagen a JPG (WhatsApp y el portapapeles no aceptan bien .webp)
+function _prImagenJPG(url) {
+  return fetch(url).then(function (r) { return r.blob(); }).then(function (b) { return createImageBitmap(b); }).then(function (bmp) {
+    var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    var ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0);
+    return new Promise(function (res) { c.toBlob(function (bl) { res(bl); }, 'image/jpeg', 0.92); });
+  });
+}
+function prEnviarImagen(tipo) {
+  var t = { tipo: tipo }, img = prImagenDe(t);
+  if (!img) return;
+  prToast('Preparando imagen…');
+  _prImagenJPG(img.url).then(function (blob) {
+    var file = new File([blob], img.nombre + '.jpg', { type: 'image/jpeg' });
+    var esCel = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (esCel && navigator.canShare && navigator.canShare({ files: [file] })) {
+      return navigator.share({ files: [file] }).catch(function () {});
+    }
+    if (navigator.clipboard && window.ClipboardItem) {
+      // El portapapeles solo acepta PNG
+      return createImageBitmap(blob).then(function (bmp) {
+        var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; c.getContext('2d').drawImage(bmp, 0, 0);
+        return new Promise(function (res) { c.toBlob(res, 'image/png'); });
+      }).then(function (png) {
+        return navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      }).then(function () {
+        prToast('📋 Imagen copiada: en el chat de WhatsApp presiona Ctrl+V para pegarla');
+      });
+    }
+    prDescargarImagen(tipo);
+  }).catch(function () { prToast('No se pudo preparar la imagen. Usa ⬇️ Descargar.'); });
+}
+function prDescargarImagen(tipo) {
+  var img = prImagenDe({ tipo: tipo });
+  if (!img) return;
+  _prImagenJPG(img.url).then(function (blob) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = img.nombre + '.jpg';
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }).catch(function () { window.open(img.url, '_blank'); });
+}
+
 function prVerPlantilla(clave) {
   var p = prBuscarP(prMensajeId);
   var t = null;
@@ -3604,6 +3656,11 @@ function prVerPlantilla(clave) {
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:22px;">' + prEsc(t.emoji) + '</span>' +
       '<b style="font-size:15px;">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</b></div>' +
     (prCuandoUsar(t) ? '<div style="font-size:12px;color:#fde68a;background:rgba(251,191,36,0.1);border-radius:8px;padding:6px 10px;margin-bottom:8px;">🕐 <b>Cuándo usarla:</b> ' + prEsc(prCuandoUsar(t)) + '</div>' : '') +
+    (prImagenDe(t) ? '<div class="pr-prev-bg" style="padding:10px;margin-bottom:8px;"><img src="' + prImagenDe(t).url + '" style="display:block;max-width:100%;max-height:260px;margin:0 auto;border-radius:10px;">' +
+      '<div style="display:flex;gap:8px;margin-top:8px;">' +
+        '<button class="pr-btn" style="flex:2;background:#0ea5e9;color:#fff;font-weight:800;" onclick="prEnviarImagen(\'' + (t.tipo || t.clave) + '\')">🖼️ Enviar imagen</button>' +
+        '<button class="pr-btn" style="flex:1;background:#334155;color:#e2e8f0;" onclick="prDescargarImagen(\'' + (t.tipo || t.clave) + '\')">⬇️ Descargar</button>' +
+      '</div><div style="font-size:11px;color:#94a3b8;margin-top:6px;">📱 Celular: elige WhatsApp y el contacto · 💻 Computadora: se copia; pégala en el chat con Ctrl+V</div></div>' : '') +
     '<div class="pr-prev-bg"><div class="pr-burbuja">' + prFormatoWA(prArmarTexto(t, p)) + '</div></div>' +
     '<div style="display:flex;gap:8px;">' +
       '<button class="pr-btn" style="flex:1;background:#334155;color:#e2e8f0;" onclick="prVolverPlantillas()">← Ver otras</button>' +
