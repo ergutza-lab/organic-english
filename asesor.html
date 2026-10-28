@@ -3086,6 +3086,11 @@ function cmRegresar(idReferido) {
   .pr-plantilla .pp-emoji { font-size: 22px; }
   .pr-plantilla .pp-titulo { font-size: 14px; font-weight: 800; }
   .pr-plantilla .pp-prev { font-size: 11.5px; color: #94a3b8; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px; }
+  .pr-plantilla .pp-num { font-size: 10px; font-weight: 800; color: #0f172a; background: #fbbf24; border-radius: 999px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; }
+  #prMsjPlantillas { max-height: 48vh; overflow-y: auto; padding-right: 4px; margin-bottom: 8px; scrollbar-width: thin; }
+  #prMsjPlantillas::-webkit-scrollbar { width: 6px; } #prMsjPlantillas::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+  .pr-burbuja { background: #dcf8c6; color: #111827; border-radius: 12px 12px 4px 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; max-height: 50vh; overflow-y: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+  .pr-prev-bg { background: #0b141a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='4' cy='4' r='1.2' fill='%23ffffff10'/%3E%3C/svg%3E"); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
   .pr-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #22c55e; color: #fff; font-weight: 800; font-size: 13px; padding: 11px 18px; border-radius: 999px; z-index: 2000; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; max-width: 92vw; text-align: center; }
 </style>
 
@@ -3130,7 +3135,8 @@ function cmRegresar(idReferido) {
         <select class="pr-input" id="prMsjNivel" onchange="prPintarPlantillas()"></select></div>
     </div>
     <div id="prMsjPlantillas"></div>
-    <button class="pr-plantilla" onclick="prEnviarPlantilla('')"><span class="pp-emoji">✍️</span><span><div class="pp-titulo">Escribir yo mismo</div><div class="pp-prev">Solo abrir el chat</div></span></button>
+    <div id="prMsjPreview" style="display:none;"></div>
+    <button class="pr-plantilla" id="prMsjEscribir" onclick="prEnviarPlantilla('')"><span class="pp-emoji">✍️</span><span><div class="pp-titulo">Escribir yo mismo</div><div class="pp-prev">Solo abrir el chat</div></span></button>
   </div>
 </div>
 <div class="pr-toast" id="prToast"></div>
@@ -3551,14 +3557,46 @@ function prPintarPlantillas() {
   var p = prBuscarP(prMensajeId);
   if (!p) return;
   var publico = document.getElementById('prMsjPublico').value;
-  document.getElementById('prMsjPlantillas').innerHTML = prCupoSoloAsesor() + prPlantillasPara(publico).map(function (t) {
+  prVolverPlantillas();
+  document.getElementById('prMsjPlantillas').innerHTML = prCupoSoloAsesor() + prPlantillasPara(publico).map(function (t, i) {
     var prev = prArmarTexto(t, p).replace(/\s+/g, ' ');
-    return '<button class="pr-plantilla" onclick="prEnviarPlantilla(\'' + t.clave + '\')"><span class="pp-emoji">' + prEsc(t.emoji) + '</span>' +
+    return '<button class="pr-plantilla" onclick="prVerPlantilla(\'' + t.clave + '\')"><span class="pp-num">' + (i + 1) + '</span><span class="pp-emoji">' + prEsc(t.emoji) + '</span>' +
       '<span style="min-width:0;"><div class="pp-titulo">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</div><div class="pp-prev">' + prEsc(prev.slice(0, 90)) + '</div></span></button>';
   }).join('');
 }
 
-function prCerrarMensaje() { document.getElementById('modalProMensaje').classList.remove('active'); }
+// Vista previa completa (como se verá en WhatsApp) antes de enviar
+function prFormatoWA(txt) {
+  return prEsc(txt)
+    .replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+    .replace(/(^|[\s(])_([^_\n]+)_/g, '$1<i>$2</i>')
+    .replace(/(https?:\/\/[^\s<]+)/g, '<span style="color:#027eb5;text-decoration:underline;">$1</span>');
+}
+function prVerPlantilla(clave) {
+  var p = prBuscarP(prMensajeId);
+  var t = null;
+  (prData.plantillas || []).forEach(function (x) { if (x.clave === clave) t = x; });
+  if (!p || !t) return;
+  var cont = document.getElementById('prMsjPreview');
+  cont.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:22px;">' + prEsc(t.emoji) + '</span>' +
+      '<b style="font-size:15px;">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</b></div>' +
+    '<div class="pr-prev-bg"><div class="pr-burbuja">' + prFormatoWA(prArmarTexto(t, p)) + '</div></div>' +
+    '<div style="display:flex;gap:8px;">' +
+      '<button class="pr-btn" style="flex:1;background:#334155;color:#e2e8f0;" onclick="prVolverPlantillas()">← Ver otras</button>' +
+      '<button class="pr-btn" style="flex:2;background:#22c55e;color:#fff;font-weight:800;" onclick="prEnviarPlantilla(\'' + clave + '\')">📲 Enviar por WhatsApp</button>' +
+    '</div>';
+  cont.style.display = 'block';
+  document.getElementById('prMsjPlantillas').style.display = 'none';
+  document.getElementById('prMsjEscribir').style.display = 'none';
+}
+function prVolverPlantillas() {
+  var pv = document.getElementById('prMsjPreview'); if (pv) { pv.style.display = 'none'; pv.innerHTML = ''; }
+  var pl = document.getElementById('prMsjPlantillas'); if (pl) pl.style.display = '';
+  var es = document.getElementById('prMsjEscribir'); if (es) es.style.display = '';
+}
+
+function prCerrarMensaje() { prVolverPlantillas(); document.getElementById('modalProMensaje').classList.remove('active'); }
 
 function prTextoHorarios() {
   var nivel = document.getElementById('prMsjNivel') ? document.getElementById('prMsjNivel').value : '';
