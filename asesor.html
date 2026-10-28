@@ -3553,6 +3553,26 @@ function prCupoSoloAsesor() {
     }).join(' · ') + '</div>';
 }
 
+// Cuándo usar cada plantilla (por tipo). Son sugerencias, no reglas.
+var PR_CUANDO_USAR = {
+  primer:          'Primer mensaje cuando alguien escribe pidiendo informes.',
+  bienvenida:      'Cuando ya sabes para quién es el curso y quiere empezar desde cero.',
+  horarios:        'Cuando pregunta por horarios o ya le explicaste el curso.',
+  video:           'Antes de pedir datos, si todavía tiene dudas o quiere conocer la escuela.',
+  precios:         'Cuando ya eligió horario (o pregunta precios): explica los 2 pasos y aparta su lugar.',
+  preficha:        'Cuando aceptó inscribirse: le pides sus datos (y los del tutor si es menor).',
+  registrado:      'Justo después de registrar sus datos en el sistema: avisa que solo falta el pago.',
+  pago:            'Junto con el anterior o cuando te pide los datos bancarios.',
+  gracias:         'Cuando te manda su comprobante de pago.',
+  bienvenidaFinal: 'Cuando ya quedó inscrito y validado: bienvenida y tutorial de la plataforma.',
+  colocacion:      'Cuando ya sabe inglés y quiere examen de colocación.',
+  colRegistrado:   'Después de registrar su solicitud de colocación: falta el pago de $100.',
+  colGracias:      'Cuando manda el comprobante de su colocación.',
+  seguimiento:     'Si no contesta 1–2 días después de darle información, o dijo "lo voy a pensar".',
+  recordatorio:    'Si quedó en pagar y aún no manda comprobante (usa su fecha de compromiso).'
+};
+function prCuandoUsar(t) { return PR_CUANDO_USAR[t.tipo || t.clave] || ''; }
+
 function prPintarPlantillas() {
   var p = prBuscarP(prMensajeId);
   if (!p) return;
@@ -3561,7 +3581,7 @@ function prPintarPlantillas() {
   document.getElementById('prMsjPlantillas').innerHTML = prCupoSoloAsesor() + prPlantillasPara(publico).map(function (t, i) {
     var prev = prArmarTexto(t, p).replace(/\s+/g, ' ');
     return '<button class="pr-plantilla" onclick="prVerPlantilla(\'' + t.clave + '\')"><span class="pp-num">' + (i + 1) + '</span><span class="pp-emoji">' + prEsc(t.emoji) + '</span>' +
-      '<span style="min-width:0;"><div class="pp-titulo">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</div><div class="pp-prev">' + prEsc(prev.slice(0, 90)) + '</div></span></button>';
+      '<span style="min-width:0;"><div class="pp-titulo">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</div>' + (prCuandoUsar(t) ? '<div class="pp-prev" style="color:#fbbf24;white-space:normal;">🕐 ' + prEsc(prCuandoUsar(t)) + '</div>' : '') + '<div class="pp-prev">' + prEsc(prev.slice(0, 90)) + '</div></span></button>';
   }).join('');
 }
 
@@ -3581,6 +3601,7 @@ function prVerPlantilla(clave) {
   cont.innerHTML =
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:22px;">' + prEsc(t.emoji) + '</span>' +
       '<b style="font-size:15px;">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</b></div>' +
+    (prCuandoUsar(t) ? '<div style="font-size:12px;color:#fde68a;background:rgba(251,191,36,0.1);border-radius:8px;padding:6px 10px;margin-bottom:8px;">🕐 <b>Cuándo usarla:</b> ' + prEsc(prCuandoUsar(t)) + '</div>' : '') +
     '<div class="pr-prev-bg"><div class="pr-burbuja">' + prFormatoWA(prArmarTexto(t, p)) + '</div></div>' +
     '<div style="display:flex;gap:8px;">' +
       '<button class="pr-btn" style="flex:1;background:#334155;color:#e2e8f0;" onclick="prVolverPlantillas()">← Ver otras</button>' +
