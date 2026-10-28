@@ -3530,11 +3530,28 @@ function prPlantillasPara(publico) {
   return orden.filter(function (k) { return porTipo[k]; }).map(function (k) { return porTipo[k].t; });
 }
 
+// Cupo real SOLO para el asesor (no se envía al prospecto)
+function prCupoSoloAsesor() {
+  var nivel = document.getElementById('prMsjNivel') ? document.getElementById('prMsjNivel').value : '';
+  var publico = document.getElementById('prMsjPublico') ? document.getElementById('prMsjPublico').value : '';
+  var gs = (gruposCache || []).filter(function (g) {
+    if (nivel && normalizarNivel(g.nivel) !== nivel) return false;
+    if (publico && String(g.nombre || '').toUpperCase().replace(/-SAT$/, '').trim() !== publico) return false;
+    return true;
+  });
+  if (!gs.length) return '';
+  return '<div style="grid-column:1/-1;background:rgba(251,191,36,0.10);border:1px dashed rgba(251,191,36,0.5);border-radius:10px;padding:8px 10px;font-size:11px;color:#fde68a;margin-bottom:6px;">' +
+    '👀 <b>Solo para ti</b> (no se envía): ' + gs.map(function (g) {
+      var l = Number(g.libres) || 0;
+      return g.id + ' ' + g.horario + ' → <b>' + l + '</b>' + (l <= 3 ? ' 🔥' : '');
+    }).join(' · ') + '</div>';
+}
+
 function prPintarPlantillas() {
   var p = prBuscarP(prMensajeId);
   if (!p) return;
   var publico = document.getElementById('prMsjPublico').value;
-  document.getElementById('prMsjPlantillas').innerHTML = prPlantillasPara(publico).map(function (t) {
+  document.getElementById('prMsjPlantillas').innerHTML = prCupoSoloAsesor() + prPlantillasPara(publico).map(function (t) {
     var prev = prArmarTexto(t, p).replace(/\s+/g, ' ');
     return '<button class="pr-plantilla" onclick="prEnviarPlantilla(\'' + t.clave + '\')"><span class="pp-emoji">' + prEsc(t.emoji) + '</span>' +
       '<span style="min-width:0;"><div class="pp-titulo">' + prEsc(String(t.titulo).replace(/\s*\((Adults|Teens|Kids)\)$/i, '')) + '</div><div class="pp-prev">' + prEsc(prev.slice(0, 90)) + '</div></span></button>';
@@ -3561,7 +3578,7 @@ function prTextoHorarios() {
     porNivel[n].forEach(function (g) {
       var lugares = Number(g.libres) || 0;
       txt.push('• ' + (g.fechaObj ? 'Inicia *' + formatFechaDDMMM(g.fechaObj) + '*' : 'Próximamente') + ' · ' + g.horario +
-               (g.tipoHorario === 'sabado' ? ' (sabatino)' : '') + (lugares <= 3 ? ' 🔥 ¡quedan ' + lugares + ' lugar' + (lugares > 1 ? 'es' : '') + '!' : ''));
+               (g.tipoHorario === 'sabado' ? ' (sabatino)' : '') + (lugares <= 3 ? ' 🔥 *¡Últimos lugares!*' : ''));
     });
     if (!nivel) txt.push('');
   });
@@ -3575,7 +3592,18 @@ function prArmarTexto(t, p) {
     .replace(/\{nombre\}/g, prPila(p.nombre) || '')
     .replace(/\{asesor\}/g, asesorPila || 'tu asesor')
     .replace(/\{compromiso\}/g, compromiso)
-    .replace(/\{horarios\}/g, /\{horarios\}/.test(t.texto) ? prTextoHorarios() : '');
+    .replace(/\{horarios\}/g, /\{horarios\}/.test(t.texto) ? prTextoHorarios() : '')
+    .replace(/\{reserva\}/g, prTextoReserva(p));
+}
+
+// Fecha límite del apartado: la fecha de compromiso del prospecto o, si no tiene, en 2 días, 4:00 PM.
+function prTextoReserva(p) {
+  var f = null;
+  if (p && p.compromiso) { var m = String(p.compromiso).match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) f = new Date(+m[1], +m[2] - 1, +m[3]); }
+  if (!f || isNaN(f.getTime())) { f = new Date(); f.setDate(f.getDate() + 2); }
+  var dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return 'el ' + dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()] + ' a las 4:00 PM';
 }
 
 function prEnviarPlantilla(clave) {
@@ -3592,7 +3620,7 @@ function prEnviarPlantilla(clave) {
   if (t) params.plantilla = t.titulo; else params.seguimiento = 1;
   var tipo = t ? (t.tipo || t.clave) : '';
   if (p.etapa === 'Nuevo' && (tipo === 'horarios' || tipo === 'precios' || tipo === 'colocacion')) params.etapa = 'Interesado';
-  if ((p.etapa === 'Nuevo' || p.etapa === 'Interesado') && tipo === 'pago') params.etapa = 'Esperando pago';
+  if ((p.etapa === 'Nuevo' || p.etapa === 'Interesado') && (tipo === 'pago' || tipo === 'registrado' || tipo === 'colRegistrado')) params.etapa = 'Esperando pago';
   var publicoMsj = document.getElementById('prMsjPublico').value;
   if (publicoMsj && !p.publico) params.publico = publicoMsj;
   prActualizar(params, params.etapa === 'Esperando pago' ? '💵 Pasó a Esperando pago · +$' + (prData.comxInsc || 100) + ' a tu mesa' : '🛡️ Seguimiento guardado').catch(function () {});
