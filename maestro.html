@@ -3335,7 +3335,9 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     }
 
     // ── 2. LO QUE VEN TUS ALUMNOS ──
-    var rec = (d.recientes || []).filter(function (r) { return !r.anterior; });
+    var rec = (d.semana && d.semana.length && !sab)
+      ? d.semana.filter(function (r) { return r.link; }).slice().reverse()   // mismo orden que el alumno (lun → jue)
+      : (d.recientes || []).filter(function (r) { return !r.anterior; });
     if (rec.length) {
       html += '<div style="font-size:12px;font-weight:800;letter-spacing:.06em;color:#94a3b8;margin:14px 2px 8px;">👀 LO QUE VEN TUS ALUMNOS AHORA</div>';
       rec.slice().reverse().forEach(function (r, k) {
@@ -3413,7 +3415,7 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       var sab = !!d.sabatino;
       var pend = (d.espacios || []).filter(function (e) { return !e.link && !e.futuro && !e.festivo; });
       if (!pend.length) {
-        ban.innerHTML = (d.recientes || []).some(function (r) { return !r.anterior; })
+        ban.innerHTML = ((d.recientes || []).some(function (r) { return !r.anterior; }) || (d.semana || []).some(function (r) { return r.link; }))
           ? '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:700;margin:10px 0;">🎥 Grabaciones al día ✅</div>' : '';
         return;
       }
