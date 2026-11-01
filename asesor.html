@@ -1529,7 +1529,7 @@ function cargarNivelesDropdown() {
   gvizJSONP('GRUPOS', function(grupos) {
     var hoy = new Date();
     gruposCache = grupos.filter(function(g) {
-      return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0 && (!g.fechaObj || g.fechaObj >= hoy);
+      return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0 && esGrupoOfertable(g);
     });
     var nivelesVistos = {};
     gruposCache.forEach(function(g) {
@@ -1564,6 +1564,7 @@ function compartirGruposWA(btn) {
   var porFecha = {};
   filtrados.forEach(function(g) {
     var clave = g.fechaObj ? formatFechaDDMMM(g.fechaObj) : 'sin_fecha';
+    if (esGrupoSemanaInicio(g)) clave += ' (ya inició: ¡entra hoy sin costo, tu colegiatura empieza el lunes!)';
     if (!porFecha[clave]) porFecha[clave] = [];
     porFecha[clave].push(g);
   });
@@ -1577,7 +1578,7 @@ function compartirGruposWA(btn) {
     });
     if (fi < fechas.length - 1) msg += '\n';
   });
-  msg += '\nPara más información o para apartar tu lugar, escríbeme.';
+  msg += '\nPara más información o para reservar tu lugar, escríbeme. Tu lugar se reserva con tu pago.';
   var waUrl = 'https://wa.me/?text=' + encodeURIComponent(msg);
   window.open(waUrl, '_blank');
 }
@@ -1605,6 +1606,33 @@ function cargarGruposInscripcion(callback) {
 // Clic en un día lunes-jueves selecciona esa semana completa (lun→jue).
 // Un segundo clic en otra semana extiende el rango. Un tercer clic reinicia.
 // ══════════════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════════
+// INGRESO EN SEMANA DE INICIO (nov-2026, aprobado en junta de coordinadores)
+//  · Lunes (o el día que inicia el grupo): inscripción normal.
+//  · Martes a jueves: el grupo que inició ESTA semana se sigue ofreciendo;
+//    el alumno entra hoy SIN COSTO y su pago cubre desde el lunes siguiente.
+//  · Solo grupos entre semana (no sabatinos ni personalizados).
+// ══════════════════════════════════════════════════════════════════════════
+function _hoy0_() { var h = new Date(); h.setHours(0, 0, 0, 0); return h; }
+function esGrupoSemanaInicio(g) {
+  if (!g || !g.fechaObj) return false;
+  var tipo = String(g.tipoHorario || '').toLowerCase();
+  if (tipo === 'sabado' || tipo === 'personalizado' || /-SAT$/i.test(String(g.nombre || ''))) return false;
+  var hoy = _hoy0_(), dow = hoy.getDay();
+  if (dow < 2 || dow > 4) return false;
+  var f = new Date(g.fechaObj); f.setHours(0, 0, 0, 0);
+  return f < hoy && f >= calLunesDe(hoy);
+}
+function esGrupoOfertable(g) {
+  if (!g) return false;
+  if (!g.fechaObj) return true;
+  var f = new Date(g.fechaObj); f.setHours(0, 0, 0, 0);
+  return f >= _hoy0_() || esGrupoSemanaInicio(g);
+}
+function lunesSiguienteIngreso() { var l = calLunesDe(_hoy0_()); l.setDate(l.getDate() + 7); return l; }
+function textoLunesSiguienteIngreso() { return formatoFechaLargaNI(lunesSiguienteIngreso()); }
+
 var calendarios = {};
 
 function calLunesDe(d){var x=new Date(d);x.setHours(0,0,0,0);var dia=x.getDay();x.setDate(x.getDate()-(dia===0?6:dia-1));return x;}
@@ -1789,7 +1817,7 @@ function niElegirTipo(tipo) {
       // Solo cuentan niveles con grupos NUEVOS (por comenzar) — un grupo ya
       // en curso nunca se asigna directo, eso siempre pasa por colocación.
       gruposCacheInsc.forEach(function (g) {
-        if (g.fechaObj && g.fechaObj < hoy) return;
+        if (!esGrupoOfertable(g)) return;
         var n = normalizarNivel(g.nivel); if (n) nivelesVistos[n] = true;
       });
       var lista = NIVELES_ORDEN.filter(function (n) { return nivelesVistos[n]; });
@@ -1853,7 +1881,7 @@ function niCargarGrupos() {
   // los grupos en curso ya se filtraron desde la lista de niveles, así que
   // ni deberían aparecer, pero por seguridad se filtran también aquí.
   var nuevos = gruposCacheInsc.filter(function (g) {
-    return normalizarNivel(g.nivel) === nivel && (!g.fechaObj || g.fechaObj >= hoy);
+    return normalizarNivel(g.nivel) === nivel && esGrupoOfertable(g);
   });
   if (!nuevos.length) {
     selGrupo.innerHTML = '<option value="">Sin grupos disponibles</option>';
@@ -1867,14 +1895,16 @@ function niCargarGrupos() {
   var porFecha = {};
   var ordenFechas = [];
   nuevos.forEach(function (g) {
-    var clave = g.fechaObj ? formatFechaDDMMM(g.fechaObj) : 'Sin fecha';
-    if (!porFecha[clave]) { porFecha[clave] = { fechaObj: g.fechaObj, grupos: [] }; ordenFechas.push(clave); }
+    var clave = (g.fechaObj ? formatFechaDDMMM(g.fechaObj) : 'Sin fecha') + (esGrupoSemanaInicio(g) ? '|SI' : '');
+    if (!porFecha[clave]) { porFecha[clave] = { fechaObj: g.fechaObj, grupos: [], semanaInicio: esGrupoSemanaInicio(g) }; ordenFechas.push(clave); }
     porFecha[clave].grupos.push(g);
   });
 
   var html = ordenFechas.map(function (clave) {
     var bloque = porFecha[clave];
-    var etiquetaFecha = '🟢 Nuevo · inicia ' + clave;
+    var etiquetaFecha = bloque.semanaInicio
+      ? '🆕 Inició ' + clave.replace('|SI', '') + ' · entra HOY sin costo'
+      : '🟢 Nuevo · inicia ' + clave;
     var opciones = bloque.grupos.map(function (g) {
       return '<option value="' + g.id + '" ' + niColorGrupoAttr(g.nombre) + '>' +
         g.id + ' — ' + (g.nombre || '—') + ' · ' + g.horario + ' · ' + g.libres + ' lugar(es)' +
@@ -1952,6 +1982,30 @@ function niActualizarBloqueCobertura() {
     }
   }
   calSetTipoHorario('cal-ni', tipoHorarioEfectivo);
+  niAvisoSemanaInicio(grupoSel);
+}
+
+function niAvisoSemanaInicio(grupoSel) {
+  var cal = document.getElementById('cal-ni');
+  var aviso = document.getElementById('ni-aviso-semana-inicio');
+  if (!aviso && cal) {
+    aviso = document.createElement('div');
+    aviso.id = 'ni-aviso-semana-inicio';
+    cal.parentNode.insertBefore(aviso, cal);
+  }
+  if (!aviso) return;
+  if (!grupoSel || !esGrupoSemanaInicio(grupoSel)) { aviso.style.display = 'none'; aviso.innerHTML = ''; return; }
+  var lun = lunesSiguienteIngreso();
+  var st = calendarios['cal-ni'];
+  if (st) {
+    st.inicio = new Date(lun); st.fin = calJuevesDe(lun); st.paso = 1;
+    st.mes = new Date(lun.getFullYear(), lun.getMonth(), 1);
+    calRender('cal-ni');
+  }
+  aviso.style.display = 'block';
+  aviso.innerHTML = '<div style="background:rgba(34,197,94,0.12);border:1.5px solid rgba(34,197,94,0.5);border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:12.5px;line-height:1.5;color:#bbf7d0;">' +
+    '🆕 <b>Grupo que inició esta semana.</b> El alumno entra <b>hoy mismo sin costo</b> hasta el jueves y ve las clases grabadas de esta semana en su panel.<br>' +
+    '💳 Su pago cubre <b>desde el ' + textoLunesSiguienteIngreso() + '</b>: ya marqué esa semana en el calendario.</div>';
 }
 
 function niToggleCoberturaPorGrupo() {
@@ -2138,6 +2192,7 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
       '*Información de las clases*\n' +
       '· *Grupo*: ' + idGrupo + '\n' +
       '· *Inicio*: ' + fechaTextoT + '\n' +
+      (datosExtra.ingresoSemanaInicio ? '· *Entra a clases*: desde hoy, sin costo hasta el jueves\n· *Su colegiatura empieza*: ' + textoLunesSiguienteIngreso() + '\n· *Clases de esta semana*: grabadas en su panel, botón "Clases grabadas"\n' : '') +
       '· *Horario*: ' + horario + ' a ' + horaFinT + ' (Hora Centro/CDMX)\n' +
       '· *Clases*: ' + textoDiasT + '\n\n' +
       '*Seguimiento escolar*\n' +
@@ -2181,6 +2236,7 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
       '*Información de las clases*\n' +
       '· *Grupo*: ' + idGrupo + '\n' +
       '· *Inicio*: ' + fechaTexto + '\n' +
+      (datosExtra.ingresoSemanaInicio ? '· *Entras a clases*: desde hoy, sin costo hasta el jueves\n· *Tu colegiatura empieza*: ' + textoLunesSiguienteIngreso() + '\n· *Clases de esta semana*: grabadas en tu panel, botón "Clases grabadas"\n' : '') +
       '· *Horario*: ' + horario + ' a ' + horaFin + ' (Hora Centro/CDMX)\n' +
       '· *Clases*: ' + textoDias + '\n\n' +
       '*Seguimiento escolar*\n' +
@@ -2301,6 +2357,12 @@ function confirmarNuevaInscripcion() {
   var calNI = calendarios['cal-ni'];
   if (!esBecado && !esColocacionSinGrupo && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
   if (!esBecado && !esColocacionSinGrupo) { var errSabNI = calValidarSabatino('cal-ni'); if (errSabNI) return mostrarError(errSabNI); }
+  if (!esBecado && !esColocacionSinGrupo && calNI && calNI.inicio) {
+    var gSI = gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
+    if (gSI && esGrupoSemanaInicio(gSI) && calNI.inicio < lunesSiguienteIngreso()) {
+      return mostrarError('Este grupo inició esta semana: los días de esta semana son sin costo. El pago debe cubrir desde el ' + textoLunesSiguienteIngreso() + '.');
+    }
+  }
 
   var codigoReferido = niEsAsesorReferidos() ? document.getElementById('ni-codigo-referido').value.trim().toUpperCase() : '';
   if (codigoReferido && niReferidoEstado.codigo === codigoReferido && !niReferidoEstado.revisando && !niReferidoEstado.ok) {
@@ -2356,6 +2418,7 @@ function confirmarNuevaInscripcion() {
           nombreGrupo:       grupoSel ? grupoSel.nombre : '',
           nivel:             grupoSel ? grupoSel.nivel : '',
           fechaInicio:       grupoSel ? grupoSel.fechaObj : null,
+          ingresoSemanaInicio: !!(grupoSel && esGrupoSemanaInicio(grupoSel)),
           tipoHorario:       grupoSel ? grupoSel.tipoHorario : '',
           asistenteNombre:   data.asistente ? data.asistente.nombre : '',
           asistenteWhatsapp: data.asistente ? data.asistente.whatsapp : ''
@@ -3231,7 +3294,7 @@ function abrirProspectos() {
   if (!gruposCache.length && typeof gvizJSONP === 'function') {
     gvizJSONP('GRUPOS', function (grupos) {
       var hoy = new Date();
-      gruposCache = grupos.filter(function (g) { return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0 && (!g.fechaObj || g.fechaObj >= hoy); });
+      gruposCache = grupos.filter(function (g) { return g.id && String(g.estado).trim() !== 'Cancelado' && g.libres > 0 && esGrupoOfertable(g); });
       prLlenarNiveles();
     });
   }
@@ -3551,7 +3614,7 @@ function prCupoSoloAsesor() {
   return '<div style="grid-column:1/-1;background:rgba(251,191,36,0.10);border:1px dashed rgba(251,191,36,0.5);border-radius:10px;padding:8px 10px;font-size:11px;color:#fde68a;margin-bottom:6px;">' +
     '👀 <b>Solo para ti</b> (no se envía): ' + gs.map(function (g) {
       var l = Number(g.libres) || 0;
-      return g.id + ' ' + g.horario + ' → <b>' + l + '</b>' + (l <= 3 ? ' 🔥' : '');
+      return g.id + ' ' + g.horario + ' → <b>' + l + '</b>' + (l <= 3 ? ' 🔥' : '') + (esGrupoSemanaInicio(g) ? ' 🆕 inició esta semana' : '');
     }).join(' · ') + '</div>';
 }
 
@@ -3695,6 +3758,10 @@ function prTextoHorarios() {
     if (!nivel) txt.push('📘 *Nivel ' + n + '*');
     porNivel[n].forEach(function (g) {
       var lugares = Number(g.libres) || 0;
+      if (esGrupoSemanaInicio(g)) {
+        txt.push('• 🆕 Inició el *' + formatFechaDDMMM(g.fechaObj) + '* · ' + g.horario + ' · *¡Entra hoy sin costo!* Tu colegiatura empieza el ' + textoLunesSiguienteIngreso().toLowerCase() + ' y tienes las clases de esta semana grabadas.');
+        return;
+      }
       txt.push('• ' + (g.fechaObj ? 'Inicia *' + formatFechaDDMMM(g.fechaObj) + '*' : 'Próximamente') + ' · ' + g.horario +
                (g.tipoHorario === 'sabado' ? ' (sabatino)' : '') + (lugares <= 3 ? ' 🔥 *¡Últimos lugares!*' : ''));
     });
