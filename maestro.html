@@ -3306,8 +3306,8 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     if (!d || !d.success) { cont.innerHTML = '<div style="color:#fca5a5;text-align:center;padding:16px;">❌ ' + _gsEsc(d && d.error || 'No se pudo cargar') + '</div>'; return; }
     var sab = !!d.sabatino;
     var esp = d.espacios || [];
-    var pend = esp.filter(function (e) { return !e.link && !e.futuro && !e.festivo; });
-    var prox = esp.filter(function (e) { return !e.link && e.futuro && !e.festivo; })[0];
+    var pend = esp.filter(function (e) { return !e.link && !e.futuro; });
+    var prox = esp.filter(function (e) { return !e.link && e.futuro; })[0];
     var html = '';
 
     // ── 1. LO QUE TIENES QUE SUBIR ──
@@ -3320,7 +3320,9 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
           + '<div style="font-size:13px;color:#fde68a;font-weight:700;">Grabación de tu clase del</div>'
           + '<div style="font-size:20px;font-weight:900;color:#fff;line-height:1.2;margin:2px 0 6px;">' + _gsEsc(_gsDia(e)) + '</div>'
           + '<div style="display:inline-block;background:#7c1d6f;color:#fff;border-radius:100px;padding:5px 14px;font-size:15px;font-weight:900;margin-bottom:6px;">' + _gsEsc(lec) + '</div>'
-          + (sab ? '<div style="font-size:12px;color:#e9d5ff;margin-bottom:10px;">🎬 Un solo video con tus <b>4 clases</b> de ese sábado.</div>' : '<div style="height:6px"></div>')
+          + (sab ? '<div style="font-size:12px;color:#e9d5ff;margin-bottom:10px;">🎬 Un solo video con tus <b>4 clases</b> de ese sábado.</div>'
+                 : e.festivo ? '<div style="font-size:12px;color:#fde68a;background:rgba(0,0,0,0.25);border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.45;">🎉 Fue <b>día festivo</b>: esta clase la das el <b>' + _gsEsc(e.entregaEtiqueta || '') + '</b> junto con la de ese día. Sube <b>un video por cada clase</b>.</div>'
+                 : '<div style="height:6px"></div>')
           + '<input id="gsLink' + i + '" type="text" placeholder="Pega aquí el enlace del video" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid rgba(255,255,255,0.18);border-radius:12px;padding:12px;color:#f1f5f9;font-size:14px;outline:none;margin-bottom:10px;" />'
           + '<button id="gsBtn' + i + '" onclick="guardarGrabClase(' + i + ')" style="width:100%;background:linear-gradient(135deg,#f59e0b,#ea580c);color:#1a1a1a;border:none;border-radius:100px;padding:13px;font-size:15px;font-weight:900;cursor:pointer;">📤 Subir video de ' + _gsEsc(lec) + '</button>'
           + '<div id="gsSt' + i + '" style="font-size:12px;text-align:center;color:#94a3b8;margin-top:6px;"></div>'
@@ -3330,7 +3332,8 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       html += '<div style="background:rgba(74,222,128,0.1);border:2px solid rgba(74,222,128,0.5);border-radius:16px;padding:14px;margin-bottom:12px;">'
         + '<div style="font-size:16px;font-weight:900;color:#4ade80;">✅ Estás al día</div>'
         + '<div style="font-size:13px;color:#d1fae5;margin-top:4px;line-height:1.5;">No tienes videos pendientes.'
-        + (prox ? ' Tu próximo video es el de tu clase del <b>' + _gsEsc(_gsDia(prox)) + '</b>: <b style="color:#fff;">' + _gsEsc(_gsLec(prox, sab)) + '</b>. Súbelo ese día, al terminar la clase.' : '')
+        + (prox ? ' Tu próximo video es el de tu clase del <b>' + _gsEsc(_gsDia(prox)) + '</b>: <b style="color:#fff;">' + _gsEsc(_gsLec(prox, sab)) + '</b>.'
+                 + (prox.festivo ? ' Ese día es festivo: esa clase la das el <b>' + _gsEsc(prox.entregaEtiqueta || '') + '</b> y ese día subes su video.' : ' Súbelo ese día, al terminar la clase.') : '')
         + '</div></div>';
     }
 
@@ -3358,7 +3361,7 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     }
     cont.innerHTML = html;
     if (_gsFoco) {
-      var idx = esp.findIndex(function (e) { return e.fecha === _gsFoco.fecha && !e.link; });
+      var idx = esp.findIndex(function (e) { return (e.fecha === _gsFoco.fecha || e.entrega === _gsFoco.fecha) && !e.link; });
       if (idx >= 0) setTimeout(function () { var el = document.getElementById('gsRow' + idx); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
     }
   }
@@ -3413,7 +3416,7 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       if (!grupoActual || grupoActual.id !== idG) return;
       if (!d || !d.success) { ban.innerHTML = ''; return; }
       var sab = !!d.sabatino;
-      var pend = (d.espacios || []).filter(function (e) { return !e.link && !e.futuro && !e.festivo; });
+      var pend = (d.espacios || []).filter(function (e) { return !e.link && !e.futuro; });
       if (!pend.length) {
         ban.innerHTML = ((d.recientes || []).some(function (r) { return !r.anterior; }) || (d.semana || []).some(function (r) { return r.link; }))
           ? '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:700;margin:10px 0;">🎥 Grabaciones al día ✅</div>' : '';
@@ -3430,11 +3433,11 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     if (!grupoActual || grupoActual.tipoHorario === 'personalizado') return;
     cargarGrabSemana_(function (d) {
       if (!d || !d.success) return;
-      var falta = (d.espacios || []).filter(function (e) { return e.fecha === fecha && !e.link; });
+      var falta = (d.espacios || []).filter(function (e) { return !e.link && !e.futuro && (e.fecha === fecha || e.entrega === fecha || (leccion && parseInt(e.leccion, 10) === parseInt(leccion, 10))); });
       if (!falta.length) { cargarGrabPendientes(); return; }
       var txt = leccion ? 'Acabas de evaluar la <b>Lesson ' + _gsEsc(leccion) + '</b>.' : 'Acabas de evaluar las clases de este día.';
       abrirGrabacionesSemana({ fecha: fecha, claseNum: claseNum || null },
-        '📌 ' + txt + ' No olvides subir aquí ' + (d.sabatino ? 'el video del sábado (tus 4 clases)' : 'la grabación de esta clase') + ' para tus alumnos.');
+        '📌 ' + txt + ' No olvides subir aquí ' + (d.sabatino ? 'el video del sábado (tus 4 clases)' : falta.length > 1 ? '<b>un video por cada clase</b> que te falta' : 'la grabación de esta clase') + ' para tus alumnos.');
     });
   }
 
