@@ -9336,6 +9336,14 @@ var MISIONES_KIDS_A12_LISTA = [
 
   function _grabEscA(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+  // 'Lesson 7'  ·  sabatino (1 video = 4 clases): 'Lessons 9 a 12'
+  function _grabLecTxtA(g, sab) {
+    if (g.anterior) return g.lecTexto || 'Grabación anterior';
+    var l = parseInt(g.leccion, 10);
+    if (!l) return sab ? 'Lessons —' : 'Lesson —';
+    return sab ? 'Lessons ' + l + ' a ' + (((l + 2) % 32) + 1) : 'Lesson ' + l;
+  }
+
   function cargarGrabacionesAlumno(idGrupo, legacy) {
     _grabAlumno = { grupo: idGrupo, recientes: [], legacy: legacy || '' };
     var btn = document.getElementById('btnGrabacion');
@@ -9378,8 +9386,7 @@ var MISIONES_KIDS_A12_LISTA = [
         + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</span>'
         + '<span style="flex:1;min-width:0;">'
         +   '<span style="display:block;color:#f1f5f9;font-size:15px;font-weight:800;">' + _grabEscA(g.etiqueta) + '</span>'
-        +   '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">' + _grabEscA(g.lecTexto || ('Lesson ' + (g.leccion || '—'))) + (ultima && rec.length > 1 ? ' · la más reciente' : '') + '</span>'
-        +   (sab && !g.anterior ? '<span style="display:block;color:#94a3b8;font-size:11.5px;margin-top:2px;">🎬 Un solo video con las 4 clases del sábado</span>' : '')
+        +   '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">' + _grabEscA(_grabLecTxtA(g, sab)) + (ultima && !g.anterior ? ' · la más reciente' : '') + '</span>'
         + '</span>'
         + '<span style="color:#94a3b8;font-size:12px;font-weight:700;">Ver</span></a>';
     }).join('');
