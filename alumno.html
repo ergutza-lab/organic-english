@@ -9388,17 +9388,19 @@ var MISIONES_KIDS_A12_LISTA = [
     var filas = usarSemana ? sem.map(function (g) {
       var tit = '<span style="display:block;color:#f1f5f9;font-size:15px;font-weight:800;">' + _grabEscA(g.etiqueta) + '</span>';
       var lec = g.estado === 'festivo' ? '' : '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">' + _grabEscA(_grabLecTxtA(g, false))
-              + (g.pasada ? ' <span style="color:#94a3b8;font-weight:600;">· semana pasada</span>' : '') + '</span>';
+              + (g.pasada ? ' <span style="color:#94a3b8;font-weight:600;">· semana pasada</span>' : '')
+              + (g.festivo && g.estado === 'ok' && g.entregaEtiqueta ? ' <span style="color:#94a3b8;font-weight:600;">· festivo, se dio el ' + _grabEscA(g.entregaEtiqueta.split(' ')[0].toLowerCase()) + '</span>' : '') + '</span>';
       if (g.estado === 'ok' && g.link) {
         return '<a href="' + _grabEscA(g.link) + '" target="_blank" style="display:flex;align-items:center;gap:12px;background:rgba(124,29,111,0.22);border:1px solid rgba(192,132,252,0.45);border-radius:14px;padding:12px 14px;margin-bottom:10px;text-decoration:none;">'
           + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</span>'
           + '<span style="flex:1;min-width:0;">' + tit + lec + '</span>'
           + '<span style="color:#e9d5ff;font-size:12px;font-weight:800;">Ver</span></a>';
       }
-      var msg = g.estado === 'festivo' ? 'Día festivo · sin clase'
-              : g.estado === 'futuro' ? 'Disponible después de la clase'
+      var cuando = g.festivo && g.entregaEtiqueta ? 'Festivo: esta clase se da el ' + g.entregaEtiqueta + '. ' : '';
+      var msg = g.estado === 'futuro' ? cuando + 'Disponible después de la clase'
+              : g.estado === 'hoy' ? cuando + 'Disponible hoy, después de la clase'
               : 'Tu maestro aún no sube esta clase';
-      var ico = g.estado === 'festivo' ? '🎉' : g.estado === 'futuro' ? '🔒' : '⏳';
+      var ico = g.estado === 'futuro' ? '🔒' : g.estado === 'hoy' ? '🕒' : '⏳';
       return '<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.14);border-radius:14px;padding:12px 14px;margin-bottom:10px;opacity:.75;">'
         + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:16px;">' + ico + '</span>'
         + '<span style="flex:1;min-width:0;">' + tit + lec + '<span style="display:block;color:#94a3b8;font-size:12px;margin-top:2px;">' + msg + '</span></span></div>';
