@@ -3291,81 +3291,117 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       .catch(function () { cb({ success: false, error: 'Error de conexión' }); });
   }
 
+  // Texto de lecciones de un espacio: 'Lesson 7' · sabatino 'Lessons 9 a 12'
+  function _gsLec(e, sab) {
+    var l = parseInt(e && e.leccion, 10);
+    if (!l) return e && e.lecTexto ? e.lecTexto : (sab ? 'Lessons ?' : 'Lesson ?');
+    return sab ? 'Lessons ' + l + ' a ' + (((l + 2) % 32) + 1) : 'Lesson ' + l;
+  }
+  function _gsDia(e) { return String(e.etiqueta || '').split(' · ')[0]; }
+
   function renderGrabSemana_(d) {
     var cont = document.getElementById('gsLista');
     var exp = document.getElementById('gsExplica');
-    if (exp && d && d.success) exp.innerHTML = d.sabatino
-      ? 'Sube <b>un solo video del sábado</b> con tus <b>4 clases</b>. Aquí ves qué lecciones debe incluir; tus alumnos verán esas mismas lecciones antes de abrirlo. Al subir el del sábado nuevo, el más viejo se reemplaza solo.'
-      : 'Sube la grabación de <b>cada clase en el espacio de su día</b>. Tus alumnos ven las 4 clases más recientes, con su día y su lección. Al subir la de un día nuevo, la más vieja se reemplaza sola.';
+    if (exp) exp.style.display = 'none';
     if (!d || !d.success) { cont.innerHTML = '<div style="color:#fca5a5;text-align:center;padding:16px;">❌ ' + _gsEsc(d && d.error || 'No se pudo cargar') + '</div>'; return; }
-    if (!d.espacios || !d.espacios.length) { cont.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:16px;">Este grupo todavía no tiene clases esta semana.</div>'; return; }
-    cont.innerHTML = d.espacios.map(function (e, i) {
-      var foco = _gsFoco && _gsFoco.fecha === e.fecha && (!_gsFoco.claseNum || _gsFoco.claseNum === e.claseNum) && !e.link;
-      var borde = foco ? '2px solid #fbbf24' : (e.link ? '1px solid rgba(74,222,128,0.35)' : '1px solid rgba(255,255,255,0.1)');
-      var chip = e.link ? '<span style="background:rgba(74,222,128,0.15);color:#4ade80;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">✅ Subida</span>'
-               : e.futuro ? '<span style="background:rgba(148,163,184,0.15);color:#94a3b8;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">🔒 Después de la clase</span>'
-               : e.festivo ? '<span style="background:rgba(148,163,184,0.15);color:#cbd5e1;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">Festivo</span>'
-               : '<span style="background:rgba(251,191,36,0.15);color:#fbbf24;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">⏳ Pendiente</span>';
-      var html = '<div id="gsRow' + i + '" style="background:#0f172a;border:' + borde + ';border-radius:14px;padding:12px;margin-bottom:10px;">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
-        + '<div style="font-size:14px;font-weight:800;color:#f1f5f9;">' + _gsEsc(e.etiqueta) + ' <span style="color:#c084fc;">· ' + _gsEsc(e.lecTexto || ('Lesson ' + (e.leccion || '?'))) + '</span></div>' + chip + '</div>'
-        + (d.sabatino ? '<div style="font-size:11.5px;color:#a5b4fc;margin:-4px 0 8px;">🎬 Un solo video con las 4 clases del día</div>' : '');
-      if (e.link) {
-        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-          + '<a href="' + _gsEsc(e.link) + '" target="_blank" style="flex:1;text-align:center;background:#16a34a;color:#fff;border-radius:100px;padding:8px 12px;font-size:12px;font-weight:700;text-decoration:none;">▶️ Ver</a>'
-          + '<button onclick="document.getElementById(\'gsEdit' + i + '\').style.display=\'block\';this.style.display=\'none\';" style="flex:1;background:transparent;color:#cbd5e1;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Cambiar</button></div>'
-          + '<div id="gsEdit' + i + '" style="display:none;margin-top:8px;">';
-      } else {
-        html += '<div id="gsEdit' + i + '">';
-      }
-      html += '<div style="display:flex;gap:6px;">'
-        + '<input id="gsLink' + i + '" type="text"  placeholder="' + (d.sabatino ? 'Enlace del video del sábado (4 clases)' : 'Pega aquí el enlace de la grabación') + '" value="" style="flex:1;min-width:0;background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;color:#f1f5f9;font-size:13px;outline:none;" />'
-        + '<input id="gsLec' + i + '" type="number" min="1" max="32" value="' + _gsEsc(e.leccion || '') + '" title="' + (d.sabatino ? 'Primera lección del video' : 'Lección') + '" style="width:62px;background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 6px;color:#f1f5f9;font-size:13px;text-align:center;outline:none;" />'
-        + '</div>'
-        + '<div style="font-size:11px;color:#64748b;margin:4px 2px 8px;">' + (d.sabatino ? 'Las lecciones se llenan solas (el número es la primera de las 4); cámbialo solo si diste otras.' : 'La lección se llena sola; cámbiala solo si diste otra.') + '</div>'
-        + '<button id="gsBtn' + i + '" onclick="guardarGrabClase(' + i + ')" style="width:100%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Guardar grabación de ' + _gsEsc(e.etiqueta.split(' ')[0]) + (d.sabatino ? ' (4 clases)' : '') + '</button>'
-        + '<div id="gsSt' + i + '" style="font-size:12px;text-align:center;color:#94a3b8;margin-top:6px;"></div>'
+    var sab = !!d.sabatino;
+    var esp = d.espacios || [];
+    var pend = esp.filter(function (e) { return !e.link && !e.futuro && !e.festivo; });
+    var prox = esp.filter(function (e) { return !e.link && e.futuro && !e.festivo; })[0];
+    var html = '';
+
+    // ── 1. LO QUE TIENES QUE SUBIR ──
+    if (pend.length) {
+      html += '<div style="font-size:12px;font-weight:800;letter-spacing:.06em;color:#fbbf24;margin:14px 2px 8px;">📤 SUBE ' + (pend.length > 1 ? 'ESTOS VIDEOS' : 'ESTE VIDEO') + '</div>';
+      pend.forEach(function (e) {
+        var i = esp.indexOf(e);
+        var lec = _gsLec(e, sab);
+        html += '<div id="gsRow' + i + '" style="background:linear-gradient(135deg,rgba(251,191,36,0.14),rgba(124,29,111,0.18));border:2px solid #fbbf24;border-radius:16px;padding:14px;margin-bottom:12px;">'
+          + '<div style="font-size:13px;color:#fde68a;font-weight:700;">Grabación de tu clase del</div>'
+          + '<div style="font-size:20px;font-weight:900;color:#fff;line-height:1.2;margin:2px 0 6px;">' + _gsEsc(_gsDia(e)) + '</div>'
+          + '<div style="display:inline-block;background:#7c1d6f;color:#fff;border-radius:100px;padding:5px 14px;font-size:15px;font-weight:900;margin-bottom:6px;">' + _gsEsc(lec) + '</div>'
+          + (sab ? '<div style="font-size:12px;color:#e9d5ff;margin-bottom:10px;">🎬 Un solo video con tus <b>4 clases</b> de ese sábado.</div>' : '<div style="height:6px"></div>')
+          + '<input id="gsLink' + i + '" type="text" placeholder="Pega aquí el enlace del video" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid rgba(255,255,255,0.18);border-radius:12px;padding:12px;color:#f1f5f9;font-size:14px;outline:none;margin-bottom:10px;" />'
+          + '<button id="gsBtn' + i + '" onclick="guardarGrabClase(' + i + ')" style="width:100%;background:linear-gradient(135deg,#f59e0b,#ea580c);color:#1a1a1a;border:none;border-radius:100px;padding:13px;font-size:15px;font-weight:900;cursor:pointer;">📤 Subir video de ' + _gsEsc(lec) + '</button>'
+          + '<div id="gsSt' + i + '" style="font-size:12px;text-align:center;color:#94a3b8;margin-top:6px;"></div>'
+          + '</div>';
+      });
+    } else {
+      html += '<div style="background:rgba(74,222,128,0.1);border:2px solid rgba(74,222,128,0.5);border-radius:16px;padding:14px;margin-bottom:12px;">'
+        + '<div style="font-size:16px;font-weight:900;color:#4ade80;">✅ Estás al día</div>'
+        + '<div style="font-size:13px;color:#d1fae5;margin-top:4px;line-height:1.5;">No tienes videos pendientes.'
+        + (prox ? ' Tu próximo video es el de tu clase del <b>' + _gsEsc(_gsDia(prox)) + '</b>: <b style="color:#fff;">' + _gsEsc(_gsLec(prox, sab)) + '</b>. Súbelo ese día, al terminar la clase.' : '')
         + '</div></div>';
-      return html;
-    }).join('');
+    }
+
+    // ── 2. LO QUE VEN TUS ALUMNOS ──
+    var rec = (d.recientes || []).filter(function (r) { return !r.anterior; });
+    if (rec.length) {
+      html += '<div style="font-size:12px;font-weight:800;letter-spacing:.06em;color:#94a3b8;margin:14px 2px 8px;">👀 LO QUE VEN TUS ALUMNOS AHORA</div>';
+      rec.slice().reverse().forEach(function (r, k) {
+        html += '<div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;margin-bottom:8px;">'
+          + '<div style="display:flex;align-items:center;gap:10px;">'
+          + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:800;color:#e2e8f0;">' + _gsEsc(_gsDia(r)) + ' <span style="color:#4ade80;">✅</span></div>'
+          + '<div style="font-size:12px;color:#c084fc;font-weight:700;">' + _gsEsc(_gsLec(r, sab)) + '</div></div>'
+          + '<a href="' + _gsEsc(r.link) + '" target="_blank" style="background:rgba(22,163,74,0.2);color:#4ade80;border-radius:100px;padding:6px 12px;font-size:12px;font-weight:700;text-decoration:none;">▶ Ver</a>'
+          + '<button onclick="var x=document.getElementById(\'gsFix' + k + '\');x.style.display=x.style.display===\'none\'?\'block\':\'none\';" style="background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:100px;padding:6px 10px;font-size:11px;cursor:pointer;">✏️ Corregir</button>'
+          + '</div>'
+          + '<div id="gsFix' + k + '" style="display:none;margin-top:8px;">'
+          + '<input id="gsFixLink' + k + '" type="text" placeholder="Pega el enlace correcto" style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:9px 10px;color:#f1f5f9;font-size:13px;outline:none;margin-bottom:6px;" />'
+          + '<button id="gsFixBtn' + k + '" onclick="corregirGrabClase(' + k + ')" style="width:100%;background:#334155;color:#fff;border:none;border-radius:100px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Guardar corrección</button>'
+          + '<div id="gsFixSt' + k + '" style="font-size:11px;text-align:center;color:#94a3b8;margin-top:4px;"></div>'
+          + '</div></div>';
+      });
+      _gsData._recVista = rec.slice().reverse();
+    }
+    cont.innerHTML = html;
     if (_gsFoco) {
-      var idx = d.espacios.findIndex(function (e) { return e.fecha === _gsFoco.fecha && (!_gsFoco.claseNum || _gsFoco.claseNum === e.claseNum) && !e.link; });
+      var idx = esp.findIndex(function (e) { return e.fecha === _gsFoco.fecha && !e.link; });
       if (idx >= 0) setTimeout(function () { var el = document.getElementById('gsRow' + idx); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
     }
   }
 
-  function guardarGrabClase(i) {
-    var e = _gsData && _gsData.espacios && _gsData.espacios[i];
-    if (!e) return;
-    var link = document.getElementById('gsLink' + i).value.trim();
-    var lec = document.getElementById('gsLec' + i).value.trim();
-    var st = document.getElementById('gsSt' + i);
+  function _gsEnviar_(fecha, claseNum, leccion, link, btn, st, txtBtn) {
     if (!/^https?:\/\//i.test(link)) { st.style.color = '#fca5a5'; st.textContent = 'Pega el enlace completo (empieza con https://).'; return; }
-    var btn = document.getElementById('gsBtn' + i);
     btn.disabled = true; btn.textContent = 'Guardando…';
     st.style.color = '#94a3b8'; st.textContent = '';
     fetch(APPS_SCRIPT + '?action=guardarGrabacionClase&idGrupo=' + encodeURIComponent(_gsGrupo)
-      + '&fecha=' + encodeURIComponent(e.fecha) + '&claseNum=' + e.claseNum
-      + '&leccion=' + encodeURIComponent(lec) + '&link=' + encodeURIComponent(link)
+      + '&fecha=' + encodeURIComponent(fecha) + '&claseNum=' + (claseNum || 1)
+      + '&leccion=' + encodeURIComponent(leccion || '') + '&link=' + encodeURIComponent(link)
       + '&idMaestro=' + encodeURIComponent(maestroData ? maestroData.id : ''), { redirect: 'follow' })
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (r.success) {
-          mostrarToast('✅ Grabación guardada: ' + r.etiqueta + ' · ' + (r.lecTexto || ('Lesson ' + r.leccion)), 'success');
+          mostrarToast('✅ Video guardado: ' + _gsDia(r) + ' · ' + _gsLec(r, _gsData && _gsData.sabatino), 'success');
           var g = panelData && panelData.grupos.find(function (x) { return x.id === _gsGrupo; });
           if (g) g.grabacion = link;
           _gsFoco = null;
           document.getElementById('gsAviso').style.display = 'none';
           cargarGrabSemana_(function (d) { renderGrabSemana_(d); });
         } else {
-          btn.disabled = false; btn.textContent = 'Guardar grabación';
+          btn.disabled = false; btn.textContent = txtBtn;
           st.style.color = '#fca5a5'; st.textContent = '❌ ' + (r.error || 'No se pudo guardar');
         }
       })
-      .catch(function () { btn.disabled = false; btn.textContent = 'Guardar grabación'; st.style.color = '#fca5a5'; st.textContent = '❌ Error de conexión'; });
+      .catch(function () { btn.disabled = false; btn.textContent = txtBtn; st.style.color = '#fca5a5'; st.textContent = '❌ Error de conexión'; });
   }
 
-  // Banner en el detalle del grupo: clases de esta semana sin grabación
+  function guardarGrabClase(i) {
+    var e = _gsData && _gsData.espacios && _gsData.espacios[i];
+    if (!e) return;
+    var btn = document.getElementById('gsBtn' + i);
+    _gsEnviar_(e.fecha, e.claseNum, '', document.getElementById('gsLink' + i).value.trim(),
+               btn, document.getElementById('gsSt' + i), btn.textContent);
+  }
+
+  function corregirGrabClase(k) {
+    var r = _gsData && _gsData._recVista && _gsData._recVista[k];
+    if (!r) return;
+    _gsEnviar_(r.fecha, r.claseNum, r.leccion, document.getElementById('gsFixLink' + k).value.trim(),
+               document.getElementById('gsFixBtn' + k), document.getElementById('gsFixSt' + k), 'Guardar corrección');
+  }
+
+  // Banner en el detalle del grupo: clases ya dadas sin grabación
   function cargarGrabPendientes() {
     var ban = document.getElementById('grabPendientesBanner');
     if (!ban || !grupoActual) return;
@@ -3374,14 +3410,15 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     cargarGrabSemana_(function (d) {
       if (!grupoActual || grupoActual.id !== idG) return;
       if (!d || !d.success) { ban.innerHTML = ''; return; }
+      var sab = !!d.sabatino;
       var pend = (d.espacios || []).filter(function (e) { return !e.link && !e.futuro && !e.festivo; });
       if (!pend.length) {
-        ban.innerHTML = (d.espacios || []).some(function (e) { return e.link; })
-          ? '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:700;margin:10px 0;">🎥 Grabaciones de la semana al día ✅</div>' : '';
+        ban.innerHTML = (d.recientes || []).some(function (r) { return !r.anterior; })
+          ? '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:700;margin:10px 0;">🎥 Grabaciones al día ✅</div>' : '';
         return;
       }
       ban.innerHTML = '<div onclick="abrirGrabacionesSemana()" style="cursor:pointer;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.5);color:#fde68a;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;margin:10px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-        + '<span>⚠️ Falta subir ' + pend.length + ' grabación' + (pend.length > 1 ? 'es' : '') + ': ' + pend.map(function (e) { var l = parseInt(e.leccion, 10); return _gsEsc(e.etiqueta.split(' ')[0]) + ' (L' + (l ? l + (d.sabatino ? '–' + (l + 3) : '') : '?') + ')'; }).join(', ') + '</span>'
+        + '<span>⚠️ Falta subir: ' + pend.map(function (e) { return _gsEsc(_gsDia(e)) + ' (' + _gsEsc(_gsLec(e, sab)) + ')'; }).join(', ') + '</span>'
         + '<span style="background:#fbbf24;color:#1a2540;border-radius:100px;padding:5px 12px;font-size:12px;white-space:nowrap;">Subir</span></div>';
     });
   }
@@ -3391,7 +3428,7 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     if (!grupoActual || grupoActual.tipoHorario === 'personalizado') return;
     cargarGrabSemana_(function (d) {
       if (!d || !d.success) return;
-      var falta = (d.espacios || []).filter(function (e) { return e.fecha === fecha && !e.link && (!claseNum || e.claseNum === claseNum); });
+      var falta = (d.espacios || []).filter(function (e) { return e.fecha === fecha && !e.link; });
       if (!falta.length) { cargarGrabPendientes(); return; }
       var txt = leccion ? 'Acabas de evaluar la <b>Lesson ' + _gsEsc(leccion) + '</b>.' : 'Acabas de evaluar las clases de este día.';
       abrirGrabacionesSemana({ fecha: fecha, claseNum: claseNum || null },
@@ -3927,7 +3964,7 @@ function cerrarModalMiniChallengeA21(){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
       <span style="font-size:28px;">🎥</span>
       <div>
-        <div style="font-size:18px;font-weight:800;color:#f1f5f9;">Grabaciones de la semana</div>
+        <div style="font-size:18px;font-weight:800;color:#f1f5f9;">Grabaciones de mis clases</div>
         <div style="font-size:12px;color:#94a3b8;" id="gsGrupoLabel">Grupo —</div>
       </div>
     </div>
