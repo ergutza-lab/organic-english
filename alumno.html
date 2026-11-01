@@ -9354,9 +9354,11 @@ var MISIONES_KIDS_A12_LISTA = [
       .then(function (d) {
         if (!d || !d.success) return;
         _grabAlumno.recientes = d.recientes || [];
+        _grabAlumno.semana = d.semana || [];
         _grabAlumno.sabatino = !!d.sabatino;
-        if (_grabAlumno.recientes.length) {
-          var n = _grabAlumno.recientes.length;
+        var nSem = _grabAlumno.semana.filter(function (x) { return x.link; }).length;
+        if (nSem || _grabAlumno.recientes.length) {
+          var n = nSem || _grabAlumno.recientes.length;
           btn.innerHTML = '🎥 ' + (_grabAlumno.sabatino ? 'Sábados grabados' : 'Clases grabadas') + ' (' + n + ')';
           btn.style.display = 'inline-flex';
         }
@@ -9380,7 +9382,27 @@ var MISIONES_KIDS_A12_LISTA = [
       m.addEventListener('click', function (e) { if (e.target === m) m.style.display = 'none'; });
       document.body.appendChild(m);
     }
-    var filas = rec.map(function (g, i) {
+    // Entre semana: SIEMPRE Lunes → Jueves, con fecha y lección
+    var sem = (_grabAlumno.semana || []);
+    var usarSemana = !sab && sem.some(function (x) { return x.link; });
+    var filas = usarSemana ? sem.map(function (g) {
+      var tit = '<span style="display:block;color:#f1f5f9;font-size:15px;font-weight:800;">' + _grabEscA(g.etiqueta) + '</span>';
+      var lec = g.estado === 'festivo' ? '' : '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">' + _grabEscA(_grabLecTxtA(g, false))
+              + (g.pasada ? ' <span style="color:#94a3b8;font-weight:600;">· semana pasada</span>' : '') + '</span>';
+      if (g.estado === 'ok' && g.link) {
+        return '<a href="' + _grabEscA(g.link) + '" target="_blank" style="display:flex;align-items:center;gap:12px;background:rgba(124,29,111,0.22);border:1px solid rgba(192,132,252,0.45);border-radius:14px;padding:12px 14px;margin-bottom:10px;text-decoration:none;">'
+          + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</span>'
+          + '<span style="flex:1;min-width:0;">' + tit + lec + '</span>'
+          + '<span style="color:#e9d5ff;font-size:12px;font-weight:800;">Ver</span></a>';
+      }
+      var msg = g.estado === 'festivo' ? 'Día festivo · sin clase'
+              : g.estado === 'futuro' ? 'Disponible después de la clase'
+              : 'Tu maestro aún no sube esta clase';
+      var ico = g.estado === 'festivo' ? '🎉' : g.estado === 'futuro' ? '🔒' : '⏳';
+      return '<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.14);border-radius:14px;padding:12px 14px;margin-bottom:10px;opacity:.75;">'
+        + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:16px;">' + ico + '</span>'
+        + '<span style="flex:1;min-width:0;">' + tit + lec + '<span style="display:block;color:#94a3b8;font-size:12px;margin-top:2px;">' + msg + '</span></span></div>';
+    }).join('') : rec.map(function (g, i) {
       var ultima = i === rec.length - 1;
       return '<a href="' + _grabEscA(g.link) + '" target="_blank" style="display:flex;align-items:center;gap:12px;background:' + (ultima ? 'rgba(124,29,111,0.28)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (ultima ? 'rgba(192,132,252,0.6)' : 'rgba(255,255,255,0.1)') + ';border-radius:14px;padding:12px 14px;margin-bottom:10px;text-decoration:none;">'
         + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</span>'
@@ -9392,7 +9414,7 @@ var MISIONES_KIDS_A12_LISTA = [
     }).join('');
     m.innerHTML = '<div style="background:#1e1e2e;border:2px solid rgba(124,29,111,0.6);border-radius:18px;width:100%;max-width:440px;padding:22px;box-shadow:0 0 40px rgba(124,29,111,0.25);">'
       + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-size:26px;">🎥</span><h3 style="color:#f1f5f9;margin:0;font-size:18px;font-weight:800;">Clases grabadas de tu grupo</h3></div>'
-      + '<p style="color:#94a3b8;font-size:13px;line-height:1.5;margin:0 0 14px;">' + (sab ? 'Cada video es un sábado completo con sus 4 clases; abajo de cada uno ves qué lecciones incluye. Cada semana se reemplazan con los nuevos.' : 'Aquí están tus ' + (rec.length > 1 ? rec.length + ' clases más recientes' : 'clases más recientes') + ', cada una con su día y su lección. Cada semana se reemplazan con las nuevas.') + ' Úsalas para repasar o ponerte al corriente: <strong style="color:#e9d5ff;">la clase en vivo sigue siendo la que cuenta</strong>.</p>'
+      + '<p style="color:#94a3b8;font-size:13px;line-height:1.5;margin:0 0 14px;">' + (usarSemana ? 'Las clases de tu semana, <b style="color:#e9d5ff;">de lunes a jueves</b>, cada una con su fecha y su lección. Cada día se reemplaza con la clase nueva.' : sab ? 'Cada video es un sábado completo con sus 4 clases; abajo de cada uno ves qué lecciones incluye. Cada semana se reemplazan con los nuevos.' : 'Aquí están tus ' + (rec.length > 1 ? rec.length + ' clases más recientes' : 'clases más recientes') + ', cada una con su día y su lección. Cada semana se reemplazan con las nuevas.') + ' Úsalas para repasar o ponerte al corriente: <strong style="color:#e9d5ff;">la clase en vivo sigue siendo la que cuenta</strong>.</p>'
       + filas
       + '<button onclick="document.getElementById(\'modalGrabacionesAlumno\').style.display=\'none\';" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;border-radius:100px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;">Cerrar</button>'
       + '</div>';
