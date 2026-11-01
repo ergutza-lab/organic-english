@@ -9348,7 +9348,8 @@ var MISIONES_KIDS_A12_LISTA = [
         _grabAlumno.recientes = d.recientes || [];
         _grabAlumno.sabatino = !!d.sabatino;
         if (_grabAlumno.recientes.length) {
-          btn.innerHTML = '🎥 Clases grabadas (' + _grabAlumno.recientes.length + ')';
+          var n = _grabAlumno.recientes.length;
+          btn.innerHTML = '🎥 ' + (_grabAlumno.sabatino ? 'Sábados grabados' : 'Clases grabadas') + ' (' + n + ')';
           btn.style.display = 'inline-flex';
         }
       })
@@ -9357,11 +9358,11 @@ var MISIONES_KIDS_A12_LISTA = [
 
   function abrirGrabacionesAlumno(ev) {
     if (ev && ev.preventDefault) ev.preventDefault();
-    var rec = _grabAlumno.recientes || [];
-    if (!rec.length) {
-      if (_grabAlumno.legacy) window.open(_grabAlumno.legacy, '_blank');
-      return;
-    }
+    var rec = (_grabAlumno.recientes || []).slice();
+    // Siempre se abre la ventana; si aún no hay grabaciones nuevas, se muestra la de siempre
+    if (!rec.length && _grabAlumno.legacy) rec = [{ etiqueta: 'Última clase grabada', lecTexto: 'Grabación anterior', link: _grabAlumno.legacy, anterior: true }];
+    if (!rec.length) { alert('Tu maestro aún no ha subido grabaciones de tu grupo.'); return; }
+    var sab = !!_grabAlumno.sabatino;
     var id = 'modalGrabacionesAlumno';
     var m = document.getElementById(id);
     if (!m) {
@@ -9377,13 +9378,14 @@ var MISIONES_KIDS_A12_LISTA = [
         + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</span>'
         + '<span style="flex:1;min-width:0;">'
         +   '<span style="display:block;color:#f1f5f9;font-size:15px;font-weight:800;">' + _grabEscA(g.etiqueta) + '</span>'
-        +   '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">Lesson ' + _grabEscA(g.leccion || '—') + (ultima ? ' · la más reciente' : '') + '</span>'
+        +   '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">' + _grabEscA(g.lecTexto || ('Lesson ' + (g.leccion || '—'))) + (ultima && rec.length > 1 ? ' · la más reciente' : '') + '</span>'
+        +   (sab && !g.anterior ? '<span style="display:block;color:#94a3b8;font-size:11.5px;margin-top:2px;">🎬 Un solo video con las 4 clases del sábado</span>' : '')
         + '</span>'
         + '<span style="color:#94a3b8;font-size:12px;font-weight:700;">Ver</span></a>';
     }).join('');
     m.innerHTML = '<div style="background:#1e1e2e;border:2px solid rgba(124,29,111,0.6);border-radius:18px;width:100%;max-width:440px;padding:22px;box-shadow:0 0 40px rgba(124,29,111,0.25);">'
       + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-size:26px;">🎥</span><h3 style="color:#f1f5f9;margin:0;font-size:18px;font-weight:800;">Clases grabadas de tu grupo</h3></div>'
-      + '<p style="color:#94a3b8;font-size:13px;line-height:1.5;margin:0 0 14px;">Aquí están tus ' + rec.length + ' clases más recientes. Cada semana se reemplazan con las nuevas. Úsalas para repasar o ponerte al corriente: <strong style="color:#e9d5ff;">la clase en vivo sigue siendo la que cuenta</strong>.</p>'
+      + '<p style="color:#94a3b8;font-size:13px;line-height:1.5;margin:0 0 14px;">' + (sab ? 'Cada video es un sábado completo con sus 4 clases; abajo de cada uno ves qué lecciones incluye. Cada semana se reemplazan con los nuevos.' : 'Aquí están tus ' + (rec.length > 1 ? rec.length + ' clases más recientes' : 'clases más recientes') + ', cada una con su día y su lección. Cada semana se reemplazan con las nuevas.') + ' Úsalas para repasar o ponerte al corriente: <strong style="color:#e9d5ff;">la clase en vivo sigue siendo la que cuenta</strong>.</p>'
       + filas
       + '<button onclick="document.getElementById(\'modalGrabacionesAlumno\').style.display=\'none\';" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;border-radius:100px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;">Cerrar</button>'
       + '</div>';
