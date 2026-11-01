@@ -533,10 +533,11 @@
           </div>
           <div style="display:flex;gap:6px;">
            <button id="btnEntrarZoomMaestro" onclick="entrarZoomMaestro()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🖥️ Entrar a Zoom</button>
-            <button onclick="abrirModalGrabacion(grupoActual.id)" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabación</button>
+            <button onclick="abrirGrabacionesSemana()" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabaciones</button>
           </div>
         </div>
       </div>
+      <div id="grabPendientesBanner"></div>
       <div class="tabs">
         <div class="tab active" id="tabRegistro"  onclick="cambiarTab('Registro')">Registro del día</div>
         <div class="tab"        id="tabMapa"      onclick="cambiarTab('Mapa')">Evaluación del grupo</div>
@@ -1792,6 +1793,8 @@ function renderPatronMaestro(patron) {
     btnWa.style.opacity  = grupoActual.linkWhats ? '1' : '0.5';
     btnZoomM.textContent = '🖥️ Entrar a Zoom';
     btnZoomM.disabled    = false;
+    document.getElementById('grabPendientesBanner').innerHTML = '';
+    cargarGrabPendientes();
 
     fetch(APPS_SCRIPT+'?action=getFechasRegistradas&idGrupo='+encodeURIComponent(idGrupo),{redirect:'follow'})
       .then(r=>r.json())
@@ -2333,6 +2336,7 @@ function guardarRegistroSabatinoMasivo() {
     .then(function(data) {
       if (data.success) {
         mostrarToast('✅ Las 4 clases quedaron registradas', 'success');
+        recordarGrabacion(fecha, null, null);
 
         // Actualizar el estado local de clases por fecha
         if (!clasesPorFechaActual[fecha]) clasesPorFechaActual[fecha] = [];
@@ -2482,6 +2486,7 @@ function guardarRegistroSabatinoMasivo() {
               actualizarEstadoFecha(fecha);
             } else {
               mostrarToast('¡Las 4 clases de este sábado quedaron registradas!','success');
+              recordarGrabacion(fecha, null, null);
               limpiarRegistro();
             }
           } else {
@@ -2489,6 +2494,7 @@ function guardarRegistroSabatinoMasivo() {
             if (!leccionesPorFecha[fecha]) leccionesPorFecha[fecha] = [];
             leccionesPorFecha[fecha].push(leccionSel);
             mostrarToast('✅ ' + _etqLeccion_(leccionSel) + ' guardada (' + _fechaCorta_(fecha) + ')','success');
+            recordarGrabacion(fecha, 1, leccionSel > 32 ? leccionSel - 32 : leccionSel);
             limpiarRegistro();
             poblarSelectorLeccion();
             if (grupoActual) { grupoActual._mapaData = null; grupoActual._mapaPromise = null; }
@@ -3247,6 +3253,147 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
   }
 
   // ── UTILIDADES ─────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════
+  //  GRABACIONES DE LA SEMANA (nov-2026)
+  //  Un espacio por clase: lun-jue (o las 4 clases del sábado). Cada uno
+  //  muestra su lección. Recordatorio al evaluar y banner de pendientes.
+  // ═══════════════════════════════════════════════════════════════════════
+  var _gsData = null, _gsGrupo = null, _gsFoco = null;
+
+  function _gsEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function abrirGrabacionesSemana(foco, aviso) {
+    if (!grupoActual) return;
+    if (grupoActual.tipoHorario === 'personalizado') { abrirModalGrabacion(grupoActual.id); return; }
+    modalAbierto = true;
+    _gsGrupo = grupoActual.id;
+    _gsFoco = foco || null;
+    document.getElementById('gsGrupoLabel').textContent = 'Grupo ' + grupoActual.id + ' · ' + (grupoActual.horario || '');
+    var av = document.getElementById('gsAviso');
+    if (aviso) { av.innerHTML = aviso; av.style.display = 'block'; } else { av.style.display = 'none'; }
+    document.getElementById('gsLista').innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;">Cargando…</div>';
+    document.getElementById('modalGrabSemana').style.display = 'flex';
+    cargarGrabSemana_(function (d) { renderGrabSemana_(d); });
+  }
+
+  function cerrarGrabSemana() {
+    modalAbierto = false;
+    document.getElementById('modalGrabSemana').style.display = 'none';
+    _gsFoco = null;
+    cargarGrabPendientes();
+  }
+
+  function cargarGrabSemana_(cb) {
+    var id = grupoActual ? grupoActual.id : _gsGrupo;
+    fetch(APPS_SCRIPT + '?action=getGrabacionesGrupo&idGrupo=' + encodeURIComponent(id), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { _gsData = d; cb(d); })
+      .catch(function () { cb({ success: false, error: 'Error de conexión' }); });
+  }
+
+  function renderGrabSemana_(d) {
+    var cont = document.getElementById('gsLista');
+    if (!d || !d.success) { cont.innerHTML = '<div style="color:#fca5a5;text-align:center;padding:16px;">❌ ' + _gsEsc(d && d.error || 'No se pudo cargar') + '</div>'; return; }
+    if (!d.espacios || !d.espacios.length) { cont.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:16px;">Este grupo todavía no tiene clases esta semana.</div>'; return; }
+    cont.innerHTML = d.espacios.map(function (e, i) {
+      var foco = _gsFoco && _gsFoco.fecha === e.fecha && (!_gsFoco.claseNum || _gsFoco.claseNum === e.claseNum) && !e.link;
+      var borde = foco ? '2px solid #fbbf24' : (e.link ? '1px solid rgba(74,222,128,0.35)' : '1px solid rgba(255,255,255,0.1)');
+      var chip = e.link ? '<span style="background:rgba(74,222,128,0.15);color:#4ade80;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">✅ Subida</span>'
+               : e.futuro ? '<span style="background:rgba(148,163,184,0.15);color:#94a3b8;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">🔒 Después de la clase</span>'
+               : e.festivo ? '<span style="background:rgba(148,163,184,0.15);color:#cbd5e1;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">Festivo</span>'
+               : '<span style="background:rgba(251,191,36,0.15);color:#fbbf24;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:800;">⏳ Pendiente</span>';
+      var html = '<div id="gsRow' + i + '" style="background:#0f172a;border:' + borde + ';border-radius:14px;padding:12px;margin-bottom:10px;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
+        + '<div style="font-size:14px;font-weight:800;color:#f1f5f9;">' + _gsEsc(e.etiqueta) + ' <span style="color:#c084fc;">· Lesson ' + _gsEsc(e.leccion || '?') + '</span></div>' + chip + '</div>';
+      if (e.link) {
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+          + '<a href="' + _gsEsc(e.link) + '" target="_blank" style="flex:1;text-align:center;background:#16a34a;color:#fff;border-radius:100px;padding:8px 12px;font-size:12px;font-weight:700;text-decoration:none;">▶️ Ver</a>'
+          + '<button onclick="document.getElementById(\'gsEdit' + i + '\').style.display=\'block\';this.style.display=\'none\';" style="flex:1;background:transparent;color:#cbd5e1;border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Cambiar</button></div>'
+          + '<div id="gsEdit' + i + '" style="display:none;margin-top:8px;">';
+      } else {
+        html += '<div id="gsEdit' + i + '">';
+      }
+      html += '<div style="display:flex;gap:6px;">'
+        + '<input id="gsLink' + i + '" type="text" placeholder="Pega aquí el enlace de la grabación" value="" style="flex:1;min-width:0;background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;color:#f1f5f9;font-size:13px;outline:none;" />'
+        + '<input id="gsLec' + i + '" type="number" min="1" max="32" value="' + _gsEsc(e.leccion || '') + '" title="Lección" style="width:62px;background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 6px;color:#f1f5f9;font-size:13px;text-align:center;outline:none;" />'
+        + '</div>'
+        + '<div style="font-size:11px;color:#64748b;margin:4px 2px 8px;">La lección se llena sola; cámbiala solo si diste otra.</div>'
+        + '<button id="gsBtn' + i + '" onclick="guardarGrabClase(' + i + ')" style="width:100%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Guardar grabación de ' + _gsEsc(e.etiqueta.split(' ')[0]) + (d.sabatino ? ' · Clase ' + e.claseNum : '') + '</button>'
+        + '<div id="gsSt' + i + '" style="font-size:12px;text-align:center;color:#94a3b8;margin-top:6px;"></div>'
+        + '</div></div>';
+      return html;
+    }).join('');
+    if (_gsFoco) {
+      var idx = d.espacios.findIndex(function (e) { return e.fecha === _gsFoco.fecha && (!_gsFoco.claseNum || _gsFoco.claseNum === e.claseNum) && !e.link; });
+      if (idx >= 0) setTimeout(function () { var el = document.getElementById('gsRow' + idx); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
+    }
+  }
+
+  function guardarGrabClase(i) {
+    var e = _gsData && _gsData.espacios && _gsData.espacios[i];
+    if (!e) return;
+    var link = document.getElementById('gsLink' + i).value.trim();
+    var lec = document.getElementById('gsLec' + i).value.trim();
+    var st = document.getElementById('gsSt' + i);
+    if (!/^https?:\/\//i.test(link)) { st.style.color = '#fca5a5'; st.textContent = 'Pega el enlace completo (empieza con https://).'; return; }
+    var btn = document.getElementById('gsBtn' + i);
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    st.style.color = '#94a3b8'; st.textContent = '';
+    fetch(APPS_SCRIPT + '?action=guardarGrabacionClase&idGrupo=' + encodeURIComponent(_gsGrupo)
+      + '&fecha=' + encodeURIComponent(e.fecha) + '&claseNum=' + e.claseNum
+      + '&leccion=' + encodeURIComponent(lec) + '&link=' + encodeURIComponent(link)
+      + '&idMaestro=' + encodeURIComponent(maestroData ? maestroData.id : ''), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (r.success) {
+          mostrarToast('✅ Grabación guardada: ' + r.etiqueta + ' · Lesson ' + r.leccion, 'success');
+          var g = panelData && panelData.grupos.find(function (x) { return x.id === _gsGrupo; });
+          if (g) g.grabacion = link;
+          _gsFoco = null;
+          document.getElementById('gsAviso').style.display = 'none';
+          cargarGrabSemana_(function (d) { renderGrabSemana_(d); });
+        } else {
+          btn.disabled = false; btn.textContent = 'Guardar grabación';
+          st.style.color = '#fca5a5'; st.textContent = '❌ ' + (r.error || 'No se pudo guardar');
+        }
+      })
+      .catch(function () { btn.disabled = false; btn.textContent = 'Guardar grabación'; st.style.color = '#fca5a5'; st.textContent = '❌ Error de conexión'; });
+  }
+
+  // Banner en el detalle del grupo: clases de esta semana sin grabación
+  function cargarGrabPendientes() {
+    var ban = document.getElementById('grabPendientesBanner');
+    if (!ban || !grupoActual) return;
+    if (grupoActual.tipoHorario === 'personalizado') { ban.innerHTML = ''; return; }
+    var idG = grupoActual.id;
+    cargarGrabSemana_(function (d) {
+      if (!grupoActual || grupoActual.id !== idG) return;
+      if (!d || !d.success) { ban.innerHTML = ''; return; }
+      var pend = (d.espacios || []).filter(function (e) { return !e.link && !e.futuro && !e.festivo; });
+      if (!pend.length) {
+        ban.innerHTML = (d.espacios || []).some(function (e) { return e.link; })
+          ? '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:700;margin:10px 0;">🎥 Grabaciones de la semana al día ✅</div>' : '';
+        return;
+      }
+      ban.innerHTML = '<div onclick="abrirGrabacionesSemana()" style="cursor:pointer;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.5);color:#fde68a;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;margin:10px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+        + '<span>⚠️ Falta subir ' + pend.length + ' grabación' + (pend.length > 1 ? 'es' : '') + ': ' + pend.map(function (e) { return _gsEsc(e.etiqueta.split(' ')[0]) + (d.sabatino ? ' C' + e.claseNum : '') + ' (L' + _gsEsc(e.leccion || '?') + ')'; }).join(', ') + '</span>'
+        + '<span style="background:#fbbf24;color:#1a2540;border-radius:100px;padding:5px 12px;font-size:12px;white-space:nowrap;">Subir</span></div>';
+    });
+  }
+
+  // Recordatorio después de evaluar: si la clase evaluada no tiene grabación
+  function recordarGrabacion(fecha, claseNum, leccion) {
+    if (!grupoActual || grupoActual.tipoHorario === 'personalizado') return;
+    cargarGrabSemana_(function (d) {
+      if (!d || !d.success) return;
+      var falta = (d.espacios || []).filter(function (e) { return e.fecha === fecha && !e.link && (!claseNum || e.claseNum === claseNum); });
+      if (!falta.length) { cargarGrabPendientes(); return; }
+      var txt = leccion ? 'Acabas de evaluar la <b>Lesson ' + _gsEsc(leccion) + '</b>.' : 'Acabas de evaluar las clases de este día.';
+      abrirGrabacionesSemana({ fecha: fecha, claseNum: claseNum || null },
+        '📌 ' + txt + ' No olvides subir aquí la grabación de ' + (falta.length > 1 ? 'esas clases' : 'esta clase') + ' para tus alumnos.');
+    });
+  }
+
   function mostrarToast(msg,tipo) {
     var t=document.getElementById('toast');
     t.textContent=msg; t.className='toast show '+(tipo||'');
@@ -3766,6 +3913,25 @@ function cerrarModalMiniChallengeA21(){
     <button onclick="guardarGrabacion()" style="width:100%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;">Guardar grabación</button>
     <div id="grabStatus" style="font-size:12px;text-align:center;color:#64748b;margin-bottom:8px;"></div>
     <button onclick="cerrarModalGrabacion()" style="width:100%;background:transparent;color:#475569;border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:11px;font-size:13px;cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL GRABACIONES DE LA SEMANA (nov-2026) -->
+<div id="modalGrabSemana" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;">
+  <div style="background:#1a2540;border-radius:20px;padding:24px 20px;width:100%;max-width:520px;border:1px solid rgba(124,29,111,0.6);margin:auto;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <span style="font-size:28px;">🎥</span>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#f1f5f9;">Grabaciones de la semana</div>
+        <div style="font-size:12px;color:#94a3b8;" id="gsGrupoLabel">Grupo —</div>
+      </div>
+    </div>
+    <div id="gsAviso" style="display:none;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.45);color:#fde68a;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;margin:12px 0 0;"></div>
+    <div style="background:rgba(124,29,111,0.15);border:1px solid rgba(124,29,111,0.35);border-radius:12px;padding:10px 12px;font-size:12px;color:#e9d5ff;line-height:1.5;margin:12px 0 14px;">
+      Sube la grabación de <b>cada clase en el espacio de su día</b>. Tus alumnos ven las 4 clases más recientes, con su día y su lección. Al subir la de un día nuevo, la más vieja se reemplaza sola.
+    </div>
+    <div id="gsLista"><div style="text-align:center;color:#94a3b8;padding:20px;">Cargando…</div></div>
+    <button onclick="cerrarGrabSemana()" style="width:100%;margin-top:14px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:100px;padding:11px;font-size:13px;cursor:pointer;">Cerrar</button>
   </div>
 </div>
 
