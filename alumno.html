@@ -1191,7 +1191,7 @@
         <a id="btnZoom" href="#" target="_blank" class="zoom-btn btn-brillo" style="background:#2D8CFF;flex:1;">
           <div class="zoom-dot"></div>Mi clase por Zoom
         </a>
-        <a id="btnGrabacion" href="#" target="_blank" class="btn-brillo" style="display:none;flex:1;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">
+        <a id="btnGrabacion" href="#" onclick="abrirGrabacionesAlumno(event)" class="btn-brillo" style="display:none;flex:1;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 18px rgba(124,29,111,0.3);white-space:nowrap;">
           🎥 Ver grabación
         </a>
       </div>
@@ -1262,9 +1262,17 @@
 <div id="modalPago" class="modal-pago-overlay">
   <div class="modal-pago-box">
     <div class="modal-pago-icono">💳</div>
-    <div class="modal-pago-titulo">Tu pago esta por vencer</div>
-    <div class="modal-pago-subtitulo" id="modalPagoSubtitulo">Para seguir disfrutando tus clases, <strong>sube tu comprobante de pago</strong> directamente aqui.</div>
+    <div class="modal-pago-titulo" id="modalPagoTitulo">Sube tu comprobante de pago</div>
     <div class="modal-pago-vigencia" id="modalPagoVigencia">—</div>
+    <div id="modalPagoRecordatorio" style="display:none;">
+      <div style="background:rgba(34,197,94,0.12);border:1.5px solid rgba(34,197,94,0.45);border-radius:14px;padding:14px 16px;margin-bottom:14px;text-align:center;">
+        <div style="font-size:15px;font-weight:800;color:#4ade80;margin-bottom:4px;">✅ Tu acceso sigue activo</div>
+        <div style="font-size:13px;color:#cbd5e1;line-height:1.55;">Puedes entrar a tus clases normalmente. Este aviso es solo un <strong>recordatorio de pago</strong>.</div>
+      </div>
+      <button onclick="cerrarModalPago()" style="width:100%;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:100px;padding:16px;font-size:17px;font-weight:800;cursor:pointer;margin-bottom:18px;box-shadow:0 6px 20px rgba(22,163,74,0.35);">▶ Entrar a mi panel</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;color:#94a3b8;font-size:12px;font-weight:700;"><span style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></span>¿Ya pagaste? Sube aquí tu comprobante<span style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></span></div>
+    </div>
+    <div class="modal-pago-subtitulo" id="modalPagoSubtitulo">Para seguir disfrutando tus clases, <strong>sube tu comprobante de pago</strong> directamente aqui.</div>
     <div class="upload-zone" id="uploadZone">
       <input type="file" id="uploadInput" accept="image/*,application/pdf" onchange="archivoSeleccionado(this)" />
       <div class="upload-icon">📎</div>
@@ -1278,7 +1286,7 @@
     </div>
     <button class="btn-subir" id="btnSubir" onclick="subirComprobante()">Subir comprobante</button>
     <div class="upload-status" id="uploadStatus"></div>
-    <button class="btn-cerrar-pago" onclick="cerrarModalPago()">Cerrar y subir despues</button>
+    <button class="btn-cerrar-pago" id="btnCerrarPago" onclick="cerrarModalPago()">Cerrar</button>
   </div>
 </div>
 
@@ -1685,11 +1693,7 @@
       if (esKids) prepararPracticaKids();
 
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
-      if (g.grabacion) {
-        var btnGrab = document.getElementById('btnGrabacion');
-        btnGrab.href = g.grabacion;
-        btnGrab.style.display = 'inline-flex';
-      }
+      cargarGrabacionesAlumno(g.id, g.grabacion || '');
       var fi = new Date(g.fechaInicio);
       document.getElementById('grupoFecha').textContent = fi.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][fi.getMonth()]+' '+fi.getFullYear();
       var dr = Math.ceil((fi - new Date()) / (1000*60*60*24));
@@ -1934,6 +1938,9 @@
     var fechaFin = formatFechaCorta(p.periodoFin);
     var tv = dias<=0 ? 'Tu pago vencio el '+fechaFin : dias===1 ? 'Tu pago vence manana · '+fechaFin : 'Tu pago vence en '+dias+' dias · '+fechaFin;
     document.getElementById('modalPagoVigencia').textContent = tv;
+    document.getElementById('modalPagoTitulo').textContent = '🔔 Recordatorio de pago';
+    document.getElementById('modalPagoRecordatorio').style.display = 'block';
+    document.getElementById('btnCerrarPago').textContent = 'Lo subo después';
  
     var tarifaSemanal = tarifaSemanalPorTipo(alumnoData && alumnoData.alumno && alumnoData.alumno.tipoInscripcion);
     var monto = Number(p.monto) || 0;
@@ -1955,7 +1962,7 @@
     }
  
     document.getElementById('modalPagoSubtitulo').innerHTML =
-      'Tu <strong>colegiatura semanal esta por vencer</strong>. Sube tu comprobante de pago.' +
+      'Cuando pagues tu siguiente semana, sube aquí la foto o PDF de tu comprobante.' +
       (saldo > 0 ? ' Tienes <strong style="color:#4ade80;">$'+saldo+' de saldo</strong> a favor.' : '');
  
     var uploadZone = document.getElementById('uploadZone');
@@ -1975,6 +1982,9 @@
   }
   function cerrarModalPago() {
     document.getElementById('modalPago').classList.remove('visible');
+    document.getElementById('modalPagoTitulo').textContent = 'Sube tu comprobante de pago';
+    document.getElementById('modalPagoRecordatorio').style.display = 'none';
+    document.getElementById('btnCerrarPago').textContent = 'Cerrar';
     document.getElementById('uploadZone').style.display = 'block';
     document.getElementById('btnSubir').style.display = 'block';
     var aviso = document.getElementById('avisoComprobante24h');
@@ -9316,9 +9326,71 @@ var MISIONES_KIDS_A12_LISTA = [
     if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
   }
   function abrirGrabacionDesdeBoard() {
-    var btn = document.getElementById('btnGrabacion');
-    if (btn && btn.href && btn.href !== '#') window.open(btn.href, '_blank');
+    abrirGrabacionesAlumno();
   }
+  // ═══════════════════════════════════════════════════════════════════════
+  //  GRABACIONES DE LA SEMANA (nov-2026): las 4 clases más recientes del
+  //  grupo, cada una con su día y su lección.
+  // ═══════════════════════════════════════════════════════════════════════
+  var _grabAlumno = { grupo: null, recientes: [], legacy: '' };
+
+  function _grabEscA(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function cargarGrabacionesAlumno(idGrupo, legacy) {
+    _grabAlumno = { grupo: idGrupo, recientes: [], legacy: legacy || '' };
+    var btn = document.getElementById('btnGrabacion');
+    if (!idGrupo || !btn) return;
+    if (legacy) btn.style.display = 'inline-flex';
+    fetch(APPS_SCRIPT + '?action=getGrabacionesGrupo&idGrupo=' + encodeURIComponent(idGrupo), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.success) return;
+        _grabAlumno.recientes = d.recientes || [];
+        _grabAlumno.sabatino = !!d.sabatino;
+        if (_grabAlumno.recientes.length) {
+          btn.innerHTML = '🎥 Clases grabadas (' + _grabAlumno.recientes.length + ')';
+          btn.style.display = 'inline-flex';
+        }
+      })
+      .catch(function () {});
+  }
+
+  function abrirGrabacionesAlumno(ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    var rec = _grabAlumno.recientes || [];
+    if (!rec.length) {
+      if (_grabAlumno.legacy) window.open(_grabAlumno.legacy, '_blank');
+      return;
+    }
+    var id = 'modalGrabacionesAlumno';
+    var m = document.getElementById(id);
+    if (!m) {
+      m = document.createElement('div');
+      m.id = id;
+      m.style.cssText = 'display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;padding:16px;';
+      m.addEventListener('click', function (e) { if (e.target === m) m.style.display = 'none'; });
+      document.body.appendChild(m);
+    }
+    var filas = rec.map(function (g, i) {
+      var ultima = i === rec.length - 1;
+      return '<a href="' + _grabEscA(g.link) + '" target="_blank" style="display:flex;align-items:center;gap:12px;background:' + (ultima ? 'rgba(124,29,111,0.28)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (ultima ? 'rgba(192,132,252,0.6)' : 'rgba(255,255,255,0.1)') + ';border-radius:14px;padding:12px 14px;margin-bottom:10px;text-decoration:none;">'
+        + '<span style="width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(135deg,#7c1d6f,#5b0f52);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</span>'
+        + '<span style="flex:1;min-width:0;">'
+        +   '<span style="display:block;color:#f1f5f9;font-size:15px;font-weight:800;">' + _grabEscA(g.etiqueta) + '</span>'
+        +   '<span style="display:block;color:#c084fc;font-size:13px;font-weight:700;">Lesson ' + _grabEscA(g.leccion || '—') + (ultima ? ' · la más reciente' : '') + '</span>'
+        + '</span>'
+        + '<span style="color:#94a3b8;font-size:12px;font-weight:700;">Ver</span></a>';
+    }).join('');
+    m.innerHTML = '<div style="background:#1e1e2e;border:2px solid rgba(124,29,111,0.6);border-radius:18px;width:100%;max-width:440px;padding:22px;box-shadow:0 0 40px rgba(124,29,111,0.25);">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-size:26px;">🎥</span><h3 style="color:#f1f5f9;margin:0;font-size:18px;font-weight:800;">Clases grabadas de tu grupo</h3></div>'
+      + '<p style="color:#94a3b8;font-size:13px;line-height:1.5;margin:0 0 14px;">Aquí están tus ' + rec.length + ' clases más recientes. Cada semana se reemplazan con las nuevas. Úsalas para repasar o ponerte al corriente: <strong style="color:#e9d5ff;">la clase en vivo sigue siendo la que cuenta</strong>.</p>'
+      + filas
+      + '<button onclick="document.getElementById(\'modalGrabacionesAlumno\').style.display=\'none\';" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;border-radius:100px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;">Cerrar</button>'
+      + '</div>';
+    m.style.display = 'flex';
+  }
+
+
   function abrirBoardChallenge() {
     var card = document.getElementById('evaluacionAlumno');
     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
