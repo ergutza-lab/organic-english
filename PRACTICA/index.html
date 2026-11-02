@@ -174,6 +174,9 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset
 .rname{flex:1;min-width:0;font-weight:800}
 .rname em{font-style:normal;color:var(--ora-soft)}
 .rpts{font:800 13px var(--f-body);color:var(--mute);font-variant-numeric:tabular-nums}
+.pais.lock{opacity:.55;filter:grayscale(.7)}
+.aviso{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);max-width:min(92vw,420px);background:#14213d;color:#fff;border:2px solid var(--sun);border-radius:16px;padding:12px 16px;font-weight:800;text-align:center;z-index:60;transition:transform .25s}
+.aviso.on{transform:translate(-50%,0)}
 .share{display:flex;flex-direction:column;gap:12px;align-items:center}
 .stk-wrap{width:100%;max-width:340px;border-radius:22px;padding:6px;background:repeating-conic-gradient(#1c2a50 0 25%,#16223f 0 50%) 0 0/24px 24px}
 .stk-wrap img{display:block;width:100%}
@@ -492,6 +495,7 @@ function frame(title, inner, onBack){
 
 // ═════════ INICIO: el mapa del viaje ═════════
 var INDEX = null, NIVEL_VISTO = ALUMNO.nivel, LECCION = null;
+function aviso(t){ var d = document.getElementById('aviso'); if (!d) { d = document.createElement('div'); d.id = 'aviso'; d.className = 'aviso'; document.body.appendChild(d); } d.textContent = t; d.classList.add('on'); clearTimeout(d._t); d._t = setTimeout(function(){ d.classList.remove('on'); }, 2600); }
 function promedioLeccion(lk, juegos){
   var s = DB.scores[lk] || {}, sum = 0, n = 0;
   juegos.forEach(function(j){ if (s[j] != null) { sum += s[j]; n++; } });
@@ -515,7 +519,7 @@ function inicio(){
         '<span class="lbl"><b>'+esc(P.ciudades[k % P.ciudades.length])+'</b><small>L'+l.num+' · '+esc(l.titulo)+'</small>'+(pr.jugados ? '<small class="st">'+'⭐'.repeat(estrellas(pr.p))+(pr.jugados<l.juegos.length?' '+pr.jugados+'/'+l.juegos.length:'')+'</small>' : '')+'</span></button>';
     }).join('');
     app.innerHTML = header(ALUMNO.demo ? 'Demo' : 'Road Trip') + hud() +
-      '<div class="paises" role="tablist">' + NIVELES.map(function(n){ var q = PAISES[n]; return '<button class="pais'+(n===NIVEL_VISTO?' on':'')+'" data-n="'+n+'"><span>'+q.bandera+'</span><b>'+q.pais+'</b><small>'+n+'</small></button>'; }).join('') + '</div>' +
+      '<div class="paises" role="tablist">' + NIVELES.map(function(n){ var q = PAISES[n], mio = n === ALUMNO.nivel; return '<button class="pais'+(n===NIVEL_VISTO?' on':'')+(mio?'':' lock')+'" data-n="'+n+'"><span>'+(mio ? q.bandera : '🔒')+'</span><b>'+q.pais+'</b><small>'+n+'</small></button>'; }).join('') + '</div>' +
       '<div class="route-head"><div><small>'+P.bandera+' '+esc(P.ruta)+'</small><h2>'+(actual ? 'Tu próxima parada: <em>'+esc(ciudad(NIVEL_VISTO, actual))+'</em>' : 'Explora la ruta de '+P.pais)+'</h2></div>' +
       '<button class="rk" id="verRanking" aria-label="Ranking del grupo">🏆<small>#'+pos.pos+'</small></button></div>' +
       (actual ? '<button class="go-now" id="hoy">🚙 ¡Arrancar en '+esc(ciudad(NIVEL_VISTO, actual))+'! <small>Lesson '+actual+' · tu clase de hoy</small></button>' : '') +
@@ -523,7 +527,10 @@ function inicio(){
       (ALUMNO.demo ? '<p class="note">Modo demo con una alumna de ejemplo. Conectado a la plataforma, el mapa avanza con la clase real del alumno.</p>' : '');
     var bh = document.getElementById('hoy'); if (bh) bh.onclick = function(){ abrirLeccion(NIVEL_VISTO, actual); };
     document.getElementById('verRanking').onclick = ranking;
-    app.querySelectorAll('.pais').forEach(function(t){ t.onclick = function(){ NIVEL_VISTO = t.dataset.n; inicio(); }; });
+    app.querySelectorAll('.pais').forEach(function(t){ t.onclick = function(){
+      // Solo se practica el bloque en el que está el alumno
+      if (t.dataset.n !== ALUMNO.nivel) { var ix = NIVELES.indexOf(t.dataset.n), mi = NIVELES.indexOf(ALUMNO.nivel); return aviso(ix > mi ? '🔒 ' + PAISES[t.dataset.n].pais + ' se abre cuando pases al bloque ' + t.dataset.n + '.' : '🔒 Ese bloque ya lo terminaste. ¡Sigue tu ruta por ' + PAISES[ALUMNO.nivel].pais + '!'); }
+      NIVEL_VISTO = t.dataset.n; inicio(); }; });
     app.querySelectorAll('.stop').forEach(function(b){ b.onclick = function(){ abrirLeccion(NIVEL_VISTO, +b.dataset.l); }; });
     var now = app.querySelector('.stop.now'); if (now) setTimeout(function(){ now.scrollIntoView({ block:'center', behavior:'smooth' }); }, 300);
   }).catch(function(){ app.innerHTML = header('Road Trip') + '<div class="loading">No se pudo cargar el viaje. Revisa tu conexión y vuelve a intentar.</div>'; });
