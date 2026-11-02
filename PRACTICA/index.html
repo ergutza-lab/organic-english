@@ -853,8 +853,8 @@ function dibujarSticker(x, cx, cy, s, pct, que){
   var st = estrellas(pct); for (var k=0;k<3;k++) estrella(x,(k-1)*105,175-(k===1?18:0),k===1?52:44,k<st);
   x.save(); x.shadowColor='rgba(0,0,0,.25)'; x.shadowBlur=16; x.shadowOffsetY=8; x.fillStyle='#fff'; rr(x,-470,248,940,150,34); x.fill(); x.restore();
   var gr = x.createLinearGradient(-450,0,450,0); gr.addColorStop(0,'#ff7a1a'); gr.addColorStop(1,'#ff4f6d'); x.fillStyle=gr; rr(x,-452,264,904,118,26); x.fill();
-  x.fillStyle='#fff'; var l1 = '¡Lo logré, ' + ALUMNO.pila + '!'; ajustar(x, l1, 860, '700 58px Fredoka, sans-serif'); x.fillText(l1,0,322);
-  var l2 = '“' + d.titulo + '” · ' + que; ajustar(x, l2, 860, '800 30px Nunito, sans-serif'); x.fillStyle='rgba(255,255,255,.92)'; x.fillText(l2,0,362);
+  x.fillStyle='#fff'; var l1 = '¡Hola! Soy ' + ALUMNO.pila; ajustar(x, l1, 860, '700 58px Fredoka, sans-serif'); x.fillText(l1,0,322);
+  var l2 = 'y este es mi score de la Lesson ' + d.num + ' · “' + d.titulo + '”'; ajustar(x, l2, 860, '800 30px Nunito, sans-serif'); x.fillStyle='rgba(255,255,255,.92)'; x.fillText(l2,0,362);
   x.restore();
 }
 function hacerSticker(pct,que){ var c=document.createElement('canvas'); c.width=1080; c.height=1080; dibujarSticker(c.getContext('2d'),540,520,1,pct,que); return c; }
@@ -883,6 +883,13 @@ function shareCard(que, pct){
       '<p id="shMsg">La calcomanía tiene fondo transparente: en Instagram puedes pegarla sobre tu foto o video. Para tus historias usa la versión vertical.</p>' +
       '<div class="story"><img src="'+his.toDataURL('image/png')+'" alt="Versión para historias"><span>Versión para historias</span></div>' +
       '<button class="btn ghost small" id="home2">Volver a la lección</button></div>');
+    var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    function descargar(red){
+      var msg = document.getElementById('shMsg');
+      var a = document.createElement('a'); a.href = (red === 'fb' ? stk : his).toDataURL('image/png'); a.download = 'organic-english-lesson' + LECCION.num + '.png'; document.body.appendChild(a); a.click(); a.remove();
+      msg.innerHTML = '✅ <b>Tu imagen se descargó.</b> Se abrió ' + (red === 'fb' ? 'Facebook' : 'Instagram') + ': crea una publicación y adjunta la imagen desde tu carpeta de Descargas.'; msg.classList.add('hl');
+      window.open(red === 'fb' ? 'https://www.facebook.com/' : 'https://www.instagram.com/', '_blank', 'noopener');
+    }
     function compartir(){
       var msg = document.getElementById('shMsg');
       his.toBlob(function(blob){
@@ -891,8 +898,8 @@ function shareCard(que, pct){
         else { msg.innerHTML = 'Tu navegador no deja compartir directo. <b>Mantén presionada la imagen</b> para guardarla y súbela a tu historia o publicación.'; msg.classList.add('hl'); }
       }, 'image/png');
     }
-    document.getElementById('shIG').onclick = compartir;
-    document.getElementById('shFB').onclick = compartir;
+    document.getElementById('shIG').onclick = esCel ? compartir : function(){ descargar('ig'); };
+    document.getElementById('shFB').onclick = esCel ? compartir : function(){ descargar('fb'); };
     document.getElementById('home2').onclick = abrirLeccionActual;
   };
   var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
