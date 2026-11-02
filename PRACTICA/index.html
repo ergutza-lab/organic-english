@@ -292,15 +292,20 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:#141c2e url
 .copts.row3 .copt:nth-child(3){background:linear-gradient(150deg,#a77bff,#6a4bd6)}
 
 img.e3d{display:block;object-fit:contain}
+.q .qh{margin-top:8px;font:600 15px var(--f-body);color:#ffd9b0;opacity:.95}
+.mal-op{flex-direction:column;gap:6px}
+.mal-op .cap{font:800 14px var(--f-body);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);line-height:1.15}
+.mal-op img.foto{height:auto !important;flex:1;min-height:0}
+.mal-op.solo .cap{font-size:17px;padding:0 4px}
 .mal-q{background:#fff8ec;color:#1d2340;border-radius:20px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 0 #c9a46a;position:relative}
 .mal-q .tag{font-size:30px;flex:none}
 .mal-q .w{font:800 22px var(--f-display);line-height:1.2;flex:1}
 .mal-q .say{flex:none;width:46px;height:46px;border-radius:50%;background:var(--ora);color:#fff;font-size:22px;box-shadow:0 4px 0 #b8400d}
 .mal-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.mal-op{aspect-ratio:1/1;border-radius:20px;padding:8px;display:grid;place-items:center;box-shadow:0 6px 0 rgba(0,0,0,.28);transition:transform .1s}
+.mal-op{aspect-ratio:1/1;border-radius:20px;padding:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 6px 0 rgba(0,0,0,.28);transition:transform .1s}
 .mal-op:active{transform:translateY(3px)}
 .mal-op img.foto{width:100%;height:100%;aspect-ratio:1/1;border-radius:14px}
-.mal-op img.emo-big{width:70%;height:70%}
+.mal-op img.emo-big{width:58%;height:auto;aspect-ratio:1/1}
 .mal-op .emo-big{font-size:72px}
 .mal-op.ok{outline:5px solid #2bd97a;animation:pop .35s}
 .mal-op.bad{opacity:.35;outline:5px solid #ff4f6d}
@@ -422,6 +427,7 @@ var _fotosLow = null, _fotosRef = null;
 function _norm(t){ return String(t||'').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9' -]/g,' ').replace(/\s+/g,' ').trim(); }
 function fotoDe(txt, frase){
   if (!txt) return '';
+  if (LECCION && LECCION.fotos && LECCION.fotos.map(_norm).indexOf(_norm(txt)) < 0) return '';
   if (_fotosRef !== FOTOS) { _fotosRef = FOTOS; _fotosLow = {}; Object.keys(FOTOS).forEach(function(k){ _fotosLow[_norm(k)] = FOTOS[k]; }); }
   var n = _norm(txt); if (_fotosLow[n]) return _fotosLow[n];
   if (!frase) return '';
@@ -522,7 +528,7 @@ var JUEGOS = {
   chat:    { ico:'☕', name:'Charla en el café', desc:'Platica con otros viajeros: elige qué contestar.', color:'linear-gradient(140deg,#25d366,#0f8a52)', wide:true },
   memo:    { ico:'🧳', name:'Empaca la maleta', desc:'Escucha la palabra y mete a la maleta la imagen correcta.', color:'linear-gradient(140deg,#b28bff,#6a4bd6)' },
   quiz:    { ico:'⛽', name:'Carrera a la gasolinera', desc:'Contesta rápido antes de quedarte sin gasolina.', color:'linear-gradient(140deg,#ff9a3c,#ff4f6d)' },
-  parejas: { ico:'🪧', name:'Une los letreros', desc:'Conecta cada letrero con su pareja.', color:'linear-gradient(140deg,#2bb673,#1f7a4c)' },
+  parejas: { ico:'🪧', name:'Une los letreros', desc:'Une cada pregunta con su respuesta correcta.', color:'linear-gradient(140deg,#2bb673,#1f7a4c)' },
   ordena:  { ico:'🚦', name:'Arma la ruta', desc:'Ordena las palabras para avanzar.', color:'linear-gradient(140deg,#ffd23f,#e0a400)' },
   aduana:  { ico:'🛂', name:'La Aduana', desc:'Reto final mezclado. Gánalo y obtén el sello de esta ciudad.', color:'linear-gradient(140deg,#14213d,#2b4687)', wide:true }
 };
@@ -535,8 +541,8 @@ function abrirLeccion(nivel, num){
 }
 function juegosDe(d){ return ORDEN_JUEGOS.filter(function(j){ return d.juegos[j]; }); }
 function preguntasAduana(d){
-  var q = (d.juegos.quiz || []).slice();
-  (d.juegos.memo || []).forEach(function(p){ if (String(p.a).indexOf('icon:') === 0) return; var otros = shuffle((d.juegos.memo || []).filter(function(x){ return x !== p; })).slice(0,3).map(function(x){ return x.b; }); if (otros.length === 3) q.push({ t:'“' + p.a + '” = ?', o:[p.b].concat(otros), a:0 }); });
+  var q = (d.juegos.quiz || []).concat(d.extra || []);
+  (d.juegos.memo || []).forEach(function(p){ if (p.t || String(p.a).indexOf('icon:') === 0) return; var otros = shuffle((d.juegos.memo || []).filter(function(x){ return x !== p; })).slice(0,3).map(function(x){ return x.b; }); if (otros.length === 3) q.push({ t:'“' + p.a + '” = ?', o:[p.b].concat(otros), a:0 }); });
   (d.juegos.ordena || []).forEach(function(f){ if (f.length < 3) return; var ok = f.join(' '), m1 = shuffle(f).join(' '), m2 = f.slice().reverse().join(' '), m3 = shuffle(f).join(' '); var ops = [ok]; [m1,m2,m3].forEach(function(m){ if (ops.indexOf(m) < 0 && ops.length < 4) ops.push(m); }); if (ops.length >= 3) q.push({ t:'¿Cuál frase está bien escrita?', o:ops, a:0 }); });
   return shuffle(q).slice(0, 8);
 }
@@ -663,27 +669,28 @@ function hablarEn(t){ try { var u = new SpeechSynthesisUtterance(String(t).repla
 function memo(pares){
   stopTimer(); run++;
   // Cada tarjeta: una frase/palabra en inglés + su imagen (foto, emoji o ícono)
-  var items = conFotos(pares).map(function(p){
+  var items = (pares || []).map(function(p){
+    if (p.t) { var u = fotoDe(p.w || p.t); return { v: u ? 'foto:' + u : p.v, t:p.t, es:p.es || '' }; }
     var a = String(p.a), visual = null, txt = null;
     if (esEmo(a) || a.indexOf('icon:') === 0) { visual = a; txt = p.b; }
-    else { var u = fotoDe(a, true); visual = u ? 'foto:' + u : (p.e ? 'emo:' + p.e : null); txt = a; }
-    return visual ? { v:visual, t:txt } : null;
+    else { var u2 = fotoDe(a, true); visual = u2 ? 'foto:' + u2 : (p.e ? 'emo:' + p.e : null); txt = a; }
+    return visual ? { v:visual, t:txt, es:'' } : null;
   }).filter(Boolean);
-  var rondas = shuffle(items).filter(function(it){ return items.filter(function(o){ return o.v !== it.v; }).length >= 2; }).slice(0, 6);
+  var rondas = shuffle(items).filter(function(it){ return items.filter(function(o){ return o.v !== it.v || o.es !== it.es; }).length >= 2; }).slice(0, 6);
   var i = 0, aciertos = 0, t0 = Date.now(), maleta = [];
   function show(){
     if (i >= rondas.length) {
       var seg = Math.round((Date.now()-t0)/1000), pct = rondas.length ? Math.round(aciertos / rondas.length * 100) : 0;
       return later(function(){ terminar('memo', pct, aciertos+' de '+rondas.length+' a la primera · '+seg+' s'); }, 300);
     }
-    var it = rondas[i], vistos = {}; vistos[it.v] = 1;
-    var otros = shuffle(items).filter(function(o){ if (vistos[o.v]) return false; vistos[o.v] = 1; return true; }).slice(0, 3);
+    var it = rondas[i], vistos = {}; vistos[it.v + '|' + it.es] = 1;
+    var otros = shuffle(items).filter(function(o){ var k = o.v + '|' + o.es; if (o === it || vistos[k]) return false; vistos[k] = 1; return true; }).slice(0, 3);
     var ops = shuffle([it].concat(otros)), fallo = false;
     frame('🧳 Empaca la maleta',
       '<div class="hud"><span>'+(i+1)+'/'+rondas.length+'</span><span>⭐ '+aciertos+'</span></div>' +
-      '<p class="note" style="text-align:left">Escucha y toca la imagen correcta para meterla a la maleta.</p>' +
+      '<p class="note" style="text-align:left">Escucha en inglés y mete a la maleta la tarjeta que significa lo mismo.</p>' +
       '<div class="mal-q"><span class="tag">🏷️</span><span class="w">'+esc(it.t)+'</span><button class="say" id="say" aria-label="Escuchar">🔊</button></div>' +
-      '<div class="mal-opts">'+ops.map(function(o,k){ return '<button class="mal-op" data-k="'+k+'" style="'+colorCarta(k+i)+'">'+cont(o.v)+'</button>'; }).join('')+'</div>' +
+      '<div class="mal-opts">'+ops.map(function(o,k){ return '<button class="mal-op'+(o.v ? '' : ' solo')+'" data-k="'+k+'" style="'+colorCarta(k+i)+'">'+cont(o.v)+(o.es ? '<span class="cap">'+esc(o.es)+'</span>' : '')+'</button>'; }).join('')+'</div>' +
       '<div class="mal-bag" aria-hidden="true">🧳 '+maleta.join('')+'</div>' +
       '<div class="feedback" id="fb" aria-live="polite"></div>');
     document.getElementById('say').onclick = function(){ hablarEn(it.t); };
@@ -720,7 +727,7 @@ function quiz(preguntas, op){
     frame(TIT,
       '<div class="hud"><span>'+(i+1)+'/'+qs.length+'</span><span>'+'❤️'.repeat(vidas)+'🤍'.repeat(3-vidas)+'</span><span>⚡ '+pts+'</span>'+(combo>1?'<span>🔥 combo x'+combo+'</span>':'')+'</div>' +
       '<div class="timer fuel"><span>⛽</span><i id="bar"></i></div>' +
-      '<div class="q">'+(q.i ? '<div class="ic">'+(fotoDe(q.w || q.o[q.a]) ? cont('foto:'+fotoDe(q.w || q.o[q.a])) : cont(q.i))+'</div>' : '')+'<div class="txt">'+esc(q.t).replace('___','<span style="color:var(--sun)">___</span>')+'</div></div>' +
+      '<div class="q">'+(q.i ? '<div class="ic">'+(q.w && fotoDe(q.w) ? cont('foto:'+fotoDe(q.w)) : cont(q.i))+'</div>' : '')+'<div class="txt">'+esc(q.t).replace('___','<span style="color:var(--sun)">___</span>')+'</div>'+(q.h ? '<div class="qh">'+esc(q.h)+'</div>' : '')+'</div>' +
       '<div class="opts">'+orden.map(function(o,k){ return '<button class="opt c'+k+'" data-k="'+k+'"><span class="ol">'+'ABCD'[k]+'</span>'+esc(o.t)+'</button>'; }).join('')+'</div>' +
       '<div class="feedback" id="fb" aria-live="polite"></div>');
     var t0 = Date.now(), bar = document.getElementById('bar'), done = false;
@@ -747,7 +754,7 @@ function parejas(pares){
   var sel = null, hechos = 0, errores = 0, t0 = Date.now();
   frame('🪧 Une los letreros',
     '<div class="hud"><span id="hp">0/'+pares.length+'</span><span id="he">❌ 0</span><span id="ht">⏱ 0 s</span></div>' +
-    '<p class="note" style="text-align:left">Toca un recuadro de la izquierda y luego su pareja.</p>' +
+    '<p class="note" style="text-align:left">Toca una frase de la izquierda y luego la respuesta que le corresponde.</p>' +
     '<div class="mgrid"><div class="mcol">'+izq.map(function(x,n){ return '<button class="mi sign" style="'+colorCarta(n)+'" data-k="'+x.k+'" data-side="a">'+cont(x.v,'')+'</button>'; }).join('')+'</div>' +
     '<div class="mcol">'+der.map(function(x){ var e = pares[x.k].e; return '<button class="mi word" data-k="'+x.k+'" data-side="b">'+(e && !esEmo(x.v) ? vis(x.v, e, 'emo-sm') : '')+cont(x.v,'')+'</button>'; }).join('')+'</div></div>');
   timerId = setInterval(function(){ var h = document.getElementById('ht'); if (h) h.textContent = '⏱ ' + Math.round((Date.now()-t0)/1000) + ' s'; }, 500);
