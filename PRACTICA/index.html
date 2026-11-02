@@ -288,6 +288,12 @@ body{background:#0f1a33;background-image:linear-gradient(180deg,#1b1446 0%,#3a1d
 .copts.row3 .copt:nth-child(3){background:linear-gradient(150deg,#a77bff,#6a4bd6)}
 
 img.e3d{display:block;object-fit:contain}
+img.foto{display:block;object-fit:cover;border-radius:12px;border:3px solid #fff;box-shadow:0 3px 0 rgba(0,0,0,.18);background:#fff}
+.mc-front img.foto{width:86%;height:auto;aspect-ratio:1/1;margin:0 auto 4px}
+.memo.two .mc-front img.foto{width:60%}
+.q .ic img.foto{width:150px;height:150px;margin:0 auto}
+.mi.sign img.foto{width:100%;height:92px;border-radius:10px}
+img.foto.emo-sm{width:38px;height:38px;border-width:2px;border-radius:8px;display:inline-block;margin-right:6px;vertical-align:middle}
 img.emo-big{width:78px;height:78px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.18))}
 img.emo-mid{width:52px;height:52px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.18))}
 .memo.two img.emo-mid{width:40px;height:40px}
@@ -393,9 +399,23 @@ function emo(e, cls){ if (!e) return ''; return '<img class="e3d '+(cls||'')+'" 
 var FOTOS = {};
 try { FOTOS = JSON.parse(localStorage.getItem('oe_practica_fotos') || '{}'); } catch(e) {}
 if (CONFIG.API) fetch(CONFIG.API + '?action=getImagenesPractica', { redirect:'follow' }).then(function(r){ return r.json(); }).then(function(d){ if (d && d.success) { FOTOS = d.fotos || {}; try { localStorage.setItem('oe_practica_fotos', JSON.stringify(FOTOS)); } catch(e) {} } }).catch(function(){});
-function vis(palabra, e, cls){ var u = palabra && FOTOS[palabra]; if (u) return '<img class="foto '+(cls||'')+'" src="'+esc(u)+'" alt="" loading="lazy">'; return emo(e, cls); }
-function esEmo(v){ return String(v).indexOf('emo:') === 0; }
-function cont(v, cls){ v = String(v); if (v.indexOf('icon:') === 0) return ICONOS[v.slice(5)] || ''; if (esEmo(v)) return emo(v.slice(4), 'emo-big'); return '<span class="'+(cls||'mtxt')+'">' + esc(v) + '</span>'; }
+// Busca la foto de una palabra (sin importar mayúsculas ni signos). Con frase=true también la encuentra dentro de una frase (si solo hay una palabra con foto).
+var _fotosLow = null, _fotosRef = null;
+function _norm(t){ return String(t||'').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9' -]/g,' ').replace(/\s+/g,' ').trim(); }
+function fotoDe(txt, frase){
+  if (!txt) return '';
+  if (_fotosRef !== FOTOS) { _fotosRef = FOTOS; _fotosLow = {}; Object.keys(FOTOS).forEach(function(k){ _fotosLow[_norm(k)] = FOTOS[k]; }); }
+  var n = _norm(txt); if (_fotosLow[n]) return _fotosLow[n];
+  if (!frase) return '';
+  var hits = Object.keys(_fotosLow).filter(function(k){ return k.length > 2 && (' '+n+' ').indexOf(' '+k+' ') >= 0; });
+  hits = hits.filter(function(k){ return !hits.some(function(o){ return o !== k && o.indexOf(k) >= 0; }); });
+  return hits.length === 1 ? _fotosLow[hits[0]] : '';
+}
+// Si la tarjeta es un emoji y su pareja tiene foto, se muestra la foto.
+function conFotos(pares){ return pares.map(function(p){ var u = esEmo(p.a) && fotoDe(p.b, true); return u ? Object.assign({}, p, { a:'foto:'+u }) : p; }); }
+function vis(palabra, e, cls){ var u = palabra && fotoDe(palabra); if (u) return '<img class="foto '+(cls||'')+'" src="'+esc(u)+'" alt="" loading="lazy">'; return emo(e, cls); }
+function esEmo(v){ v = String(v); return v.indexOf('emo:') === 0 || v.indexOf('foto:') === 0; }
+function cont(v, cls){ v = String(v); if (v.indexOf('foto:') === 0) return '<img class="foto" src="'+esc(v.slice(5))+'" alt="" loading="lazy">'; if (v.indexOf('icon:') === 0) return ICONOS[v.slice(5)] || ''; if (esEmo(v)) return emo(v.slice(4), 'emo-big'); return '<span class="'+(cls||'mtxt')+'">' + esc(v) + '</span>'; }
 
 // ── marco de pantalla ──
 // ═════════ ROAD TRIP: mundo, progreso y recompensas ═════════
@@ -623,7 +643,7 @@ function chat(data){
 // ═════════ JUEGO: MEMORAMA ═════════
 function memo(pares){
   stopTimer(); run++;
-  pares = shuffle(pares).slice(0, 6);
+  pares = conFotos(shuffle(pares).slice(0, 6));
   var conIconos = pares.some(function(p){ return String(p.a).indexOf('icon:') === 0; });
   var largo = pares.some(function(p){ return [p.a,p.b].some(function(v){ v = String(v); return v.indexOf('icon:') !== 0 && !esEmo(v) && v.length > (conIconos || pares.some(function(q){ return esEmo(q.a); }) ? 22 : 16); }); });
   var mazo = [];
@@ -676,7 +696,7 @@ function quiz(preguntas, op){
     frame(TIT,
       '<div class="hud"><span>'+(i+1)+'/'+qs.length+'</span><span>'+'❤️'.repeat(vidas)+'🤍'.repeat(3-vidas)+'</span><span>⚡ '+pts+'</span>'+(combo>1?'<span>🔥 combo x'+combo+'</span>':'')+'</div>' +
       '<div class="timer fuel"><span>⛽</span><i id="bar"></i></div>' +
-      '<div class="q">'+(q.i ? '<div class="ic">'+(q.w && FOTOS[q.w] ? vis(q.w, '', 'emo-big') : cont(q.i))+'</div>' : '')+'<div class="txt">'+esc(q.t).replace('___','<span style="color:var(--sun)">___</span>')+'</div></div>' +
+      '<div class="q">'+(q.i ? '<div class="ic">'+(fotoDe(q.w || q.o[q.a]) ? cont('foto:'+fotoDe(q.w || q.o[q.a])) : cont(q.i))+'</div>' : '')+'<div class="txt">'+esc(q.t).replace('___','<span style="color:var(--sun)">___</span>')+'</div></div>' +
       '<div class="opts">'+orden.map(function(o,k){ return '<button class="opt c'+k+'" data-k="'+k+'"><span class="ol">'+'ABCD'[k]+'</span>'+esc(o.t)+'</button>'; }).join('')+'</div>' +
       '<div class="feedback" id="fb" aria-live="polite"></div>');
     var t0 = Date.now(), bar = document.getElementById('bar'), done = false;
@@ -698,7 +718,7 @@ function quiz(preguntas, op){
 // ═════════ JUEGO: UNE LAS PAREJAS ═════════
 function parejas(pares){
   stopTimer(); run++;
-  pares = shuffle(pares).slice(0, 6);
+  pares = conFotos(shuffle(pares).slice(0, 6));
   var izq = shuffle(pares.map(function(p,k){ return { v:p.a, k:k }; })), der = shuffle(pares.map(function(p,k){ return { v:p.b, k:k }; }));
   var sel = null, hechos = 0, errores = 0, t0 = Date.now();
   frame('🪧 Une los letreros',
