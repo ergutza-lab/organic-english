@@ -182,6 +182,12 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset
 .ig{background:linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5);box-shadow:0 5px 0 #6b1f6e}
 .fb{background:#1877f2;box-shadow:0 5px 0 #0b4fa8}
 .wa{background:#25d366;color:#05301a;box-shadow:0 5px 0 #138a43}
+.share p.lead{color:var(--ink);font-weight:800;font-size:15px}
+.shmsg{display:none;width:100%;max-width:380px;background:var(--panel-2);border-radius:16px;padding:12px 14px;text-align:left;font-size:14px}
+.shmsg.on{display:flex;flex-direction:column;gap:8px}
+.shmsg .okt{color:#3ee6a0}
+.shmsg ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.shmsg .btn{align-self:stretch;text-align:center}
 .story{display:flex;flex-direction:column;align-items:center;gap:6px}
 .story img{width:150px;border-radius:14px}
 .story span{font:800 12px var(--f-body);color:var(--mute)}
@@ -877,36 +883,71 @@ function hacerHistoria(pct,que){
   x.fillStyle='#ffd23f'; x.font='800 44px Nunito, sans-serif'; x.fillText('organicenglish1.com',W/2,1735);
   return c;
 }
+function hacerPost(pct,que){
+  var W=1080,c=document.createElement('canvas'); c.width=W; c.height=W; var x=c.getContext('2d');
+  var g=x.createLinearGradient(0,0,W,W); g.addColorStop(0,'#ff7a1a'); g.addColorStop(.55,'#ff4f6d'); g.addColorStop(1,'#6a4bd6'); x.fillStyle=g; x.fillRect(0,0,W,W);
+  var conf=['#ffd23f','#3ee6a0','#ffffff','#a77bff','#14213d']; for (var k=0;k<60;k++){ x.save(); x.translate((k*197)%W,(k*331)%W); x.rotate(k); x.fillStyle=conf[k%5]; x.globalAlpha=.5; x.fillRect(-9,-4,18,8); x.restore(); }
+  dibujarSticker(x,W/2,500,.82,pct,que);
+  x.textAlign='center'; x.fillStyle='#14213d'; rr(x,190,950,W-380,90,45); x.fill();
+  x.fillStyle='#ffd23f'; x.font='800 40px Nunito, sans-serif'; x.fillText('organicenglish1.com',W/2,1008);
+  return c;
+}
 function shareCard(que, pct){
   stopTimer(); run++; var myRun = run;
   var go = function(){
     if (myRun !== run) return;
-    var stk = hacerSticker(pct,que), his = hacerHistoria(pct,que);
-    var texto = '¡Llegué a ' + LECCION.ciudad + ' con ' + pct + '% en mi English Road Trip de Organic English! 🚙 Lesson ' + LECCION.num + ': ' + LECCION.titulo + '. Aprende inglés conmigo: organicenglish1.com';
+    var stk = hacerSticker(pct,que), his = hacerHistoria(pct,que), post = hacerPost(pct,que);
+    var texto = '¡Hola! Soy ' + ALUMNO.pila + ' y este es mi score de la Lesson ' + LECCION.num + ' en el English Road Trip de Organic English 🚙 Aprende inglés conmigo: organicenglish1.com';
+    var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    var blobs = {};
+    [['post',post],['his',his]].forEach(function(p){ p[1].toBlob(function(b){ blobs[p[0]] = b; }, 'image/png'); });
     frame('📸 Mi postal de ' + esc(LECCION.ciudad),
       '<div class="share"><div class="stk-wrap"><img src="'+stk.toDataURL('image/png')+'" alt="Calcomanía con mi resultado de '+pct+'%"></div>' +
-      '<div class="row"><button class="btn ig" id="shIG">📷 Instagram</button><button class="btn fb" id="shFB">👍 Facebook</button></div>' +
-      '<a class="btn wa" href="https://wa.me/?text='+encodeURIComponent(texto)+'" target="_blank" rel="noopener">💬 WhatsApp</a>' +
-      '<p id="shMsg">La calcomanía tiene fondo transparente: en Instagram puedes pegarla sobre tu foto o video. Para tus historias usa la versión vertical.</p>' +
+      '<p class="lead">¿Dónde quieres compartir tu calcomanía?</p>' +
+      '<div class="row"><button class="btn wa" id="shWA">💬 WhatsApp</button><button class="btn fb" id="shFB">👍 Facebook</button></div>' +
+      '<button class="btn ig" id="shIG">📷 Instagram</button>' +
+      '<div id="shMsg" class="shmsg" aria-live="polite"></div>' +
       '<div class="story"><img src="'+his.toDataURL('image/png')+'" alt="Versión para historias"><span>Versión para historias</span></div>' +
       '<button class="btn ghost small" id="home2">Volver a la lección</button></div>');
-    var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    function descargar(red){
-      var msg = document.getElementById('shMsg');
-      var a = document.createElement('a'); a.href = (red === 'fb' ? stk : his).toDataURL('image/png'); a.download = 'organic-english-lesson' + LECCION.num + '.png'; document.body.appendChild(a); a.click(); a.remove();
-      msg.innerHTML = '✅ <b>Tu imagen se descargó.</b> Se abrió ' + (red === 'fb' ? 'Facebook' : 'Instagram') + ': crea una publicación y adjunta la imagen desde tu carpeta de Descargas.'; msg.classList.add('hl');
-      window.open(red === 'fb' ? 'https://www.facebook.com/' : 'https://www.instagram.com/', '_blank', 'noopener');
+    var msg = document.getElementById('shMsg');
+    var REDES = {
+      wa: { nombre:'WhatsApp', url:'https://web.whatsapp.com/', img:'post', pasos:['Abre el chat o grupo donde la quieres mandar.','Da clic en el cuadro de mensaje y presiona <b>Ctrl + V</b>.','Se verá tu calcomanía: presiona <b>Enter</b> para enviarla.'] },
+      fb: { nombre:'Facebook', url:'https://www.facebook.com/', img:'post', pasos:['Da clic en <b>“¿Qué estás pensando?”</b>.','Presiona <b>Ctrl + V</b> para pegar tu calcomanía.','Escribe algo si quieres y da clic en <b>Publicar</b>.'] },
+      ig: { nombre:'Instagram', url:'https://www.instagram.com/', img:'his', pasos:['Da clic en <b>Crear ➕</b>.','Elige <b>Seleccionar desde la computadora</b>.','Busca la imagen en tu carpeta de <b>Descargas</b> y publícala.'] }
+    };
+    function nombreArchivo(){ return 'organic-english-lesson' + LECCION.num + '.png'; }
+    function panel(red, titulo, pasos){
+      msg.innerHTML = '<b class="okt">'+titulo+'</b><ol>'+pasos.map(function(p){ return '<li>'+p+'</li>'; }).join('')+'</ol>' +
+        '<a class="btn '+red+'" href="'+REDES[red].url+'" target="_blank" rel="noopener">Abrir '+REDES[red].nombre+' ↗</a>';
+      msg.classList.add('on'); msg.scrollIntoView({ block:'nearest', behavior:'smooth' });
     }
-    function compartir(){
-      var msg = document.getElementById('shMsg');
-      his.toBlob(function(blob){
-        var file = null; try { file = new File([blob], 'organic-english-lesson' + LECCION.num + '.png', { type:'image/png' }); } catch(e) {}
-        if (file && navigator.canShare && navigator.canShare({ files:[file] })) navigator.share({ files:[file], text:texto }).catch(function(){});
-        else { msg.innerHTML = 'Tu navegador no deja compartir directo. <b>Mantén presionada la imagen</b> para guardarla y súbela a tu historia o publicación.'; msg.classList.add('hl'); }
-      }, 'image/png');
+    function descargar(cual){ var a = document.createElement('a'); a.href = (cual === 'his' ? his : post).toDataURL('image/png'); a.download = nombreArchivo(); document.body.appendChild(a); a.click(); a.remove(); }
+    function enCel(red){
+      var b = blobs[REDES[red].img], file = null;
+      try { file = new File([b], nombreArchivo(), { type:'image/png' }); } catch(e) {}
+      if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
+        navigator.share({ files:[file], text:texto }).catch(function(){});
+      } else {
+        descargar(REDES[red].img);
+        panel(red, '✅ Tu calcomanía se guardó en tu celular', ['Abre ' + REDES[red].nombre + '.', 'Elige la imagen de tu galería y compártela.']);
+      }
     }
-    document.getElementById('shIG').onclick = esCel ? compartir : function(){ descargar('ig'); };
-    document.getElementById('shFB').onclick = esCel ? compartir : function(){ descargar('fb'); };
+    function enCompu(red){
+      var R = REDES[red];
+      if (red === 'ig' || !(navigator.clipboard && window.ClipboardItem)) {
+        descargar(R.img);
+        var pasos = red === 'ig' ? R.pasos : ['Abre el chat o la publicación.', 'Adjunta la imagen <b>' + nombreArchivo() + '</b> desde tu carpeta de Descargas.'];
+        return panel(red, '✅ Tu calcomanía se descargó', pasos);
+      }
+      var p = blobs[R.img] ? Promise.resolve(blobs[R.img]) : new Promise(function(ok){ (R.img === 'his' ? his : post).toBlob(ok, 'image/png'); });
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': p })]).then(function(){
+        panel(red, '✅ Calcomanía copiada. Ahora pégala en ' + R.nombre + ':', R.pasos);
+      }).catch(function(){
+        descargar(R.img);
+        panel(red, '✅ Tu calcomanía se descargó', ['Abre el chat o la publicación.', 'Adjunta la imagen <b>' + nombreArchivo() + '</b> desde tu carpeta de Descargas.']);
+      });
+    }
+    ['wa','fb','ig'].forEach(function(red){ document.getElementById('sh' + red.toUpperCase()).onclick = function(){ esCel ? enCel(red) : enCompu(red); }; });
     document.getElementById('home2').onclick = abrirLeccionActual;
   };
   var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
