@@ -900,7 +900,9 @@ function shareCard(que, pct){
     var texto = '¡Hola! Soy ' + ALUMNO.pila + ' y este es mi score de la Lesson ' + LECCION.num + ' en el English Road Trip de Organic English 🚙 Aprende inglés conmigo: organicenglish1.com';
     var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     var blobs = {};
-    [['post',post],['his',his]].forEach(function(p){ p[1].toBlob(function(b){ blobs[p[0]] = b; }, 'image/png'); });
+    var pngs = {};
+    [['post',post],['his',his]].forEach(function(p){ p[1].toBlob(function(b){ blobs[p[0]] = b; }, 'image/jpeg', .92); });
+    [['post',post],['his',his]].forEach(function(p){ p[1].toBlob(function(b){ pngs[p[0]] = b; }, 'image/png'); });
     frame('📸 Mi postal de ' + esc(LECCION.ciudad),
       '<div class="share"><div class="stk-wrap"><img src="'+stk.toDataURL('image/png')+'" alt="Calcomanía con mi resultado de '+pct+'%"></div>' +
       '<p class="lead">¿Dónde quieres compartir tu calcomanía?</p>' +
@@ -915,22 +917,26 @@ function shareCard(que, pct){
       fb: { nombre:'Facebook', url:'https://www.facebook.com/', img:'post', pasos:['Da clic en <b>“¿Qué estás pensando?”</b>.','Presiona <b>Ctrl + V</b> para pegar tu calcomanía.','Escribe algo si quieres y da clic en <b>Publicar</b>.'] },
       ig: { nombre:'Instagram', url:'https://www.instagram.com/', img:'his', pasos:['Da clic en <b>Crear ➕</b>.','Elige <b>Seleccionar desde la computadora</b>.','Busca la imagen en tu carpeta de <b>Descargas</b> y publícala.'] }
     };
-    function nombreArchivo(){ return 'organic-english-lesson' + LECCION.num + '.png'; }
+    function nombreArchivo(){ return 'organic-english-lesson' + LECCION.num + '.jpg'; }
     function panel(red, titulo, pasos){
       msg.innerHTML = '<b class="okt">'+titulo+'</b><ol>'+pasos.map(function(p){ return '<li>'+p+'</li>'; }).join('')+'</ol>' +
         '<a class="btn '+red+'" href="'+REDES[red].url+'" target="_blank" rel="noopener">Abrir '+REDES[red].nombre+' ↗</a>';
       msg.classList.add('on'); msg.scrollIntoView({ block:'nearest', behavior:'smooth' });
     }
-    function descargar(cual){ var a = document.createElement('a'); a.href = (cual === 'his' ? his : post).toDataURL('image/png'); a.download = nombreArchivo(); document.body.appendChild(a); a.click(); a.remove(); }
+    function descargar(cual){ var a = document.createElement('a'); a.href = (cual === 'his' ? his : post).toDataURL('image/jpeg', .92); a.download = nombreArchivo(); document.body.appendChild(a); a.click(); a.remove(); }
+    function blobDe(cual){ return blobs[cual] ? Promise.resolve(blobs[cual]) : new Promise(function(ok){ (cual === 'his' ? his : post).toBlob(function(b){ blobs[cual] = b; ok(b); }, 'image/jpeg', .92); }); }
     function enCel(red){
-      var b = blobs[REDES[red].img], file = null;
-      try { file = new File([b], nombreArchivo(), { type:'image/png' }); } catch(e) {}
-      if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
-        navigator.share({ files:[file], text:texto }).catch(function(){});
-      } else {
-        descargar(REDES[red].img);
-        panel(red, '✅ Tu calcomanía se guardó en tu celular', ['Abre ' + REDES[red].nombre + '.', 'Elige la imagen de tu galería y compártela.']);
-      }
+      var R = REDES[red];
+      blobDe(R.img).then(function(b){
+        var file = null; try { file = new File([b], nombreArchivo(), { type:'image/jpeg' }); } catch(e) {}
+        // Solo la imagen, sin texto: si se manda texto junto, Facebook y WhatsApp se quedan con el texto y tiran la imagen.
+        if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
+          navigator.share({ files:[file] }).catch(function(){});
+        } else {
+          descargar(R.img);
+          panel(red, '✅ Tu calcomanía se guardó en tu celular', ['Abre ' + R.nombre + '.', 'Elige la imagen de tu galería y compártela.']);
+        }
+      });
     }
     function enCompu(red){
       var R = REDES[red];
@@ -939,7 +945,7 @@ function shareCard(que, pct){
         var pasos = red === 'ig' ? R.pasos : ['Abre el chat o la publicación.', 'Adjunta la imagen <b>' + nombreArchivo() + '</b> desde tu carpeta de Descargas.'];
         return panel(red, '✅ Tu calcomanía se descargó', pasos);
       }
-      var p = blobs[R.img] ? Promise.resolve(blobs[R.img]) : new Promise(function(ok){ (R.img === 'his' ? his : post).toBlob(ok, 'image/png'); });
+      var p = pngs[R.img] ? Promise.resolve(pngs[R.img]) : new Promise(function(ok){ (R.img === 'his' ? his : post).toBlob(ok, 'image/png'); });
       navigator.clipboard.write([new ClipboardItem({ 'image/png': p })]).then(function(){
         panel(red, '✅ Calcomanía copiada. Ahora pégala en ' + R.nombre + ':', R.pasos);
       }).catch(function(){
