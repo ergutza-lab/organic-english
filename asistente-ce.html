@@ -591,7 +591,7 @@
     <div class="monto-field">
       <label>Monto del comprobante (MXN)</label>
       <input type="number" id="input-monto-validar" placeholder="Ej. 150 o 570" min="1" />
-      <p class="monto-hint">Ingresa el monto que aparece en el comprobante. Pago semanal: $150 · 4 semanas: $570</p>
+      <p class="monto-hint">Ingresa el monto que aparece en el comprobante. Abajo verás cuánto le toca según la tabla de su grupo.</p>
     </div>
     <div class="cal-cobertura">
       <span class="cal-cobertura-label" id="modal-comp-cobertura-label">¿Qué semana(s) cubre este pago?</span>
@@ -1202,7 +1202,7 @@ function abrirModalGrupo(idx){
       const nuevoBadge=esNuevo?`<span class="badge-nuevo">NUEVO</span>`:'';
       // Botón de pago: siempre visible para no becados — permite registrar pago aunque esté al corriente
       const validarBtn=!esBec
-        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}',${g.esSabatino?'true':'false'})" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
+        ?`<button class="btn-validar-ce" onclick="abrirModalValidarCE('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}',${g.esSabatino?'true':'false'},'${g.id}')" style="${a.pago_ok?'background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);':''}">📤 ${a.pago_ok?'Registrar pago':'Validar pago'}</button>`
         :'';
       const darBajaBtn=`<button class="btn-wa-mini" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:6px 10px;" onclick="abrirModalDarBaja('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}')" title="Dar de baja">🚫</button>`;
       const colocacionBtn=`<button class="btn-wa-mini" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:6px 10px;" onclick="solicitarColocacion('${a.id}','${(a.nombre||'').replace(/'/g,"\\'")}','${a.whatsapp||''}')" title="Solicitar examen de colocación (cambio de grupo)">🎓</button>`;
@@ -2169,6 +2169,141 @@ document.addEventListener('input', function(e){
   });
 });
 
+// ═══ COLEGIATURA SEGÚN TABLA (nov-2026) ═════════════════════════════════
+// Nota informativa al validar un pago: cuánto le toca al alumno según la
+// tabla de su grupo. NO bloquea la validación (puede haber casos especiales).
+//  - Grupos de una letra (A-Z):        TABLA_AZ  (Kids paga lo mismo)
+//  - Grupos de dos letras (AA en adel.): TABLA_AA (ADULTS y TEENS)
+//                                        TABLA_AA + KIDS_AA_EXTRA (KIDS)
+//  - Sin nota: becados y personalizados (PER-). KIDS JR y PRE A-1: pendientes.
+// Si el pago cruza un cambio de bloque, cada semana se cobra con su bloque.
+var TABLA_AZ = { A1:[100,100], A2:[125,140], B1:[160,180], B2:[200,220], C1:[240,260] };
+var TABLA_AA = { A1:[100,120], A2:[140,160], B1:[180,200], B2:[220,240], C1:[260,280] };
+var KIDS_AA_EXTRA = 20;
+var NIVELES_ORDEN = ['A1','A2','B1','B2','C1'];
+var CAL_GRUPO = {};   // containerId -> { grupo, tipo } del alumno del modal
+
+function _normId_(x){ return String(x || '').trim().toUpperCase(); }
+
+function _grupoPorId_(id){
+  id = _normId_(id); if (!id || !datosPanel) return null;
+  var listas = [datosPanel.todos_grupos || [], datosPanel.grupos || []];
+  for (var l = 0; l < listas.length; l++)
+    for (var i = 0; i < listas[l].length; i++)
+      if (_normId_(listas[l][i].id) === id) return listas[l][i];
+  return null;
+}
+
+// Grupo y tipo de inscripción del alumno, buscando en todo lo que trae el panel
+function _infoAlumnoTabla_(idAlumno, grupoParam){
+  var info = { grupo: grupoParam ? _normId_(grupoParam) : '', tipo: '' };
+  if (!datosPanel) return info;
+  var idA = _normId_(idAlumno);
+  (datosPanel.grupos || []).forEach(function(g){
+    (g.alumnos || []).forEach(function(a){
+      if (_normId_(a.id) === idA) { if (!info.grupo) info.grupo = _normId_(g.id); if (!info.tipo) info.tipo = a.tipoInscripcion || a.estatus || ''; }
+    });
+  });
+  ['sin_pago','alumnos_nuevos','alumnos_baja','pagos_pendientes'].forEach(function(k){
+    (datosPanel[k] || []).forEach(function(a){
+      if (_normId_(a.id || a.id_alumno) === idA && !info.grupo) info.grupo = _normId_(a.grupo || a.grupo_actual);
+    });
+  });
+  return info;
+}
+
+// Precio de una semana para un grupo en "nivel"/"bloque" dados
+function _precioSemana_(esAA, esKids, nivel, bloque){
+  var t = (esAA ? TABLA_AA : TABLA_AZ)[nivel];
+  if (!t) return null;
+  return t[bloque - 1] + (esAA && esKids ? KIDS_AA_EXTRA : 0);
+}
+
+// Lista de semanas (o sábados) marcadas, cada una con su nivel, bloque y precio
+function _detalleTabla_(st, g){
+  var nom = String(g.nombre || '').toUpperCase();
+  var letras = (_normId_(g.id).match(/^([A-Z]+)\d/) || [,''])[1];
+  var esAA = letras.length >= 2, esKids = nom.indexOf('KIDS') !== -1;
+  var m = String(g.nivel || '').match(/(A1|A2|B1|B2|C1)\s*-\s*Bloque\s*(\d)/i);
+  var res = { tabla: esAA ? (esKids ? 'Tabla Kids (AA)' : 'Tabla AA') : 'Tabla A-Z', semanas: [], total: 0, sinTabla: '' };
+  if (nom.indexOf('JR') !== -1) { res.sinTabla = 'KIDS JR todavía no tiene tabla definida.'; return res; }
+  if (!m) { res.sinTabla = 'El nivel "' + (g.nivel || '—') + '" todavía no tiene tabla definida.'; return res; }
+  var nivelIdx = NIVELES_ORDEN.indexOf(m[1].toUpperCase()), bloque = parseInt(m[2], 10);
+
+  // Lección de referencia: la de hoy (o la 1 si el grupo aún no inicia)
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var ini = null, p = String(g.fecha_inicio || '').split('/');
+  if (p.length === 3) ini = new Date(+p[2], +p[1] - 1, +p[0]);
+  var lunesRef = calLunesDe(hoy), lecRef = parseInt(g.leccionActual, 10) || 1;
+  if (ini && ini > hoy) { lunesRef = calLunesDe(ini); lecRef = 1; }
+  var lecSemRef = Math.floor((lecRef - 1) / 4) * 4 + 1;   // 1a lección de esa semana
+
+  var paso = 7 * 24 * 60 * 60 * 1000;
+  for (var d = new Date(st.inicio); d <= st.fin; d = new Date(d.getTime() + paso)) {
+    var k = Math.round((calLunesDe(d) - lunesRef) / paso);
+    var lec = lecSemRef + 4 * k, ni = nivelIdx, bl = bloque;
+    while (lec > 32) { lec -= 32; if (bl === 1) bl = 2; else if (ni < NIVELES_ORDEN.length - 1) { ni++; bl = 1; } }
+    while (lec < 1)  { lec += 32; if (bl === 2) bl = 1; else if (ni > 0) { ni--; bl = 2; } }
+    var precio = _precioSemana_(esAA, esKids, NIVELES_ORDEN[ni], bl);
+    res.semanas.push({ etiqueta: NIVELES_ORDEN[ni] + '-Bloque ' + bl, precio: precio });
+    res.total += precio;
+  }
+  res.nivelActual = m[1].toUpperCase() + '-Bloque ' + bloque;
+  res.precioActual = _precioSemana_(esAA, esKids, m[1].toUpperCase(), bloque);
+  return res;
+}
+
+function _notaTablaHtml_(containerId, st){
+  var ref = CAL_GRUPO[containerId];
+  if (!ref || !ref.grupo) return '';
+  if (/^PER/.test(ref.grupo)) return '';                         // personalizados: fuera de tabla
+  if (/becad|personaliz/i.test(ref.tipo || '')) return '';        // becados / personalizados
+  var g = _grupoPorId_(ref.grupo);
+  if (!g) return '';
+  var caja = 'margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:500;text-align:left;line-height:1.55;' +
+             'background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.35);color:inherit;';
+  var unidad = st.sabatino ? 'sábado' : 'semana';
+  if (!st.inicio || !st.fin) {
+    var d0 = _detalleTabla_({ inicio: calLunesDe(new Date()), fin: calLunesDe(new Date()) }, g);
+    if (d0.sinTabla) return '<div style="' + caja + '"><b>💲 Colegiatura según tabla</b><br>' + d0.sinTabla + '</div>';
+    return '<div style="' + caja + '"><b>💲 Colegiatura según tabla</b><br>' + g.id + ' ' + (g.nombre || '') + ' · ' + d0.nivelActual + ' · ' + d0.tabla +
+           '<br><b>$' + d0.precioActual + ' por ' + unidad + '</b> · marca la(s) ' + unidad + '(s) para ver el total.</div>';
+  }
+  var det = _detalleTabla_(st, g);
+  if (det.sinTabla) return '<div style="' + caja + '"><b>💲 Colegiatura según tabla</b><br>' + det.sinTabla + '</div>';
+
+  // Agrupar semanas por precio/bloque: "2 semanas × $100 (A1-Bloque 1)"
+  var grupos = [], ult = null;
+  det.semanas.forEach(function(s){
+    if (ult && ult.etiqueta === s.etiqueta) ult.n++;
+    else { ult = { etiqueta: s.etiqueta, precio: s.precio, n: 1 }; grupos.push(ult); }
+  });
+  var calc = grupos.map(function(x){
+    return x.n + ' ' + unidad + (x.n !== 1 ? 's' : '') + ' × $' + x.precio + (grupos.length > 1 ? ' (' + x.etiqueta + ')' : '');
+  }).join(' + ');
+
+  var html = '<b>💲 Colegiatura según tabla</b><br>' + g.id + ' ' + (g.nombre || '') + ' · ' + det.nivelActual + ' · ' + det.tabla +
+             '<br>' + calc + ' = <b>$' + det.total + '</b>';
+  var monto = _calMontoDe_(containerId);
+  if (!monto) {
+    html += '<br><span style="opacity:.8;">Captura el monto del comprobante para compararlo.</span>';
+  } else if (monto === det.total) {
+    html += '<br><span style="color:#16a34a;font-weight:700;">✅ El monto ($' + monto + ') coincide con la tabla.</span>';
+  } else {
+    var dif = det.total - monto;
+    html += '<br><span style="color:#d97706;font-weight:700;">⚠️ Monto capturado $' + monto + ': no coincide con la tabla (' +
+            (dif > 0 ? 'faltan $' + dif : 'sobran $' + (-dif)) + ').</span>' +
+            '<br><span style="opacity:.8;">Puedes validar si es un caso especial; anótalo en el comentario.</span>';
+  }
+  return '<div style="' + caja + '">' + html + '</div>';
+}
+document.addEventListener('input', function(e){
+  if (!e.target || !e.target.id) return;
+  Object.keys(CAL_MONTO_INPUT).forEach(function(k){
+    if (CAL_MONTO_INPUT[k] === e.target.id && calendarios[k] && CAL_GRUPO[k] && !_calEsSab_(calendarios[k])) calRender(k);
+  });
+});
+
 function calInit(containerId, esSabatino){
   calendarios[containerId] = { mes: new Date(), inicio: null, fin: null, paso: 0, sabatino: !!esSabatino };
   calRender(containerId);
@@ -2266,6 +2401,7 @@ function calRender(containerId){
     resumen = 'Cubre del ' + calFormatoCorto(st.inicio) + ' al ' + calFormatoCorto(st.fin) + ' ('+semanas+' semana'+(semanas!==1?'s':'')+')';
   }
   html += '<div class="cal-resumen">'+resumen+'</div>';
+  html += _notaTablaHtml_(containerId, st);
 
   cont.innerHTML = html;
 }
@@ -2291,6 +2427,7 @@ function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila,esSabati
   // manda (por ejemplo, llamadas antiguas sin este dato) se asume
   // entre-semana, igual que antes.
   var esSabatinoComp = !!esSabatino;
+  CAL_GRUPO['cal-comp'] = _infoAlumnoTabla_(idAlumno, grupo);
   calInit('cal-comp', esSabatinoComp);
   var etiquetaComp = document.getElementById('modal-comp-cobertura-label');
   if (etiquetaComp) etiquetaComp.textContent = esSabatinoComp ? '¿Qué sábado(s) cubre este pago?' : '¿Qué semana(s) cubre este pago?';
@@ -3066,7 +3203,7 @@ function toggleInfoAlerta(el, idAlumno, fecha, monto, url, coment, vencimiento, 
 // ── VALIDAR PAGO DESDE ASISTENTE CE ──────────────────────────────────────
 var validarCEAlumnoId = null;
 
-function abrirModalValidarCE(idAlumno, nombreParam, esSabatinoParam) {
+function abrirModalValidarCE(idAlumno, nombreParam, esSabatinoParam, grupoParam) {
   var nombre = nombreParam || idAlumno;
   var esSabatinoAlumno = !!esSabatinoParam;
   // Respaldo: si quien llama no mando nombre/esSabatino directamente (por
@@ -3101,6 +3238,7 @@ function abrirModalValidarCE(idAlumno, nombreParam, esSabatinoParam) {
   var modal = document.getElementById('modal-validar-ce');
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
+  CAL_GRUPO['cal-ce'] = _infoAlumnoTabla_(idAlumno, grupoParam);
   calInit('cal-ce', esSabatinoAlumno);
   var etiquetaCobertura = document.getElementById('validar-ce-cobertura-label');
   if (etiquetaCobertura) etiquetaCobertura.textContent = esSabatinoAlumno ? '¿Qué sábado(s) cubre este pago?' : '¿Qué semana(s) cubre este pago?';
@@ -3553,7 +3691,7 @@ function contactarAlumnoInasistencia(idAlumno, nombre, whatsapp, racha) {
     <div style="margin-bottom:16px;">
       <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto del comprobante (MXN) <span style="color:#f87171;">*</span></label>
       <input type="number" id="validar-ce-monto" placeholder="Ej. 100 o 400" min="1" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:14px;outline:none;font-family:'Plus Jakarta Sans',sans-serif;">
-      <p style="font-size:11px;color:#64748b;margin-top:6px;">Colegiatura semanal: $100 · 4 semanas: $400</p>
+      <p style="font-size:11px;color:#64748b;margin-top:6px;">Abajo verás cuánto le toca según la tabla de su grupo.</p>
     </div>
     <!-- Cobertura -->
     <div class="cal-cobertura cal-dark">
