@@ -25,8 +25,11 @@ button{font-family:var(--f-display);cursor:pointer;border:none;color:inherit}
 button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:50;margin:-16px -16px 0;padding:10px 16px;background:rgba(15,26,51,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .top .izq{display:flex;align-items:center;gap:10px;min-width:0}
+.fijo{position:sticky;top:0;z-index:50;margin:-16px -16px 0;padding:0 16px 12px;background:rgba(15,26,51,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 8px 18px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:10px;border-radius:0 0 22px 22px}
+.fijo .top{position:static;margin:0 -16px;box-shadow:none;background:none}
+.fijo .go-now{padding:10px;font-size:18px}
 .mipanel{background:var(--panel-2);color:#fff;border-radius:999px;padding:7px 12px;font:800 12.5px var(--f-body);white-space:nowrap;box-shadow:0 3px 0 #0b1328}
-.top img{height:34px;width:auto}
+.top img{height:68px;width:auto}
 .chip{font:800 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;background:var(--panel-2);color:var(--mute);border-radius:999px;padding:5px 10px}
 .note{font-size:12.5px;color:var(--mute);text-align:center;margin:0}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 18px;font-weight:700;font-size:16px;background:var(--ora);box-shadow:0 5px 0 #b8400d;transition:transform .08s;text-decoration:none;color:#fff}
@@ -537,9 +540,15 @@ function hud(){
     '<div class="xpw"><b>'+esc(ALUMNO.pila)+' · '+rango(x.nv)+'</b><div class="xpbar"><i style="width:'+Math.round(x.en/x.de*100)+'%"></i></div><small>'+x.en+'/'+x.de+' XP para nivel '+(x.nv+1)+'</small></div></div>' +
     '<div class="stats"><span title="Racha de días">🔥 '+r+'</span><span title="Monedas">🪙 '+DB.coins+'</span><span title="Sellos de pasaporte">🛂 '+sellos+'</span></div></div>';
 }
-function header(chip){ return '<div class="top"><div class="izq"><button class="mipanel" onclick="volverPanel()" aria-label="Volver a mi panel">← Mi panel</button><img src="'+CONFIG.LOGO+'" alt="Organic English"></div><span class="chip">'+chip+'</span></div>'; }
+function header(chip){ return '<div class="top"><div class="izq"><button class="mipanel" aria-label="Volver a mi panel">← Mi panel</button><img src="'+CONFIG.LOGO+'" alt="Organic English"></div><span class="chip">'+chip+'</span></div>'; }
 // Regresa al panel del alumno: si la práctica se abrió desde el panel, cierra esta pestaña; si no, abre el panel.
-function volverPanel(){ try { if (window.opener && !window.opener.closed) { window.opener.focus(); window.close(); return; } } catch(e) {} location.href = '../alumno.html'; }
+function volverPanel(){
+  try { if (window.opener && !window.opener.closed) window.opener.focus(); } catch(e) {}
+  try { window.close(); } catch(e) {}
+  // Si el navegador no deja cerrar la pestaña (no se abrió desde el panel), abre el panel
+  setTimeout(function(){ if (!window.closed) location.href = '../alumno.html'; }, 400);
+}
+document.addEventListener('click', function(ev){ if (ev.target.closest && ev.target.closest('.mipanel')) volverPanel(); });
 function frame(title, inner, onBack){
   app.innerHTML = header(LECCION ? '📍 ' + ciudad(LECCION.nivel, LECCION.num) : 'Road Trip') +
     '<section class="screen"><div class="gbar"><button class="back" id="back" aria-label="Volver">←</button><h2>'+title+'</h2></div>'+inner+'</section>';
@@ -573,11 +582,11 @@ function inicio(){
         '<span class="pin">'+(estado==='done' ? '🛂' : l.num)+'</span>' + (estado === 'now' ? '<span class="car">🚙</span>' : '') +
         '<span class="lbl"><b>'+esc(P.ciudades[k % P.ciudades.length])+'</b><small>L'+l.num+' · '+esc(l.titulo)+'</small>'+(pr.jugados ? '<small class="st">'+'⭐'.repeat(estrellas(pr.p))+(pr.jugados<l.juegos.length?' '+pr.jugados+'/'+l.juegos.length:'')+'</small>' : '')+'</span></button>';
     }).join('');
-    app.innerHTML = header(ALUMNO.demo ? 'Demo' : 'Road Trip') + hud() +
+    app.innerHTML = '<div class="fijo">' + header(ALUMNO.demo ? 'Demo' : 'Road Trip') + hud() +
       '<div class="paises" role="tablist">' + NIVELES.map(function(n){ var q = PAISES[n], abierto = bloqueAbierto(n); return '<button class="pais'+(n===NIVEL_VISTO?' on':'')+(abierto?'':' lock')+'" data-n="'+n+'"><span>'+(abierto ? q.bandera : '🔒')+'</span><b>'+q.pais+'</b><small>'+n+'</small></button>'; }).join('') + '</div>' +
       '<div class="route-head"><div><small>'+P.bandera+' '+esc(P.ruta)+'</small><h2>'+(actual ? 'Tu próxima parada: <em>'+esc(ciudad(NIVEL_VISTO, actual))+'</em>' : 'Explora la ruta de '+P.pais)+'</h2></div>' +
       '<button class="rk" id="verRanking" aria-label="Ranking del grupo">🏆<small>#'+pos.pos+'</small></button></div>' +
-      (actual ? '<button class="go-now" id="hoy">🚙 ¡Arrancar en '+esc(ciudad(NIVEL_VISTO, actual))+'! <small>Lesson '+actual+' · tu clase de hoy</small></button>' : '') +
+      (actual ? '<button class="go-now" id="hoy">🚙 ¡Arrancar en '+esc(ciudad(NIVEL_VISTO, actual))+'! <small>Lesson '+actual+' · tu clase de hoy</small></button>' : '') + '</div>' +
       '<div class="mapa" style="aspect-ratio:'+W+'/'+H+';'+fondoMapa(NIVEL_VISTO)+'">' + svg + decoMapa(NIVEL_VISTO, pts, W, H, P) + paradas + '</div>' +
       (ALUMNO.demo ? '<p class="note">Modo demo con una alumna de ejemplo. Conectado a la plataforma, el mapa avanza con la clase real del alumno.</p>' : '');
     var bh = document.getElementById('hoy'); if (bh) bh.onclick = function(){ abrirLeccion(NIVEL_VISTO, actual); };
