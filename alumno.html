@@ -1155,7 +1155,7 @@
 
     <div id="tab-practica" class="tab-content">
      <div id="nivelesGridView">
-      <div class="practica-sticky-header"><div class="practica-titulo">Practica tu clase:</div><a id="practicaJuegoBanner" href="#" target="_blank" rel="noopener" style="display:none;"></a></div>
+      <div class="practica-sticky-header"><div class="practica-titulo">Practica tu clase:</div><a id="practicaJuegoBanner" class="practica-juego-btn" href="#" target="_blank" rel="noopener" style="display:none;"></a></div>
             <div class="niveles-grid" id="nivelesGridDinamico"></div>
      </div>
 
@@ -1163,6 +1163,7 @@
         <div class="practica-sticky-header">
           <button id="btnVolverNiveles" onclick="volverANiveles()" style="background:rgba(255,255,255,0.08);color:#cbd5e1;border:none;border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">← Volver a niveles</button>
           <div class="practica-titulo" id="nivelDetalleTitulo" style="text-align:center;">Practica tu clase:</div>
+          <a class="practica-juego-btn" href="#" target="_blank" rel="noopener" style="display:none;"></a>
         </div>
         <div style="display:flex;gap:24px;flex-wrap:wrap;">
           <div style="flex-shrink:0;">
@@ -2280,8 +2281,9 @@
   }
 
   function prepararBannerJuegoPractica_(a, g, esKids, esPersonalizado) {
-    var el = document.getElementById('practicaJuegoBanner');
-    if (!el || !a || !g || esPersonalizado) { if (el) el.style.display = 'none'; return; }
+    var botones = document.querySelectorAll('.practica-juego-btn');
+    if (!botones.length) return;
+    if (!a || !g || esPersonalizado) { botones.forEach(function (b) { b.style.display = 'none'; }); return; }
     var base = (alumnoData && alumnoData._nivelBase) || 'A1';
     var bloque = (alumnoData && alumnoData._bloqueActual) || 1;
     var nivel = base.replace(/\..*$/, '') + '.' + bloque;           // A1.1, A1.2, A2.1...
@@ -2297,12 +2299,14 @@
       emoji = '🎮'; titulo = '¡Juega y practica!'; sub = 'English Road Trip · Lesson ' + Math.min(lec, 28) + ' · compite con tu grupo';
       fondo = 'linear-gradient(135deg,#f97316,#ea580c 55%,#facc15)'; color = '#fff';
     }
-    el.href = url;
-    el.title = sub;
-    el.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding:8px 16px 8px 12px;border-radius:100px;text-decoration:none;' +
-      'background:' + fondo + ';color:' + color + ';font-weight:800;font-size:14px;white-space:nowrap;' +
-      'box-shadow:0 4px 14px rgba(249,115,22,0.45);border:2px solid rgba(255,255,255,0.7);';
-    el.innerHTML = '<span style="font-size:22px;line-height:1;">' + emoji + '</span>' + titulo + ' <span style="opacity:.85;">▶</span>';
+    botones.forEach(function (el) {
+      el.href = url;
+      el.title = sub;
+      el.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding:8px 16px 8px 12px;border-radius:100px;text-decoration:none;' +
+        'background:' + fondo + ';color:' + color + ';font-weight:800;font-size:14px;white-space:nowrap;' +
+        'box-shadow:0 4px 14px rgba(249,115,22,0.45);border:2px solid rgba(255,255,255,0.7);';
+      el.innerHTML = '<span style="font-size:22px;line-height:1;">' + emoji + '</span>' + titulo + ' <span style="opacity:.85;">▶</span>';
+    });
   }
 
   function bloqueDeSubnivel(subnivel) {
