@@ -360,7 +360,7 @@ var CONFIG = {
   LOGO: 'logo.png',
   PERSONAJES: 'https://raw.githubusercontent.com/ergutza-lab/organic-english-classes/main/imagenes/w01-d01/',
   API: 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec',   // fotos de práctica (getImagenesPractica)
-  API_PUNTAJES: null    // guardar puntajes y ranking real (se conecta después)
+  API_PUNTAJES: 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec'   // guardarPractica / getRankingPractica
 };
 var NIVELES = ['A1.1','A1.2','A2.1'];
 
@@ -389,7 +389,7 @@ function registrar(lk, juego, pct){
   var sem = lunesISO(); if (DB.semana.id !== sem) DB.semana = { id:sem, best:{} };
   var k = lk + '|' + juego; if (!(DB.semana.best[k] >= pct)) DB.semana.best[k] = pct;
   guardarDB();
-  if (CONFIG.API_PUNTAJES) { try { fetch(CONFIG.API_PUNTAJES + '?action=guardarPractica&id=' + encodeURIComponent(ALUMNO.id) + '&grupo=' + encodeURIComponent(ALUMNO.grupo) + '&leccion=' + encodeURIComponent(lk) + '&juego=' + juego + '&pct=' + pct, { redirect:'follow' }); } catch(e) {} }
+  if (CONFIG.API_PUNTAJES && !ALUMNO.demo && ALUMNO.id && ALUMNO.grupo) { try { fetch(CONFIG.API_PUNTAJES + '?action=guardarPractica&programa=ADULTOS&id=' + encodeURIComponent(ALUMNO.id) + '&nombre=' + encodeURIComponent(ALUMNO.nombre) + '&grupo=' + encodeURIComponent(ALUMNO.grupo) + '&bloque=' + encodeURIComponent(ALUMNO.nivel) + '&clave=' + encodeURIComponent(lk + '|' + juego) + '&valor=' + pct, { redirect:'follow' }).then(function(){ RANK = null; }).catch(function(){}); } catch(e) {} }
   return nuevo;
 }
 function puntosSemana(){ var t = 0, b = (DB.semana.id === lunesISO() && DB.semana.best) || {}; for (var k in b) t += b[k]; return t; }
@@ -828,23 +828,38 @@ function ordena(frasesData){
 }
 
 // ═════════ RANKING DEL GRUPO ═════════
-// Demo: compañeros de ejemplo. Conectado: viene de CONFIG.API (puntos de la semana por alumno del grupo).
+// Demo: compañeros de ejemplo. Alumno real: viene de Apps Script (getRankingPractica, semana actual).
 var COMPAS = [ { n:'Carlos M.', p:372 }, { n:'Sofía R.', p:341 }, { n:'Luis G.', p:298 }, { n:'María P.', p:265 }, { n:'Marco T.', p:214 }, { n:'Emma D.', p:180 }, { n:'Jorge S.', p:96 }, { n:'Paty V.', p:0 } ];
+var RANK = null, RANK_OK = !!(CONFIG.API_PUNTAJES && !ALUMNO.demo && ALUMNO.id && ALUMNO.grupo);
+function cargarRanking(cb){
+  if (!RANK_OK) { if (cb) cb(); return; }
+  fetch(CONFIG.API_PUNTAJES + '?action=getRankingPractica&programa=ADULTOS&grupo=' + encodeURIComponent(ALUMNO.grupo) + '&id=' + encodeURIComponent(ALUMNO.id), { redirect:'follow' })
+    .then(function(r){ return r.json(); }).then(function(d){ if (d && d.success) RANK = d.ranking; if (cb) cb(); }).catch(function(){ if (cb) cb(); });
+}
 function tablaRanking(){
-  var t = COMPAS.map(function(c){ return { n:c.n, p:c.p, yo:false }; });
-  t.push({ n:ALUMNO.corto, p:puntosSemana(), yo:true });
+  var t;
+  if (RANK_OK) {
+    t = (RANK || []).map(function(r){ return { n:r.n, p:r.p, yo:!!r.yo }; });
+    var yo = t.filter(function(r){ return r.yo; })[0];
+    if (!yo) t.push({ n:ALUMNO.corto, p:puntosSemana(), yo:true }); else yo.p = Math.max(yo.p, puntosSemana());
+  } else {
+    t = COMPAS.map(function(c){ return { n:c.n, p:c.p, yo:false }; });
+    t.push({ n:ALUMNO.corto, p:puntosSemana(), yo:true });
+  }
   t.sort(function(a,b){ return b.p - a.p || (a.yo ? -1 : b.yo ? 1 : 0); });
   return t;
 }
 function posicionRanking(){ var t = tablaRanking(), pos = 0; t.forEach(function(r,k){ if (r.yo) pos = k+1; }); return { pos:pos, total:t.length }; }
-function ranking(){
-  stopTimer(); run++;
+cargarRanking(function(){ var b = document.querySelector('#verRanking small'); if (b) b.textContent = '#' + posicionRanking().pos; });
+function ranking(recarga){
+  stopTimer(); run++; var miRun = run;
+  if (RANK_OK && !recarga) cargarRanking(function(){ if (miRun === run) ranking(true); });
   var t = tablaRanking(), top = t.slice(0,3), med = ['🥇','🥈','🥉'], orden = [top[1], top[0], top[2]], alt = [96, 128, 76], cls = ['p2','p1','p3'];
   frame('🏆 Ranking del grupo ' + esc(ALUMNO.grupo||''),
     '<div class="hud"><span>Esta semana</span><span>Se reinicia cada lunes</span></div>' +
     '<div class="podium">' + orden.map(function(r,k){ if (!r) return ''; return '<div class="pcol '+cls[k]+(r.yo?' yo':'')+'"><div class="pname">'+(r.yo?'Tú':esc(r.n))+'</div><div class="ppts">'+r.p+' pts</div><div class="pbar" style="height:'+alt[k]+'px"><span>'+med[[1,0,2][k]]+'</span></div></div>'; }).join('') + '</div>' +
     '<ol class="rlist">' + t.map(function(r,k){ return '<li class="'+(r.yo?'yo':'')+'"><span class="rpos">'+(k<3?med[k]:(k+1))+'</span><span class="rname">'+esc(r.n)+(r.yo?' <em>(tú)</em>':'')+'</span><span class="rpts">'+(r.p?r.p+' pts':'—')+'</span></li>'; }).join('') + '</ol>' +
-    '<p class="note">Los puntos son la suma de tus mejores puntajes en los juegos de esta semana, en cualquier lección. Solo se muestra el nombre de pila y la inicial del apellido.</p>' +
+    (RANK_OK && !RANK ? '<p class="note">Cargando el ranking de tu grupo…</p>' : '') + '<p class="note">Los puntos son la suma de tus mejores puntajes en los juegos de esta semana, en cualquier lección. Solo se muestra el nombre de pila y la inicial del apellido.</p>' +
     '<div class="row"><button class="btn" id="aJugar">🚙 Sumar puntos</button></div>', inicio);
   document.getElementById('aJugar').onclick = function(){ abrirLeccion(ALUMNO.nivel, ALUMNO.leccion); };
 }
