@@ -1154,6 +1154,7 @@
     </div>
 
     <div id="tab-practica" class="tab-content">
+     <a id="practicaJuegoBanner" href="#" target="_blank" rel="noopener" style="display:none;"></a>
      <div id="nivelesGridView">
       <div class="practica-sticky-header"><div class="practica-titulo">Practica tu clase:</div></div>
             <div class="niveles-grid" id="nivelesGridDinamico"></div>
@@ -1691,6 +1692,7 @@
       }
 
       if (esKids) prepararPracticaKids();
+      prepararBannerJuegoPractica_(a, g, esKids, esGrupoPersonalizado);
 
       document.getElementById('btnZoom').href             = g.linkZoom || '#';
       cargarGrabacionesAlumno(g.id, g.grabacion || '');
@@ -2253,6 +2255,56 @@
         else{ document.getElementById('cambioStatus').textContent=data.error||'Error.'; document.getElementById('cambioStatus').className='cambio-status err'; btn.classList.add('activo'); }
       })
       .catch(()=>{ btn.classList.remove('cargando');btn.classList.add('activo');btn.textContent='Confirmar cambio'; document.getElementById('cambioStatus').textContent='Error de conexion.'; document.getElementById('cambioStatus').className='cambio-status err'; });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  🎮 BOTÓN "JUEGA Y PRACTICA" (nov-2026)
+  //  Abre el módulo de práctica (PRACTICA/) con los datos del alumno, para que
+  //  solo vea su bloque y sus puntos cuenten en el ranking de su grupo.
+  //   - Adultos/Teens: PRACTICA/index.html  ?nombre&grupo&nivel=A1.1&leccion&id
+  //   - Kids:          PRACTICA/kids.html   ?nombre&grupo&nivel=KIDS-A1.1&mision&id
+  //  La lección se calcula con la fecha de inicio del grupo (4 por semana,
+  //  lun-jue; sabatinos 4 por sábado), dentro del bloque (1 a 32).
+  // ═══════════════════════════════════════════════════════════════════════
+  function leccionHoyGrupo_(g) {
+    var fi = new Date(g.fechaInicio);
+    if (isNaN(fi.getTime())) return 1;
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var lun0 = new Date(fi.getFullYear(), fi.getMonth(), fi.getDate());
+    lun0.setDate(lun0.getDate() - ((lun0.getDay() + 6) % 7));
+    if (hoy < lun0) return 1;
+    var dias = Math.round((hoy - lun0) / 86400000), semanas = Math.floor(dias / 7);
+    var l = (g.tipoHorario === 'sabado')
+      ? semanas * 4 + (hoy.getDay() === 6 ? 4 : 1)
+      : semanas * 4 + Math.min((hoy.getDay() + 6) % 7, 3) + 1;
+    return ((l - 1) % 32) + 1;
+  }
+
+  function prepararBannerJuegoPractica_(a, g, esKids, esPersonalizado) {
+    var el = document.getElementById('practicaJuegoBanner');
+    if (!el || !a || !g || esPersonalizado) { if (el) el.style.display = 'none'; return; }
+    var base = (alumnoData && alumnoData._nivelBase) || 'A1';
+    var bloque = (alumnoData && alumnoData._bloqueActual) || 1;
+    var nivel = base.replace(/\..*$/, '') + '.' + bloque;           // A1.1, A1.2, A2.1...
+    var lec = leccionHoyGrupo_(g);
+    var q = 'nombre=' + encodeURIComponent(a.nombre || '') + '&grupo=' + encodeURIComponent(g.id || '') + '&id=' + encodeURIComponent(a.id || '');
+    var url, titulo, sub, emoji, fondo, color;
+    if (esKids) {
+      url = 'PRACTICA/kids.html?' + q + '&nivel=' + encodeURIComponent('KIDS-' + nivel) + '&mision=' + lec;
+      emoji = '🌱'; titulo = '¡Juega con Growie!'; sub = 'Misión ' + lec + ' · gana hojitas y puntos';
+      fondo = 'linear-gradient(135deg,#22c55e,#16a34a 55%,#facc15)'; color = '#052e16';
+    } else {
+      url = 'PRACTICA/index.html?' + q + '&nivel=' + encodeURIComponent(nivel) + '&leccion=' + Math.min(lec, 28);
+      emoji = '🎮'; titulo = '¡Juega y practica!'; sub = 'English Road Trip · Lesson ' + Math.min(lec, 28) + ' · compite con tu grupo';
+      fondo = 'linear-gradient(135deg,#f97316,#ea580c 55%,#facc15)'; color = '#fff';
+    }
+    el.href = url;
+    el.style.cssText = 'display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 18px;border-radius:20px;text-decoration:none;' +
+      'background:' + fondo + ';color:' + color + ';box-shadow:0 8px 24px rgba(249,115,22,0.35);';
+    el.innerHTML = '<span style="font-size:38px;line-height:1;">' + emoji + '</span>' +
+      '<span style="flex:1;text-align:left;"><span style="display:block;font-size:18px;font-weight:800;">' + titulo + '</span>' +
+      '<span style="display:block;font-size:12.5px;font-weight:600;opacity:.92;">' + sub + '</span></span>' +
+      '<span style="background:rgba(255,255,255,0.92);color:#14213d;border-radius:100px;padding:9px 16px;font-weight:800;font-size:13px;white-space:nowrap;">Jugar ▶</span>';
   }
 
   function bloqueDeSubnivel(subnivel) {
