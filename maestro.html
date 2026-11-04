@@ -747,8 +747,10 @@ var _linksVideo = {1:{},2:{}};
   function _esFestivoJS_(d) {
     return FESTIVOS_MMDD_JS.indexOf(String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')) !== -1;
   }
-  // Lección que marca el CALENDARIO del grupo para una fecha.
-  // 1a semana: 4 clases (lun-jue sin festivo + viernes si falta). Después: cada lun-jue cuenta.
+    // Lección que marca el CALENDARIO del grupo para una fecha.
+  // Regla (nov-2026, acordada con Coord. Académica): cada lun-jue es una lección fija desde el
+  // LUNES de la semana de inicio, aunque sea festivo o el grupo haya iniciado en martes por festivo.
+  // Ej. grupo que inicia martes 3-nov: lun 2 = L1, mar 3 = L2, mié 4 = L3, jue 5 = L4.
   function _posCalendarioFecha_(fechaIso) {
     if (!grupoActual || !grupoActual.fechaInicio || !fechaIso) return 0;
     var ini = _parseFechaLocal_(grupoActual.fechaInicio);
@@ -756,18 +758,10 @@ var _linksVideo = {1:{},2:{}};
     var f = new Date(+p[0], +p[1] - 1, +p[2]);
     if (!ini || isNaN(ini.getTime()) || isNaN(f.getTime())) return 0;
     ini = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
-    if (f < ini) return 0;
     var lun0 = new Date(ini); lun0.setDate(ini.getDate() - ((ini.getDay() + 6) % 7));
-    var vie0 = new Date(lun0); vie0.setDate(lun0.getDate() + 4);
-    var primera = [], d = new Date(ini);
-    while (d < vie0) { var w = d.getDay(); if (w >= 1 && w <= 4 && !_esFestivoJS_(d)) primera.push(new Date(d)); d.setDate(d.getDate() + 1); }
-    if (primera.length < 4 && !_esFestivoJS_(vie0)) primera.push(new Date(vie0));
-    var n = 0;
-    primera.forEach(function(x){ if (x <= f) n++; });
-    if (f <= vie0) return Math.min(64, n);
-    n = primera.length;
-    var e = new Date(lun0); e.setDate(lun0.getDate() + 7);
-    while (e <= f) { var w2 = e.getDay(); if (w2 >= 1 && w2 <= 4) n++; e.setDate(e.getDate() + 1); }
+    if (f < lun0) return 0;
+    var n = 0, e = new Date(lun0);
+    while (e <= f) { var w = e.getDay(); if (w >= 1 && w <= 4) n++; e.setDate(e.getDate() + 1); }
     return Math.min(64, n);
   }
   function _fechaRegistroSel_() {
@@ -820,7 +814,7 @@ var _linksVideo = {1:{},2:{}};
       av.innerHTML = base + '⚠️ Antes de esta lección falta evaluar: <b>' + faltan.map(function(x){ return 'L' + (x > 32 ? x - 32 : x); }).join(', ') + '</b>.';
     } else {
       av.style.color = '#bfdbfe';
-      av.innerHTML = base + 'En semanas con día festivo registra las 4 lecciones aunque solo hayan sido 3 días (puedes registrar 2 lecciones el mismo día).';
+            av.innerHTML = base + 'En semanas con día festivo registra cada lección con la fecha del programa (lunes a jueves), aunque la hayas dado otro día.';
     }
   }
 
@@ -1880,7 +1874,7 @@ function actualizarEstadoFecha(fechaStr) {
         aviso.style.display='block'; aviso.style.color='';
         var lecsDia = (leccionesPorFecha[fechaStr] || []).map(function(p){ return _etqLeccion_(p); }).join(', ');
         aviso.innerHTML = '⚠️ Este día ya tiene registrada: <b>' + (lecsDia || 'una clase') + '</b>.'
-          + '<div style="margin-top:6px;color:#bfdbfe;">Si es <b>semana con día festivo</b>, elige la siguiente lección arriba y guarda: puedes registrar 2 lecciones el mismo día.</div>'
+          + '<div style="margin-top:6px;color:#bfdbfe;">Si es <b>semana con día festivo</b>, registra cada lección con la fecha del programa (lunes a jueves): elige ese día en la fecha.</div>'
           + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(239,68,68,0.25);color:#fecaca;">'
           + '¿O quieres <b>borrar todos los registros de este día</b> para volver a evaluar a los alumnos?'
           + '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">'
