@@ -23,7 +23,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.1}
 button{font-family:var(--f-display);cursor:pointer;border:none;color:inherit}
 button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:50;margin:-16px -16px 0;padding:10px 16px;background:rgba(15,26,51,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.top .izq{display:flex;align-items:center;gap:10px;min-width:0}
+.mipanel{background:var(--panel-2);color:#fff;border-radius:999px;padding:7px 12px;font:800 12.5px var(--f-body);white-space:nowrap;box-shadow:0 3px 0 #0b1328}
 .top img{height:34px;width:auto}
 .chip{font:800 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;background:var(--panel-2);color:var(--mute);border-radius:999px;padding:5px 10px}
 .note{font-size:12.5px;color:var(--mute);text-align:center;margin:0}
@@ -224,6 +226,19 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:#141c2e url
 .go-now small{font:800 13px var(--f-body);opacity:.9}
 .mapa{position:relative;width:100%;background:radial-gradient(circle at 20% 10%,rgba(46,160,90,.35),transparent 40%),radial-gradient(circle at 80% 60%,rgba(46,160,90,.3),transparent 45%),linear-gradient(180deg,#1d4a33,#173a2a);border-radius:28px;border:4px solid rgba(255,255,255,.12);overflow:hidden}
 .road{position:absolute;inset:0;width:100%;height:100%}
+.deco{position:absolute;transform:translate(-50%,-50%);pointer-events:none;z-index:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
+.deco img.e3d,.deco span{width:40px;height:40px;font-size:34px;line-height:40px;display:block;text-align:center}
+.deco.chico img.e3d,.deco.chico span{width:26px;height:26px;font-size:22px;line-height:26px}
+.deco.grande img.e3d,.deco.grande span{width:52px;height:52px;font-size:44px;line-height:52px}
+.deco.flota{animation:flota 3.2s ease-in-out infinite}
+@keyframes flota{50%{transform:translate(-50%,calc(-50% - 6px))}}
+.nube{position:absolute;z-index:1;pointer-events:none;opacity:.85;animation:nube 38s linear infinite}
+.nube img.e3d,.nube span{width:46px;height:46px;font-size:40px;display:block}
+@keyframes nube{from{transform:translateX(-80px)}to{transform:translateX(440px)}}
+.letrero{position:absolute;transform:translate(-50%,-50%);z-index:2;pointer-events:none;background:#fff6e8;color:#14213d;border:3px solid #14213d;border-radius:10px;padding:3px 10px;font:400 12px Bungee,var(--f-display);white-space:nowrap;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.letrero.meta{background:linear-gradient(140deg,#ffe57a,#f2b705)}
+.lago{position:absolute;border-radius:50%;background:radial-gradient(circle at 40% 35%,#6fd3ff,#2b84c6 70%);opacity:.75;pointer-events:none;box-shadow:inset 0 -4px 0 rgba(0,0,0,.15)}
+.orilla{fill:none;stroke:rgba(255,246,232,.35);stroke-width:42;stroke-linecap:round}
 .asfalto{fill:none;stroke:#2d2f3a;stroke-width:34;stroke-linecap:round}
 .linea{fill:none;stroke:#ffd23f;stroke-width:3;stroke-dasharray:14 12}
 .stop{position:absolute;transform:translate(-50%,-50%);background:none;padding:0;display:flex;align-items:center}
@@ -457,6 +472,43 @@ var PAISES = {
   'A1.2': { pais:'Canada', bandera:'🇨🇦', ruta:'Ruta del Maple', ciudades:['Toronto','Niagara Falls','Hamilton','London ON','Windsor','Kingston','Ottawa','Montreal','Quebec City','Sherbrooke','Fredericton','Saint John','Moncton','Charlottetown','Halifax','Lunenburg','Sydney NS','St. John’s','Thunder Bay','Winnipeg','Regina','Saskatoon','Edmonton','Jasper','Banff','Calgary','Kelowna','Vancouver'] },
   'A2.1': { pais:'UK', bandera:'🇬🇧', ruta:'Ruta Royal', ciudades:['London','Oxford','Cambridge','Brighton','Canterbury','Dover','Bath','Bristol','Cardiff','Swansea','Stratford','Birmingham','Liverpool','Manchester','Leeds','York','Newcastle','Durham','Lake District','Glasgow','Stirling','Edinburgh','St Andrews','Aberdeen','Inverness','Loch Ness','Isle of Skye','Belfast'] }
 };
+// Paisaje del mapa: terreno que cambia a lo largo de la ruta, íconos de cada país y plantas a los lados
+var PAISAJE = {
+  'A1.1': { terreno:['#1f5a3a','#2f6b33','#6b6a2a','#8a5a2a','#9a4f2c','#2b6f8a'], plantas:['🌳','🌲','🌽','🌾','🌵','🌴'],
+            iconos:['🗽','🍎','🏛️','🦅','⚾','🌭','🎸','🏈','🌽','🎷','🤠','🐎','🌵','🏜️','🎰','🎬','🌉','🏄'] },
+  'A1.2': { terreno:['#1d5a40','#1f4f3a','#2d5f3a','#5d6b2a','#3d5566','#2b6f8a'], plantas:['🍁','🌲','🌲','🌾','🌲','🌲'],
+            iconos:['🍁','💦','🏒','🦫','🛶','🐻','🦌','❄️','🐟','🦞','🌊','🐋','🌾','🦬','🚂','🏔️','⛷️','🐺'] },
+  'A2.1': { terreno:['#2a6b3a','#2f7a40','#3a6b33','#2f5f45','#38534a','#2b5a6a'], plantas:['🌳','🌷','🌳','🌿','🌲','🌿'],
+            iconos:['💂','🎡','🫖','👑','🏰','☂️','⚽','🐑','🚌','🎸','🌧️','🏴','🦌','🍀','⛴️','🐉','🥧','🏞️'] }
+};
+function decoMapa(nivel, pts, W, H, P){
+  var Q = PAISAJE[nivel] || PAISAJE['A1.1'], h = '', n = pts.length;
+  function pos(x, y){ return 'left:'+(x/W*100)+'%;top:'+(y/H*100)+'%'; }
+  // lagos y nubes de fondo
+  h += '<span class="lago" style="left:'+(14/W*100)+'%;top:'+(pts[Math.min(3,n-1)].y/H*100)+'%;width:'+(70/W*100)+'%;height:'+(46/H*100)+'%"></span>';
+  h += '<span class="lago" style="left:'+(282/W*100)+'%;top:'+(pts[Math.min(14,n-1)].y/H*100)+'%;width:'+(62/W*100)+'%;height:'+(40/H*100)+'%"></span>';
+  [0.06, 0.38, 0.7].forEach(function(f, i){ h += '<span class="nube" style="top:'+(f*100)+'%;left:0;animation-delay:-'+(i*13)+'s">'+emo('☁️')+'</span>'; });
+  // letreros de salida y meta
+  h += '<span class="letrero" style="'+pos(220, 22)+'">'+P.bandera+' START · '+esc(P.ciudades[0])+'</span>';
+  h += '<span class="letrero meta" style="'+pos(180, pts[n-1].y + 58)+'">🏁 META · '+esc(P.ciudades[(n-1) % P.ciudades.length])+'</span>';
+  pts.forEach(function(p, k){
+    var tramo = Math.min(Q.plantas.length - 1, Math.floor(k / n * Q.plantas.length));
+    // planta junto a la parada, del lado libre
+    h += '<span class="deco chico" style="'+pos(p.x < 180 ? 28 : 334, p.y - 22)+'">'+emo(Q.plantas[tramo])+'</span>';
+    h += '<span class="deco chico" style="'+pos(p.x < 180 ? 44 : 318, p.y + 20)+'">'+emo(Q.plantas[(tramo + 1) % Q.plantas.length])+'</span>';
+    // ícono del país entre una parada y la siguiente, a los dos lados del camino
+    if (k < n - 1) {
+      var my = (p.y + pts[k+1].y) / 2;
+      h += '<span class="deco flota" style="'+pos(48, my)+';animation-delay:-'+(k%5*0.6)+'s">'+emo(Q.iconos[(2*k) % Q.iconos.length])+'</span>';
+      h += '<span class="deco grande" style="'+pos(314, my + 6)+'">'+emo(Q.iconos[(2*k+1) % Q.iconos.length])+'</span>';
+    }
+  });
+  return h;
+}
+function fondoMapa(nivel){
+  var t = (PAISAJE[nivel] || PAISAJE['A1.1']).terreno;
+  return 'background:radial-gradient(circle at 20% 10%,rgba(255,255,255,.08),transparent 35%),linear-gradient(180deg,' + t.map(function(c, i){ return c + ' ' + Math.round(i / (t.length - 1) * 100) + '%'; }).join(',') + ')';
+}
 function ciudad(nivel, num){ var p = PAISES[nivel]; return p ? p.ciudades[(num-1) % p.ciudades.length] : 'Ciudad ' + num; }
 DB.coins = DB.coins || 0; DB.xp = DB.xp || 0; DB.dias = DB.dias || []; DB.sellos = DB.sellos || {};
 function hoyISO(){ var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
@@ -485,7 +537,9 @@ function hud(){
     '<div class="xpw"><b>'+esc(ALUMNO.pila)+' · '+rango(x.nv)+'</b><div class="xpbar"><i style="width:'+Math.round(x.en/x.de*100)+'%"></i></div><small>'+x.en+'/'+x.de+' XP para nivel '+(x.nv+1)+'</small></div></div>' +
     '<div class="stats"><span title="Racha de días">🔥 '+r+'</span><span title="Monedas">🪙 '+DB.coins+'</span><span title="Sellos de pasaporte">🛂 '+sellos+'</span></div></div>';
 }
-function header(chip){ return '<div class="top"><img src="'+CONFIG.LOGO+'" alt="Organic English"><span class="chip">'+chip+'</span></div>'; }
+function header(chip){ return '<div class="top"><div class="izq"><button class="mipanel" onclick="volverPanel()" aria-label="Volver a mi panel">← Mi panel</button><img src="'+CONFIG.LOGO+'" alt="Organic English"></div><span class="chip">'+chip+'</span></div>'; }
+// Regresa al panel del alumno: si la práctica se abrió desde el panel, cierra esta pestaña; si no, abre el panel.
+function volverPanel(){ try { if (window.opener && !window.opener.closed) { window.opener.focus(); window.close(); return; } } catch(e) {} location.href = '../alumno.html'; }
 function frame(title, inner, onBack){
   app.innerHTML = header(LECCION ? '📍 ' + ciudad(LECCION.nivel, LECCION.num) : 'Road Trip') +
     '<section class="screen"><div class="gbar"><button class="back" id="back" aria-label="Volver">←</button><h2>'+title+'</h2></div>'+inner+'</section>';
@@ -495,6 +549,7 @@ function frame(title, inner, onBack){
 
 // ═════════ INICIO: el mapa del viaje ═════════
 var INDEX = null, NIVEL_VISTO = ALUMNO.nivel, LECCION = null;
+function bloqueAbierto(n){ return NIVELES.indexOf(n) <= NIVELES.indexOf(ALUMNO.nivel); }
 function aviso(t){ var d = document.getElementById('aviso'); if (!d) { d = document.createElement('div'); d.id = 'aviso'; d.className = 'aviso'; document.body.appendChild(d); } d.textContent = t; d.classList.add('on'); clearTimeout(d._t); d._t = setTimeout(function(){ d.classList.remove('on'); }, 2600); }
 function promedioLeccion(lk, juegos){
   var s = DB.scores[lk] || {}, sum = 0, n = 0;
@@ -510,7 +565,7 @@ function inicio(){
     // carretera en zigzag (SVG) con una parada por lección
     var paso = 118, W = 360, H = lista.length * paso + 80, pts = lista.map(function(l,k){ return { x: k % 2 ? 262 : 98, y: 70 + k * paso }; });
     var d = 'M ' + pts[0].x + ' ' + (pts[0].y - 60); pts.forEach(function(p,k){ var prev = k ? pts[k-1] : { x:p.x, y:p.y - 60 }; var my = (prev.y + p.y) / 2; d += ' C ' + prev.x + ' ' + my + ', ' + p.x + ' ' + my + ', ' + p.x + ' ' + p.y; });
-    var svg = '<svg class="road" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMin meet" aria-hidden="true"><path d="'+d+'" class="asfalto"/><path d="'+d+'" class="linea"/></svg>';
+    var svg = '<svg class="road" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMin meet" aria-hidden="true"><path d="'+d+'" class="orilla"/><path d="'+d+'" class="asfalto"/><path d="'+d+'" class="linea"/></svg>';
     var paradas = lista.map(function(l,k){
       var lk = NIVEL_VISTO + '-' + l.num, pr = promedioLeccion(lk, l.juegos), sello = DB.sellos[lk], estado = sello ? 'done' : (l.num === actual ? 'now' : (pr.jugados ? 'play' : (l.num < actual ? 'pend' : 'next')));
       var p = pts[k];
@@ -519,17 +574,17 @@ function inicio(){
         '<span class="lbl"><b>'+esc(P.ciudades[k % P.ciudades.length])+'</b><small>L'+l.num+' · '+esc(l.titulo)+'</small>'+(pr.jugados ? '<small class="st">'+'⭐'.repeat(estrellas(pr.p))+(pr.jugados<l.juegos.length?' '+pr.jugados+'/'+l.juegos.length:'')+'</small>' : '')+'</span></button>';
     }).join('');
     app.innerHTML = header(ALUMNO.demo ? 'Demo' : 'Road Trip') + hud() +
-      '<div class="paises" role="tablist">' + NIVELES.map(function(n){ var q = PAISES[n], mio = n === ALUMNO.nivel; return '<button class="pais'+(n===NIVEL_VISTO?' on':'')+(mio?'':' lock')+'" data-n="'+n+'"><span>'+(mio ? q.bandera : '🔒')+'</span><b>'+q.pais+'</b><small>'+n+'</small></button>'; }).join('') + '</div>' +
+      '<div class="paises" role="tablist">' + NIVELES.map(function(n){ var q = PAISES[n], abierto = bloqueAbierto(n); return '<button class="pais'+(n===NIVEL_VISTO?' on':'')+(abierto?'':' lock')+'" data-n="'+n+'"><span>'+(abierto ? q.bandera : '🔒')+'</span><b>'+q.pais+'</b><small>'+n+'</small></button>'; }).join('') + '</div>' +
       '<div class="route-head"><div><small>'+P.bandera+' '+esc(P.ruta)+'</small><h2>'+(actual ? 'Tu próxima parada: <em>'+esc(ciudad(NIVEL_VISTO, actual))+'</em>' : 'Explora la ruta de '+P.pais)+'</h2></div>' +
       '<button class="rk" id="verRanking" aria-label="Ranking del grupo">🏆<small>#'+pos.pos+'</small></button></div>' +
       (actual ? '<button class="go-now" id="hoy">🚙 ¡Arrancar en '+esc(ciudad(NIVEL_VISTO, actual))+'! <small>Lesson '+actual+' · tu clase de hoy</small></button>' : '') +
-      '<div class="mapa" style="aspect-ratio:'+W+'/'+H+'">' + svg + paradas + '</div>' +
+      '<div class="mapa" style="aspect-ratio:'+W+'/'+H+';'+fondoMapa(NIVEL_VISTO)+'">' + svg + decoMapa(NIVEL_VISTO, pts, W, H, P) + paradas + '</div>' +
       (ALUMNO.demo ? '<p class="note">Modo demo con una alumna de ejemplo. Conectado a la plataforma, el mapa avanza con la clase real del alumno.</p>' : '');
     var bh = document.getElementById('hoy'); if (bh) bh.onclick = function(){ abrirLeccion(NIVEL_VISTO, actual); };
     document.getElementById('verRanking').onclick = ranking;
     app.querySelectorAll('.pais').forEach(function(t){ t.onclick = function(){
-      // Solo se practica el bloque en el que está el alumno
-      if (t.dataset.n !== ALUMNO.nivel) { var ix = NIVELES.indexOf(t.dataset.n), mi = NIVELES.indexOf(ALUMNO.nivel); return aviso(ix > mi ? '🔒 ' + PAISES[t.dataset.n].pais + ' se abre cuando pases al bloque ' + t.dataset.n + '.' : '🔒 Ese bloque ya lo terminaste. ¡Sigue tu ruta por ' + PAISES[ALUMNO.nivel].pais + '!'); }
+      // Se practica el bloque actual y los anteriores; los siguientes se abren al avanzar
+      if (!bloqueAbierto(t.dataset.n)) return aviso('🔒 ' + PAISES[t.dataset.n].pais + ' se abre cuando pases al bloque ' + t.dataset.n + '.');
       NIVEL_VISTO = t.dataset.n; inicio(); }; });
     app.querySelectorAll('.stop').forEach(function(b){ b.onclick = function(){ abrirLeccion(NIVEL_VISTO, +b.dataset.l); }; });
     var now = app.querySelector('.stop.now'); if (now) setTimeout(function(){ now.scrollIntoView({ block:'center', behavior:'smooth' }); }, 300);
