@@ -399,7 +399,7 @@ var ALUMNO = leerAlumno();
 var KEY = 'oe_practica_v1', DB = { scores:{}, semana:{} };
 try { DB = JSON.parse(localStorage.getItem(KEY) || 'null') || DB; } catch(e) {}
 function guardarDB(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e) {} }
-function lunesISO(){ var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d.toISOString().slice(0,10); }
+function lunesISO(){ var d = new Date(Date.now() - 8*3600*1000); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
 function registrar(lk, juego, pct){
   var s = DB.scores[lk] = DB.scores[lk] || {};
   var nuevo = s[juego] == null || pct > s[juego];
@@ -920,12 +920,13 @@ function ranking(recarga){
   if (RANK_OK && !recarga) cargarRanking(function(){ if (miRun === run) ranking(true); });
   var t = tablaRanking(), top = t.slice(0,3), med = ['🥇','🥈','🥉'], orden = [top[1], top[0], top[2]], alt = [96, 128, 76], cls = ['p2','p1','p3'];
   frame('🏆 Ranking del grupo ' + esc(ALUMNO.grupo||''),
-    '<div class="hud"><span>Esta semana</span><span>Se reinicia cada lunes</span></div>' +
+    '<div class="hud"><span>Esta semana</span><span>Se reinicia cada lunes 8 AM</span></div>' +
     '<div class="podium">' + orden.map(function(r,k){ if (!r) return ''; return '<div class="pcol '+cls[k]+(r.yo?' yo':'')+'"><div class="pname">'+(r.yo?'Tú':esc(r.n))+'</div><div class="ppts">'+r.p+' pts</div><div class="pbar" style="height:'+alt[k]+'px"><span>'+med[[1,0,2][k]]+'</span></div></div>'; }).join('') + '</div>' +
     '<ol class="rlist">' + t.map(function(r,k){ return '<li class="'+(r.yo?'yo':'')+'"><span class="rpos">'+(k<3?med[k]:(k+1))+'</span><span class="rname">'+esc(r.n)+(r.yo?' <em>(tú)</em>':'')+'</span><span class="rpts">'+(r.p?r.p+' pts':'—')+'</span></li>'; }).join('') + '</ol>' +
     (RANK_OK && !RANK ? '<p class="note">Cargando el ranking de tu grupo…</p>' : '') + '<p class="note">Los puntos son la suma de tus mejores puntajes en los juegos de esta semana, en cualquier lección. Solo se muestra el nombre de pila y la inicial del apellido.</p>' +
-    '<div class="row"><button class="btn" id="aJugar">🚙 Sumar puntos</button></div>', inicio);
+    '<div class="row"><button class="btn" id="aJugar">🚙 Sumar puntos</button><button class="btn" id="shRank" style="background:linear-gradient(140deg,#a77bff,#6a4bd6);box-shadow:0 5px 0 #3f2b8c">📣 Compartir mi lugar</button></div>', inicio);
   document.getElementById('aJugar').onclick = function(){ abrirLeccion(ALUMNO.nivel, ALUMNO.leccion); };
+  document.getElementById('shRank').onclick = compartirRanking;
 }
 
 // ═════════ CALCOMANÍA PARA COMPARTIR ═════════
@@ -993,27 +994,95 @@ function shareCard(que, pct){
   var go = function(){
     if (myRun !== run) return;
     var stk = hacerSticker(pct,que), his = hacerHistoria(pct,que), post = hacerPost(pct,que);
-    var texto = '¡Hola! Soy ' + ALUMNO.pila + ' y este es mi score de la Lesson ' + LECCION.num + ' en el English Road Trip de Organic English 🚙 Aprende inglés conmigo: organicenglish1.com';
+    pantallaCompartir({ stk:stk, his:his, post:post, titulo:'📸 Mi postal de ' + esc(LECCION.ciudad), alt:'Calcomanía con mi resultado de '+pct+'%',
+                        archivo:'organic-english-lesson' + LECCION.num + '.jpg', volverTxt:'Volver a la lección', volver:abrirLeccionActual });
+  };
+  var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
+  if (logoImg.complete) listo(); else { logoImg.onload = listo; logoImg.onerror = listo; }
+}
+
+// ═════════ CALCOMANÍA "MI LUGAR EN EL RANKING" ═════════
+// Solo muestra la posición y los puntos del alumno: nunca nombres ni puntos de sus compañeros.
+function compartirRanking(){
+  var t = tablaRanking(), pos = 0, pts = 0;
+  t.forEach(function(r, k){ if (r.yo) { pos = k + 1; pts = r.p; } });
+  if (!pts) return aviso('🚙 Juega al menos un juego esta semana para compartir tu lugar.');
+  var go = function(){
+    var post = hacerRankPost(pos, pts), his = hacerRankHistoria(pos, pts);
+    pantallaCompartir({ stk:post, his:his, post:post, titulo:'📣 Mi lugar en el ranking', alt:'Voy en el lugar ' + pos + ' de mi grupo esta semana',
+                        archivo:'organic-english-ranking.jpg', volverTxt:'Volver al ranking', volver:function(){ ranking(); } });
+  };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
+}
+function dibujarRank(x, cx, cy, s, pos, pts){
+  var top = pos <= 3, med = ['🥇','🥈','🥉'][pos-1], col = top ? ['#ffe57a','#f2b705'] : ['#7ee8c3','#2bb673'];
+  x.save(); x.translate(cx, cy); x.scale(s, s); x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  // escudo / medalla
+  x.save(); x.shadowColor='rgba(0,0,0,.35)'; x.shadowBlur=40; x.shadowOffsetY=18; ondas(x,0,0,330,14,24); x.fillStyle='#fff'; x.fill(); x.restore();
+  var g = x.createRadialGradient(-90,-120,30,0,0,310); g.addColorStop(0,'#2b4687'); g.addColorStop(1,'#101c3a'); ondas(x,0,0,300,12,24); x.fillStyle=g; x.fill();
+  x.lineWidth=8; x.strokeStyle=col[0]; x.beginPath(); x.arc(0,0,268,0,7); x.stroke();
+  if (logoImg.complete && logoImg.naturalWidth) { var lw=260, lh=lw*logoImg.naturalHeight/logoImg.naturalWidth; x.drawImage(logoImg,-lw/2,-250,lw,lh); }
+  x.font='800 30px Nunito, sans-serif'; x.fillStyle='#ffb070'; x.fillText(('🏆 RANKING · GRUPO ' + (ALUMNO.grupo || '')).toUpperCase(), 0, -100);
+  x.font='700 210px Fredoka, sans-serif'; x.lineJoin='round'; x.lineWidth=20; x.strokeStyle='#ff7a1a'; x.strokeText('#' + pos, 0, 95); x.fillStyle='#fff'; x.fillText('#' + pos, 0, 95);
+  x.font='700 46px Fredoka, sans-serif'; x.fillStyle=col[0]; x.fillText(pts + ' puntos', 0, 165);
+  if (top) { x.font='130px sans-serif'; x.fillText(med, 215, -150); }
+  else { x.font='110px sans-serif'; x.fillText('🚀', 215, -150); }
+  // listón con el mensaje
+  x.save(); x.shadowColor='rgba(0,0,0,.25)'; x.shadowBlur=16; x.shadowOffsetY=8; x.fillStyle='#fff'; rr(x,-460,230,920,150,34); x.fill(); x.restore();
+  var gr = x.createLinearGradient(-450,0,450,0); gr.addColorStop(0,'#ff7a1a'); gr.addColorStop(1,'#ff4f6d'); x.fillStyle=gr; rr(x,-442,246,884,118,26); x.fill();
+  x.fillStyle='#fff'; var l1 = top ? '¡Voy en el lugar #' + pos + ' de mi grupo!' : '¡Voy subiendo en mi grupo! 🚀'; ajustar(x, l1, 840, '700 54px Fredoka, sans-serif'); x.fillText(l1, 0, 302);
+  var rc = racha(), l2 = ALUMNO.pila + ' · esta semana en el English Road Trip' + (rc > 1 ? ' · 🔥 ' + rc + ' días' : '');
+  ajustar(x, l2, 840, '800 30px Nunito, sans-serif'); x.fillStyle='rgba(255,255,255,.92)'; x.fillText(l2, 0, 344);
+  x.restore();
+}
+function fondoRank(x, W, H){
+  var g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,'#6a4bd6'); g.addColorStop(.5,'#ff4f6d'); g.addColorStop(1,'#ff7a1a'); x.fillStyle=g; x.fillRect(0,0,W,H);
+  var conf=['#ffd23f','#3ee6a0','#ffffff','#a77bff','#14213d']; for (var k=0;k<80;k++){ x.save(); x.translate((k*197)%W,(k*331)%H); x.rotate(k); x.fillStyle=conf[k%5]; x.globalAlpha=.5; x.fillRect(-9,-4,18,8); x.restore(); }
+}
+function hacerRankPost(pos, pts){
+  var W=1080,c=document.createElement('canvas'); c.width=W; c.height=W; var x=c.getContext('2d'); fondoRank(x,W,W);
+  dibujarRank(x, W/2, 440, .92, pos, pts);
+  x.textAlign='center'; x.fillStyle='#14213d'; rr(x,150,950,640,90,45); x.fill();
+  x.fillStyle='#ffd23f'; x.font='800 40px Nunito, sans-serif'; x.fillText('organicenglish1.com',470,1008);
+  dibujarQR(x, 852, 868, 190, '📱 Escanéame');
+  return c;
+}
+function hacerRankHistoria(pos, pts){
+  var W=1080,H=1920,c=document.createElement('canvas'); c.width=W; c.height=H; var x=c.getContext('2d'); fondoRank(x,W,H);
+  x.textAlign='center'; x.fillStyle='#fff'; x.font='700 88px Fredoka, sans-serif'; x.fillText(pos <= 3 ? '¡Estoy en el podio!' : '¡Voy por el podio!', W/2, 300);
+  x.font='800 44px Nunito, sans-serif'; x.fillText('Así voy en el ranking de mi grupo 🏆', W/2, 375);
+  dibujarRank(x, W/2, 900, .95, pos, pts);
+  x.fillStyle='#14213d'; rr(x,70,1610,690,170,85); x.fill();
+  x.fillStyle='#fff'; x.font='700 50px Fredoka, sans-serif'; x.fillText('Aprende inglés conmigo',415,1685);
+  x.fillStyle='#ffd23f'; x.font='800 44px Nunito, sans-serif'; x.fillText('organicenglish1.com',415,1745);
+  dibujarQR(x, 800, 1600, 210, '📱 Escanéame');
+  return c;
+}
+
+// Pantalla para compartir una calcomanía (post cuadrado + historia) en WhatsApp, Facebook e Instagram
+function pantallaCompartir(o){
+  var stk = o.stk, his = o.his, post = o.post;
+  (function(){
     var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     var blobs = {};
     var pngs = {};
     [['post',post],['his',his]].forEach(function(p){ p[1].toBlob(function(b){ blobs[p[0]] = b; }, 'image/jpeg', .92); });
     [['post',post],['his',his]].forEach(function(p){ p[1].toBlob(function(b){ pngs[p[0]] = b; }, 'image/png'); });
-    frame('📸 Mi postal de ' + esc(LECCION.ciudad),
-      '<div class="share"><div class="stk-wrap"><img src="'+stk.toDataURL('image/png')+'" alt="Calcomanía con mi resultado de '+pct+'%"></div>' +
+    frame(o.titulo,
+      '<div class="share"><div class="stk-wrap"><img src="'+stk.toDataURL('image/png')+'" alt="'+esc(o.alt)+'"></div>' +
       '<p class="lead">¿Dónde quieres compartir tu calcomanía?</p>' +
       '<div class="row"><button class="btn wa" id="shWA">💬 WhatsApp</button><button class="btn fb" id="shFB">👍 Facebook</button></div>' +
       '<button class="btn ig" id="shIG">📷 Instagram</button>' +
       '<div id="shMsg" class="shmsg" aria-live="polite"></div>' +
       '<div class="story"><img src="'+his.toDataURL('image/png')+'" alt="Versión para historias"><span>Versión para historias</span></div>' +
-      '<button class="btn ghost small" id="home2">Volver a la lección</button></div>');
+      '<button class="btn ghost small" id="home2">'+esc(o.volverTxt)+'</button></div>', o.volver);
     var msg = document.getElementById('shMsg');
     var REDES = {
       wa: { nombre:'WhatsApp', url:'https://web.whatsapp.com/', img:'post', pasos:['Abre el chat o grupo donde la quieres mandar.','Da clic en el cuadro de mensaje y presiona <b>Ctrl + V</b>.','Se verá tu calcomanía: presiona <b>Enter</b> para enviarla.'] },
       fb: { nombre:'Facebook', url:'https://www.facebook.com/', img:'post', pasos:['Da clic en <b>“¿Qué estás pensando?”</b>.','Presiona <b>Ctrl + V</b> para pegar tu calcomanía.','Escribe algo si quieres y da clic en <b>Publicar</b>.'] },
       ig: { nombre:'Instagram', url:'https://www.instagram.com/', img:'his', pasos:['Da clic en <b>Crear ➕</b>.','Elige <b>Seleccionar desde la computadora</b>.','Busca la imagen en tu carpeta de <b>Descargas</b> y publícala.','💡 Desde el celular es más fácil: tu calcomanía se manda directo a Instagram.'] }
     };
-    function nombreArchivo(){ return 'organic-english-lesson' + LECCION.num + '.jpg'; }
+    function nombreArchivo(){ return o.archivo; }
     function panel(red, titulo, pasos){
       msg.innerHTML = '<b class="okt">'+titulo+'</b><ol>'+pasos.map(function(p){ return '<li>'+p+'</li>'; }).join('')+'</ol>' +
         '<a class="btn '+red+'" href="'+REDES[red].url+'" target="_blank" rel="noopener">Abrir '+REDES[red].nombre+' ↗</a>';
@@ -1050,10 +1119,8 @@ function shareCard(que, pct){
       });
     }
     ['wa','fb','ig'].forEach(function(red){ document.getElementById('sh' + red.toUpperCase()).onclick = function(){ esCel ? enCel(red) : enCompu(red); }; });
-    document.getElementById('home2').onclick = abrirLeccionActual;
-  };
-  var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
-  if (logoImg.complete) listo(); else { logoImg.onload = listo; logoImg.onerror = listo; }
+    document.getElementById('home2').onclick = o.volver;
+  })();
 }
 
 inicio();
