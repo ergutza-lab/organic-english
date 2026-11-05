@@ -852,7 +852,8 @@ function compartirSetup(canvas, archivo){
 // ═════════ ARRANQUE ═════════
 app.innerHTML = fijo('Growie Kids') + '<div class="growie">'+growie()+'<div class="bubble">Cargando tus misiones… 🍃</div></div>';
 function cargarBloque(b, fallo){
-  return fetch('kids_' + b + '.json').then(function(r){ if (!r.ok) throw 0; return r.json(); }).then(function(d){ DATA = d; VISTO = b; mapa(); })
+  var dv = new Date(), DATA_V = '' + dv.getFullYear() + (dv.getMonth()+1) + dv.getDate();   // evita copias viejas guardadas
+  return fetch('kids_' + b + '.json?v=' + DATA_V, { cache:'no-cache' }).then(function(r){ if (!r.ok) throw 0; return r.json(); }).then(function(d){ DATA = d; VISTO = b; mapa(); })
     .catch(function(){ if (fallo) fallo(); else aviso('🍃 Ese bloque todavía no está listo. ¡Muy pronto!'); });
 }
 function aviso(t){ var d = document.getElementById('aviso'); if (!d) { d = document.createElement('div'); d.id = 'aviso'; d.className = 'fb'; d.style.cssText = 'background:#fff;border-radius:18px;padding:10px 16px;font-size:18px;color:var(--leaf-d);position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;max-width:90vw;box-shadow:0 6px 18px rgba(0,0,0,.25)'; document.body.appendChild(d); } d.textContent = t; d.style.display = 'block'; clearTimeout(d._t); d._t = setTimeout(function(){ d.style.display = 'none'; }, 2800); }
