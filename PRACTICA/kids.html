@@ -736,7 +736,7 @@ function calcomania(o){
   var total = totalMision(M.num);
   o = o && o.pts != null ? o : { ribbon:'MISSION ' + M.num, sub:'¡Misión completa!', pts: ptsMision(M.num), hojas: Math.min(3, Math.max(1, Math.round(total/4))) };
   var gi = new Image(); gi.src = CONFIG.GROWIE;
-  var qi = new Image(); qi.src = 'qr.png';
+  var qi = new Image(); qi.src = 'qr.png?v=20261104';
   var go = function(){
     var W = 1080, c = document.createElement('canvas'); c.width = W; c.height = W; var x = c.getContext('2d');
     var F = '"Baloo 2", sans-serif';
@@ -796,7 +796,9 @@ function calcomania(o){
   };
   var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
   var espera = 2, uno = function(){ if (--espera === 0) listo(); };
-  [gi, qi].forEach(function(im){ if (im.complete) uno(); else { im.onload = uno; im.onerror = uno; } });
+  gi.complete ? uno() : (gi.onload = gi.onerror = uno);
+  // el QR: si no carga a la primera, se vuelve a pedir sin caché
+  if (qi.complete && qi.naturalWidth) uno(); else { var reint = false; qi.onload = uno; qi.onerror = function(){ if (reint) return uno(); reint = true; qi.src = 'qr.png?v=20261104&r=' + Date.now(); }; }
 }
 function compartirSetup(canvas, archivo){
   var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), msg = document.getElementById('shMsg');
