@@ -535,6 +535,9 @@
            <button id="btnEntrarZoomMaestro" onclick="entrarZoomMaestro()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🖥️ Entrar a Zoom</button>
             <button onclick="abrirGrabacionesSemana()" style="background:linear-gradient(135deg,#7c1d6f,#5b0f52);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🎥 Grabaciones</button>
           </div>
+          <div style="display:flex;gap:6px;">
+            <button id="btnJuegosClase" onclick="abrirJuegosClase()" style="display:none;flex:1;background:linear-gradient(135deg,#f59e0b,#ea580c);color:#fff;border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.35);">🎮 Juegos para la clase</button>
+          </div>
         </div>
       </div>
       <div id="grabPendientesBanner"></div>
@@ -1815,6 +1818,60 @@ function renderPatronMaestro(patron) {
 
     cambiarTab('Registro');
   }
+
+// ═══════════════════════════════════════════════════════════════
+//  JUEGOS PARA LA CLASE: abre la práctica en "modo clase" en la
+//  lección del grupo (sin alumno: no guarda puntos ni ranking) con
+//  marcador por equipos. El maestro comparte esa pestaña en Zoom.
+// ═══════════════════════════════════════════════════════════════
+// ═══ LANZAMIENTO DE LOS JUEGOS DE PRÁCTICA ═══
+// false = ocultos para todos. Solo se ven en "vista previa":
+//   entra una vez con ?vistaprevia=juegos al final de la dirección y ese navegador los verá;
+//   con ?vistaprevia=no se vuelven a ocultar en ese navegador.
+// El día del lanzamiento: cambiar a true.
+var JUEGOS_PRACTICA_LANZADOS = false;
+function juegosPracticaVisibles_() {
+  if (JUEGOS_PRACTICA_LANZADOS) return true;
+  try {
+    var vp = new URLSearchParams(location.search).get('vistaprevia');
+    if (vp === 'juegos') localStorage.setItem('oe_vista_previa_juegos', '1');
+    if (vp === 'no') localStorage.removeItem('oe_vista_previa_juegos');
+    return localStorage.getItem('oe_vista_previa_juegos') === '1';
+  } catch (e) { return false; }
+}
+// Muestra el botón solo si los juegos ya se lanzaron (o en vista previa)
+(function () { function mostrar() { var b = document.getElementById('btnJuegosClase'); if (b && juegosPracticaVisibles_()) b.style.display = 'block'; } if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mostrar); else mostrar(); })();
+var JUEGOS_NIVELES_ADULTOS = ['A1.1', 'A1.2', 'A2.1'];   // niveles con juegos publicados
+var JUEGOS_NIVELES_KIDS    = ['A1.1', 'A1.2'];
+function _urlJuegosClase_(g) {
+  if (!g) return null;
+  var m = String(g.nivel || '').toUpperCase().match(/(A1|A2|B1|B2|C1)/);
+  if (!m) return null;
+  var nivel = m[1] + '.' + (parseInt(g.bloqueActual, 10) || 1);
+  var lec = parseInt(g.leccionActual, 10) || 1;
+  lec = ((lec - 1) % 32) + 1;
+  var esKids = /KIDS/i.test(String(g.nombre || ''));
+  var q = 'modo=clase&grupo=' + encodeURIComponent(g.id || '');
+  if (esKids) {
+    if (JUEGOS_NIVELES_KIDS.indexOf(nivel) < 0) return null;
+    return 'PRACTICA/kids.html?' + q + '&nivel=' + encodeURIComponent('KIDS-' + nivel) + '&mision=' + lec;
+  }
+  if (JUEGOS_NIVELES_ADULTOS.indexOf(nivel) < 0) return null;
+  return 'PRACTICA/index.html?' + q + '&nivel=' + encodeURIComponent(nivel) + '&leccion=' + Math.min(lec, 28);
+}
+function abrirJuegosClase() {
+  var url = _urlJuegosClase_(grupoActual);
+  if (!url) { alertaJuegosClase_('Todavía no hay juegos para el nivel de este grupo. Por ahora están listos A1 y A2.1 (adultos y teens) y A1 Kids.'); return; }
+  var w = window.open(url, 'oe_juegos_clase');
+  if (!w) location.href = url; else w.focus();
+}
+function alertaJuegosClase_(t) {
+  var d = document.getElementById('avisoJuegosClase');
+  if (!d) { d = document.createElement('div'); d.id = 'avisoJuegosClase';
+    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:90vw;background:#1e293b;color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3)';
+    document.body.appendChild(d); }
+  d.textContent = '🎮 ' + t; d.style.display = 'block'; clearTimeout(d._t); d._t = setTimeout(function(){ d.style.display = 'none'; }, 4500);
+}
 
 function siguienteClaseDisponible(fechaStr) {
   var usadas = clasesPorFechaActual[fechaStr] || [];
