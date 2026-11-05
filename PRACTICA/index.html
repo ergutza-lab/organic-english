@@ -381,6 +381,7 @@ body.clase{padding-bottom:96px}
 .marcador .mas1{position:absolute;right:42px;top:-6px;font:900 20px system-ui,sans-serif;color:#ffd23f;text-shadow:0 2px 0 #14213d;pointer-events:none;animation:mas1 .9s ease-out forwards}
 @keyframes mas1{to{transform:translateY(-34px);opacity:0}}
 .marcador .swap{font-size:20px}
+.marcador .mas1.menos1{color:#ff6b6b}
 .marcador.min .eq,.marcador.min .reset,.marcador.min .swap{display:none}
 @media (max-width:480px){.marcador{font-size:12px;gap:4px}.marcador .nm{max-width:62px}.marcador .eq b{font-size:20px;min-width:22px}.marcador button{width:30px;height:30px;font-size:17px}.marcador .eq button.menos{width:22px;height:22px}}
 @media (min-width:900px){body.clase #app{zoom:1.12}}
@@ -552,7 +553,8 @@ function rango(nv){ return RANGOS[Math.min(RANGOS.length-1, Math.floor((nv-1)/2)
 // sonidos cortos (se activan con el primer toque)
 var AC = null;
 function sonido(tipo){
-  if (tipo === 'ok' && ALUMNO.clase && PUNTO_CLASE) PUNTO_CLASE();   // modo clase: punto al equipo en turno
+  if (ALUMNO.clase && tipo === 'ok' && PUNTO_CLASE) PUNTO_CLASE();   // modo clase: +1 al equipo en turno
+  if (ALUMNO.clase && tipo === 'no' && QUITA_CLASE) QUITA_CLASE();   // modo clase: −1 al equipo en turno
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
     var notas = { ok:[660,880], no:[220,180], coin:[988,1319], win:[523,659,784,1047], stamp:[140,90] }[tipo] || [440];
@@ -1162,7 +1164,7 @@ function pantallaCompartir(o){
 }
 
 // ═════════ MODO CLASE: marcador por equipos (solo cuando el maestro abre los juegos) ═════════
-var PUNTO_CLASE = null;   // suma 1 punto al equipo en turno (solo modo clase)
+var PUNTO_CLASE = null, QUITA_CLASE = null;   // +1 / −1 al equipo en turno (solo modo clase)
 function marcadorClase(){
   var S = null; try { S = JSON.parse(sessionStorage.getItem('oe_marcador') || 'null'); } catch(e) {}
   S = S || { a:0, b:0, na:'Equipo A', nb:'Equipo B', min:false };
@@ -1180,7 +1182,7 @@ function marcadorClase(){
     if (b.classList.contains('tog')) { S.min = !S.min; m.classList.toggle('min', S.min); return guardarM(); }
     if (b.classList.contains('reset')) {
       if (!armado) { armado = true; b.textContent = '¿0?'; b.classList.add('arm'); setTimeout(function(){ armado = false; b.textContent = '↺'; b.classList.remove('arm'); }, 2500); return; }
-      S.a = 0; S.b = 0; armado = false; b.textContent = '↺'; b.classList.remove('arm');
+      S.a = 0; S.b = 0; S.da = 0; S.db = 0; armado = false; b.textContent = '↺'; b.classList.remove('arm');
       document.getElementById('mk_a').textContent = 0; document.getElementById('mk_b').textContent = 0; return guardarM();
     }
     var k = b.dataset.k; if (!k) return;
@@ -1193,9 +1195,19 @@ function marcadorClase(){
   m.addEventListener('click', function(ev){ var e = ev.target.closest('.eq'); if (!e || ev.target.closest('button') || ev.target.classList.contains('nm')) return; ponerTurno(e.dataset.eq); });
   function ponerTurno(k){ S.turno = k; m.querySelectorAll('.eq').forEach(function(e){ e.classList.toggle('turno', e.dataset.eq === k); }); guardarM(); }
   PUNTO_CLASE = function(){
-    var k = S.turno; S[k]++; guardarM();
+    var k = S.turno;
+    if ((S['d' + k] || 0) > 0) { S['d' + k]--; guardarM(); return; }   // pagó un error que tuvo en 0
+    S[k]++; guardarM();
     var el = document.getElementById('mk_' + k); el.textContent = S[k]; el.classList.remove('pum'); void el.offsetWidth; el.classList.add('pum');
     var f = document.createElement('span'); f.className = 'mas1'; f.textContent = '+1'; m.querySelector('.eq.' + k).appendChild(f); setTimeout(function(){ f.remove(); }, 900);
+  };
+  // Respuesta equivocada: −1 al equipo en turno (nunca baja de 0). Así, si se equivocan y luego aciertan, esa pregunta queda en 0.
+  QUITA_CLASE = function(){
+    var k = S.turno;
+    if (S[k] <= 0) { S['d' + k] = (S['d' + k] || 0) + 1; guardarM(); return; }   // en 0: se descuenta del siguiente acierto
+    S[k]--; guardarM();
+    var el = document.getElementById('mk_' + k); el.textContent = S[k];
+    var f = document.createElement('span'); f.className = 'mas1 menos1'; f.textContent = '−1'; m.querySelector('.eq.' + k).appendChild(f); setTimeout(function(){ f.remove(); }, 900);
   };
   m.addEventListener('keydown', function(ev){ if (ev.target.classList.contains('nm') && ev.key === 'Enter') { ev.preventDefault(); ev.target.blur(); } });
   m.addEventListener('focusout', function(ev){ var n = ev.target; if (!n.classList || !n.classList.contains('nm')) return;
