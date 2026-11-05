@@ -249,7 +249,7 @@ button:focus-visible{outline:4px solid var(--berry);outline-offset:3px}
 .rl li{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:9px 12px;box-shadow:0 3px 0 rgba(47,122,36,.2);font-weight:800}
 .rl li.yo{background:#fff3c4;outline:3px solid var(--sun)}.rl .rp{width:30px;text-align:center;font:800 18px var(--f-display)}.rl .rn{flex:1;min-width:0}.rl em{font-style:normal;color:var(--ora)}.rl .rv{color:#e08a00}
 /* ═════ MODO CLASE (maestro) ═════ */
-body.clase{padding-bottom:86px}
+body.clase{padding-bottom:96px}
 .marcador{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:85;display:flex;gap:6px;align-items:center;background:rgba(20,33,61,.96);color:#fff;border-radius:999px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.4);font:800 15px system-ui,sans-serif;max-width:calc(100vw - 16px)}
 .marcador .eq{display:flex;align-items:center;gap:5px;border-radius:999px;padding:4px 5px 4px 12px;min-width:0}
 .marcador .eq.a{background:#2563eb}.marcador .eq.b{background:#f97316}
@@ -261,8 +261,14 @@ body.clase{padding-bottom:86px}
 .marcador .eq button.menos{width:26px;height:26px;font-size:16px;background:rgba(255,255,255,.75)}
 .marcador .mini{background:rgba(255,255,255,.14);color:#fff;font-size:18px}
 .marcador .mini.arm{background:#ef4444;font-size:12px}
-.marcador .vs{font-size:12px;opacity:.7}
-.marcador.min .eq,.marcador.min .reset,.marcador.min .vs{display:none}
+.marcador .eq{position:relative;cursor:pointer;opacity:.55;transition:opacity .2s,transform .2s}
+.marcador .eq.turno{opacity:1;transform:scale(1.06);box-shadow:0 0 0 3px #fff,0 0 18px rgba(255,255,255,.55)}
+.marcador .eq .tt{display:none;position:absolute;left:50%;top:-20px;transform:translateX(-50%);background:#ffd23f;color:#14213d;font:900 10px system-ui,sans-serif;letter-spacing:.06em;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.marcador .eq.turno .tt{display:block}
+.marcador .mas1{position:absolute;right:42px;top:-6px;font:900 20px system-ui,sans-serif;color:#ffd23f;text-shadow:0 2px 0 #14213d;pointer-events:none;animation:mas1 .9s ease-out forwards}
+@keyframes mas1{to{transform:translateY(-34px);opacity:0}}
+.marcador .swap{font-size:20px}
+.marcador.min .eq,.marcador.min .reset,.marcador.min .swap{display:none}
 @media (max-width:480px){.marcador{font-size:12px;gap:4px}.marcador .nm{max-width:62px}.marcador .eq b{font-size:20px;min-width:22px}.marcador button{width:30px;height:30px;font-size:17px}.marcador .eq button.menos{width:22px;height:22px}}
 @media (min-width:900px){body.clase #app{zoom:1.12}}
 body.clase #rk,body.clase .totbox,body.clase #stk,body.clase #comp,body.clase #shRank{display:none!important}
@@ -364,7 +370,7 @@ function porId(id){ var j = JUEGOS.filter(function(x){ return x.id === id; })[0]
 
 // ═════════ PUNTOS (como en adultos: cada acierto vale) ═════════
 var PUNTOS = 0, RACHA = 0;
-function acierto(mult){ RACHA++; var n = Math.round(10 * (mult || 1)) + (RACHA >= 3 ? 5 : 0); PUNTOS += n; tono('ok');
+function acierto(mult){ if (NINO.clase && PUNTO_CLASE) PUNTO_CLASE(); RACHA++; var n = Math.round(10 * (mult || 1)) + (RACHA >= 3 ? 5 : 0); PUNTOS += n; tono('ok');
   var el = document.getElementById('pts'); if (el) { el.textContent = '⭐ ' + PUNTOS; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
     var f = document.createElement('span'); f.className = 'plus'; f.textContent = '+' + n + (RACHA >= 3 ? ' 🔥' : ''); el.parentNode.appendChild(f); setTimeout(function(){ f.remove(); }, 900); } }
 function fallo(){ RACHA = 0; tono('no'); }
@@ -861,18 +867,21 @@ function aviso(t){ var d = document.getElementById('aviso'); if (!d) { d = docum
 cargarBloque(NINO.bloque, function(){ var i = ORDEN_B.indexOf(NINO.bloque); if (i > 0) cargarBloque(ORDEN_B[i-1], falla); else falla(); });
 function falla(){ app.innerHTML = fijo('Growie Kids') + '<div class="growie">'+growie()+'<div class="bubble">No se pudieron cargar las misiones. Revisa tu internet y vuelve a intentar.</div></div>'; }
 // ═════════ MODO CLASE: marcador por equipos (solo cuando el maestro abre los juegos) ═════════
+var PUNTO_CLASE = null;   // suma 1 punto al equipo en turno (solo modo clase)
 function marcadorClase(){
   var S = null; try { S = JSON.parse(sessionStorage.getItem('oe_marcador') || 'null'); } catch(e) {}
   S = S || { a:0, b:0, na:'Equipo A', nb:'Equipo B', min:false };
+  if (S.turno !== 'a' && S.turno !== 'b') S.turno = 'a';
   function guardarM(){ try { sessionStorage.setItem('oe_marcador', JSON.stringify(S)); } catch(e) {} }
   var m = document.createElement('div'); m.className = 'marcador' + (S.min ? ' min' : ''); m.setAttribute('aria-label', 'Marcador por equipos');
-  function eq(k){ return '<div class="eq ' + k + '"><span class="nm" contenteditable="true" spellcheck="false" data-k="' + k + '" title="Toca para cambiar el nombre">' + esc(S['n' + k]) + '</span>' +
+  function eq(k){ return '<div class="eq ' + k + (S.turno === k ? ' turno' : '') + '" data-eq="' + k + '"><span class="tt">🎯 TURNO</span><span class="nm" contenteditable="true" spellcheck="false" data-k="' + k + '" title="Toca para cambiar el nombre">' + esc(S['n' + k]) + '</span>' +
     '<button class="menos" data-k="' + k + '" data-d="-1" aria-label="Quitar punto">−</button><b id="mk_' + k + '">' + S[k] + '</b><button data-k="' + k + '" data-d="1" aria-label="Sumar punto">+</button></div>'; }
-  m.innerHTML = '<button class="mini tog" aria-label="Mostrar u ocultar marcador">🏆</button>' + eq('a') + '<span class="vs">VS</span>' + eq('b') + '<button class="mini reset" aria-label="Reiniciar marcador">↺</button>';
+  m.innerHTML = '<button class="mini tog" aria-label="Mostrar u ocultar marcador">🏆</button>' + eq('a') + '<button class="mini swap" aria-label="Cambiar turno" title="Cambiar turno">⇄</button>' + eq('b') + '<button class="mini reset" aria-label="Reiniciar marcador">↺</button>';
   document.body.appendChild(m);
   var armado = false;
   m.addEventListener('click', function(ev){
     var b = ev.target.closest('button'); if (!b) return;
+    if (b.classList.contains('swap')) { ponerTurno(S.turno === 'a' ? 'b' : 'a'); return; }
     if (b.classList.contains('tog')) { S.min = !S.min; m.classList.toggle('min', S.min); return guardarM(); }
     if (b.classList.contains('reset')) {
       if (!armado) { armado = true; b.textContent = '¿0?'; b.classList.add('arm'); setTimeout(function(){ armado = false; b.textContent = '↺'; b.classList.remove('arm'); }, 2500); return; }
@@ -885,6 +894,14 @@ function marcadorClase(){
     el.classList.remove('pum'); void el.offsetWidth; if (+b.dataset.d > 0) el.classList.add('pum');
     guardarM();
   });
+  // tocar la parte de color de un equipo (no su nombre ni sus botones) también le da el turno
+  m.addEventListener('click', function(ev){ var e = ev.target.closest('.eq'); if (!e || ev.target.closest('button') || ev.target.classList.contains('nm')) return; ponerTurno(e.dataset.eq); });
+  function ponerTurno(k){ S.turno = k; m.querySelectorAll('.eq').forEach(function(e){ e.classList.toggle('turno', e.dataset.eq === k); }); guardarM(); }
+  PUNTO_CLASE = function(){
+    var k = S.turno; S[k]++; guardarM();
+    var el = document.getElementById('mk_' + k); el.textContent = S[k]; el.classList.remove('pum'); void el.offsetWidth; el.classList.add('pum');
+    var f = document.createElement('span'); f.className = 'mas1'; f.textContent = '+1'; m.querySelector('.eq.' + k).appendChild(f); setTimeout(function(){ f.remove(); }, 900);
+  };
   m.addEventListener('keydown', function(ev){ if (ev.target.classList.contains('nm') && ev.key === 'Enter') { ev.preventDefault(); ev.target.blur(); } });
   m.addEventListener('focusout', function(ev){ var n = ev.target; if (!n.classList || !n.classList.contains('nm')) return;
     var t = n.textContent.trim().slice(0, 18) || (n.dataset.k === 'a' ? 'Equipo A' : 'Equipo B'); n.textContent = t; S['n' + n.dataset.k] = t; guardarM(); });
