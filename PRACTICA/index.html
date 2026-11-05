@@ -361,6 +361,24 @@ img.foto.emo-mid{width:64px;height:64px}
 img.foto.emo-sm{width:34px;height:34px;border-width:2px;border-radius:9px}
 .q .ic img.foto.emo-big{width:150px;height:150px;border-radius:20px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ═════ MODO CLASE (maestro) ═════ */
+body.clase{padding-bottom:86px}
+.marcador{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:85;display:flex;gap:6px;align-items:center;background:rgba(20,33,61,.96);color:#fff;border-radius:999px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.4);font:800 15px system-ui,sans-serif;max-width:calc(100vw - 16px)}
+.marcador .eq{display:flex;align-items:center;gap:5px;border-radius:999px;padding:4px 5px 4px 12px;min-width:0}
+.marcador .eq.a{background:#2563eb}.marcador .eq.b{background:#f97316}
+.marcador .nm{outline:none;max-width:110px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:text;border-bottom:1px dashed rgba(255,255,255,.5)}
+.marcador .eq b{font-size:24px;min-width:30px;text-align:center;display:inline-block}
+.marcador .eq b.pum{animation:pumM .45s}
+@keyframes pumM{40%{transform:scale(1.6)}}
+.marcador button{border:0;border-radius:50%;width:36px;height:36px;font:900 20px system-ui,sans-serif;cursor:pointer;background:#fff;color:#14213d;flex:none;padding:0}
+.marcador .eq button.menos{width:26px;height:26px;font-size:16px;background:rgba(255,255,255,.75)}
+.marcador .mini{background:rgba(255,255,255,.14);color:#fff;font-size:18px}
+.marcador .mini.arm{background:#ef4444;font-size:12px}
+.marcador .vs{font-size:12px;opacity:.7}
+.marcador.min .eq,.marcador.min .reset,.marcador.min .vs{display:none}
+@media (max-width:480px){.marcador{font-size:12px;gap:4px}.marcador .nm{max-width:62px}.marcador .eq b{font-size:20px;min-width:22px}.marcador button{width:30px;height:30px;font-size:17px}.marcador .eq button.menos{width:22px;height:22px}}
+@media (min-width:900px){body.clase #app{zoom:1.12}}
+body.clase .hud-top,body.clase #verRanking,body.clase #shareAll,body.clase #share,body.clase .loot,body.clase .lvlup{display:none!important}
 </style>
 
 <div class="wrap" id="app"><div class="loading">Cargando…</div></div>
@@ -385,7 +403,9 @@ var NIVELES = ['A1.1','A1.2','A2.1'];
 // ── alumno ──
 function leerAlumno(){
   var p = new URLSearchParams(location.search), a = null;
-  if (p.get('nombre')) a = { nombre:p.get('nombre'), grupo:p.get('grupo')||'', nivel:p.get('nivel')||'A1.1', leccion:+p.get('leccion')||1, id:p.get('id')||'' };
+  // Modo clase: lo abre el maestro desde su panel para jugar con todo el grupo (no guarda puntos de nadie)
+  if (p.get('modo') === 'clase') a = { nombre:'Clase', grupo:p.get('grupo')||'', nivel:p.get('nivel')||'A1.1', leccion:+p.get('leccion')||1, id:'', demo:true, clase:true };
+  if (!a && p.get('nombre')) a = { nombre:p.get('nombre'), grupo:p.get('grupo')||'', nivel:p.get('nivel')||'A1.1', leccion:+p.get('leccion')||1, id:p.get('id')||'' };
   if (!a) { try { a = JSON.parse(sessionStorage.getItem('oe_practica_alumno') || 'null'); } catch(e) {} }
   if (!a) a = { nombre:'Ana López Ramírez', grupo:'AB03', nivel:'A1.1', leccion:3, id:'OE-512', demo:true };
   var partes = String(a.nombre).trim().split(/\s+/);
@@ -396,7 +416,7 @@ function leerAlumno(){
 var ALUMNO = leerAlumno();
 
 // ── puntajes (este navegador; en la plataforma también se mandan a CONFIG.API) ──
-var KEY = 'oe_practica_v1', DB = { scores:{}, semana:{} };
+var KEY = ALUMNO.clase ? 'oe_practica_clase_v1' : 'oe_practica_v1', DB = { scores:{}, semana:{} };
 try { DB = JSON.parse(localStorage.getItem(KEY) || 'null') || DB; } catch(e) {}
 function guardarDB(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e) {} }
 function lunesISO(){ var d = new Date(Date.now() - 8*3600*1000); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
@@ -535,18 +555,19 @@ function sonido(tipo){
 document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('.opt,.copt,.mc,.mi,.w,.btn'); if (b && !b.classList.contains('opt') && !b.classList.contains('copt')) sonido('tap'); }, true);
 
 function hud(){
+  if (ALUMNO.clase) return '';
   var x = nivelXP(), r = racha(), sellos = Object.keys(DB.sellos).length;
   return '<div class="hud-top"><div class="me"><div class="av">'+esc(ALUMNO.pila.charAt(0))+'<span class="lvl">'+x.nv+'</span></div>' +
     '<div class="xpw"><b>'+esc(ALUMNO.pila)+' · '+rango(x.nv)+'</b><div class="xpbar"><i style="width:'+Math.round(x.en/x.de*100)+'%"></i></div><small>'+x.en+'/'+x.de+' XP para nivel '+(x.nv+1)+'</small></div></div>' +
     '<div class="stats"><span title="Racha de días">🔥 '+r+'</span><span title="Monedas">🪙 '+DB.coins+'</span><span title="Sellos de pasaporte">🛂 '+sellos+'</span></div></div>';
 }
-function header(chip){ return '<div class="top"><div class="izq"><button class="mipanel" aria-label="Volver a mi panel">← Mi panel</button><img src="'+CONFIG.LOGO+'" alt="Organic English"></div><span class="chip">'+chip+'</span></div>'; }
+function header(chip){ return '<div class="top"><div class="izq"><button class="mipanel" aria-label="'+(ALUMNO.clase ? 'Salir del modo clase' : 'Volver a mi panel')+'">'+(ALUMNO.clase ? '✖ Salir' : '← Mi panel')+'</button><img src="'+CONFIG.LOGO+'" alt="Organic English"></div><span class="chip">'+(ALUMNO.clase ? '👩‍🏫 Clase ' + esc(ALUMNO.grupo) : chip)+'</span></div>'; }
 // Regresa al panel del alumno: si la práctica se abrió desde el panel, cierra esta pestaña; si no, abre el panel.
 function volverPanel(){
   try { if (window.opener && !window.opener.closed) window.opener.focus(); } catch(e) {}
   try { window.close(); } catch(e) {}
   // Si el navegador no deja cerrar la pestaña (no se abrió desde el panel), abre el panel
-  setTimeout(function(){ if (!window.closed) location.href = '../alumno.html'; }, 400);
+  setTimeout(function(){ if (!window.closed) location.href = ALUMNO.clase ? '../maestro.html' : '../alumno.html'; }, 400);
 }
 document.addEventListener('click', function(ev){ if (ev.target.closest && ev.target.closest('.mipanel')) volverPanel(); });
 function frame(title, inner, onBack){
@@ -586,9 +607,9 @@ function inicio(){
       '<div class="paises" role="tablist">' + NIVELES.map(function(n){ var q = PAISES[n], abierto = bloqueAbierto(n); return '<button class="pais'+(n===NIVEL_VISTO?' on':'')+(abierto?'':' lock')+'" data-n="'+n+'"><span>'+(abierto ? q.bandera : '🔒')+'</span><b>'+q.pais+'</b><small>'+n+'</small></button>'; }).join('') + '</div>' +
       '<div class="route-head"><div><small>'+P.bandera+' '+esc(P.ruta)+'</small><h2>'+(actual ? 'Tu próxima parada: <em>'+esc(ciudad(NIVEL_VISTO, actual))+'</em>' : 'Explora la ruta de '+P.pais)+'</h2></div>' +
       '<button class="rk" id="verRanking" aria-label="Ranking del grupo">🏆<small>#'+pos.pos+'</small></button></div>' +
-      (actual ? '<button class="go-now" id="hoy">🚙 ¡Arrancar en '+esc(ciudad(NIVEL_VISTO, actual))+'! <small>Lesson '+actual+' · tu clase de hoy</small></button>' : '') + '</div>' +
+      (actual ? '<button class="go-now" id="hoy">🚙 ¡Arrancar en '+esc(ciudad(NIVEL_VISTO, actual))+'! <small>Lesson '+actual+' · '+(ALUMNO.clase ? 'la clase de hoy · toca otra parada para repasar' : 'tu clase de hoy')+'</small></button>' : '') + '</div>' +
       '<div class="mapa" style="aspect-ratio:'+W+'/'+H+';'+fondoMapa(NIVEL_VISTO)+'">' + svg + decoMapa(NIVEL_VISTO, pts, W, H, P) + paradas + '</div>' +
-      (ALUMNO.demo ? '<p class="note">Modo demo con una alumna de ejemplo. Conectado a la plataforma, el mapa avanza con la clase real del alumno.</p>' : '');
+      (ALUMNO.demo && !ALUMNO.clase ? '<p class="note">Modo demo con una alumna de ejemplo. Conectado a la plataforma, el mapa avanza con la clase real del alumno.</p>' : '');
     var bh = document.getElementById('hoy'); if (bh) bh.onclick = function(){ abrirLeccion(NIVEL_VISTO, actual); };
     document.getElementById('verRanking').onclick = ranking;
     app.querySelectorAll('.pais').forEach(function(t){ t.onclick = function(){
@@ -626,7 +647,7 @@ function preguntasAduana(d){
 function abrirLeccionActual(){
   stopTimer(); run++;
   var d = LECCION, js = juegosDe(d), pr = promedioLeccion(d.lk, js), s = DB.scores[d.lk] || {}, sello = DB.sellos[d.lk];
-  var jugados = js.filter(function(j){ return s[j] != null; }).length, abierta = jugados >= 3;
+  var jugados = js.filter(function(j){ return s[j] != null; }).length, abierta = jugados >= 3 || !!ALUMNO.clase;
   app.innerHTML = header('📍 ' + d.ciudad) + hud() +
     '<section class="postal"><div class="sky"><span class="sun"></span><div class="skyline" aria-hidden="true">'+skyline(d.num)+'</div></div>' +
       '<div class="pbody2"><small>'+PAISES[d.nivel].bandera+' Parada '+d.num+' · '+d.nivel+'</small><h1>'+esc(d.ciudad)+'</h1><p><b>Lesson '+d.num+': '+esc(d.titulo)+'</b> · '+esc(d.objetivo)+'</p></div>' +
@@ -1131,6 +1152,36 @@ function pantallaCompartir(o){
   })();
 }
 
+// ═════════ MODO CLASE: marcador por equipos (solo cuando el maestro abre los juegos) ═════════
+function marcadorClase(){
+  var S = null; try { S = JSON.parse(sessionStorage.getItem('oe_marcador') || 'null'); } catch(e) {}
+  S = S || { a:0, b:0, na:'Equipo A', nb:'Equipo B', min:false };
+  function guardarM(){ try { sessionStorage.setItem('oe_marcador', JSON.stringify(S)); } catch(e) {} }
+  var m = document.createElement('div'); m.className = 'marcador' + (S.min ? ' min' : ''); m.setAttribute('aria-label', 'Marcador por equipos');
+  function eq(k){ return '<div class="eq ' + k + '"><span class="nm" contenteditable="true" spellcheck="false" data-k="' + k + '" title="Toca para cambiar el nombre">' + esc(S['n' + k]) + '</span>' +
+    '<button class="menos" data-k="' + k + '" data-d="-1" aria-label="Quitar punto">−</button><b id="mk_' + k + '">' + S[k] + '</b><button data-k="' + k + '" data-d="1" aria-label="Sumar punto">+</button></div>'; }
+  m.innerHTML = '<button class="mini tog" aria-label="Mostrar u ocultar marcador">🏆</button>' + eq('a') + '<span class="vs">VS</span>' + eq('b') + '<button class="mini reset" aria-label="Reiniciar marcador">↺</button>';
+  document.body.appendChild(m);
+  var armado = false;
+  m.addEventListener('click', function(ev){
+    var b = ev.target.closest('button'); if (!b) return;
+    if (b.classList.contains('tog')) { S.min = !S.min; m.classList.toggle('min', S.min); return guardarM(); }
+    if (b.classList.contains('reset')) {
+      if (!armado) { armado = true; b.textContent = '¿0?'; b.classList.add('arm'); setTimeout(function(){ armado = false; b.textContent = '↺'; b.classList.remove('arm'); }, 2500); return; }
+      S.a = 0; S.b = 0; armado = false; b.textContent = '↺'; b.classList.remove('arm');
+      document.getElementById('mk_a').textContent = 0; document.getElementById('mk_b').textContent = 0; return guardarM();
+    }
+    var k = b.dataset.k; if (!k) return;
+    S[k] = Math.max(0, S[k] + (+b.dataset.d));
+    var el = document.getElementById('mk_' + k); el.textContent = S[k];
+    el.classList.remove('pum'); void el.offsetWidth; if (+b.dataset.d > 0) el.classList.add('pum');
+    guardarM();
+  });
+  m.addEventListener('keydown', function(ev){ if (ev.target.classList.contains('nm') && ev.key === 'Enter') { ev.preventDefault(); ev.target.blur(); } });
+  m.addEventListener('focusout', function(ev){ var n = ev.target; if (!n.classList || !n.classList.contains('nm')) return;
+    var t = n.textContent.trim().slice(0, 18) || (n.dataset.k === 'a' ? 'Equipo A' : 'Equipo B'); n.textContent = t; S['n' + n.dataset.k] = t; guardarM(); });
+}
+if (ALUMNO.clase) { document.body.classList.add('clase'); marcadorClase(); }
 inicio();
 })();
 </script>
