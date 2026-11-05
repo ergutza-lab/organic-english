@@ -362,10 +362,10 @@ function mapa(){
 function abrir(n){ M = DATA.misiones[n-1]; mision(); }
 
 
-// ═════════ RANKING DEL GRUPO (semana actual; se reinicia cada lunes) ═════════
+// ═════════ RANKING DEL GRUPO (semana actual; se reinicia cada lunes 8 AM) ═════════
 var RANK_OK = !!(CONFIG.API && !NINO.demo && NINO.id && NINO.grupo);
 var AMIGOS = [ { n:'Mateo R.', p:420 }, { n:'Valentina G.', p:385 }, { n:'Santi L.', p:310 }, { n:'Regina M.', p:260 }, { n:'Emiliano C.', p:190 }, { n:'Camila P.', p:120 } ];
-function semanaLocal(){ var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d.toISOString().slice(0,10); }
+function semanaLocal(){ var d = new Date(Date.now() - 8*3600*1000); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
 function ranking(){
   limpiar(); var miRun = run;
   function pintar(lista, cargando){
@@ -373,14 +373,18 @@ function ranking(){
     var t = lista.map(function(r){ return { n:r.n, p:r.p, yo:!!r.yo }; });
     if (!t.some(function(r){ return r.yo; })) t.push({ n:NINO.corto, p: RANK_OK ? 0 : ptsTotal(), yo:true });
     t.sort(function(a,b){ return b.p - a.p || (a.yo ? -1 : b.yo ? 1 : 0); });
+    var miPos = 0, miPts = 0; t.forEach(function(r, k){ if (r.yo) { miPos = k + 1; miPts = r.p; } });
     var med = ['🥇','🥈','🥉'], top = t.slice(0,3), orden = [top[1], top[0], top[2]], alt = [110, 150, 84], cls = ['p2','p1','p3'];
     app.innerHTML = header('🏆 Ranking') + '<section class="stage"><div class="gbar"><button class="back" id="back" aria-label="Volver">←</button><h2>🏆 Mi grupo'+(NINO.grupo ? ' ' + esc(NINO.grupo) : '')+'</h2></div>' +
-      '<div class="growie">'+growie()+'<div class="bubble">'+(cargando ? 'Buscando los puntos de tu grupo… ⏳' : '¡Así va tu grupo esta semana!')+'<small>Se reinicia cada lunes · solo cuentan tus mejores puntajes</small></div></div>' +
+      '<div class="growie">'+growie()+'<div class="bubble">'+(cargando ? 'Buscando los puntos de tu grupo… ⏳' : '¡Así va tu grupo esta semana!')+'<small>Se reinicia cada lunes 8 AM · solo cuentan tus mejores puntajes</small></div></div>' +
       '<div class="podio">' + orden.map(function(r,k){ if (!r) return '<div></div>'; return '<div class="pc '+cls[k]+(r.yo?' yo':'')+'"><b>'+(r.yo ? '¡Tú!' : esc(r.n))+'</b><span>⭐ '+r.p+'</span><div class="pb" style="height:'+alt[k]+'px">'+med[[1,0,2][k]]+'</div></div>'; }).join('') + '</div>' +
       '<ol class="rl">' + t.map(function(r,k){ return '<li class="'+(r.yo?'yo':'')+'"><span class="rp">'+(k<3?med[k]:(k+1))+'</span><span class="rn">'+esc(r.n)+(r.yo?' <em>(tú)</em>':'')+'</span><span class="rv">⭐ '+r.p+'</span></li>'; }).join('') + '</ol>' +
       (RANK_OK ? '' : '<p class="note">Modo demo: compañeros de ejemplo.</p>') +
-      '<button class="btn" id="aJugar">🍃 ¡A sumar puntos!</button></section>';
+      '<button class="btn" id="aJugar">🍃 ¡A sumar puntos!</button>' + (!cargando && miPts ? '<button class="btn" id="shRank" style="margin-top:10px;background:linear-gradient(140deg,#a77bff,#6a4bd6)">📣 Compartir mi lugar</button>' : '') + '</section>';
     document.getElementById('back').onclick = mapa;
+    var sr = document.getElementById('shRank');
+    // Solo se comparte el lugar y los puntos del niño: nunca nombres ni puntos de sus compañeros.
+    if (sr) sr.onclick = function(){ M = DATA.misiones[NINO.mision-1]; calcomania({ ribbon:'🏆 Lugar #' + miPos + ' de mi grupo', sub: miPos <= 3 ? '¡Estoy en el podio esta semana!' : '¡Voy subiendo en mi grupo!', pts: miPts, hojas:3, volver: ranking, volverTxt:'🏆 Volver al ranking', archivo:'growie-ranking.jpg' }); };
     document.getElementById('aJugar').onclick = function(){ abrir(NINO.mision); };
     window.scrollTo(0,0);
   }
@@ -722,16 +726,16 @@ function calcomania(o){
       '<p>Pídele a mamá o papá que la compartan 💚</p>' +
       '<div class="row"><button class="btn wa" id="shWA">💬 WhatsApp</button><button class="btn fb2" id="shFB">👍 Facebook</button><button class="btn ig" id="shIG">📷 Instagram</button></div>' +
       '<div id="shMsg" class="shmsg" aria-live="polite"></div><button class="btn green small" id="volverM">🌳 Volver a la misión</button></div>', o.volver);
-    compartirSetup(c); var vm = document.getElementById('volverM'); if (vm) { vm.onclick = o.volver || mision; if (o.volver) vm.textContent = '🗺️ Volver al mapa'; }
+    compartirSetup(c, o.archivo); var vm = document.getElementById('volverM'); if (vm) { vm.onclick = o.volver || mision; if (o.volver) vm.textContent = o.volverTxt || '🗺️ Volver al mapa'; }
   };
   var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
   var espera = 2, uno = function(){ if (--espera === 0) listo(); };
   [gi, qi].forEach(function(im){ if (im.complete) uno(); else { im.onload = uno; im.onerror = uno; } });
 }
-function compartirSetup(canvas){
+function compartirSetup(canvas, archivo){
   var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), msg = document.getElementById('shMsg');
   var jpg = null, png = null; canvas.toBlob(function(b){ jpg = b; }, 'image/jpeg', .92); canvas.toBlob(function(b){ png = b; }, 'image/png');
-  var nombre = 'growie-mission-' + M.num + '.jpg';
+  var nombre = archivo || ('growie-mission-' + M.num + '.jpg');
   var REDES = {
     wa: { nombre:'WhatsApp', url:'https://web.whatsapp.com/', pasos:['Abre el chat de la familia.','Da clic en el cuadro de mensaje y presiona <b>Ctrl + V</b>.','Presiona <b>Enter</b> para enviarla.'] },
     fb: { nombre:'Facebook', url:'https://www.facebook.com/', pasos:['Da clic en <b>“¿Qué estás pensando?”</b>.','Presiona <b>Ctrl + V</b> para pegar la calcomanía.','Da clic en <b>Publicar</b>.'] },
