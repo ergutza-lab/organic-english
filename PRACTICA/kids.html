@@ -886,11 +886,11 @@ function marcadorClase(){
     if (b.classList.contains('tog')) { S.min = !S.min; m.classList.toggle('min', S.min); return guardarM(); }
     if (b.classList.contains('reset')) {
       if (!armado) { armado = true; b.textContent = '¿0?'; b.classList.add('arm'); setTimeout(function(){ armado = false; b.textContent = '↺'; b.classList.remove('arm'); }, 2500); return; }
-      S.a = 0; S.b = 0; S.da = 0; S.db = 0; armado = false; b.textContent = '↺'; b.classList.remove('arm');
+      S.a = 0; S.b = 0; armado = false; b.textContent = '↺'; b.classList.remove('arm');
       document.getElementById('mk_a').textContent = 0; document.getElementById('mk_b').textContent = 0; return guardarM();
     }
     var k = b.dataset.k; if (!k) return;
-    S[k] = Math.max(0, S[k] + (+b.dataset.d));
+    S[k] = S[k] + (+b.dataset.d);
     var el = document.getElementById('mk_' + k); el.textContent = S[k];
     el.classList.remove('pum'); void el.offsetWidth; if (+b.dataset.d > 0) el.classList.add('pum');
     guardarM();
@@ -900,15 +900,13 @@ function marcadorClase(){
   function ponerTurno(k){ S.turno = k; m.querySelectorAll('.eq').forEach(function(e){ e.classList.toggle('turno', e.dataset.eq === k); }); guardarM(); }
   PUNTO_CLASE = function(){
     var k = S.turno;
-    if ((S['d' + k] || 0) > 0) { S['d' + k]--; guardarM(); return; }   // pagó un error que tuvo en 0
     S[k]++; guardarM();
     var el = document.getElementById('mk_' + k); el.textContent = S[k]; el.classList.remove('pum'); void el.offsetWidth; el.classList.add('pum');
     var f = document.createElement('span'); f.className = 'mas1'; f.textContent = '+1'; m.querySelector('.eq.' + k).appendChild(f); setTimeout(function(){ f.remove(); }, 900);
   };
-  // Respuesta equivocada: −1 al equipo en turno (nunca baja de 0). Así, si se equivocan y luego aciertan, esa pregunta queda en 0.
+  // Respuesta equivocada: −1 al equipo en turno (puede quedar en negativo). Si se equivocan y luego aciertan, esa pregunta queda en 0.
   QUITA_CLASE = function(){
     var k = S.turno;
-    if (S[k] <= 0) { S['d' + k] = (S['d' + k] || 0) + 1; guardarM(); return; }   // en 0: se descuenta del siguiente acierto
     S[k]--; guardarM();
     var el = document.getElementById('mk_' + k); el.textContent = S[k];
     var f = document.createElement('span'); f.className = 'mas1 menos1'; f.textContent = '−1'; m.querySelector('.eq.' + k).appendChild(f); setTimeout(function(){ f.remove(); }, 900);
