@@ -666,6 +666,7 @@ function calcomania(o){
   var total = totalMision(M.num);
   o = o && o.pts != null ? o : { ribbon:'MISSION ' + M.num, sub:'¡Misión completa!', pts: ptsMision(M.num), hojas: Math.min(3, Math.max(1, Math.round(total/4))) };
   var gi = new Image(); gi.src = CONFIG.GROWIE;
+  var qi = new Image(); qi.src = 'qr.png';
   var go = function(){
     var W = 1080, c = document.createElement('canvas'); c.width = W; c.height = W; var x = c.getContext('2d');
     var F = '"Baloo 2", sans-serif';
@@ -710,6 +711,13 @@ function calcomania(o){
     var nh = o.hojas || 1; for (var h2 = 0; h2 < 3; h2++) hoja(470 + h2 * 70, 925, 30, h2 < nh ? '#7ed957' : 'rgba(255,255,255,.35)', -.5 + h2 * .5);
     texto('— ' + NINO.pila + ' —', 540, 1010, 62, 900, '#ffd23f', '#1f5a2c', 14);
     x.font = '800 30px Nunito, sans-serif'; x.fillStyle = '#eaffd8'; x.fillText('Growie Kids · organicenglish1.com', 540, 1058);
+    // QR a organicenglish1.com (abajo a la izquierda)
+    if (qi.naturalWidth) {
+      x.save(); x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 14; x.shadowOffsetY = 6; x.fillStyle = '#fff';
+      x.beginPath(); x.moveTo(42, 892); x.arcTo(202, 892, 202, 1052, 20); x.arcTo(202, 1052, 42, 1052, 20); x.arcTo(42, 1052, 42, 892, 20); x.arcTo(42, 892, 202, 892, 20); x.closePath(); x.fill(); x.restore();
+      x.drawImage(qi, 52, 902, 140, 140);
+      texto('¡Escanéame!', 122, 880, 26, 170, '#ffffff', '#1f5a2c', 7);
+    }
     stage('🎁 Mi calcomanía', '<div class="prize"><div class="stk"><img src="'+c.toDataURL('image/jpeg', .92)+'" alt="Te comparto mi logro en '+esc(o.ribbon)+'"></div>' +
       '<p>Pídele a mamá o papá que la compartan 💚</p>' +
       '<div class="row"><button class="btn wa" id="shWA">💬 WhatsApp</button><button class="btn fb2" id="shFB">👍 Facebook</button><button class="btn ig" id="shIG">📷 Instagram</button></div>' +
@@ -717,7 +725,8 @@ function calcomania(o){
     compartirSetup(c); var vm = document.getElementById('volverM'); if (vm) { vm.onclick = o.volver || mision; if (o.volver) vm.textContent = '🗺️ Volver al mapa'; }
   };
   var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
-  if (gi.complete) listo(); else { gi.onload = listo; gi.onerror = listo; }
+  var espera = 2, uno = function(){ if (--espera === 0) listo(); };
+  [gi, qi].forEach(function(im){ if (im.complete) uno(); else { im.onload = uno; im.onerror = uno; } });
 }
 function compartirSetup(canvas){
   var esCel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), msg = document.getElementById('shMsg');
@@ -726,7 +735,7 @@ function compartirSetup(canvas){
   var REDES = {
     wa: { nombre:'WhatsApp', url:'https://web.whatsapp.com/', pasos:['Abre el chat de la familia.','Da clic en el cuadro de mensaje y presiona <b>Ctrl + V</b>.','Presiona <b>Enter</b> para enviarla.'] },
     fb: { nombre:'Facebook', url:'https://www.facebook.com/', pasos:['Da clic en <b>“¿Qué estás pensando?”</b>.','Presiona <b>Ctrl + V</b> para pegar la calcomanía.','Da clic en <b>Publicar</b>.'] },
-    ig: { nombre:'Instagram', url:'https://www.instagram.com/', pasos:['Da clic en <b>Crear ➕</b>.','Elige <b>Seleccionar desde la computadora</b>.','Busca la imagen en <b>Descargas</b> y publícala.'] }
+    ig: { nombre:'Instagram', url:'https://www.instagram.com/', pasos:['Da clic en <b>Crear ➕</b>.','Elige <b>Seleccionar desde la computadora</b>.','Busca la imagen en <b>Descargas</b> y publícala.','💡 Desde el celular es más fácil: la calcomanía se manda directo a Instagram.'] }
   };
   function panel(red, titulo, pasos){ msg.innerHTML = '<b class="okt">'+titulo+'</b><ol>'+pasos.map(function(p){ return '<li>'+p+'</li>'; }).join('')+'</ol><a class="btn green" href="'+REDES[red].url+'" target="_blank" rel="noopener">Abrir '+REDES[red].nombre+' ↗</a>'; msg.classList.add('on'); }
   function descargar(){ var a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', .92); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); }
