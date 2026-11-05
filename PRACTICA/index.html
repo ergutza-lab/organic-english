@@ -932,7 +932,14 @@ function ranking(recarga){
 // ═════════ CALCOMANÍA PARA COMPARTIR ═════════
 var logoImg = new Image(); logoImg.src = CONFIG.LOGO;
 // QR a organicenglish1.com: quien vea la calcomanía en redes lo escanea y llega a la página
-var qrImg = new Image(); qrImg.src = 'qr.png';
+var QR_URL = 'qr.png?v=20261104', qrImg = new Image(); qrImg.src = QR_URL;
+// Asegura que el QR esté cargado antes de dibujar la calcomanía (si falló, lo vuelve a pedir sin caché)
+function conQR(fn){
+  if (qrImg.complete && qrImg.naturalWidth) return fn();
+  var hecho = false, fin = function(){ if (!hecho) { hecho = true; fn(); } };
+  var im = new Image(); im.onload = function(){ qrImg = im; fin(); }; im.onerror = fin; im.src = QR_URL + '&r=' + Date.now();
+  setTimeout(fin, 4000);
+}
 function dibujarQR(x, X, Y, lado, etiqueta, colorEtiqueta){
   if (!qrImg.complete || !qrImg.naturalWidth) return;
   x.save(); x.shadowColor='rgba(0,0,0,.3)'; x.shadowBlur=14; x.shadowOffsetY=6; x.fillStyle='#fff'; rr(x,X,Y,lado,lado,22); x.fill(); x.restore();
@@ -998,7 +1005,8 @@ function shareCard(que, pct){
                         archivo:'organic-english-lesson' + LECCION.num + '.jpg', volverTxt:'Volver a la lección', volver:abrirLeccionActual });
   };
   var listo = function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); };
-  if (logoImg.complete) listo(); else { logoImg.onload = listo; logoImg.onerror = listo; }
+  var listoQR = function(){ conQR(listo); };
+  if (logoImg.complete) listoQR(); else { logoImg.onload = listoQR; logoImg.onerror = listoQR; }
 }
 
 // ═════════ CALCOMANÍA "MI LUGAR EN EL RANKING" ═════════
@@ -1012,7 +1020,7 @@ function compartirRanking(){
     pantallaCompartir({ stk:post, his:his, post:post, titulo:'📣 Mi lugar en el ranking', alt:'Voy en el lugar ' + pos + ' de mi grupo esta semana',
                         archivo:'organic-english-ranking.jpg', volverTxt:'Volver al ranking', volver:function(){ ranking(); } });
   };
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
+  conQR(function(){ if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go(); });
 }
 function dibujarRank(x, cx, cy, s, pos, pts){
   var top = pos <= 3, med = ['🥇','🥈','🥉'][pos-1], col = top ? ['#ffe57a','#f2b705'] : ['#7ee8c3','#2bb673'];
