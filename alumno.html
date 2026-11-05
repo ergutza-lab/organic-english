@@ -2288,10 +2288,25 @@
     return ((l - 1) % 32) + 1;
   }
 
+  // ═══ LANZAMIENTO DE LOS JUEGOS DE PRÁCTICA ═══
+  // false = ocultos para todos. Solo se ven en "vista previa":
+  //   entra una vez con ?vistaprevia=juegos al final de la dirección y ese navegador los verá;
+  //   con ?vistaprevia=no se vuelven a ocultar en ese navegador.
+  // El día del lanzamiento: cambiar a true.
+  var JUEGOS_PRACTICA_LANZADOS = false;
+  function juegosPracticaVisibles_() {
+    if (JUEGOS_PRACTICA_LANZADOS) return true;
+    try {
+      var vp = new URLSearchParams(location.search).get('vistaprevia');
+      if (vp === 'juegos') localStorage.setItem('oe_vista_previa_juegos', '1');
+      if (vp === 'no') localStorage.removeItem('oe_vista_previa_juegos');
+      return localStorage.getItem('oe_vista_previa_juegos') === '1';
+    } catch (e) { return false; }
+  }
   function prepararBannerJuegoPractica_(a, g, esKids, esPersonalizado) {
     var botones = document.querySelectorAll('.practica-juego-btn');
     if (!botones.length) return;
-    if (!a || !g || esPersonalizado) { botones.forEach(function (b) { b.style.display = 'none'; }); return; }
+    if (!a || !g || esPersonalizado || !juegosPracticaVisibles_()) { botones.forEach(function (b) { b.style.display = 'none'; }); return; }
     var base = (alumnoData && alumnoData._nivelBase) || 'A1';
     var bloque = (alumnoData && alumnoData._bloqueActual) || 1;
     var nivel = base.replace(/\..*$/, '') + '.' + bloque;           // A1.1, A1.2, A2.1...
