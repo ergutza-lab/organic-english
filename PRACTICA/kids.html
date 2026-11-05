@@ -25,7 +25,29 @@ body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:16px;line-hei
 h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.05;text-wrap:balance}
 button{font-family:var(--f-display);cursor:pointer;border:none;color:inherit;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:4px solid var(--berry);outline-offset:3px}
-.top{display:flex;align-items:center;justify-content:space-between}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0}
+.top .izq{display:flex;align-items:center;gap:10px;min-width:0}
+.top img.logo{height:68px;width:auto;flex:none}
+.fijo{position:sticky;top:0;z-index:50;margin:-14px -14px 0;padding:0 14px 12px;background:linear-gradient(160deg,rgba(47,122,36,.97),rgba(31,90,44,.97));-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 8px 18px rgba(31,90,44,.35);display:flex;flex-direction:column;gap:10px;border-radius:0 0 26px 26px}
+.fijo .chip{background:var(--sun);color:#4a3200;box-shadow:0 3px 0 var(--sun-d)}
+.fijo .gbar h2{color:#fff;font-size:22px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.fijo .back{box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.fijo .tab{padding:6px;font-size:16px}
+.fijo .tab.on{background:var(--sun);color:#4a3200;box-shadow:0 5px 0 var(--sun-d)}.fijo .tab.on small{color:#7a5600}
+.fijo .hoy{padding:8px 14px}
+.fijo .hoy img.mini{width:44px;height:44px}
+.mipanel{background:#fff;color:var(--leaf-d);border-radius:999px;padding:8px 13px;font:800 13px var(--f-body);white-space:nowrap;box-shadow:0 3px 0 rgba(0,0,0,.25);flex:none}
+.hola{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;font:800 19px var(--f-display)}
+.hola b{background:rgba(255,255,255,.18);border-radius:999px;padding:4px 12px;font-size:17px;white-space:nowrap}
+.sendero{position:relative;width:100%;background:linear-gradient(180deg,#b9ec8f,#7fcf55 55%,#5cb83a);border:4px solid #fff;border-radius:28px;box-shadow:0 8px 0 rgba(47,122,36,.3);overflow:hidden}
+.sendero svg{position:absolute;inset:0;width:100%;height:100%}
+.sendero .leafbtn{position:absolute;width:15%;transform:translate(-50%,-50%) rotate(-45deg);margin:0}
+.sendero .deco{position:absolute;width:9%;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.18))}
+.sendero span.deco{font-size:26px;width:auto;text-align:center}
+.sendero .yo{position:absolute;width:13%;aspect-ratio:1;transform:translate(-50%,-125%);border-radius:50%;border:3px solid #fff;object-fit:cover;object-position:50% 30%;box-shadow:0 4px 0 var(--ora-d);z-index:3;animation:brinca 1.4s ease-in-out infinite;pointer-events:none}
+@keyframes brinca{50%{transform:translate(-50%,-140%)}}
+.sendero .meta{position:absolute;transform:translate(-50%,-50%);font:800 13px var(--f-display);color:#fff;background:var(--ora);border-radius:999px;padding:3px 10px;box-shadow:0 3px 0 var(--ora-d);white-space:nowrap}
+@media (max-width:420px){.top img.logo{height:54px}.mipanel{padding:7px 10px;font-size:12px}.fijo .gbar h2{font-size:19px}}
 .brand{font:800 22px var(--f-display);color:var(--leaf-d);letter-spacing:.01em;text-shadow:0 2px 0 #fff}
 .brand b{color:var(--ora)}
 .chip{font:900 12px var(--f-body);background:#fff;color:var(--leaf-d);border-radius:999px;padding:6px 12px;box-shadow:0 3px 0 rgba(47,122,36,.25)}
@@ -248,6 +270,11 @@ var NINO = (function(){
   return { nombre: completo, corto: pz[0] + (pz[1] ? ' ' + pz[1].charAt(0) + '.' : ''), id: p.get('id') || d.id || '', pila: pz[0], bloque: nivel, mision: Math.min(32, Math.max(1, mision)), grupo: p.get('grupo') || d.grupo || '', demo: !nombre };
 })();
 var BLOQUES = { 'A1.1': { nombre:'Bloque 1', icono:'🌱' }, 'A1.2': { nombre:'Bloque 2', icono:'🌳' } };
+// Bloque que se está viendo: el suyo, o uno anterior para repasar (los siguientes se abren al avanzar)
+var VISTO = NINO.bloque, ORDEN_B = Object.keys(BLOQUES);
+function bloqueAbierto(b){ return ORDEN_B.indexOf(b) <= ORDEN_B.indexOf(NINO.bloque); }
+function esMio(){ return VISTO === NINO.bloque; }
+function misionHoy(){ if (esMio()) return NINO.mision; for (var n = 1; n <= 32; n++) if (!completa(n)) return n; return 1; }
 var DATA = null, M = null;
 var JUEGOS = [
   { id:'globos',   L:'A', cls:'g1', big:'🎈', name:'Revienta globos',     desc:'Los globos suben con dibujos. Growie dice una palabra y el niño revienta el globo correcto.', fn:globos },
@@ -276,7 +303,7 @@ var _cacheJ = {};
 function juegosDe(n){
   if (_cacheJ[n]) return _cacheJ[n];
   var m = DATA.misiones[n-1], out = [], parecidos = 0;
-  barajarCon(JUEGOS, semilla(NINO.bloque + '-' + n)).forEach(function(j){
+  barajarCon(JUEGOS, semilla(VISTO + '-' + n)).forEach(function(j){
     if (out.length >= 4 || !sirve(j, m)) return;
     if (PARECIDOS.indexOf(j.id) >= 0) { if (parecidos >= 1) return; parecidos++; }
     out.push(j);
@@ -285,7 +312,7 @@ function juegosDe(n){
 }
 var KEY = 'oe_kids_v1', DB = {};
 try { DB = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
-function mk(n){ return NINO.bloque + '-' + n; }
+function mk(n){ return VISTO + '-' + n; }
 function hojasDe(n){ return DB[mk(n)] || {}; }
 function guardar(id, n){ var k = mk(M.num); DB[k] = DB[k] || {}; if (!(DB[k][id] >= n)) DB[k][id] = n; try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e) {} }
 function ptsMision(n){ var h = hojasDe(n), t = 0; juegosDe(n).forEach(function(g){ t += h['p_' + g.id] || 0; }); return t; }
@@ -325,39 +352,78 @@ function fin(j, pct){ premio(j.id, pct); }
 function target(p){ return '<div class="target2"><button class="say sm" id="say">🔊</button><span id="tw">'+esc(p.w)+'</span></div>'; }
 function bindSay(getP){ var b = document.getElementById('say'); if (b) b.onclick = function(){ decir(getP().w); }; }
 var BIEN = ['¡Muy bien! 🌟','¡Súper! 🎉','¡Eso es! 🍃','¡Excelente! ⭐','¡Bravo! 👏'];
-function header(chip){ return '<div class="top"><div class="brand">Growie <b>Kids</b></div><span class="chip">'+chip+'</span></div>'; }
+function header(chip){ return '<div class="top"><div class="izq"><button class="mipanel" aria-label="Volver a mi panel">← Mi panel</button><img class="logo" src="'+CONFIG.LOGO+'" alt="Organic English"></div><span class="chip">'+chip+'</span></div>'; }
+// Encabezado fijo (no se mueve al bajar): logo + regreso al panel + título de la pantalla
+function fijo(chip, titulo, extra){ return '<div class="fijo">' + header(chip) + (titulo ? '<div class="gbar"><button class="back" id="back" aria-label="Volver">←</button><h2>'+titulo+'</h2></div>' : '') + (extra || '') + '</div>'; }
+// Regresa al panel del alumno: si la práctica se abrió desde el panel, cierra esta pestaña; si no, abre el panel.
+function volverPanel(){
+  try { if (window.opener && !window.opener.closed) window.opener.focus(); } catch(e) {}
+  try { window.close(); } catch(e) {}
+  setTimeout(function(){ if (!window.closed) location.href = '../alumno.html'; }, 400);
+}
+document.addEventListener('click', function(ev){ if (ev.target.closest && ev.target.closest('.mipanel')) volverPanel(); });
 function stage(titulo, inner, alVolver){
-  app.innerHTML = header('Mission ' + M.num) + '<section class="stage"><div class="gbar"><button class="back" id="back" aria-label="Volver">←</button><h2>'+titulo+'</h2></div>'+inner+'</section>';
+  app.innerHTML = fijo('Mission ' + M.num, titulo) + '<section class="stage">'+inner+'</section>';
   document.getElementById('back').onclick = alVolver || mision; window.scrollTo(0,0);
 }
 function puntos(n){ var h=''; for (var i=0;i<n.total;i++) h += '<i class="'+(i<n.hechos?'ok':(i===n.hechos?'now':''))+'"></i>'; return '<div class="prog">'+h+'</div>'; }
 function growie(cls){ return '<img src="'+CONFIG.GROWIE+'" alt="Growie" draggable="false"'+(cls?' class="'+cls+'"':'')+'>'; }
 
-// ═════════ MAPA DE MISIONES (solo el bloque del niño) ═════════
+// ═════════ MAPA DE MISIONES: un sendero en zigzag por el bosque de Growie ═════════
+var DECO_K = ['1f338','1f98b','1f333','1f40c','1f337','1f422','1f340','1f43b','1f332','1f33e','1f388','1f343'];
+function decoK(code, x, y, W, H){ return '<img class="deco" src="'+code+'.webp" alt="" style="left:'+(x/W*100)+'%;top:'+(y/H*100)+'%" onerror="this.outerHTML=\'<span class=&quot;deco&quot; style=&quot;left:'+(x/W*100)+'%;top:'+(y/H*100)+'%&quot;>🍃</span>\'">'; }
+function sendero(hoy){
+  var W = 400, FILA = 104, COLS = 4, filas = Math.ceil(DATA.misiones.length / COLS), H = filas * FILA + 84, pts = [];
+  DATA.misiones.forEach(function(m, k){ var f = Math.floor(k / COLS), c = k % COLS; if (f % 2) c = COLS - 1 - c; pts.push({ x: 62 + c * 92, y: 76 + f * FILA }); });
+  // camino de tierra que pasa por todas las hojas (curva en cada extremo)
+  var d = 'M' + pts[0].x + ' ' + pts[0].y;
+  for (var k = 1; k < pts.length; k++) { var a = pts[k-1], b = pts[k];
+    if (a.y === b.y) d += ' L' + b.x + ' ' + b.y;
+    else { var lado = a.x > W/2 ? 1 : -1, cx = a.x + lado * 52; d += ' C' + cx + ' ' + a.y + ' ' + cx + ' ' + b.y + ' ' + b.x + ' ' + b.y; } }
+  var svg = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">' +
+    '<path d="'+d+'" fill="none" stroke="#3f8f2a" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" opacity=".35"/>' +
+    '<path d="'+d+'" fill="none" stroke="#e8c58c" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="'+d+'" fill="none" stroke="#fff6dc" stroke-width="4" stroke-dasharray="2 14" stroke-linecap="round"/></svg>';
+  var deco = '';
+  for (var f = 0; f < filas - 1; f++) { var y = 76 + f * FILA + FILA / 2, lado = f % 2 ? 1 : 0;
+    deco += decoK(DECO_K[(f * 2) % DECO_K.length], lado ? 70 : 330, y, W, H) + decoK(DECO_K[(f * 2 + 1) % DECO_K.length], 200 + (lado ? 40 : -40), y, W, H); }
+  var ult = pts[pts.length - 1];
+  deco += '<span class="meta" style="left:'+(pts[0].x/W*100)+'%;top:'+((pts[0].y-52)/H*100)+'%">🌱 ¡Inicio!</span>';
+  deco += '<span class="meta" style="left:'+(ult.x/W*100)+'%;top:'+((ult.y+46)/H*100)+'%">🏆 ¡Meta!</span>';
+  var hojas = DATA.misiones.map(function(m, k){
+    var n = m.num, est = completa(n) ? 'done' : totalMision(n) ? 'play' : 'soon', p = pts[k];
+    return '<button class="leafbtn '+est+(n === hoy ? ' now' : '')+'" data-n="'+n+'" style="left:'+(p.x/W*100)+'%;top:'+(p.y/H*100)+'%" aria-label="Mission '+n+': '+esc(m.titulo)+'"><span>'+n+'</span></button>' +
+      (n === hoy ? '<img class="yo" src="'+CONFIG.GROWIE+'" alt="" style="left:'+(p.x/W*100)+'%;top:'+(p.y/H*100)+'%">' : '');
+  }).join('');
+  return '<div class="sendero" style="aspect-ratio:'+W+'/'+H+'">' + svg + deco + hojas + '</div>';
+}
 function mapa(){
   limpiar();
   var hechas = 0; for (var n = 1; n <= 32; n++) if (completa(n)) hechas++;
-  var hojas = ''; DATA.misiones.forEach(function(m){
-    var n = m.num, est = completa(n) ? 'done' : totalMision(n) ? 'play' : 'soon';
-    hojas += '<button class="leafbtn '+est+(n === NINO.mision ? ' now' : '')+'" data-n="'+n+'" aria-label="Mission '+n+': '+esc(m.titulo)+'"><span>'+n+'</span></button>';
-  });
-  app.innerHTML = header(BLOQUES[NINO.bloque].icono + ' ' + BLOQUES[NINO.bloque].nombre) +
-    '<div class="growie">'+growie()+'<div class="bubble">¡Hola, '+esc(NINO.pila)+'! 👋<small>Toca una hoja para jugar su misión. Llevas '+hechas+' de 32 misiones.</small></div></div>' +
+  var hoy = misionHoy(), mio = esMio();
+  app.innerHTML = fijo(BLOQUES[VISTO].icono + ' ' + BLOQUES[VISTO].nombre, '',
+      '<div class="hola"><span>¡Hola, '+esc(NINO.pila)+'! 👋</span><b>⭐ '+ptsTotal()+' pts</b></div>' +
+      '<div class="tabs">' + ORDEN_B.map(function(b){ var ab = bloqueAbierto(b);
+        return '<button class="tab'+(b === VISTO ? ' on' : '')+(ab ? '' : ' lock')+'" data-b="'+b+'">'+(ab ? BLOQUES[b].icono : '🔒')+' '+BLOQUES[b].nombre+'<small>'+b+(ab && b !== NINO.bloque ? ' · repaso' : '')+'</small></button>'; }).join('') + '</div>' +
+      '<button class="hoy" id="hoy">'+growie('mini')+'<span><b>'+(mio ? 'Mi misión de hoy' : 'Repasar el ' + BLOQUES[VISTO].nombre)+'</b><small>Mission '+hoy+' · '+esc(DATA.misiones[hoy-1].titulo)+'</small></span><em>▶</em></button>') +
+    '<div class="growie">'+growie()+'<div class="bubble">'+(mio ? '¡Sigue el sendero! 🍃' : '¡Vamos a repasar! 🌱')+'<small>Toca una hoja para jugar su misión. Llevas '+hechas+' de 32 misiones.</small></div></div>' +
     '<div class="totbox"><div><small>MIS PUNTOS</small><b>⭐ '+ptsTotal()+'</b></div><button class="btn small" id="stkG">🏅 Mi calcomanía de explorador</button></div>' +
     '<button class="rkbtn" id="rk"><span>🏆</span><b>Ranking de mi grupo</b><small>¿Quién lleva más puntos esta semana?</small></button>' +
-    '<div class="tabs">' + Object.keys(BLOQUES).map(function(b){ var mio = b === NINO.bloque;
-      return '<button class="tab'+(mio?' on':' lock')+'" data-b="'+b+'">'+(mio ? BLOQUES[b].icono : '🔒')+' '+BLOQUES[b].nombre+'<small>'+b+'</small></button>'; }).join('') + '</div>' +
-    '<button class="hoy" id="hoy">'+growie('mini')+'<span><b>Mi misión de hoy</b><small>Mission '+NINO.mision+' · '+esc(DATA.misiones[NINO.mision-1].titulo)+'</small></span><em>▶</em></button>' +
-    '<div class="map">' + hojas + '</div>' +
+    sendero(hoy) +
     '<p class="note">🍃 verde = ya jugaste · 🌟 dorada = misión completa (los 4 juegos)</p>' +
     '<div class="fb" id="fb"></div>' +
     (NINO.demo ? '<p class="note">Modo demo con un alumno de ejemplo. Activa el sonido para escuchar a Growie.</p>' : '');
-  document.getElementById('hoy').onclick = function(){ abrir(NINO.mision); };
+  document.getElementById('hoy').onclick = function(){ abrir(hoy); };
   document.getElementById('rk').onclick = ranking;
-  document.getElementById('stkG').onclick = function(){ M = DATA.misiones[NINO.mision-1]; calcomania({ ribbon:'Growie Explorer · ' + BLOQUES[NINO.bloque].nombre, sub: hechas ? '¡Llevo ' + hechas + ' de 32 misiones!' : '¡Ya empecé mi aventura en inglés!', pts: ptsTotal(), hojas:3, volver: mapa }); };
+  document.getElementById('stkG').onclick = function(){ M = DATA.misiones[hoy-1]; calcomania({ ribbon:'Growie Explorer · ' + BLOQUES[VISTO].nombre, sub: hechas ? '¡Llevo ' + hechas + ' de 32 misiones!' : '¡Ya empecé mi aventura en inglés!', pts: ptsTotal(), hojas:3, volver: mapa }); };
   app.querySelectorAll('.leafbtn').forEach(function(b){ b.onclick = function(){ abrir(+b.dataset.n); }; });
-  app.querySelectorAll('.tab.lock').forEach(function(b){ b.onclick = function(){ var fb = document.getElementById('fb'); fb.className = 'fb'; fb.textContent = NINO.bloque === 'A1.1' ? '🔒 Se abre cuando pases al Bloque 2 🌳' : '🔒 Ese bloque ya lo terminaste. ¡Ahora juega el tuyo!'; }; });
+  app.querySelectorAll('.tab').forEach(function(b){ b.onclick = function(){
+    var bl = b.dataset.b;
+    if (!bloqueAbierto(bl)) return aviso(NINO.bloque === 'A1.1' ? '🔒 Se abre cuando pases al Bloque 2 🌳' : '🔒 Ese bloque se abre más adelante.');
+    if (bl !== VISTO) cargarBloque(bl);
+  }; });
   window.scrollTo(0,0);
+  var yo = app.querySelector('.leafbtn.now'); if (yo && hoy > 8) setTimeout(function(){ yo.scrollIntoView({ block:'center', behavior:'smooth' }); }, 300);
 }
 function abrir(n){ M = DATA.misiones[n-1]; mision(); }
 
@@ -375,7 +441,7 @@ function ranking(){
     t.sort(function(a,b){ return b.p - a.p || (a.yo ? -1 : b.yo ? 1 : 0); });
     var miPos = 0, miPts = 0; t.forEach(function(r, k){ if (r.yo) { miPos = k + 1; miPts = r.p; } });
     var med = ['🥇','🥈','🥉'], top = t.slice(0,3), orden = [top[1], top[0], top[2]], alt = [110, 150, 84], cls = ['p2','p1','p3'];
-    app.innerHTML = header('🏆 Ranking') + '<section class="stage"><div class="gbar"><button class="back" id="back" aria-label="Volver">←</button><h2>🏆 Mi grupo'+(NINO.grupo ? ' ' + esc(NINO.grupo) : '')+'</h2></div>' +
+    app.innerHTML = fijo('🏆 Ranking', '🏆 Mi grupo'+(NINO.grupo ? ' ' + esc(NINO.grupo) : '')) + '<section class="stage">' +
       '<div class="growie">'+growie()+'<div class="bubble">'+(cargando ? 'Buscando los puntos de tu grupo… ⏳' : '¡Así va tu grupo esta semana!')+'<small>Se reinicia cada lunes 8 AM · solo cuentan tus mejores puntajes</small></div></div>' +
       '<div class="podio">' + orden.map(function(r,k){ if (!r) return '<div></div>'; return '<div class="pc '+cls[k]+(r.yo?' yo':'')+'"><b>'+(r.yo ? '¡Tú!' : esc(r.n))+'</b><span>⭐ '+r.p+'</span><div class="pb" style="height:'+alt[k]+'px">'+med[[1,0,2][k]]+'</div></div>'; }).join('') + '</div>' +
       '<ol class="rl">' + t.map(function(r,k){ return '<li class="'+(r.yo?'yo':'')+'"><span class="rp">'+(k<3?med[k]:(k+1))+'</span><span class="rn">'+esc(r.n)+(r.yo?' <em>(tú)</em>':'')+'</span><span class="rv">⭐ '+r.p+'</span></li>'; }).join('') + '</ol>' +
@@ -384,8 +450,8 @@ function ranking(){
     document.getElementById('back').onclick = mapa;
     var sr = document.getElementById('shRank');
     // Solo se comparte el lugar y los puntos del niño: nunca nombres ni puntos de sus compañeros.
-    if (sr) sr.onclick = function(){ M = DATA.misiones[NINO.mision-1]; calcomania({ ribbon:'🏆 Lugar #' + miPos + ' de mi grupo', sub: miPos <= 3 ? '¡Estoy en el podio esta semana!' : '¡Voy subiendo en mi grupo!', pts: miPts, hojas:3, volver: ranking, volverTxt:'🏆 Volver al ranking', archivo:'growie-ranking.jpg' }); };
-    document.getElementById('aJugar').onclick = function(){ abrir(NINO.mision); };
+    if (sr) sr.onclick = function(){ M = DATA.misiones[misionHoy()-1]; calcomania({ ribbon:'🏆 Lugar #' + miPos + ' de mi grupo', sub: miPos <= 3 ? '¡Estoy en el podio esta semana!' : '¡Voy subiendo en mi grupo!', pts: miPts, hojas:3, volver: ranking, volverTxt:'🏆 Volver al ranking', archivo:'growie-ranking.jpg' }); };
+    document.getElementById('aJugar').onclick = function(){ abrir(misionHoy()); };
     window.scrollTo(0,0);
   }
   if (!RANK_OK) return pintar(AMIGOS, false);
@@ -398,14 +464,14 @@ function ranking(){
 function mision(){
   limpiar();
   var h = hojasDe(M.num), total = totalMision(M.num), ok = completa(M.num);
-  app.innerHTML = header('Mission ' + M.num) +
+  app.innerHTML = fijo(BLOQUES[VISTO].icono + ' Mission ' + M.num, esc(M.titulo)) +
     (M.imagen ? '<div class="banner"><img src="'+esc(M.imagen)+'" alt="Mission '+M.num+': '+esc(M.titulo)+'" onerror="this.parentNode.remove()"></div>' : '') +
     '<div class="growie">'+growie()+'<div class="bubble">¡Hola, '+esc(NINO.pila)+'! 👋 ¿Jugamos?<small>Mission '+M.num+' · '+esc(M.titulo)+'</small></div></div>' +
     '<div class="games">' + juegosDe(M.num).map(function(g){ return '<button class="g '+g.cls+'" data-g="'+g.id+'"><span class="big">'+g.big+'</span><h3>'+g.name+'</h3><span class="lv">'+hojitas(h[g.id]||0)+'</span><span class="bp">'+(h['p_'+g.id] ? '⭐ '+h['p_'+g.id]+' pts' : 'Sin jugar')+'</span></button>'; }).join('') + '</div>' +
     '<div class="album"><h3>🌳 Mi árbol de hojitas</h3><div class="mpts">⭐ '+ptsMision(M.num)+' <small>puntos en esta misión</small></div><p>'+(ok ? '¡Completaste la Mission '+M.num+'! Tienes '+total+' de 12 hojitas.' : 'Juega los 4 juegos para completar tu misión. Llevas '+total+' de 12 hojitas.')+'</p>' +
       '<div class="row"><button class="btn green small" id="mapa">🗺️ Mis misiones</button>'+(ok ? '<button class="btn small" id="stk">🎁 Mi calcomanía</button>' : '')+'</div></div>';
   app.querySelectorAll('.g').forEach(function(b){ b.onclick = function(){ porId(b.dataset.g).fn(); }; });
-  document.getElementById('mapa').onclick = mapa;
+  document.getElementById('mapa').onclick = mapa; document.getElementById('back').onclick = mapa;
   var s = document.getElementById('stk'); if (s) s.onclick = function(){ calcomania({ ribbon:'Mission ' + M.num, sub:'¡Completé toda la misión! 🌟'.replace(' 🌟',''), pts: ptsMision(M.num), hojas: Math.min(3, Math.max(1, Math.round(totalMision(M.num) / 4))) }); };
   window.scrollTo(0,0);
 }
@@ -413,7 +479,7 @@ function premio(id, pct, extra){
   limpiar(); tono('win');
   var n = pct >= 90 ? 3 : pct >= 60 ? 2 : 1; guardar(id, n);
   var k = mk(M.num), pts = PUNTOS; DB[k] = DB[k] || {}; var nuevo = pts > (DB[k]['p_' + id] || 0); if (nuevo) DB[k]['p_' + id] = pts;
-  if (nuevo && RANK_OK) { try { fetch(CONFIG.API + '?action=guardarPractica&programa=KIDS&id=' + encodeURIComponent(NINO.id) + '&nombre=' + encodeURIComponent(NINO.nombre) + '&grupo=' + encodeURIComponent(NINO.grupo) + '&bloque=' + encodeURIComponent(NINO.bloque) + '&clave=' + encodeURIComponent('M' + M.num + '|' + id) + '&valor=' + pts, { redirect:'follow' }).catch(function(){}); } catch(e) {} }
+  if (nuevo && RANK_OK) { try { fetch(CONFIG.API + '?action=guardarPractica&programa=KIDS&id=' + encodeURIComponent(NINO.id) + '&nombre=' + encodeURIComponent(NINO.nombre) + '&grupo=' + encodeURIComponent(NINO.grupo) + '&bloque=' + encodeURIComponent(VISTO) + '&clave=' + encodeURIComponent((esMio() ? '' : VISTO + '-') + 'M' + M.num + '|' + id) + '&valor=' + pts, { redirect:'follow' }).catch(function(){}); } catch(e) {} }
   try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e) {}
   var g = porId(id), ok = completa(M.num);
   stage(g.big + ' ' + g.name, '<div class="prize">' + (extra || '') + '<div class="leaves">'+hojitas(n)+'</div>' +
@@ -761,8 +827,14 @@ function compartirSetup(canvas, archivo){
 }
 
 // ═════════ ARRANQUE ═════════
-app.innerHTML = header('Growie') + '<div class="growie">'+growie()+'<div class="bubble">Cargando tus misiones… 🍃</div></div>';
-fetch('kids_' + NINO.bloque + '.json').then(function(r){ if (!r.ok) throw 0; return r.json(); }).then(function(d){ DATA = d; mapa(); })
-  .catch(function(){ app.innerHTML = header('Growie') + '<div class="growie">'+growie()+'<div class="bubble">No se pudieron cargar las misiones. Revisa tu internet y vuelve a intentar.</div></div>'; });
+app.innerHTML = fijo('Growie Kids') + '<div class="growie">'+growie()+'<div class="bubble">Cargando tus misiones… 🍃</div></div>';
+function cargarBloque(b, fallo){
+  return fetch('kids_' + b + '.json').then(function(r){ if (!r.ok) throw 0; return r.json(); }).then(function(d){ DATA = d; VISTO = b; mapa(); })
+    .catch(function(){ if (fallo) fallo(); else aviso('🍃 Ese bloque todavía no está listo. ¡Muy pronto!'); });
+}
+function aviso(t){ var d = document.getElementById('aviso'); if (!d) { d = document.createElement('div'); d.id = 'aviso'; d.className = 'fb'; d.style.cssText = 'background:#fff;border-radius:18px;padding:10px 16px;font-size:18px;color:var(--leaf-d);position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;max-width:90vw;box-shadow:0 6px 18px rgba(0,0,0,.25)'; document.body.appendChild(d); } d.textContent = t; d.style.display = 'block'; clearTimeout(d._t); d._t = setTimeout(function(){ d.style.display = 'none'; }, 2800); }
+// Si su bloque aún no tiene misiones publicadas, abre el bloque anterior para que pueda repasar
+cargarBloque(NINO.bloque, function(){ var i = ORDEN_B.indexOf(NINO.bloque); if (i > 0) cargarBloque(ORDEN_B[i-1], falla); else falla(); });
+function falla(){ app.innerHTML = fijo('Growie Kids') + '<div class="growie">'+growie()+'<div class="bubble">No se pudieron cargar las misiones. Revisa tu internet y vuelve a intentar.</div></div>'; }
 })();
 </script>
