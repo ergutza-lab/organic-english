@@ -441,7 +441,9 @@ function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&am
 function estrellas(p){ return p >= 90 ? 3 : p >= 70 ? 2 : p >= 40 ? 1 : 0; }
 function starsHTML(n){ var h=''; for (var i=0;i<3;i++) h += '<span class="'+(i<n?'':'off')+'">⭐</span>'; return h; }
 var cache = {};
-function cargar(url){ if (cache[url]) return Promise.resolve(cache[url]); return fetch(url).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d){ cache[url] = d; return d; }); }
+// Las lecciones se piden con ?v=día para no usar copias viejas guardadas por el navegador o la app
+var DATA_V = (function(){ var d = new Date(); return '' + d.getFullYear() + (d.getMonth()+1) + d.getDate(); })();
+function cargar(url){ if (cache[url]) return Promise.resolve(cache[url]); return fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 'v=' + DATA_V, { cache:'no-cache' }).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d){ cache[url] = d; return d; }); }
 function pad(n){ return (n < 10 ? '0' : '') + n; }
 
 // ── íconos Organic (SVG propios, iguales en cualquier celular) ──
