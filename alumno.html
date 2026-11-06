@@ -1126,7 +1126,10 @@
             <div class="card-icon icon-pagos" style="background:var(--color-nivel-suave);">💳</div>
             <span class="card-title">Mis pagos</span>
           </div>
-          <button onclick="abrirInfoBancaria()" class="btn-pill-naranja" style="padding:8px 16px;font-size:12px;">💳 Información Bancaria</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button id="btnMisColegiaturas" onclick="abrirMisColegiaturas()" class="btn-pill-naranja" style="display:none;padding:8px 16px;font-size:12px;">💲 Mis colegiaturas</button>
+            <button onclick="abrirInfoBancaria()" class="btn-pill-naranja" style="padding:8px 16px;font-size:12px;">💳 Información Bancaria</button>
+          </div>
         </div>
         <div id="pagosContenido"><div class="califs-empty"><div class="califs-text">Cargando...</div></div></div>
       </div>
@@ -1558,6 +1561,76 @@
 
   function abrirInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='flex'; }
   function cerrarInfoBancaria() { document.getElementById('modalInfoBancaria').style.display='none'; }
+    // ═══ MIS COLEGIATURAS (minuta 4-nov-2026) ═══
+  // El servidor manda alumnoData.colegiatura calculada con el grupo ACTUAL del
+  // alumno: si cambia de grupo, en su siguiente entrada ya ve el calendario nuevo.
+  // Bloque actual: precio + hasta cuándo. Bloque siguiente: precio + desde cuándo.
+  function prepararColegiaturas_() {
+    var btn = document.getElementById('btnMisColegiaturas');
+    if (!btn) return;
+    var c = alumnoData && alumnoData.colegiatura;
+    btn.style.display = (c && c.aplica) ? 'inline-flex' : 'none';
+  }
+
+  function abrirMisColegiaturas() {
+    var c = alumnoData && alumnoData.colegiatura;
+    if (!c || !c.aplica) return;
+    var viejo = document.getElementById('modalColegiaturas');
+    if (viejo) viejo.remove();
+
+    var esAA = /AA/.test(c.tabla || '');
+    var antesDeAA = esAA && new Date() < new Date(2026, 10, 23);
+    var hastaTxt = c.actual.hasta
+      ? 'Hasta el <b>' + c.actual.hasta + '</b>'
+      : 'Tu asistente CE te confirmará la fecha de cierre de este bloque.';
+
+    var html =
+      '<div style="background:#13213f;border-radius:22px;width:92%;max-width:420px;padding:22px 20px 18px;box-shadow:0 24px 60px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.08);color:#f1f5f9;font-family:inherit;max-height:90vh;overflow-y:auto;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<div style="font-size:18px;font-weight:800;">💲 Mis colegiaturas</div>' +
+          '<button onclick="cerrarMisColegiaturas()" aria-label="Cerrar" style="background:rgba(255,255,255,.08);border:none;color:#cbd5e1;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;">✕</button>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Precio por semana según tu nivel y bloque · ' + c.tabla + '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#f97316,#ea580c);border-radius:18px;padding:16px 18px;margin-bottom:12px;box-shadow:0 8px 20px rgba(249,115,22,.3);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">' +
+            '<div><div style="font-size:11px;font-weight:800;letter-spacing:.8px;opacity:.9;">BLOQUE ACTUAL</div>' +
+            '<div style="font-size:15px;font-weight:700;margin-top:2px;">' + c.actual.etiqueta + '</div></div>' +
+            '<div style="text-align:right;"><div style="font-size:30px;font-weight:900;line-height:1;">$' + c.actual.precio + '</div>' +
+            '<div style="font-size:11px;opacity:.9;">por semana</div></div>' +
+          '</div>' +
+          '<div style="margin-top:12px;background:rgba(0,0,0,.18);border-radius:12px;padding:8px 12px;font-size:13px;">📅 ' + hastaTxt + '</div>' +
+        '</div>' +
+
+        (c.siguiente ?
+        '<div style="background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.18);border-radius:18px;padding:14px 18px;margin-bottom:14px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">' +
+            '<div><div style="font-size:11px;font-weight:800;letter-spacing:.8px;color:#94a3b8;">SIGUIENTE BLOQUE</div>' +
+            '<div style="font-size:15px;font-weight:700;margin-top:2px;">' + c.siguiente.etiqueta + '</div></div>' +
+            '<div style="text-align:right;"><div style="font-size:24px;font-weight:900;line-height:1;color:#fdba74;">$' + c.siguiente.precio + '</div>' +
+            '<div style="font-size:11px;color:#94a3b8;">por semana</div></div>' +
+          '</div>' +
+          (c.siguiente.desde ? '<div style="margin-top:10px;font-size:13px;color:#e2e8f0;">📅 A partir del <b>' + c.siguiente.desde + '</b></div>' : '') +
+        '</div>'
+        : '') +
+
+        (antesDeAA ? '<div style="font-size:12px;color:#fde68a;background:rgba(250,204,21,.1);border-radius:12px;padding:8px 12px;margin-bottom:12px;">Precios vigentes a partir del 23 de noviembre de 2026.</div>' : '') +
+
+        '<div style="font-size:11.5px;line-height:1.5;color:#94a3b8;">Si cambias de grupo, esta información se actualiza con el calendario de tu nuevo grupo. Cualquier duda, escríbele a tu asistente CE.</div>' +
+      '</div>';
+
+    var ov = document.createElement('div');
+    ov.id = 'modalColegiaturas';
+    ov.setAttribute('style', 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;');
+    ov.onclick = function (e) { if (e.target === ov) cerrarMisColegiaturas(); };
+    ov.innerHTML = html;
+    document.body.appendChild(ov);
+  }
+
+  function cerrarMisColegiaturas() {
+    var m = document.getElementById('modalColegiaturas');
+    if (m) m.remove();
+  }
   function abrirInfoEvaluacion() {
     var esKids = !!(alumnoData && alumnoData._esKids);
     document.getElementById('lblMiniChallengeInfo').textContent  = esKids ? 'Mini Adventure'  : 'Mini Challenge';
@@ -1775,6 +1848,7 @@
 
     renderPagos(p);
     renderHistorial(alumnoData.historialPagos);
+    prepararColegiaturas_();
     renderCalificaciones(g);
     renderStudentBoard(g, p);
     cargarMapaAlumno(a.id, g ? g.id : '');
