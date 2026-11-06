@@ -32,14 +32,14 @@ messaging.onBackgroundMessage(function (payload) {
     body: (payload.notification && payload.notification.body) || '',
     icon: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png',
     badge: 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/icon-192.png',
-    data: { url: (payload.fcmOptions && payload.fcmOptions.link) || (payload.data && payload.data.url) || 'alumno-app.html' }
+        data: { url: (payload.fcmOptions && payload.fcmOptions.link) || (payload.data && payload.data.url) || 'alumno.html' }
   };
   self.registration.showNotification(titulo, opciones);
 });
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  var urlDestino = (event.notification.data && event.notification.data.url) || 'alumno-app.html';
+    var urlDestino = (event.notification.data && event.notification.data.url) || 'alumno.html';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (listaVentanas) {
       for (var i = 0; i < listaVentanas.length; i++) {
@@ -51,9 +51,9 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 // ═══ PWA: cache + instalacion (lo que ya teniamos) ═══
-const CACHE_NAME = 'oe-alumno-v1.1';
+const CACHE_NAME = 'oe-alumno-v1.2';
 const APP_SHELL = [
-  'alumno-app.html'
+  'alumno.html'
 ];
 // Cuanto tiempo maximo esperar a la red antes de rendirse y usar la
 // copia guardada (o el aviso de sin conexion si no hay copia todavia).
