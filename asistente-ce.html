@@ -589,9 +589,9 @@
       <p style="color:var(--gris-400);font-size:13px;">Sin comprobante adjunto</p>
     </div>
     <div class="monto-field">
-      <label>Monto del comprobante (MXN)</label>
-      <input type="number" id="input-monto-validar" placeholder="Ej. 150 o 570" min="1" />
-      <p class="monto-hint">Ingresa el monto que aparece en el comprobante. Abajo verás cuánto le toca según la tabla de su grupo.</p>
+    <label>Monto que corresponde a ESTE alumno (MXN)</label>
+    <input type="number" id="input-monto-validar" placeholder="Ej. 150 o 570" min="1" />
+    <p class="monto-hint">Captura solo lo que le corresponde a este alumno. Si el comprobante también paga a otro alumno (hermano, papá, hijo…), valida aquí solo su parte y el resto en el otro alumno con <b>📤 Validar pago</b>, usando el mismo comprobante. Abajo verás cuánto le toca según la tabla de su grupo.</p>
     </div>
     <div class="cal-cobertura">
       <span class="cal-cobertura-label" id="modal-comp-cobertura-label">¿Qué semana(s) cubre este pago?</span>
@@ -628,10 +628,17 @@
 <div class="modal-confirm-overlay" id="modal-notif-pago">
   <div class="modal-confirm-box">
     <div class="modal-confirm-titulo">✓ Pago validado</div>
-    <div class="modal-confirm-sub" id="notif-pago-mensaje">El pago ha sido registrado correctamente.</div>
+    <div class="modal-confirm-sub" id="notif-pago-mensaje">El pago quedó registrado. Revisa el resumen:</div>
+    <div class="modal-confirm-data">
+      <div class="row"><span>Alumno</span><span id="notif-pago-alumno" style="text-align:right;padding-left:16px;">—</span></div>
+      <div class="row"><span>Monto validado</span><span id="notif-pago-monto" style="text-align:right;padding-left:16px;">—</span></div>
+      <div class="row"><span>Cubre</span><span id="notif-pago-cubre" style="text-align:right;padding-left:16px;">—</span></div>
+      <div class="row"><span>Siguiente fecha límite</span><span id="notif-pago-limite" style="text-align:right;padding-left:16px;font-weight:700;">—</span></div>
+    </div>
+    <div style="font-size:12px;line-height:1.45;color:var(--gris-500);background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.45);border-radius:10px;padding:9px 11px;margin:-6px 0 16px;text-align:left;">Revisa que el monto y las semanas coincidan con el comprobante. Si algo no cuadra, avisa a Coordinación <b>antes</b> de notificar al alumno.</div>
     <div class="modal-confirm-acciones">
-      <button class="btn-confirm-ok" style="background:var(--verde)" onclick="notificarAlumnoPago()">📱 Notificar al alumno</button>
-      <button class="btn-confirm-cancel" onclick="cerrarModalNotifPago()">Cerrar</button>
+      <button class="btn-confirm-ok" style="background:var(--verde)" onclick="notificarAlumnoPago()">📱 Notificar al alumno por WhatsApp</button>
+      <button class="btn-confirm-cancel" onclick="cerrarModalNotifPago()">Cerrar sin notificar</button>
     </div>
   </div>
 </div>
@@ -2289,10 +2296,14 @@ function _notaTablaHtml_(containerId, st){
     html += '<br><span style="opacity:.8;">Captura el monto del comprobante para compararlo.</span>';
   } else if (monto === det.total) {
     html += '<br><span style="color:#16a34a;font-weight:700;">✅ El monto ($' + monto + ') coincide con la tabla.</span>';
+    } else if (monto > det.total) {
+    var sobra = monto - det.total;
+    html += '<br><span style="color:#dc2626;font-weight:700;">⚠️ Capturaste $' + monto + ' y a este alumno le tocan $' + det.total + ' (sobran $' + sobra + ').</span>' +
+            '<br><span style="opacity:.9;">¿El comprobante también paga a otro alumno (hermano, papá, hijo…)? Captura aquí solo <b>$' + det.total + '</b> y valida los <b>$' + sobra + '</b> restantes en el otro alumno con <b>📤 Validar pago</b>, subiendo el mismo comprobante.</span>' +
+            '<br><span style="opacity:.8;">Si no es compartido y es un caso especial (por ejemplo, un adelanto), puedes validar y anotarlo en el comentario.</span>';
   } else {
     var dif = det.total - monto;
-    html += '<br><span style="color:#d97706;font-weight:700;">⚠️ Monto capturado $' + monto + ': no coincide con la tabla (' +
-            (dif > 0 ? 'faltan $' + dif : 'sobran $' + (-dif)) + ').</span>' +
+    html += '<br><span style="color:#d97706;font-weight:700;">⚠️ Monto capturado $' + monto + ': no coincide con la tabla (faltan $' + dif + ').</span>' +
             '<br><span style="opacity:.8;">Puedes validar si es un caso especial; anótalo en el comentario.</span>';
   }
   return '<div style="' + caja + '">' + html + '</div>';
@@ -2681,24 +2692,39 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
       if (pago) { pagoActivoNombre = pago.nombre; pagoActivoWA = pago.whatsapp; }
       pagoActivoCoberturaInicio = coberturaInicio || null;
       pagoActivoCoberturaFin    = coberturaFin || null;
-      document.getElementById('notif-pago-mensaje').textContent = `El pago de ${pagoActivoNombre || idAlumno} ha sido validado. ¿Deseas notificarle por WhatsApp?`;
+
+      // Resumen claro para la asistente
+      var cubreTxt = '—', limiteTxt = '—';
+      if (coberturaInicio && coberturaFin) {
+        var dias = Math.round((new Date(coberturaFin) - new Date(coberturaInicio)) / 86400000) + 1;
+        var semanas = Math.max(1, Math.round(dias / 7));
+        cubreTxt = formatoFechaConDia(coberturaInicio) + ' al ' + formatoFechaConDia(coberturaFin) + ' (' + semanas + (semanas === 1 ? ' semana)' : ' semanas)');
+        limiteTxt = formatoFechaConDia(sabadoSiguienteA(new Date(coberturaFin)));
+      }
+      document.getElementById('notif-pago-mensaje').textContent = 'El pago quedó registrado. Revisa el resumen:';
+      document.getElementById('notif-pago-alumno').textContent = (pagoActivoNombre || '—') + ' · ' + idAlumno;
+      document.getElementById('notif-pago-monto').textContent = '$' + Number(monto || 0).toLocaleString('es-MX');
+      document.getElementById('notif-pago-cubre').textContent = cubreTxt;
+      document.getElementById('notif-pago-limite').textContent = limiteTxt;
+      if (!pagoActivoWA) {
+        document.getElementById('notif-pago-mensaje').textContent = 'El pago quedó registrado. Este alumno no tiene WhatsApp registrado: avísale por otro medio.';
+      }
       document.getElementById('modal-notif-pago').classList.add('open');
       await cargarDatos();
     }
     else if(data.posibleDuplicado && !confirmarDuplicado){
       // Pago adicional del mismo dia: la asistente decide (antes era un candado).
-      if (confirm('⚠️ ' + data.mensaje + '\n\n¿Es un pago adicional? Por ejemplo, la semana pagada en dos partes ($60 + $40) o dos semanas pagadas por separado.\n\nAceptar = validarlo también · Cancelar = no validar')) {
+      if (confirm('⚠️ OJO: ESTE ALUMNO YA TIENE UN PAGO VALIDADO CON ESA FECHA.\n\n' + data.mensaje + '\n\n'
+        + '¿Este comprobante es un pago DIFERENTE? Por ejemplo:\n'
+        + '• La misma semana pagada en dos partes ($60 + $40).\n'
+        + '• Dos semanas pagadas por separado.\n\n'
+        + 'ACEPTAR = Sí, es otro pago. Se registra también.\n'
+        + 'CANCELAR = Es el mismo comprobante repetido. No se registra nada.')) {
         return validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin,true);
       }
     }
     else mostrarToast(data.mensaje||'Error al validar','error');
   }catch(e){mostrarToast('Error de conexión','error');}
-}
-
-function cerrarModalNotifPago(){
-  document.getElementById('modal-notif-pago').classList.remove('open');
-  pagoActivoNombre=null; pagoActivoWA=null;
-  pagoActivoCoberturaInicio=null; pagoActivoCoberturaFin=null;
 }
 
 function notificarAlumnoPago(){
@@ -3689,9 +3715,9 @@ function contactarAlumnoInasistencia(idAlumno, nombre, whatsapp, racha) {
     </div>
     <!-- Monto -->
     <div style="margin-bottom:16px;">
-      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto del comprobante (MXN) <span style="color:#f87171;">*</span></label>
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto que corresponde a ESTE alumno (MXN) <span style="color:#f87171;">*</span></label>
       <input type="number" id="validar-ce-monto" placeholder="Ej. 100 o 400" min="1" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:14px;outline:none;font-family:'Plus Jakarta Sans',sans-serif;">
-      <p style="font-size:11px;color:#64748b;margin-top:6px;">Abajo verás cuánto le toca según la tabla de su grupo.</p>
+      <p style="font-size:11px;color:#64748b;margin-top:6px;">Captura solo la parte de este alumno. Si el comprobante es compartido, anota en el comentario: "Comprobante compartido con [ID del otro alumno]". Abajo verás cuánto le toca según la tabla de su grupo.</p>
     </div>
     <!-- Cobertura -->
     <div class="cal-cobertura cal-dark">
