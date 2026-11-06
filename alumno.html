@@ -1497,6 +1497,53 @@
 
 <script>
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
+    // ═══ SESIÓN SEGURA (token invisible para el alumno) ═══
+  // El token llega en el login y se agrega solo a cada consulta al servidor.
+  // Si está por vencer, se renueva en segundo plano con el mismo ID y correo.
+  var _OE_SES = { token: '', id: '', email: '', exp: 0 };
+  var _oeResolverSes = null;
+  var _OE_SES_LISTA = new Promise(function (r) { _oeResolverSes = r; });
+  var _OE_ACC_PROTEGIDAS = ['getEvaluacionesAlumno','getFaltasJustificables','getUltimoComprobanteAlumno','getReferidosAlumno','solicitarCanjeReferido','getGruposCambioAlumno','getEstadoEncuestaSatisfaccion','registrarEncuestaSatisfaccion','registrarLinkVideo','registrarLinkVideoJustificante'];
+  var _oeFetchOriginal = window.fetch.bind(window);
+  var _oeRenovando = null;
+
+  function _oeGuardarSesion(id, email, token) {
+    if (!token) return;
+    _OE_SES.token = token; _OE_SES.id = id; _OE_SES.email = email;
+    _OE_SES.exp = parseInt(String(token).split('.')[0], 10) || 0;
+    if (_oeResolverSes) { _oeResolverSes(); _oeResolverSes = null; }
+  }
+
+  function _oeRenovarSesion() {
+    if (_oeRenovando) return _oeRenovando;
+    if (!_OE_SES.id || !_OE_SES.email) return Promise.resolve();
+    _oeRenovando = _oeFetchOriginal(APPS_SCRIPT + '?action=loginAlumno&id=' + encodeURIComponent(_OE_SES.id) + '&email=' + encodeURIComponent(_OE_SES.email), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.success && d.token) _oeGuardarSesion(_OE_SES.id, _OE_SES.email, d.token); })
+      .catch(function () {})
+      .then(function () { _oeRenovando = null; });
+    return _oeRenovando;
+  }
+
+  window.fetch = function (url, opts) {
+    if (typeof url !== 'string' || url.indexOf(APPS_SCRIPT) !== 0 || /[?&]action=loginAlumno\b/.test(url)) {
+      return _oeFetchOriginal(url, opts);
+    }
+    var m = url.match(/[?&]action=([^&]+)/);
+    var protegida = !!(m && _OE_ACC_PROTEGIDAS.indexOf(decodeURIComponent(m[1])) !== -1);
+    var antes = Promise.resolve();
+    if (protegida && !_OE_SES.token) {
+      // Consulta que salió al mismo tiempo que el login: espera el token (máx. 15 s)
+      antes = Promise.race([_OE_SES_LISTA, new Promise(function (r) { setTimeout(r, 15000); })]);
+    } else if (_OE_SES.token && _OE_SES.exp - Date.now() < 10 * 60 * 1000) {
+      antes = _oeRenovarSesion();
+    }
+    return antes.then(function () {
+      var u = url;
+      if (_OE_SES.token) u += (u.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(_OE_SES.token);
+      return _oeFetchOriginal(u, opts);
+    });
+  };
   const APP_VERSION = '1.1';
 
   const CAMBIO_GRUPO_ALUMNO_ACTIVO = false;
@@ -1546,7 +1593,7 @@
       btn.textContent = 'Entrar'; btn.disabled = false;
 
       if (data.success) {
-        alumnoData = data;
+        alumnoData = data; _oeGuardarSesion(data.alumno.id, email, data.token);
         try { if (data.grupo && data.grupo.id) localStorage.setItem('oe_grupo_' + data.alumno.id, data.grupo.id); } catch (eLs) {}
         mostrarPanel();
         if (typeof sincronizarNotificacionesSiYaActivadas === 'function') sincronizarNotificacionesSiYaActivadas();
