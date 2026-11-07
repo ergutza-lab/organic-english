@@ -238,6 +238,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:transparent;ov
             <th onclick="ordenarLecciones('horario')">Horario <span class="lc-arrow" data-col="horario"></span></th>
             <th onclick="ordenarLecciones('maestro')">Maestro <span class="lc-arrow" data-col="maestro"></span></th>
             <th onclick="ordenarLecciones('leccion')">Lección <span class="lc-arrow" data-col="leccion"></span></th>
+            <th onclick="ordenarLecciones('vacantes')">Vacantes <span class="lc-arrow" data-col="vacantes"></span></th>
           </tr>
         </thead>
         <tbody id="lcBody"></tbody>
@@ -781,14 +782,18 @@ function abrirLecciones(){
     else if(semana === 8) challengeTipo = 'grand';
 
     var nombreMaestro = g.idMaestro ? (maestros[g.idMaestro] || g.idMaestro) : 'Sin asignar';
+    var cupo = Number(g.cupoMax) || 0, ins = Math.min(cupo, Number(g.inscritos) || 0);
 
-        return {
+    return {
       grupo: g.id,
       nivel: g.nivel || '',
       nombre: g.nombre || '',
       horario: g.horario || '',
       maestro: nombreMaestro,
       leccion: (av.leccionActual != null) ? av.leccionActual : '',
+      vacantes: Math.max(0, cupo - ins),
+      inscritos: ins,
+      cupo: cupo,
       semana: semana,
       challengeTipo: challengeTipo,
       esClub: !!g.esClub,
@@ -796,8 +801,9 @@ function abrirLecciones(){
     };
   });
 
+  var totalVac = lcData.reduce(function(s, r){ return s + r.vacantes; }, 0);
   document.getElementById('lcSub').textContent =
-    lcData.length + ' grupos activos · ' +
+    lcData.length + ' grupos activos · ' + totalVac + ' vacantes en total · ' +
     '🟡 Mini (semana 4) · 🔴 Grand (semana 8)';
 
   ordenarYRenderLecciones();
@@ -819,7 +825,7 @@ function ordenarYRenderLecciones(){
 
   lcData.sort(function(a,b){
     var va = a[col], vb = b[col];
-    if(col === 'leccion'){
+    if(col === 'leccion' || col === 'vacantes'){
       va = (va === '' || va == null) ? -1 : Number(va);
       vb = (vb === '' || vb == null) ? -1 : Number(vb);
       return (va - vb) * dir;
@@ -830,6 +836,15 @@ function ordenarYRenderLecciones(){
     if(va > vb) return 1 * dir;
     return 0;
   });
+
+  var COLOR_NIVEL = {
+    'a1':      '#1e3a6e',
+    'a2':      '#0891b2',
+    'b1':      '#16a34a',
+    'b2':      '#ea580c',
+    'c1':      '#7c3aed',
+    'starter': '#64748b'
+  };
 
   var html = '';
   lcData.forEach(function(r){
@@ -845,18 +860,17 @@ function ordenarYRenderLecciones(){
 
     var leccionTxt = (r.leccion !== '' && r.leccion != null) ? r.leccion : '—';
 
-            var COLOR_NIVEL = {
-      'a1':      '#1e3a6e',
-      'a2':      '#0891b2',
-      'b1':      '#16a34a',
-      'b2':      '#ea580c',
-      'c1':      '#7c3aed',
-      'starter': '#64748b'
-    };
     var colorNivel = COLOR_NIVEL[getLvl(r.nivel)] || '#1e3a6e';
-
     var colorNom = colorPorNombreGrupoHorario(r.nombre);
     if (colorNom === '#f1f5f9') colorNom = '#1c2b5e';
+
+    var vacBg, vacTxt;
+    if(r.vacantes === 0){ vacBg = '#dc2626'; vacTxt = 'LLENO'; }
+    else if(r.vacantes <= 2){ vacBg = '#f97316'; vacTxt = r.vacantes; }
+    else { vacBg = '#16a34a'; vacTxt = r.vacantes; }
+    var vacHtml = '<span style="display:inline-block;min-width:34px;text-align:center;background:'+vacBg+
+                  ';color:#fff;font-weight:800;font-size:12px;padding:2px 8px;border-radius:999px;">'+vacTxt+'</span>'+
+                  ' <span style="color:#94a3b8;font-size:11px;">'+r.inscritos+'/'+r.cupo+'</span>';
 
     html += '<tr class="'+rowCls+'">';
     html += '<td><b>'+r.grupo+'</b></td>';
@@ -865,11 +879,12 @@ function ordenarYRenderLecciones(){
     html += '<td>'+r.horario+'</td>';
     html += '<td>'+r.maestro+'</td>';
     html += '<td>'+leccionTxt+badge+'</td>';
+    html += '<td style="white-space:nowrap;">'+vacHtml+'</td>';
     html += '</tr>';
   });
 
   if(!html){
-        html = '<tr><td colspan="6" class="lc-empty">Sin grupos activos</td></tr>';
+    html = '<tr><td colspan="7" class="lc-empty">Sin grupos activos</td></tr>';
   }
 
   document.getElementById('lcBody').innerHTML = html;
