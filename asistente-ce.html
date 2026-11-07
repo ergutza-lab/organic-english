@@ -399,6 +399,7 @@
     <div class="tab" onclick="cambiarTab('pagos',this)">Pagos por validar <span class="tab-badge cero" id="badge-pagos">0</span></div>
     <div class="tab" onclick="cambiarTab('referidos',this)">🎁 Referidos <span class="tab-badge cero" id="badge-referidos">0</span></div>
     <div class="tab" onclick="cambiarTab('nuevos',this)">Nuevos <span class="tab-badge cero" id="badge-nuevos">0</span></div>
+    <div class="tab" onclick="cambiarTab('encuesta',this)">📋 Encuesta 1ª semana <span class="tab-badge cero" id="badge-encuesta">0</span></div>
     <div class="tab" onclick="cambiarTab('alertas',this)">Sin Pago <span class="tab-badge cero" id="badge-alertas">0</span></div>
     <div class="tab" onclick="cambiarTab('ausencias',this)">🚨 Inasistencias <span class="tab-badge cero" id="badge-ausencias">0</span></div>
     <div class="tab" onclick="cambiarTab('bajas',this)">Bajas <span class="tab-badge cero" id="badge-bajas">0</span></div>
@@ -430,6 +431,12 @@
     <div id="sec-nuevos" class="section">
       <div class="sec-header"><h2 class="sec-title">Alumnos nuevos — Presentación pendiente</h2></div>
       <div id="lista-nuevos"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
+    </div>
+
+    <div id="sec-encuesta" class="section">
+      <div class="sec-header"><h2 class="sec-title">Encuesta de primera semana</h2></div>
+      <p style="font-size:12px;color:var(--gris-400);margin-bottom:14px;font-weight:500;">Alumnos que terminaron su primera semana. 1) Envía la encuesta por WhatsApp. 2) Cuando conteste, toca su respuesta. Los casos 2, 3 y 4 se envían a coordinación y se atienden antes de 24 horas.</p>
+      <div id="lista-encuesta"><div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div></div>
     </div>
 
     <div id="sec-alertas" class="section">
@@ -983,6 +990,7 @@ async function cargarDatos(fresco){
     datosPanel=await resp.json();
     _renderTodoAsistente(true,fresco);
     cargarReferidosAsistente();
+    cargarEncuestaAsistente();
     try{ if(datosPanel && datosPanel.status==='ok') localStorage.setItem(_claveSnapshotAsis(),JSON.stringify({ts:Date.now(),datos:datosPanel})); }catch(e){}
   }catch(e){_precargaAsis=null;mostrarToast('Error al cargar datos.','error');}
   finally{ _avisoActualizandoAsis(false); }
@@ -1442,6 +1450,297 @@ function marcarPresentado(idAlumno, btn){
 // ══════════════════════════════════════════════════════════════════════
 var refAsis = { porValidar: [], doradas: [], doradasPorAlumno: {} };
 var refCanjeActual = null;
+
+// ═══ ENCUESTA DE PRIMERA SEMANA (nov-2026) ═══
+// 1) "Enviar encuesta" abre WhatsApp con el mensaje listo (alumno o tutor).
+// 2) La respuesta se registra con un clic. 2 → Coordinación Escolar,
+//    3 → Coordinación Académica, 4 → CE o CA (decide la asistente),
+//    5 → se reenvía el lunes. Todo se guarda en ENCUESTA_SEMANA1.
+var encAlumnos = [], encCoord = { CE: null, CA: null }, encModalId = null;
+
+function cargarEncuestaAsistente(){
+  if(!asistente) return;
+  fetch(`${APPS_SCRIPT}?action=getEncuestaPrimeraSemana&idAsistente=${encodeURIComponent(asistente.id)}`)
+    .then(r=>r.json())
+    .then(d=>{ if(!d || !d.success) return; encAlumnos = d.alumnos || []; renderEncuesta(); })
+    .catch(()=>{});
+  if(!encCoord.CE) fetch(APPS_SCRIPT+'?action=getCoordEscolarWhats').then(r=>r.json()).then(d=>{ if(d && d.success && d.whatsapp) encCoord.CE = d; }).catch(()=>{});
+  if(!encCoord.CA) fetch(APPS_SCRIPT+'?action=getCoordAcademicoWhats').then(r=>r.json()).then(d=>{ if(d && d.success && d.whatsapp) encCoord.CA = d; }).catch(()=>{});
+}
+
+function _encEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _encPila(n){ return String(n||'').trim().split(/\s+/)[0] || ''; }
+function _encAlumno(id){ return encAlumnos.find(a=>a.id===id); }
+function _encTutor(a){ return !!(a.tutorNombre && a.tutorWhatsapp); }
+function _encDestinoWA(a){ return cleanWA(_encTutor(a) ? a.tutorWhatsapp : a.whatsapp); }
+function _encFecha(iso){
+  if(!iso) return '';
+  const d=new Date(iso), dias=['dom','lun','mar','mié','jue','vie','sáb'], m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return dias[d.getDay()]+' '+d.getDate()+' '+m[d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function _encEstado(a){
+  const r=a.registro;
+  if(!r || !r.enviada) return 'porEnviar';
+  if(!r.respuesta) return 'esperando';
+  if(r.respuesta==='5') return 'noContesto';
+  if(r.respuesta==='1') return 'muyBien';
+  if(!r.derivadoA) return 'sinDerivar';
+  if(r.resultado==='Pendiente' || r.resultado==='Sigue pendiente') return 'caso';
+  return 'cerrado';
+}
+
+// Lunes siguiente a la fecha en que se registró "No contestó"
+function _encLunesReenvio(a){
+  const r=a.registro; if(!r || !r.fechaRespuesta) return null;
+  const d=new Date(r.fechaRespuesta); d.setHours(0,0,0,0);
+  do { d.setDate(d.getDate()+1); } while(d.getDay()!==1);
+  return d;
+}
+
+// ── Mensajes ──
+function _encMsgEncuesta(a, esLunes){
+  const yo = asistente?.nombre || 'tu asistente';
+  if(_encTutor(a)){
+    return (esLunes
+      ? `Hola, ${a.tutorNombre}. El viernes le escribí para saber cómo le fue a ${_encPila(a.nombre)} en su primera semana en Organic English.`
+      : `Hola, ${a.tutorNombre}. Soy ${yo}, asistente de Control Escolar de ${a.nombre} en Organic English.\n\n${_encPila(a.nombre)} ya terminó su primera semana y queremos saber cómo le fue.`) +
+      `\n\nContésteme solo con el número:\n1. Muy bien\n2. Se le complica el horario\n3. Le cuesta seguir la clase\n4. Otra cosa (cuénteme)`;
+  }
+  return (esLunes
+    ? `Hola, ${_encPila(a.nombre)}. El viernes te escribí para saber cómo te fue en tu primera semana en Organic English.`
+    : `Hola, ${_encPila(a.nombre)}. Soy ${yo}, tu asistente de Control Escolar en Organic English.\n\nYa terminaste tu primera semana y queremos saber cómo te fue.`) +
+    `\n\nContéstame solo con el número:\n1. Muy bien\n2. Se me complica el horario\n3. Me cuesta seguir la clase\n4. Otra cosa (cuéntame)`;
+}
+
+function _encMsgMuyBien(a){
+  if(_encTutor(a)){
+    return `¡Qué gusto, ${a.tutorNombre}! Gracias por contarnos.\n\nSi conoce a alguien que quiera aprender inglés, puede recomendarnos: en el panel de alumno de ${_encPila(a.nombre)}, en la sección *Recomienda y gana semanas de clase*, está el código para compartir, y por cada persona que se inscriba con él, ${_encPila(a.nombre)} gana 1 semana de clase sin costo.`;
+  }
+  return `¡Qué gusto, ${_encPila(a.nombre)}! Gracias por contarnos.\n\nSi conoces a alguien que quiera aprender inglés, recomiéndanos: en tu panel de alumno, en la sección *Recomienda y gana semanas de clase*, está tu código para compartir, y por cada persona que se inscriba con él ganas 1 semana de clase sin costo.`;
+}
+
+function _encGruposConLugar(a){
+  const todos = datosPanel?.todos_grupos || [];
+  const g = todos.find(x=>x.id===a.grupo) || {};
+  const nivel = String(g.nivel || a.nivel || '').trim().toUpperCase();
+  return todos.filter(x=>x.id!==a.grupo && x.tieneLugar && String(x.nivel||'').trim().toUpperCase()===nivel)
+    .slice(0,6)
+    .map(x=>`${x.id} ${x.horario||''} (${x.plazasLibres} lugar${x.plazasLibres===1?'':'es'}${x.leccionActual?', lección '+x.leccionActual:''})`);
+}
+
+function _encMsgCoord(a, resp, destino, detalle){
+  const titulos = { '2':'Cambio de horario', '3':'Le cuesta seguir la clase', '4':'Otra cosa' };
+  const g = (datosPanel?.todos_grupos || []).find(x=>x.id===a.grupo) || {};
+  let m = `Hola${encCoord[destino] && encCoord[destino].nombre ? ', '+encCoord[destino].nombre : ''}. Te paso un caso de la *encuesta de primera semana*:\n\n` +
+    `*${titulos[resp]}*\n` +
+    `Alumno: *${a.nombre}* (${a.id})\n` +
+    `Grupo: *${a.grupo}* · ${g.nivel || a.nivel || ''} · ${g.horario || a.horario || ''}${g.leccionActual ? ' · lección '+g.leccionActual : ''}\n` +
+    (_encTutor(a) ? `Tutor: ${a.tutorNombre} · ${a.tutorWhatsapp}\n` : `WhatsApp: ${a.whatsapp}\n`) +
+    (detalle ? `Dijo: "${detalle}"\n` : '');
+  if(resp==='2'){
+    const op = _encGruposConLugar(a);
+    m += op.length ? `\nGrupos del mismo nivel con lugar:\n• ${op.join('\n• ')}\n` : `\nNo encontré grupos del mismo nivel con lugar.\n`;
+    m += `\n¿Me ayudas a revisar el cambio de grupo?`;
+  } else if(resp==='3'){
+    m += `\n¿Puedes hablar con ${_encTutor(a)?'el tutor':'el alumno'} para ver cómo apoyarlo?`;
+  } else {
+    m += `\n¿Me ayudas a darle seguimiento?`;
+  }
+  return m + `\n\nRegistró: ${asistente?.nombre || ''}`;
+}
+
+// ── Guardar en el servidor ──
+function _encGuardar(params){
+  const q = new URLSearchParams(Object.assign({ action:'registrarEncuestaPrimeraSemana', asistente: asistente?.nombre || '' }, params));
+  return fetch(APPS_SCRIPT+'?'+q.toString()).then(r=>r.json()).then(d=>{
+    if(!d || !d.success) throw new Error(d && d.error ? d.error : 'No se pudo guardar');
+    return d;
+  });
+}
+function _encActualizarLocal(id, cambios){
+  const a=_encAlumno(id); if(!a) return;
+  a.registro = Object.assign({}, a.registro || {}, cambios);
+  renderEncuesta();
+}
+
+// ── Acciones ──
+function encEnviar(id, esLunes){
+  const a=_encAlumno(id); if(!a) return;
+  const wa=_encDestinoWA(a);
+  if(!wa){ mostrarToast('Este alumno no tiene WhatsApp registrado','error'); return; }
+  window.open(`https://wa.me/${wa}?text=${encodeURIComponent(_encMsgEncuesta(a, !!esLunes))}`,'_blank');
+  const envios=((a.registro&&a.registro.envios)||0)+1;
+  _encActualizarLocal(id, { enviada:new Date().toISOString(), envios:envios, aQuien:_encTutor(a)?'Tutor':'Alumno', respuesta:'', respuestaTexto:'' });
+  _encGuardar({ tipo:'enviada', idAlumno:a.id, nombre:a.nombre, grupo:a.grupo, aQuien:_encTutor(a)?'Tutor':'Alumno' })
+    .catch(e=>mostrarToast('No se guardó el envío: '+e.message,'error'));
+}
+
+function encResponder(id, resp){
+  const a=_encAlumno(id); if(!a) return;
+  if(resp==='1'){
+    const wa=_encDestinoWA(a);
+    if(wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent(_encMsgMuyBien(a))}`,'_blank');
+    _encActualizarLocal(id, { respuesta:'1', respuestaTexto:'Muy bien', fechaRespuesta:new Date().toISOString(), resultado:'Resuelto' });
+    _encGuardar({ tipo:'respuesta', idAlumno:a.id, nombre:a.nombre, grupo:a.grupo, respuesta:'1' })
+      .then(()=>mostrarToast('✓ Registrado: Muy bien','success'))
+      .catch(e=>mostrarToast('No se guardó: '+e.message,'error'));
+    return;
+  }
+  if(resp==='5'){
+    _encActualizarLocal(id, { respuesta:'5', respuestaTexto:'No contestó', fechaRespuesta:new Date().toISOString(), resultado:'Reenviar el lunes' });
+    _encGuardar({ tipo:'respuesta', idAlumno:a.id, nombre:a.nombre, grupo:a.grupo, respuesta:'5' })
+      .then(()=>mostrarToast('Registrado. El lunes aparecerá para reenviarle la encuesta.','success'))
+      .catch(e=>mostrarToast('No se guardó: '+e.message,'error'));
+    return;
+  }
+  abrirModalCasoEncuesta(id, resp);
+}
+
+function abrirModalCasoEncuesta(id, resp){
+  const a=_encAlumno(id); if(!a) return;
+  encModalId=id;
+  const textos={ '2':'2 · Se le complica el horario', '3':'3 · Le cuesta seguir la clase', '4':'4 · Otra cosa' };
+  const ayuda={ '2':'Se enviará el caso a <b>Coordinación Escolar</b> con los grupos del mismo nivel que tienen lugar.',
+                '3':'Se enviará el caso a <b>Coordinación Académica</b> para que hable con '+(_encTutor(a)?'el tutor':'el alumno')+'.',
+                '4':'Elige a quién enviar el caso según lo que te contó.' };
+  const btnCE=`<button onclick="encDerivar('${resp}','CE')" style="flex:1;background:var(--azul-claro);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">📨 Enviar a Coordinación Escolar</button>`;
+  const btnCA=`<button onclick="encDerivar('${resp}','CA')" style="flex:1;background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">📨 Enviar a Coordinación Académica</button>`;
+  _encModal(`
+    <div style="font-size:16px;font-weight:800;color:var(--azul);margin-bottom:2px;">${_encEsc(textos[resp])}</div>
+    <div style="font-size:12px;color:var(--gris-500);margin-bottom:12px;">${_encEsc(a.nombre)} · ${_encEsc(a.id)} · ${_encEsc(a.grupo)}</div>
+    <label style="font-size:12px;font-weight:700;color:var(--gris-500);">¿Qué dijo? (opcional)</label>
+    <textarea id="enc-detalle" rows="3" placeholder="Ej. Sale tarde del trabajo y no alcanza a llegar" style="width:100%;box-sizing:border-box;margin:5px 0 10px;padding:10px;border:1.5px solid var(--gris-200);border-radius:10px;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+    <div style="font-size:12px;color:var(--gris-500);margin-bottom:12px;">${ayuda[resp]}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">${resp==='2'?btnCE:resp==='3'?btnCA:btnCE+btnCA}</div>
+    <button onclick="cerrarModalEncuesta()" style="width:100%;margin-top:10px;background:none;border:1px solid var(--gris-200);border-radius:10px;padding:9px;color:var(--gris-500);font-size:12px;cursor:pointer;">Cancelar</button>`);
+}
+
+function encDerivar(resp, destino){
+  const a=_encAlumno(encModalId); if(!a) return;
+  const c=encCoord[destino];
+  if(!c || !c.whatsapp){ mostrarToast('No se encontró el WhatsApp de '+(destino==='CE'?'Coordinación Escolar':'Coordinación Académica')+'. Intenta de nuevo en unos segundos.','error'); cargarEncuestaAsistente(); return; }
+  const detalle=(document.getElementById('enc-detalle')?.value||'').trim();
+  window.open(`https://wa.me/${cleanWA(c.whatsapp)}?text=${encodeURIComponent(_encMsgCoord(a, resp, destino, detalle))}`,'_blank');
+  const ahora=new Date().toISOString();
+  const textos={ '2':'Se le complica el horario', '3':'Le cuesta seguir la clase', '4':'Otra cosa' };
+  _encActualizarLocal(a.id, { respuesta:resp, respuestaTexto:textos[resp], fechaRespuesta:ahora, detalle:detalle, derivadoA:destino, fechaDerivado:ahora, resultado:'Pendiente' });
+  cerrarModalEncuesta();
+  _encGuardar({ tipo:'respuesta', idAlumno:a.id, nombre:a.nombre, grupo:a.grupo, respuesta:resp, detalle:detalle })
+    .then(()=>_encGuardar({ tipo:'derivado', idAlumno:a.id, derivadoA:destino, detalle:detalle }))
+    .then(()=>mostrarToast('✓ Caso enviado a '+(destino==='CE'?'Coordinación Escolar':'Coordinación Académica'),'success'))
+    .catch(e=>mostrarToast('No se guardó: '+e.message,'error'));
+}
+
+function abrirModalSeguimientoEncuesta(id){
+  const a=_encAlumno(id); if(!a) return;
+  encModalId=id;
+  const r=a.registro||{};
+  const btn=(txt,color)=>`<button onclick="encSeguimiento('${txt}')" style="flex:1;background:${color};color:#fff;border:none;border-radius:10px;padding:11px 8px;font-size:12.5px;font-weight:800;cursor:pointer;">${txt}</button>`;
+  _encModal(`
+    <div style="font-size:16px;font-weight:800;color:var(--azul);margin-bottom:2px;">Registrar seguimiento</div>
+    <div style="font-size:12px;color:var(--gris-500);margin-bottom:10px;">${_encEsc(a.nombre)} · ${_encEsc(a.grupo)} · ${_encEsc(r.respuestaTexto||'')} · enviado a ${r.derivadoA==='CE'?'Coordinación Escolar':'Coordinación Académica'}</div>
+    ${r.queSeHizo?`<div style="font-size:12px;background:var(--gris-50);border-radius:8px;padding:8px 10px;margin-bottom:10px;color:var(--gris-500);">Seguimiento anterior: ${_encEsc(r.queSeHizo)}</div>`:''}
+    <label style="font-size:12px;font-weight:700;color:var(--gris-500);">¿Qué se hizo?</label>
+    <textarea id="enc-quesehizo" rows="3" placeholder="Ej. Se cambió a X05 de 9 PM" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:10px;border:1.5px solid var(--gris-200);border-radius:10px;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+    <div style="font-size:12px;font-weight:700;color:var(--gris-500);margin-bottom:6px;">Resultado</div>
+    <div style="display:flex;gap:8px;">${btn('Resuelto','var(--verde)')}${btn('Sigue pendiente','#d97706')}${btn('Se dará de baja','#dc2626')}</div>
+    <button onclick="cerrarModalEncuesta()" style="width:100%;margin-top:10px;background:none;border:1px solid var(--gris-200);border-radius:10px;padding:9px;color:var(--gris-500);font-size:12px;cursor:pointer;">Cancelar</button>`);
+}
+
+function encSeguimiento(resultado){
+  const a=_encAlumno(encModalId); if(!a) return;
+  const queSeHizo=(document.getElementById('enc-quesehizo')?.value||'').trim();
+  if(!queSeHizo){ mostrarToast('Escribe qué se hizo','error'); return; }
+  _encActualizarLocal(a.id, { queSeHizo:queSeHizo, resultado:resultado, fechaResultado:new Date().toISOString() });
+  cerrarModalEncuesta();
+  _encGuardar({ tipo:'seguimiento', idAlumno:a.id, queSeHizo:queSeHizo, resultado:resultado })
+    .then(()=>mostrarToast('✓ Seguimiento registrado','success'))
+    .catch(e=>mostrarToast('No se guardó: '+e.message,'error'));
+}
+
+function _encModal(html){
+  let m=document.getElementById('modal-encuesta');
+  if(!m){
+    m=document.createElement('div'); m.id='modal-encuesta';
+    m.setAttribute('style','position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;');
+    m.onclick=e=>{ if(e.target===m) cerrarModalEncuesta(); };
+    document.body.appendChild(m);
+  }
+  m.innerHTML=`<div style="background:#fff;border-radius:18px;width:92%;max-width:460px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.35);max-height:90vh;overflow-y:auto;">${html}</div>`;
+  m.style.display='flex';
+}
+function cerrarModalEncuesta(){ const m=document.getElementById('modal-encuesta'); if(m) m.style.display='none'; encModalId=null; }
+
+// ── Pantalla ──
+function renderEncuesta(){
+  const cont=document.getElementById('lista-encuesta'); if(!cont) return;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const orden={ caso:0, sinDerivar:1, porEnviar:2, noContesto:3, esperando:4, muyBien:5, cerrado:6 };
+  const lista=encAlumnos.slice().sort((x,y)=>orden[_encEstado(x)]-orden[_encEstado(y)]);
+  const cuenta=k=>encAlumnos.filter(a=>_encEstado(a)===k).length;
+  const noContestoHoy=encAlumnos.filter(a=>_encEstado(a)==='noContesto' && _encLunesReenvio(a) && hoy>=_encLunesReenvio(a)).length;
+
+  const badge=document.getElementById('badge-encuesta');
+  if(badge){ const n=cuenta('porEnviar')+cuenta('caso')+cuenta('sinDerivar')+noContestoHoy; badge.textContent=n; badge.classList.toggle('cero', n===0); }
+
+  if(!lista.length){
+    cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Sin alumnos por encuestar</h3><p style="font-size:12px;">Aquí aparecen solos los alumnos que terminan su primera semana.</p></div>`;
+    return;
+  }
+  const chip=(t,c,bg)=>`<span style="font-size:11.5px;font-weight:800;border-radius:100px;padding:5px 12px;color:${c};background:${bg};">${t}</span>`;
+  const resumen=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    ${chip('Por enviar: '+cuenta('porEnviar'),'#334155','var(--gris-100)')}
+    ${chip('Esperando respuesta: '+cuenta('esperando'),'#0369a1','#e0f2fe')}
+    ${chip('Casos abiertos: '+(cuenta('caso')+cuenta('sinDerivar')),'#b45309','#fef3c7')}
+    ${chip('No contestó: '+cuenta('noContesto'),'#475569','var(--gris-100)')}
+    ${chip('Muy bien: '+cuenta('muyBien'),'#15803d','#dcfce7')}</div>`;
+
+  const st=(t,c,bg)=>`<span style="font-size:10.5px;font-weight:800;border-radius:100px;padding:4px 10px;color:${c};background:${bg};white-space:nowrap;">${t}</span>`;
+  const btnWA=(txt,onclick,suave)=>`<button onclick="${onclick}" style="background:${suave?'#dcfce7':'#25d366'};color:${suave?'#15803d':'#fff'};border:none;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">${txt}</button>`;
+  const btnResp=(id,n,t)=>`<button onclick="encResponder('${id}','${n}')" style="border:1.5px solid var(--gris-200);background:#fff;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700;color:var(--azul);cursor:pointer;">${n} · ${t}</button>`;
+
+  cont.innerHTML=resumen+lista.map(a=>{
+    const e=_encEstado(a), r=a.registro||{};
+    const quien=_encTutor(a)?`<span style="font-size:11px;color:#7c3aed;font-weight:700;"> · escribir a su tutor(a) ${_encEsc(a.tutorNombre)}</span>`:'';
+    let derecha='', abajo='', borde='var(--azul-claro)', opac='';
+    if(e==='porEnviar'){
+      derecha=st('Por enviar','#334155','var(--gris-100)')+btnWA('📱 Enviar encuesta',`encEnviar('${a.id}')`);
+      borde='#25d366';
+    } else if(e==='esperando'){
+      derecha=st('Enviada '+_encFecha(r.enviada),'#0369a1','#e0f2fe')+btnWA('↻ Reenviar',`encEnviar('${a.id}')`,true);
+      abajo=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;"><span style="font-size:12px;color:var(--gris-500);font-weight:600;">¿Qué contestó?</span>${btnResp(a.id,'1','Muy bien')}${btnResp(a.id,'2','Horario')}${btnResp(a.id,'3','Le cuesta')}${btnResp(a.id,'4','Otra cosa')}${btnResp(a.id,'5','No contestó')}</div>`;
+      borde='#0ea5e9';
+    } else if(e==='noContesto'){
+      const lunes=_encLunesReenvio(a), ya=lunes && hoy>=lunes;
+      derecha=st(ya?'No contestó · reenviar hoy':'No contestó · reenviar el lunes','#475569','var(--gris-100)')+(ya?btnWA('📱 Reenviar encuesta',`encEnviar('${a.id}',true)`):'');
+      borde=ya?'#25d366':'var(--gris-300)';
+    } else if(e==='sinDerivar'){
+      derecha=st(r.respuesta+' · '+_encEsc(r.respuestaTexto),'#b45309','#fef3c7');
+      abajo=`<div style="margin-top:10px;font-size:12px;color:#b45309;">Falta enviar el caso a coordinación. <button onclick="abrirModalCasoEncuesta('${a.id}','${r.respuesta}')" style="margin-left:6px;background:var(--naranja);color:#fff;border:none;border-radius:100px;padding:6px 12px;font-size:11.5px;font-weight:800;cursor:pointer;">Enviar caso</button></div>`;
+      borde='#f59e0b';
+    } else if(e==='caso'){
+      const horas=r.fechaDerivado?Math.floor((Date.now()-new Date(r.fechaDerivado))/3600000):0;
+      const quedan=24-horas;
+      derecha=st(r.respuesta+' · '+_encEsc(r.respuestaTexto),'#b45309','#fef3c7');
+      abajo=`<div style="margin-top:10px;background:${quedan>0?'#fffbeb':'#fef2f2'};border:1.5px dashed ${quedan>0?'#f59e0b':'#ef4444'};border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--gris-600,#475569);">⏱️ ${r.resultado==='Sigue pendiente'?'Sigue pendiente':'Caso abierto'} · enviado a <b>${r.derivadoA==='CE'?'Coordinación Escolar':'Coordinación Académica'}</b> · ${quedan>0?'quedan <b>'+quedan+' h</b>':'<b style="color:#dc2626">pasaron '+horas+' h</b>'}${r.detalle?' · "'+_encEsc(r.detalle)+'"':''}</span>
+        <button onclick="abrirModalSeguimientoEncuesta('${a.id}')" style="background:var(--naranja);color:#fff;border:none;border-radius:100px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">Registrar seguimiento</button></div>`;
+      borde='#f59e0b';
+    } else if(e==='muyBien'){
+      derecha=st('1 · Muy bien ✓','#15803d','#dcfce7'); borde='#16a34a'; opac='opacity:.75;';
+    } else {
+      const col=r.resultado==='Resuelto'?['#15803d','#dcfce7']:['#b91c1c','#fee2e2'];
+      derecha=st(_encEsc(r.respuestaTexto)+' · '+_encEsc(r.resultado),col[0],col[1]); borde=col[0]; opac='opacity:.75;';
+    }
+    return `<div style="background:#fff;border-radius:14px;padding:13px 16px;margin-bottom:9px;border:1px solid var(--gris-100);border-left:4px solid ${borde};box-shadow:var(--shadow-sm);${opac}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div><div style="font-weight:800;font-size:14px;color:var(--azul);">${_encEsc(a.nombre)}${quien}</div>
+        <div style="font-size:11.5px;color:var(--gris-500);margin-top:2px;"><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--azul);">${_encEsc(a.id)}</span> · ${_encEsc(a.grupo)} · ${_encEsc(a.horario||'')}</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${derecha}</div>
+      </div>${abajo}</div>`;
+  }).join('');
+}
 
 function cargarReferidosAsistente(){
   if(!asistente) return;
