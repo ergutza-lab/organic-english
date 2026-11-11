@@ -302,6 +302,13 @@
   .modal-eval-bloque { font-size: 12px; color: #f59e0b; text-align: center; margin-bottom: 20px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
   .btn-enviar-eval { width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; border-radius: 100px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
   .btn-enviar-eval.activo { opacity: 1; pointer-events: auto; }
+  .eval-frases { display:flex; flex-direction:column; gap:8px; }
+  .eval-frase { text-align:left; background:rgba(255,255,255,0.04); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:10px 14px; font-size:13px; cursor:pointer; transition:all .15s; }
+  .eval-frase.sel { background:rgba(245,158,11,0.18); border-color:#f59e0b; color:#fff; font-weight:600; }
+  .eval-comentario { width:100%; box-sizing:border-box; margin-top:8px; background:rgba(255,255,255,0.04); color:#f1f5f9; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:10px; font-size:13px; font-family:inherit; resize:vertical; min-height:70px; display:none; }
+  .eval-comentario.visible { display:block; }
+  .eval-contador { font-size:11px; color:#64748b; text-align:right; margin-top:2px; display:none; }
+  .eval-contador.visible { display:block; }
   .btn-cancelar-eval { width: 100%; background: transparent; color: #475569; border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 12px; font-size: 14px; cursor: pointer; margin-top: 8px; }
   .eval-status { font-size: 13px; text-align: center; margin-top: 8px; min-height: 18px; color: #64748b; }
   .eval-status.ok  { color: #4ade80; }
@@ -1355,6 +1362,19 @@
         <span class="estrella" onclick="calificar('M3',1)">★</span><span class="estrella" onclick="calificar('M3',2)">★</span><span class="estrella" onclick="calificar('M3',3)">★</span><span class="estrella" onclick="calificar('M3',4)">★</span><span class="estrella" onclick="calificar('M3',5)">★</span>
       </div>
     </div>
+    <div class="eval-concepto">
+      <div class="eval-concepto-titulo">¿Qué opinas de sus clases?</div>
+      <div class="eval-concepto-desc">Elige al menos una opción (puedes elegir varias). Tu maestro no verá tu nombre.</div>
+      <div class="eval-frases" id="evalFrases">
+        <button type="button" class="eval-frase" data-f="1" onclick="toggleFrase(this)">👍 Sus clases me gustan y aprendo mucho.</button>
+        <button type="button" class="eval-frase" data-f="2" onclick="toggleFrase(this)">💡 Explica claro y resuelve mis dudas.</button>
+        <button type="button" class="eval-frase" data-f="3" onclick="toggleFrase(this)">🗣️ Me gustaría practicar más conversación.</button>
+        <button type="button" class="eval-frase" data-f="4" onclick="toggleFrase(this)">⏩ A veces la clase va muy rápido.</button>
+        <button type="button" class="eval-frase" data-f="otro" onclick="toggleFrase(this)">✏️ Otro comentario</button>
+      </div>
+      <textarea class="eval-comentario" id="evalComentario" maxlength="200" placeholder="Escribe tu comentario (opcional)" oninput="document.getElementById('evalContador').textContent=this.value.length+'/200';document.getElementById('btnEnviarMaestro').classList.toggle('activo', evalMaestroCompleta_())"></textarea>
+      <div class="eval-contador" id="evalContador">0/200</div>
+    </div>
     <button class="btn-enviar-eval" id="btnEnviarMaestro" onclick="enviarEvaluacion('maestro')">Enviar evaluación</button>
     <div class="eval-status" id="evalMaestroStatus"></div>
     <button class="btn-cancelar-eval" onclick="cerrarEval('maestro')">Cancelar</button>
@@ -1930,11 +1950,29 @@
     evalActual[concepto] = valor;
     document.querySelectorAll('#estrellas'+concepto+' .estrella').forEach(function(e,i){ e.classList.toggle('activa', i < valor); });
     var tipo = concepto.startsWith('M') ? 'maestro' : 'ce';
-    var completo = tipo==='maestro' ? evalActual.M1>0&&evalActual.M2>0&&evalActual.M3>0 : evalActual.C1>0&&evalActual.C2>0;
+    var completo = tipo==='maestro' ? evalMaestroCompleta_() : evalActual.C1>0&&evalActual.C2>0;
     document.getElementById(tipo==='maestro'?'btnEnviarMaestro':'btnEnviarCE').classList.toggle('activo', completo);
   }
 
+  function _frasesSel_() {
+    return Array.prototype.map.call(document.querySelectorAll('#evalFrases .eval-frase.sel'), function(b){ return b.getAttribute('data-f'); });
+  }
+  function evalMaestroCompleta_() {
+    var f = _frasesSel_().filter(function(x){ return x!=='otro'; });
+    return evalActual.M1>0&&evalActual.M2>0&&evalActual.M3>0 && f.length>0;
+  }
+  function toggleFrase(btn) {
+    btn.classList.toggle('sel');
+    var otro = document.querySelector('#evalFrases .eval-frase[data-f="otro"]').classList.contains('sel');
+    document.getElementById('evalComentario').classList.toggle('visible', otro);
+    document.getElementById('evalContador').classList.toggle('visible', otro);
+    document.getElementById('btnEnviarMaestro').classList.toggle('activo', evalMaestroCompleta_());
+  }
+
   function abrirEvaluacion(tipo) {
+    document.querySelectorAll('#evalFrases .eval-frase').forEach(function(b){ b.classList.remove('sel'); });
+    var _c=document.getElementById('evalComentario'); _c.value=''; _c.classList.remove('visible');
+    document.getElementById('evalContador').classList.remove('visible'); document.getElementById('evalContador').textContent='0/200';
     ['M1','M2','M3','C1','C2'].forEach(function(k){ evalActual[k]=0; });
     document.querySelectorAll('.estrella').forEach(function(e){ e.classList.remove('activa'); });
     document.getElementById('evalMaestroStatus').textContent='';
@@ -1955,7 +1993,7 @@
     if (!alumnoData) return;
     var a=alumnoData.alumno, g=alumnoData.grupo, s=alumnoData.asistente;
     var payload = { action:'guardarEvaluacion', idAlumno:a.id, idMaestro:g?(g.idMaestro||''):'', idAsistente:s?s.id:'', bloque:bloqueActual, tipo:tipo };
-    if (tipo==='maestro') { payload.maestro_dinamica=evalActual.M1; payload.maestro_actitud=evalActual.M2; payload.maestro_conocimiento=evalActual.M3; }
+    if (tipo==='maestro') { payload.maestro_dinamica=evalActual.M1; payload.maestro_actitud=evalActual.M2; payload.maestro_conocimiento=evalActual.M3; payload.frases=_frasesSel_().filter(function(x){return x!=='otro';}).join(','); payload.comentario=_frasesSel_().indexOf('otro')>=0?(document.getElementById('evalComentario').value||'').trim().slice(0,200):''; }
     else { payload.ce_actitud=evalActual.C1; payload.ce_servicio=evalActual.C2; }
     var btnId=tipo==='maestro'?'btnEnviarMaestro':'btnEnviarCE';
     var statusId=tipo==='maestro'?'evalMaestroStatus':'evalCEStatus';
