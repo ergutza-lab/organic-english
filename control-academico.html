@@ -458,6 +458,12 @@
         </div>
       </div>
 
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><span class="card-title">⭐ Evaluaciones de alumnos a maestros</span>
+          <button class="btn-exportar" onclick="cargarEvalAlumnosCA(true)">↻ Actualizar</button></div>
+        <div id="evalAlumnosCA"><div class="empty-state">Cargando...</div></div>
+      </div>
+
       <div class="eval-grid" id="evalGrid"><div class="empty-state">Cargando...</div></div>
     </div>
 
@@ -2649,6 +2655,75 @@ function lenteSVG(pct){
     +'</svg>';
 }
 
+// ── ⭐ Evaluaciones de alumnos a maestros (CA ve nombres) ──
+var evalAlumnosCAData=null;
+function _escCA_(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function cargarEvalAlumnosCA(forzar){
+  var box=document.getElementById('evalAlumnosCA'); if(!box) return;
+  if(evalAlumnosCAData&&!forzar){renderEvalAlumnosCA();return;}
+  box.innerHTML='<div class="empty-state">Cargando...</div>';
+  fetch(APPS_SCRIPT+'?action=getResumenEvalMaestros',{redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.status!=='ok'){box.innerHTML='<div class="empty-state">Error al cargar.</div>';return;}
+    evalAlumnosCAData=d; renderEvalAlumnosCA();
+  }).catch(function(){box.innerHTML='<div class="empty-state">Error de conexión.</div>';});
+}
+function renderEvalAlumnosCA(){
+  var d=evalAlumnosCAData, box=document.getElementById('evalAlumnosCA');
+  var lista=d.maestros||[];
+  if(!lista.length){box.innerHTML='<div class="empty-state">Aún no hay evaluaciones de alumnos.</div>';return;}
+  var bajos=lista.filter(function(m){return m.promedio<4;}).length;
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Ordenado de mayor a menor. '+(bajos?'<b style="color:#f87171;">'+bajos+' maestro'+(bajos===1?'':'s')+' debajo de 4.0</b> · ':'')+'Toca un maestro para ver el detalle con nombres.</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;">';
+  lista.forEach(function(m){
+    var bajo=m.promedio<4;
+    var col=m.promedio>=4.5?'#4ade80':m.promedio>=4?'#facc15':'#f87171';
+    h+='<div onclick="abrirDetalleEvalAlumnosCA(\''+_escCA_(m.idMaestro)+'\')" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:'+(bajo?'rgba(239,68,68,0.12)':'rgba(255,255,255,0.04)')+';border:1px solid '+(bajo?'rgba(239,68,68,0.45)':'var(--border)')+';">';
+    h+='<div style="font-size:22px;font-weight:800;color:'+col+';min-width:44px;">'+m.promedio.toFixed(1)+'</div>';
+    h+='<div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);font-size:14px;">'+(bajo?'⚠️ ':'')+_escCA_(m.nombre)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted);">'+m.total+' evaluaciones · Dinámica '+m.dinamica.toFixed(1)+' · Actitud '+m.actitud.toFixed(1)+' · Conocimiento '+m.conocimiento.toFixed(1)+'</div></div>';
+    h+='<div style="font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;">👍'+m.frases['1']+' 💡'+m.frases['2']+' 🗣️'+m.frases['3']+' ⏩'+m.frases['4']+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  if(d.sinMaestro) h+='<div style="font-size:11px;color:var(--muted);margin-top:8px;">'+d.sinMaestro+' evaluación(es) sin maestro asignado no se incluyen.</div>';
+  box.innerHTML=h;
+}
+function abrirDetalleEvalAlumnosCA(idMaestro){
+  var m=(evalAlumnosCAData.maestros||[]).filter(function(x){return x.idMaestro===idMaestro;})[0]||{nombre:idMaestro};
+  var ov=document.getElementById('modalEvalAlumnosCA');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='modalEvalAlumnosCA';
+    ov.style.cssText='display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px;';
+    ov.onclick=function(e){if(e.target===ov)ov.style.display='none';};
+    ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:620px;max-height:88vh;overflow-y:auto;padding:20px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div id="modalEvalAlumnosCATit" style="font-weight:800;font-size:16px;color:var(--text);"></div><button onclick="document.getElementById(\'modalEvalAlumnosCA\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">×</button></div><div id="modalEvalAlumnosCABody"></div></div>';
+    document.body.appendChild(ov);
+  }
+  document.getElementById('modalEvalAlumnosCATit').textContent='⭐ '+m.nombre+(m.promedio!=null?' · '+m.promedio.toFixed(1):'');
+  var body=document.getElementById('modalEvalAlumnosCABody');
+  body.innerHTML='<div class="empty-state">Cargando...</div>';
+  ov.style.display='flex';
+  fetch(APPS_SCRIPT+'?action=getEvalMaestroAlumnos&idMaestro='+encodeURIComponent(idMaestro),{redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var ev=d.evaluaciones||[];
+    if(!ev.length){body.innerHTML='<div class="empty-state">Sin evaluaciones.</div>';return;}
+    var h='';
+    ev.forEach(function(e){
+      var col=e.puntaje>=4.5?'#4ade80':e.puntaje>=4?'#facc15':'#f87171';
+      var f=e.fecha?new Date(e.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):'—';
+      h+='<div style="background:rgba(255,255,255,0.04);border-left:3px solid '+col+';border-radius:10px;padding:10px 12px;margin-bottom:8px;">';
+      h+='<div style="display:flex;justify-content:space-between;gap:8px;"><b style="color:var(--text);font-size:13px;">'+_escCA_(e.alumno)+'</b><span style="font-size:11px;color:var(--muted);white-space:nowrap;">'+_escCA_(e.grupo||'')+' · B'+_escCA_(e.bloque)+' · '+f+'</span></div>';
+      h+='<div style="font-size:12px;color:#cbd5e1;margin-top:4px;"><b style="color:'+col+';">'+Number(e.puntaje).toFixed(1)+'★</b> · Dinámica '+e.dinamica+' · Actitud '+e.actitud+' · Conocimiento '+e.conocimiento+'</div>';
+      if((e.frasesTexto||[]).length) h+='<div style="font-size:12px;color:#e2e8f0;margin-top:4px;">'+e.frasesTexto.map(_escCA_).join('<br>')+'</div>';
+      if(e.comentario) h+='<div style="font-size:12px;color:#cbd5e1;margin-top:4px;font-style:italic;">“'+_escCA_(e.comentario)+'”</div>';
+      h+='</div>';
+    });
+    body.innerHTML=h;
+  }).catch(function(){body.innerHTML='<div class="empty-state">Error de conexión.</div>';});
+}
+
 function renderEvaluaciones(){
   var grid=document.getElementById('evalGrid');
   var activos=maestrosData.filter(function(m){return m.activo&&m.id!=='VID';});
@@ -2906,6 +2981,7 @@ function switchTab(nombre){
   if (nombre==='altaPersonal') actualizarPreviewAlta();
   if (nombre==='bajas') cargarRankingBajas(false);
   if (nombre==='cambioNivel') cnInicializarPantalla();
+  if (nombre==='evaluacion') cargarEvalAlumnosCA(false);
   if (nombre==='seguimiento') cargarSeguimiento(); // ═══ AGREGADO ═══
 }
 
