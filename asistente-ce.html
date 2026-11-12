@@ -2655,8 +2655,14 @@ function asCalculo(cid, st) {
   if (!st.inicio || !st.fin) {
     var d0 = _detalleTabla_({ inicio: calLunesDe(new Date()), fin: calLunesDe(new Date()) }, g);
     if (d0.sinTabla) { r.html = '<div style="' + caja + '"><b>💲 Colegiatura</b><br>' + d0.sinTabla + ' Usa <b>Pago especial</b>.</div>'; if (tipo !== 'Pago_Especial') r.error = d0.sinTabla + ' Usa "Pago especial".'; return r; }
+    var extraP = '';
+    if (tipo === 'Promo_4') {
+      var l0 = calLunesDe(new Date()), f0 = new Date(l0); f0.setDate(f0.getDate() + 21);
+      var dp = _detalleTabla_({ inicio: l0, fin: f0 }, g);
+      if (!dp.sinTabla) extraP = '<br>🎁 Promoción 4 semanas: <b style="font-size:13px;">Paga: $' + Math.round(dp.totalPromo) + '</b> · cubre 4 ' + unidades + '. Marca las 4 ' + unidades + ' en el calendario.';
+    }
     r.html = '<div style="' + caja + '"><b>💲 ' + g.id + ' ' + (g.nombre || '') + ' · ' + d0.nivelActual + ' · ' + d0.tabla + '</b><br>$' + d0.precioActual + ' por ' + unidad +
-             '. Marca en el calendario la(s) ' + unidades + ' que cubre el pago y el monto se calcula solo.</div>';
+             (extraP || '. Marca en el calendario la(s) ' + unidades + ' que cubre el pago y el monto se calcula solo.') + '</div>';
     return r;
   }
   var det = _detalleTabla_(st, g);
@@ -2678,7 +2684,11 @@ function asCalculo(cid, st) {
     var tp = Math.round(det.totalPromo);
     html = cab + '🎁 Promoción 4 semanas: paga 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's con precio especial.';
     if (n === 4) { html += '<br><b>Paga: $' + tp + '</b> · cubre 4 ' + unidades + '<br><span style="color:#16a34a;font-weight:700;">✅ 4 ' + unidades + ' marcad' + (st.sabatino ? 'o' : 'a') + 's</span>'; r.sugerido = tp; r.total = tp; }
-    else { r.error = 'Marcaste ' + n + ' ' + (n === 1 ? unidad : unidades) + ' y la promoción cubre 4. Marca 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's.'; html += '<div style="' + rojo + '">⛔ ' + r.error + '</div>'; }
+    else {
+      var lun0 = calLunesDe(new Date(st.inicio)), fin4 = new Date(lun0); fin4.setDate(fin4.getDate() + 21);
+      var d4 = _detalleTabla_({ inicio: st.sabatino ? new Date(st.inicio) : lun0, fin: st.sabatino ? new Date(new Date(st.inicio).getTime() + 21 * 86400000) : fin4, sabatino: st.sabatino }, g);
+      if (!d4.sinTabla) html += '<br><b style="font-size:13px;">Paga: $' + Math.round(d4.totalPromo) + '</b> · cubre 4 ' + unidades;
+      r.error = 'Marcaste ' + n + ' ' + (n === 1 ? unidad : unidades) + ' y la promoción cubre 4. Marca 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's.'; html += '<div style="' + rojo + '">⛔ ' + r.error + '</div>'; }
   } else {
     var obs = (document.getElementById('obs-' + cid).value || '').trim();
     var monto = _calMontoDe_(cid);
