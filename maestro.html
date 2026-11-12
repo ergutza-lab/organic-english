@@ -554,6 +554,7 @@
           <label>Fecha de clase:</label>
           <input type="date" id="fechaClase" onchange="actualizarEstadoFecha(this.value)" />
         </div>
+        <div id="calEval" style="display:none;margin-bottom:12px;"></div>
         <div id="filaLeccion" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(168,85,247,0.14));border:1.5px solid rgba(96,165,250,0.5);border-radius:12px;padding:10px 12px;margin-bottom:12px;">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span style="font-size:22px;">📘</span>
@@ -851,6 +852,77 @@ var _linksVideo = {1:{},2:{}};
     sel.disabled = true;
     sel.style.opacity = '1';
     actualizarAvisoLeccion();
+    renderCalEval();
+  }
+
+  // ── Calendario de evaluaciones (nov-2026) ──
+  // 🔴 debe evaluación · 🟡 registrada con otra lección · 🟢 correcta
+  var calEvMes = null;
+  var _MESES_CE_ = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  function _estadoDiaEval_(iso, pendSet) {
+    var pos = _posCalendarioFecha_(iso);
+    if (!pos) return { cls: 'fuera', pos: 0 };
+    var reg = leccionesPorFecha[iso] || [];
+    if (reg.length) return { cls: reg.indexOf(pos) !== -1 ? 'ok' : 'mal', pos: pos, reg: reg };
+    if (pendSet[iso]) return { cls: 'debe', pos: pos, reg: [] };
+    return { cls: iso > _hoyISO_() ? 'futuro' : 'nada', pos: pos, reg: [] };
+  }
+  function calEvMover(delta) { calEvMes.setMonth(calEvMes.getMonth() + delta); renderCalEval(); }
+  function calEvClick(iso) {
+    var inp = document.getElementById('fechaClase');
+    if (!inp) return;
+    inp.value = iso;
+    actualizarEstadoFecha(iso);
+  }
+  function renderCalEval() {
+    var box = document.getElementById('calEval');
+    if (!box) return;
+    if (!grupoActual || grupoActual.tipoHorario === 'sabado' || !grupoActual.fechaInicio) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    var sel = _fechaRegistroSel_() || _hoyISO_();
+    if (!calEvMes) { var sp = sel.split('-'); calEvMes = new Date(+sp[0], +sp[1] - 1, 1); }
+    var pendSet = {};
+    _leccionesPendientes_(0, _hoyISO_() > sel ? _hoyISO_() : sel).forEach(function (p) { pendSet[_fechaDePosLeccion_(p)] = true; });
+    var y = calEvMes.getFullYear(), m = calEvMes.getMonth();
+    var primero = new Date(y, m, 1), offset = (primero.getDay() + 6) % 7, dias = new Date(y, m + 1, 0).getDate();
+    var col = { ok: ['rgba(34,197,94,0.25)', '#86efac', 'rgba(34,197,94,0.7)'], mal: ['rgba(234,179,8,0.25)', '#fde047', 'rgba(234,179,8,0.8)'],
+                debe: ['rgba(239,68,68,0.28)', '#fecaca', 'rgba(248,113,113,0.9)'], nada: ['rgba(255,255,255,0.04)', '#94a3b8', 'rgba(255,255,255,0.08)'],
+                futuro: ['transparent', '#64748b', 'rgba(255,255,255,0.06)'], fuera: ['transparent', '#334155', 'transparent'] };
+    var h = '<div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<button type="button" onclick="calEvMover(-1)" style="background:none;border:none;color:#93c5fd;font-size:18px;cursor:pointer;">‹</button>' +
+      '<b style="color:#e2e8f0;font-size:13px;">' + _MESES_CE_[m] + ' ' + y + '</b>' +
+      '<button type="button" onclick="calEvMover(1)" style="background:none;border:none;color:#93c5fd;font-size:18px;cursor:pointer;">›</button></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:10px;color:#64748b;text-align:center;margin-bottom:4px;"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">';
+    for (var k = 0; k < offset; k++) h += '<div></div>';
+    for (var d = 1; d <= dias; d++) {
+      var f = new Date(y, m, d), w = f.getDay(), iso = _isoDe_(f);
+      var es = (w >= 1 && w <= 4) ? _estadoDiaEval_(iso, pendSet) : { cls: 'fuera', pos: 0 };
+      var c = col[es.cls], marca = iso === sel ? 'box-shadow:0 0 0 2px #fff;' : '';
+      var clic = (es.cls !== 'fuera' && es.cls !== 'futuro') ? ' onclick="calEvClick(\'' + iso + '\')" ' : '';
+      var tip = es.pos ? 'Le toca ' + _etqLeccion_(es.pos) + (es.reg && es.reg.length ? ' · registrada: ' + es.reg.map(_etqLeccion_).join(', ') : '') : '';
+      h += '<div' + clic + ' title="' + tip + '" style="cursor:' + (clic ? 'pointer' : 'default') + ';background:' + c[0] + ';color:' + c[1] + ';border:1.5px solid ' + c[2] + ';border-radius:8px;padding:4px 0;text-align:center;' + marca + '">' +
+           '<div style="font-size:12px;font-weight:700;">' + d + '</div>' +
+           (es.pos ? '<div style="font-size:9px;opacity:.9;">L' + (es.pos > 32 ? es.pos - 32 : es.pos) + '</div>' : '<div style="font-size:9px;">&nbsp;</div>') + '</div>';
+    }
+    h += '</div><div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;margin-top:8px;color:#cbd5e1;">' +
+         '<span>🟢 Evaluada correcta</span><span>🟡 Registrada con otra lección</span><span>🔴 Debe evaluación</span></div>';
+    // detalle del día elegido
+    var ps = sel.split('-'), fs = new Date(+ps[0], +ps[1] - 1, +ps[2]), wd = fs.getDay();
+    if (wd >= 1 && wd <= 4) {
+      var e = _estadoDiaEval_(sel, pendSet);
+      if (e.pos) {
+        var txt = '📅 <b>' + _fechaCorta_(sel) + '</b>: le toca la <b>' + _etqLeccion_(e.pos) + '</b>. ';
+        if (e.cls === 'ok') txt += '<span style="color:#86efac;">✅ Evaluada correctamente.</span>';
+        else if (e.cls === 'mal') txt += '<span style="color:#fde047;">⚠️ Está registrada como ' + e.reg.map(_etqLeccion_).join(', ') + '. Avisa a Coordinación Académica para corregirla.</span>';
+        else if (e.cls === 'debe') txt += '<span style="color:#fca5a5;">⛔ Falta evaluarla.</span>';
+        else if (e.cls === 'nada') txt += '<span style="color:#94a3b8;">Sin evaluación ese día (la semana ya tiene sus 4 evaluaciones).</span>';
+        h += '<div style="margin-top:8px;font-size:12px;color:#e2e8f0;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;">' + txt + '</div>';
+      }
+    }
+    h += '</div>';
+    box.innerHTML = h;
   }
   function actualizarAvisoLeccion() {
     var av = document.getElementById('avisoLeccion');
