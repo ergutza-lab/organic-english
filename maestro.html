@@ -2106,8 +2106,13 @@ function actualizarEstadoFecha(fechaStr) {
           var i = fechasRegistradas.indexOf(fecha);
           if (i !== -1) fechasRegistradas.splice(i, 1);
           delete clasesPorFechaActual[fecha];
+          // También quitar las lecciones de ese día (si no, el candado y el calendario siguen viéndolo evaluado)
+          (leccionesPorFecha[fecha] || []).forEach(function (p) { if (leccionesEvaluadas[p] === fecha) delete leccionesEvaluadas[p]; });
+          delete leccionesPorFecha[fecha];
+          if (grupoActual) { grupoActual._mapaData = null; grupoActual._mapaPromise = null; }
           mostrarToast('Registros del ' + fechaTxt + ' borrados. Ya puedes evaluar de nuevo.', 'success');
           actualizarEstadoFecha(fecha);
+          poblarSelectorLeccion();
           renderRegistro();
         } else {
           if (btn) { btn.disabled = false; btn.textContent = 'Sí, borrar registros del día'; }
