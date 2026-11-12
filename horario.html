@@ -416,6 +416,18 @@ function getWeekRange(off){
   return{mon:mon,thu:thu};
 }
 
+// Semana DENTRO del bloque (1..8). Cuenta desde el lunes de la semana en que
+// inició el grupo (aunque haya iniciado martes por festivo o sea sabatino) y
+// reinicia cada 8 semanas: Mini Challenge = semana 4, Grand Challenge = semana 8
+// (en los dos bloques de cada nivel).
+function semanaDelBloque_(fi, fecha){
+  var lun0 = new Date(fi); lun0.setDate(fi.getDate() - ((fi.getDay() + 6) % 7)); lun0.setHours(0,0,0,0);
+  var lunF = new Date(fecha); lunF.setDate(fecha.getDate() - ((fecha.getDay() + 6) % 7)); lunF.setHours(0,0,0,0);
+  var semanas = Math.round((lunF - lun0) / (7*24*60*60*1000));
+  if(semanas < 0) return null;
+  return (semanas % 8) + 1;
+}
+
 function calcSemanaEnVista(fechaInicio){
   try {
     if(!fechaInicio) return null;
@@ -430,9 +442,7 @@ function calcSemanaEnVista(fechaInicio){
     lunes.setDate(hoy.getDate() + diff + (semanaOffset || 0) * 7);
     lunes.setHours(0,0,0,0);
 
-    var dias = Math.floor((lunes - fi) / (1000*60*60*24));
-    if(dias < 0) return null;
-    return Math.floor(dias / 7) + 1;
+    return semanaDelBloque_(fi, lunes);
   } catch(e) {
     console.error('calcSemanaEnVista error:', e);
     return null;
@@ -766,9 +776,7 @@ function calcSemanaBloque(fechaInicio){
   fi.setHours(0,0,0,0);
   var hoy = new Date();
   hoy.setHours(0,0,0,0);
-  var dias = Math.floor((hoy - fi) / (1000*60*60*24));
-  if(dias < 0) return null;
-  return Math.floor(dias / 7) + 1;
+  return semanaDelBloque_(fi, hoy);
 }
 
 function abrirLecciones(){
@@ -777,6 +785,8 @@ function abrirLecciones(){
   }).map(function(g){
     var av = avanceMap[g.id] || {};
     var semana = calcSemanaBloque(g.fechaInicio);
+    var lecNum = Number(av.leccionActual) || 0;
+    if(lecNum > 0) semana = Math.floor(((lecNum - 1) % 32) / 4) + 1;   // la lección real manda (32 lecciones por bloque)
     var challengeTipo = '';
     if(semana === 4) challengeTipo = 'mini';
     else if(semana === 8) challengeTipo = 'grand';
