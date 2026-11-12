@@ -595,6 +595,20 @@
     <div class="modal-visor" id="modal-visor">
       <p style="color:var(--gris-400);font-size:13px;">Sin comprobante adjunto</p>
     </div>
+<style>
+.as-op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 12px}
+.as-op{background:rgba(148,163,184,0.08);border:1.5px solid rgba(148,163,184,0.35);border-radius:12px;padding:8px 10px;cursor:pointer;text-align:left;color:inherit;font-family:inherit}
+.as-op .t{display:block;font-size:12.5px;font-weight:800}
+.as-op .d{display:block;font-size:10.5px;opacity:.75;margin-top:2px;line-height:1.3}
+.as-op.sel{border-color:#f97316;background:rgba(249,115,22,0.14);box-shadow:0 0 0 3px rgba(249,115,22,0.15)}
+.as-op-lab{font-size:12px;font-weight:700;margin-bottom:4px;display:block}
+.as-obs{display:none;margin:-4px 0 12px}
+.as-obs textarea{width:100%;box-sizing:border-box;min-height:56px;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12.5px;border:1.5px solid rgba(248,113,113,0.6);background:rgba(255,255,255,0.06);color:inherit;resize:vertical}
+</style>
+    <span class="as-op-lab">Opción de pago</span>
+    <div class="as-op-grid" id="op-cal-comp"></div>
+    <div class="as-obs" id="obs-wrap-cal-comp"><span class="as-op-lab" style="color:#f87171;">Observaciones del pago especial (obligatorio)</span>
+      <textarea id="obs-cal-comp" maxlength="300" placeholder="Explica el motivo (ej. paga parte de la semana, descuento autorizado por Dirección...)" oninput="asCambio('cal-comp')"></textarea></div>
     <div class="monto-field">
     <label>Monto que corresponde a ESTE alumno (MXN)</label>
     <input type="number" id="input-monto-validar" placeholder="Ej. 150 o 570" min="1" />
@@ -2447,6 +2461,7 @@ function _calMaxSabados_(monto){ return monto > 0 ? Math.max(1, Math.ceil(monto 
 function calValidarSabatino(containerId){
   var st = calendarios[containerId];
   if (!_calEsSab_(st) || !st.inicio || !st.fin) return '';
+  if (typeof asTablaAplica === 'function' && asTablaAplica(containerId)) return '';
   var monto = _calMontoDe_(containerId), max = _calMaxSabados_(monto), sab = _calSabados_(st);
   if (max && sab > max) {
     return 'Con $' + monto + ' se cubre' + (max > 1 ? 'n ' + max + ' sábados' : ' 1 sábado') + ' y marcaste ' + sab +
@@ -2551,62 +2566,162 @@ function _detalleTabla_(st, g){
     while (lec > 32) { lec -= 32; if (bl === 1) bl = 2; else if (ni < NIVELES_ORDEN.length - 1) { ni++; bl = 1; } }
     while (lec < 1)  { lec += 32; if (bl === 2) bl = 1; else if (ni > 0) { ni--; bl = 2; } }
     var precio = _precioSemana_(esAA, esKids, NIVELES_ORDEN[ni], bl);
-    res.semanas.push({ etiqueta: NIVELES_ORDEN[ni] + '-Bloque ' + bl, precio: precio });
+    var promoT = (esAA ? (esKids ? PROMO4_KIDS : PROMO4_AA) : PROMO4_AZ)[NIVELES_ORDEN[ni]];
+    var promo = promoT ? promoT[bl - 1] / 4 : precio;
+    res.semanas.push({ etiqueta: NIVELES_ORDEN[ni] + '-Bloque ' + bl, precio: precio, promo: promo });
     res.total += precio;
+    res.totalPromo = (res.totalPromo || 0) + promo;
   }
   res.nivelActual = m[1].toUpperCase() + '-Bloque ' + bloque;
   res.precioActual = _precioSemana_(esAA, esKids, m[1].toUpperCase(), bloque);
   return res;
 }
 
-function _notaTablaHtml_(containerId, st){
-  var ref = CAL_GRUPO[containerId];
-  if (!ref || !ref.grupo) return '';
-  if (/^PER/.test(ref.grupo)) return '';                         // personalizados: fuera de tabla
-  if (/becad|personaliz/i.test(ref.tipo || '')) return '';        // becados / personalizados
-  var g = _grupoPorId_(ref.grupo);
-  if (!g) return '';
-  var caja = 'margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:500;text-align:left;line-height:1.55;' +
-             'background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.35);color:inherit;';
-  var unidad = st.sabatino ? 'sábado' : 'semana';
+// ══════════════════════════════════════════════════════════════════════════
+//  OPCIONES DE PAGO AL VALIDAR (nov-2026)
+//  · Pago semanal: el monto se calcula con la tabla del grupo (no se edita).
+//  · Promoción 4 semanas: 4 semanas (o sábados) seguidos, precio "PROM 4 SEM".
+//  · Pago especial: monto libre + observaciones obligatorias. Si el monto
+//    es mayor a la tabla queda anotado como saldo a favor; si es menor, como
+//    pago pendiente.
+//  Becados, personalizados y grupos sin tabla: monto manual, como antes.
+// ══════════════════════════════════════════════════════════════════════════
+var PROMO4_AZ   = { A1:[400,400], A2:[460,520], B1:[600,680], B2:[760,840], C1:[920,1000] };
+var PROMO4_AA   = { A1:[400,440], A2:[520,600], B1:[680,760], B2:[840,920], C1:[1000,1080] };
+var PROMO4_KIDS = { A1:[480,520], A2:[600,680], B1:[760,840], B2:[920,1000], C1:[1080,1160] };
+var AS_OP = {};                    // containerId -> 'Colegiatura' | 'Promo_4' | 'Pago_Especial'
+var asComentarioPendiente = '';
+
+function asReiniciar(cid) {
+  AS_OP[cid] = 'Colegiatura';
+  asComentarioPendiente = '';
+  var o = document.getElementById('obs-' + cid); if (o) o.value = '';
+  var w = document.getElementById('obs-wrap-' + cid); if (w) w.style.display = 'none';
+  var m = document.getElementById(CAL_MONTO_INPUT[cid]); if (m) { m.readOnly = false; m.style.opacity = '1'; }
+  asRenderOpciones(cid);
+}
+
+function asGrupoTabla_(cid) {
+  var ref = CAL_GRUPO[cid];
+  if (!ref || !ref.grupo) return null;
+  if (/^PER/.test(ref.grupo)) return null;
+  if (/becad|personaliz/i.test(ref.tipo || '')) return null;
+  return _grupoPorId_(ref.grupo) || null;
+}
+function asTablaAplica(cid) {
+  var g = asGrupoTabla_(cid);
+  if (!g) return false;
+  var st = calendarios[cid];
+  var d = _detalleTabla_({ inicio: calLunesDe(new Date()), fin: calLunesDe(new Date()) }, g);
+  return !d.sinTabla && AS_OP[cid] !== 'Pago_Especial';
+}
+
+function asRenderOpciones(cid) {
+  var box = document.getElementById('op-' + cid);
+  if (!box) return;
+  var g = asGrupoTabla_(cid);
+  var lab = box.previousElementSibling;
+  box.style.display = g ? '' : 'none';
+  if (lab) lab.style.display = g ? '' : 'none';
+  if (!g) return;
+  var t = AS_OP[cid] || 'Colegiatura';
+  function op(v, ti, de) {
+    return '<button type="button" class="as-op' + (t === v ? ' sel' : '') + '" onclick="asSeleccionar(\'' + cid + '\',\'' + v + '\')"><span class="t">' + ti + '</span><span class="d">' + de + '</span></button>';
+  }
+  box.innerHTML = op('Colegiatura', '📅 Pago semanal', 'Las semanas que marques, precio de tabla') +
+                  op('Promo_4', '🎁 Promoción 4 semanas', '4 semanas seguidas, precio especial') +
+                  op('Pago_Especial', '📝 Pago especial', 'Otro monto, con observaciones');
+}
+
+function asSeleccionar(cid, tipo) {
+  AS_OP[cid] = tipo;
+  var w = document.getElementById('obs-wrap-' + cid); if (w) w.style.display = tipo === 'Pago_Especial' ? 'block' : 'none';
+  var m = document.getElementById(CAL_MONTO_INPUT[cid]);
+  if (m && tipo === 'Pago_Especial') { m.readOnly = false; m.style.opacity = '1'; m.value = ''; }
+  asRenderOpciones(cid);
+  if (calendarios[cid]) calRender(cid);
+}
+function asCambio(cid) { if (calendarios[cid]) calRender(cid); }
+
+// Cálculo de la opción elegida: { html, error, sugerido }
+function asCalculo(cid, st) {
+  var r = { html: '', error: '', sugerido: null, total: null };
+  var g = asGrupoTabla_(cid);
+  if (!g) return r;
+  var tipo = AS_OP[cid] || 'Colegiatura';
+  var unidad = st.sabatino ? 'sábado' : 'semana', unidades = st.sabatino ? 'sábados' : 'semanas';
+  var caja = 'margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:500;text-align:left;line-height:1.55;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.35);color:inherit;';
+  var rojo = 'margin-top:8px;background:rgba(239,68,68,0.12);border:1.5px solid rgba(248,113,113,0.6);border-radius:8px;padding:7px 10px;color:#dc2626;font-weight:700;';
   if (!st.inicio || !st.fin) {
     var d0 = _detalleTabla_({ inicio: calLunesDe(new Date()), fin: calLunesDe(new Date()) }, g);
-    if (d0.sinTabla) return '<div style="' + caja + '"><b>💲 Colegiatura según tabla</b><br>' + d0.sinTabla + '</div>';
-    return '<div style="' + caja + '"><b>💲 Colegiatura según tabla</b><br>' + g.id + ' ' + (g.nombre || '') + ' · ' + d0.nivelActual + ' · ' + d0.tabla +
-           '<br><b>$' + d0.precioActual + ' por ' + unidad + '</b> · marca la(s) ' + unidad + '(s) para ver el total.</div>';
+    if (d0.sinTabla) { r.html = '<div style="' + caja + '"><b>💲 Colegiatura</b><br>' + d0.sinTabla + ' Usa <b>Pago especial</b>.</div>'; if (tipo !== 'Pago_Especial') r.error = d0.sinTabla + ' Usa "Pago especial".'; return r; }
+    r.html = '<div style="' + caja + '"><b>💲 ' + g.id + ' ' + (g.nombre || '') + ' · ' + d0.nivelActual + ' · ' + d0.tabla + '</b><br>$' + d0.precioActual + ' por ' + unidad +
+             '. Marca en el calendario la(s) ' + unidades + ' que cubre el pago y el monto se calcula solo.</div>';
+    return r;
   }
   var det = _detalleTabla_(st, g);
-  if (det.sinTabla) return '<div style="' + caja + '"><b>💲 Colegiatura según tabla</b><br>' + det.sinTabla + '</div>';
-
-  // Agrupar semanas por precio/bloque: "2 semanas × $100 (A1-Bloque 1)"
-  var grupos = [], ult = null;
-  det.semanas.forEach(function(s){
-    if (ult && ult.etiqueta === s.etiqueta) ult.n++;
-    else { ult = { etiqueta: s.etiqueta, precio: s.precio, n: 1 }; grupos.push(ult); }
-  });
-  var calc = grupos.map(function(x){
-    return x.n + ' ' + unidad + (x.n !== 1 ? 's' : '') + ' × $' + x.precio + (grupos.length > 1 ? ' (' + x.etiqueta + ')' : '');
-  }).join(' + ');
-
-  var html = '<b>💲 Colegiatura según tabla</b><br>' + g.id + ' ' + (g.nombre || '') + ' · ' + det.nivelActual + ' · ' + det.tabla +
-             '<br>' + calc + ' = <b>$' + det.total + '</b>';
-  var monto = _calMontoDe_(containerId);
-  if (!monto) {
-    html += '<br><span style="opacity:.8;">Captura el monto del comprobante para compararlo.</span>';
-  } else if (monto === det.total) {
-    html += '<br><span style="color:#16a34a;font-weight:700;">✅ El monto ($' + monto + ') coincide con la tabla.</span>';
-    } else if (monto > det.total) {
-    var sobra = monto - det.total;
-    html += '<br><span style="color:#dc2626;font-weight:700;">⚠️ Capturaste $' + monto + ' y a este alumno le tocan $' + det.total + ' (sobran $' + sobra + ').</span>' +
-            '<br><span style="opacity:.9;">¿El comprobante también paga a otro alumno (hermano, papá, hijo…)? Captura aquí solo <b>$' + det.total + '</b> y valida los <b>$' + sobra + '</b> restantes en el otro alumno con <b>📤 Validar pago</b>, subiendo el mismo comprobante.</span>' +
-            '<br><span style="opacity:.8;">Si no es compartido y es un caso especial (por ejemplo, un adelanto), puedes validar y anotarlo en el comentario.</span>';
-  } else {
-    var dif = det.total - monto;
-    html += '<br><span style="color:#d97706;font-weight:700;">⚠️ Monto capturado $' + monto + ': no coincide con la tabla (faltan $' + dif + ').</span>' +
-            '<br><span style="opacity:.8;">Puedes validar si es un caso especial; anótalo en el comentario.</span>';
+  if (det.sinTabla) {
+    r.html = '<div style="' + caja + '"><b>💲 Colegiatura</b><br>' + det.sinTabla + ' Usa <b>Pago especial</b>.</div>';
+    if (tipo !== 'Pago_Especial') r.error = det.sinTabla + ' Usa "Pago especial".';
+    return r;
   }
-  return '<div style="' + caja + '">' + html + '</div>';
+  var n = det.semanas.length;
+  var cab = '<b>💲 ' + g.id + ' ' + (g.nombre || '') + ' · ' + det.nivelActual + ' · ' + det.tabla + '</b><br>';
+  var html = '';
+  if (tipo === 'Colegiatura') {
+    var grupos = [], ult = null;
+    det.semanas.forEach(function (s) { if (ult && ult.etiqueta === s.etiqueta) ult.n++; else { ult = { etiqueta: s.etiqueta, precio: s.precio, n: 1 }; grupos.push(ult); } });
+    html = cab + '📅 Pago semanal: ' + grupos.map(function (x) { return x.n + ' ' + (x.n === 1 ? unidad : unidades) + ' × $' + x.precio + (grupos.length > 1 ? ' (' + x.etiqueta + ')' : ''); }).join(' + ') +
+           ' = <b>$' + det.total + '</b><br><span style="color:#16a34a;font-weight:700;">✅ Monto calculado con la tabla</span>';
+    r.sugerido = det.total; r.total = det.total;
+  } else if (tipo === 'Promo_4') {
+    var tp = Math.round(det.totalPromo);
+    html = cab + '🎁 Promoción 4 semanas: paga 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's con precio especial.';
+    if (n === 4) { html += '<br><b>Paga: $' + tp + '</b> · cubre 4 ' + unidades + '<br><span style="color:#16a34a;font-weight:700;">✅ 4 ' + unidades + ' marcad' + (st.sabatino ? 'o' : 'a') + 's</span>'; r.sugerido = tp; r.total = tp; }
+    else { r.error = 'Marcaste ' + n + ' ' + (n === 1 ? unidad : unidades) + ' y la promoción cubre 4. Marca 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's.'; html += '<div style="' + rojo + '">⛔ ' + r.error + '</div>'; }
+  } else {
+    var obs = (document.getElementById('obs-' + cid).value || '').trim();
+    var monto = _calMontoDe_(cid);
+    html = cab + '📝 Pago especial · según tabla le tocarían <b>$' + det.total + '</b> por ' + n + ' ' + (n === 1 ? unidad : unidades) + '.';
+    if (monto > det.total) html += '<br><span style="color:#16a34a;font-weight:700;">💚 Saldo a favor: $' + (monto - det.total) + ' (queda anotado en el pago)</span>';
+    else if (monto && monto < det.total) html += '<br><span style="color:#d97706;font-weight:700;">⏳ Pago pendiente: $' + (det.total - monto) + ' (queda anotado en el pago)</span>';
+    r.total = det.total;
+    if (!monto) r.error = 'Escribe el monto del pago especial.';
+    else if (!obs) { r.error = 'Escribe las observaciones del pago especial.'; html += '<div style="' + rojo + '">⛔ ' + r.error + '</div>'; }
+  }
+  r.html = '<div style="' + caja + '">' + html + '</div>';
+  return r;
 }
+
+function _notaTablaHtml_(containerId, st) {
+  var r = asCalculo(containerId, st);
+  var m = document.getElementById(CAL_MONTO_INPUT[containerId]);
+  if (m && asGrupoTabla_(containerId) && AS_OP[containerId] !== 'Pago_Especial') {
+    if (r.sugerido != null) { m.value = r.sugerido; m.readOnly = true; m.style.opacity = '0.75'; }
+    else { m.readOnly = false; m.style.opacity = '1'; if (AS_OP[containerId] === 'Promo_4') m.value = ''; }
+  }
+  return r.html;
+}
+
+function asValidar(cid) {
+  var st = calendarios[cid];
+  if (!st) return '';
+  return asCalculo(cid, st).error;
+}
+
+// Comentario que queda guardado en el pago
+function asComentario(cid) {
+  if (!asGrupoTabla_(cid)) return '';
+  var tipo = AS_OP[cid] || 'Colegiatura';
+  if (tipo === 'Promo_4') return 'Promoción 4 semanas';
+  if (tipo !== 'Pago_Especial') return '';
+  var st = calendarios[cid], r = asCalculo(cid, st), monto = _calMontoDe_(cid);
+  var extra = '';
+  if (r.total != null && monto > r.total) extra = ' · Saldo a favor $' + (monto - r.total);
+  else if (r.total != null && monto < r.total) extra = ' · Pago pendiente $' + (r.total - monto);
+  return 'Pago especial: ' + (document.getElementById('obs-' + cid).value || '').trim() + extra;
+}
+
 document.addEventListener('input', function(e){
   if (!e.target || !e.target.id) return;
   Object.keys(CAL_MONTO_INPUT).forEach(function(k){
@@ -2738,6 +2853,7 @@ function abrirModalComp(idAlumno,fechaPago,nombre,monto,grupo,cUrl,fila,esSabati
   // entre-semana, igual que antes.
   var esSabatinoComp = !!esSabatino;
   CAL_GRUPO['cal-comp'] = _infoAlumnoTabla_(idAlumno, grupo);
+  asReiniciar('cal-comp');
   calInit('cal-comp', esSabatinoComp);
   var etiquetaComp = document.getElementById('modal-comp-cobertura-label');
   if (etiquetaComp) etiquetaComp.textContent = esSabatinoComp ? '¿Qué sábado(s) cubre este pago?' : '¿Qué semana(s) cubre este pago?';
@@ -2945,7 +3061,10 @@ async function validarDesdeModal(){
   }
   var errSabComp = calValidarSabatino('cal-comp');
   if (errSabComp) { mostrarToast(errSabComp,'error'); return; }
-  await validarPago(pagoActivoId,pagoActivoFecha,Number(monto),cal.inicio,cal.fin);
+  var errOpComp = asValidar('cal-comp');
+  if (errOpComp) { mostrarToast(errOpComp,'error'); return; }
+  asComentarioPendiente = asComentario('cal-comp');
+  await validarPago(pagoActivoId,pagoActivoFecha,Number(document.getElementById('input-monto-validar').value),cal.inicio,cal.fin);
   cerrarModalComp();
 }
 
@@ -2983,6 +3102,7 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
     if(confirmarDuplicado) url += '&confirmarDuplicado=1';
     if(coberturaInicio) url += `&coberturaInicio=${encodeURIComponent(coberturaInicio.toISOString())}`;
     if(coberturaFin)    url += `&coberturaFin=${encodeURIComponent(coberturaFin.toISOString())}`;
+    if(asComentarioPendiente) url += `&comentario=${encodeURIComponent(asComentarioPendiente)}`;
     const resp=await fetch(url);
     const data=await resp.json();
     if(data.status==='ok'){
@@ -3564,6 +3684,7 @@ function abrirModalValidarCE(idAlumno, nombreParam, esSabatinoParam, grupoParam)
   if (modal.parentNode !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
   CAL_GRUPO['cal-ce'] = _infoAlumnoTabla_(idAlumno, grupoParam);
+  asReiniciar('cal-ce');
   calInit('cal-ce', esSabatinoAlumno);
   var etiquetaCobertura = document.getElementById('validar-ce-cobertura-label');
   if (etiquetaCobertura) etiquetaCobertura.textContent = esSabatinoAlumno ? '¿Qué sábado(s) cubre este pago?' : '¿Qué semana(s) cubre este pago?';
@@ -3595,10 +3716,13 @@ async function ejecutarValidarCE() {
   if (!cal || !cal.inicio || !cal.fin){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='Selecciona la semana (o semanas) que cubre este pago.';return;}
   var errSabCE = calValidarSabatino('cal-ce');
   if (errSabCE){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='⛔ '+errSabCE;return;}
+  var errOpCE = asValidar('cal-ce');
+  if (errOpCE){status.style.display='block';status.style.background='rgba(239,68,68,0.15)';status.style.color='#f87171';status.textContent='⛔ '+errOpCE;return;}
+  monto = document.getElementById('validar-ce-monto').value.trim();
   btn.textContent='Subiendo...';btn.disabled=true;status.style.display='none';
   try {
     var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
-    var cuerpo={action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:document.getElementById('validar-ce-comentario').value.trim(),coberturaInicio:cal.inicio.toISOString(),coberturaFin:cal.fin.toISOString(),base64:base64,mimeType:file.type,nombreArchivo:file.name};
+    var cuerpo={action:'validarPagoDesdeAsistente',idAlumno:idAlumno,idAsistente:asistente?asistente.id:'',monto:Number(monto),comentario:[asComentario('cal-ce'),document.getElementById('validar-ce-comentario').value.trim()].filter(Boolean).join(' · '),coberturaInicio:cal.inicio.toISOString(),coberturaFin:cal.fin.toISOString(),base64:base64,mimeType:file.type,nombreArchivo:file.name};
     var resp=await fetch(APPS_SCRIPT,{method:'POST',redirect:'follow',body:JSON.stringify(cuerpo)});
     var data=await resp.json();
     // Pago adicional del mismo dia: la asistente decide (antes era un candado).
@@ -4012,6 +4136,21 @@ function contactarAlumnoInasistencia(idAlumno, nombre, whatsapp, racha) {
         <div id="validar-ce-filename" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
       </div>
     </div>
+    <div style="color:#e2e8f0;"><style>
+.as-op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 12px}
+.as-op{background:rgba(148,163,184,0.08);border:1.5px solid rgba(148,163,184,0.35);border-radius:12px;padding:8px 10px;cursor:pointer;text-align:left;color:inherit;font-family:inherit}
+.as-op .t{display:block;font-size:12.5px;font-weight:800}
+.as-op .d{display:block;font-size:10.5px;opacity:.75;margin-top:2px;line-height:1.3}
+.as-op.sel{border-color:#f97316;background:rgba(249,115,22,0.14);box-shadow:0 0 0 3px rgba(249,115,22,0.15)}
+.as-op-lab{font-size:12px;font-weight:700;margin-bottom:4px;display:block}
+.as-obs{display:none;margin:-4px 0 12px}
+.as-obs textarea{width:100%;box-sizing:border-box;min-height:56px;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12.5px;border:1.5px solid rgba(248,113,113,0.6);background:rgba(255,255,255,0.06);color:inherit;resize:vertical}
+</style>
+    <span class="as-op-lab">Opción de pago</span>
+    <div class="as-op-grid" id="op-cal-ce"></div>
+    <div class="as-obs" id="obs-wrap-cal-ce"><span class="as-op-lab" style="color:#f87171;">Observaciones del pago especial (obligatorio)</span>
+      <textarea id="obs-cal-ce" maxlength="300" placeholder="Explica el motivo (ej. paga parte de la semana, descuento autorizado por Dirección...)" oninput="asCambio('cal-ce')"></textarea></div>
+</div>
     <!-- Monto -->
     <div style="margin-bottom:16px;">
       <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:8px;">Monto que corresponde a ESTE alumno (MXN) <span style="color:#f87171;">*</span></label>
