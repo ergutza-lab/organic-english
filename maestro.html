@@ -755,14 +755,22 @@ var _linksVideo = {1:{},2:{}};
   // Regla (nov-2026, acordada con Coord. Académica): cada lun-jue es una lección fija desde el
   // LUNES de la semana de inicio, aunque sea festivo o el grupo haya iniciado en martes por festivo.
   // Ej. grupo que inicia martes 3-nov: lun 2 = L1, mar 3 = L2, mié 4 = L3, jue 5 = L4.
+  // Lunes de la 1a semana del grupo. Si la fecha de inicio cae viernes, sábado o
+  // domingo (ej. cambio de nivel hecho en viernes), el nivel arranca el lunes siguiente.
+  function _lunesInicioGrupo_(ini) {
+    var l = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
+    var w = l.getDay();
+    if (w === 5 || w === 6 || w === 0) l.setDate(l.getDate() + ((8 - w) % 7));
+    else l.setDate(l.getDate() - (w - 1));
+    return l;
+  }
   function _posCalendarioFecha_(fechaIso) {
     if (!grupoActual || !grupoActual.fechaInicio || !fechaIso) return 0;
     var ini = _parseFechaLocal_(grupoActual.fechaInicio);
     var p = String(fechaIso).substring(0, 10).split('-');
     var f = new Date(+p[0], +p[1] - 1, +p[2]);
     if (!ini || isNaN(ini.getTime()) || isNaN(f.getTime())) return 0;
-    ini = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
-    var lun0 = new Date(ini); lun0.setDate(ini.getDate() - ((ini.getDay() + 6) % 7));
+    var lun0 = _lunesInicioGrupo_(ini);
     if (f < lun0) return 0;
     var n = 0, e = new Date(lun0);
     while (e <= f) { var w = e.getDay(); if (w >= 1 && w <= 4) n++; e.setDate(e.getDate() + 1); }
@@ -776,13 +784,12 @@ var _linksVideo = {1:{},2:{}};
   // La lección ya no se elige: es la que marca el programa para la fecha.
   // No se puede evaluar una lección si falta alguna anterior (desde el 2-nov
   // o desde el inicio del grupo): cada semana deben quedar 4 evaluaciones.
-  var LECCION_REVISAR_DESDE = '2026-11-02';
+  var LECCION_REVISAR_DESDE = '2000-01-01';   // ya no limita: se revisa desde el inicio del grupo
   function _fechaDePosLeccion_(p) {
     if (!grupoActual || !grupoActual.fechaInicio) return '';
     var ini = _parseFechaLocal_(grupoActual.fechaInicio);
     if (!ini || isNaN(ini.getTime())) return '';
-    ini = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
-    var d = new Date(ini); d.setDate(ini.getDate() - ((ini.getDay() + 6) % 7));
+    var d = _lunesInicioGrupo_(ini);
     d.setDate(d.getDate() + Math.floor((p - 1) / 4) * 7 + ((p - 1) % 4));
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
@@ -794,9 +801,7 @@ var _linksVideo = {1:{},2:{}};
     if (!grupoActual || !grupoActual.fechaInicio || !fecha) return [];
     var ini = _parseFechaLocal_(grupoActual.fechaInicio);
     if (!ini || isNaN(ini.getTime())) return [];
-    var lun0 = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate()); lun0.setDate(lun0.getDate() - ((lun0.getDay() + 6) % 7));
-    var p = LECCION_REVISAR_DESDE.split('-'), desde = new Date(+p[0], +p[1] - 1, +p[2]);
-    if (lun0 > desde) desde = lun0;
+    var desde = _lunesInicioGrupo_(ini);   // se revisa desde el inicio del grupo (o de su nivel)
     var q = fecha.split('-'), hasta = new Date(+q[0], +q[1] - 1, +q[2]);
     // Evaluaciones de la semana (lun-dom) + días vacíos anteriores ya contados como pendientes:
     // por semana solo se piden (4 - evaluaciones) días.
