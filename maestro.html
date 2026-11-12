@@ -766,7 +766,7 @@ var _linksVideo = {1:{},2:{}};
     if (f < lun0) return 0;
     var n = 0, e = new Date(lun0);
     while (e <= f) { var w = e.getDay(); if (w >= 1 && w <= 4) n++; e.setDate(e.getDate() + 1); }
-    return Math.min(64, n);
+    return n;   // > 64 = el grupo ya terminó su nivel (falta el cambio de nivel)
   }
   function _fechaRegistroSel_() {
     var el = document.getElementById('fechaClase');
@@ -798,9 +798,16 @@ var _linksVideo = {1:{},2:{}};
     var p = LECCION_REVISAR_DESDE.split('-'), desde = new Date(+p[0], +p[1] - 1, +p[2]);
     if (lun0 > desde) desde = lun0;
     var q = fecha.split('-'), hasta = new Date(+q[0], +q[1] - 1, +q[2]);
+    // Evaluaciones de la semana (lun-dom) + días vacíos anteriores ya contados como pendientes:
+    // por semana solo se piden (4 - evaluaciones) días.
     function cuentaSemana(d) {
       var l = new Date(d); l.setDate(l.getDate() - ((l.getDay() + 6) % 7)); var n = 0;
-      for (var k = 0; k < 7; k++) { var x = new Date(l); x.setDate(l.getDate() + k); n += (leccionesPorFecha[_isoDe_(x)] || []).length; }
+      for (var k = 0; k < 7; k++) {
+        var x = new Date(l); x.setDate(l.getDate() + k), ix = _isoDe_(x), w = x.getDay();
+        var c = (leccionesPorFecha[ix] || []).length;
+        n += c;
+        if (!c && x < d && w >= 1 && w <= 4 && ix >= LECCION_REVISAR_DESDE) n++;
+      }
       return n;
     }
     var faltan = [];
@@ -809,7 +816,7 @@ var _linksVideo = {1:{},2:{}};
       var iso = _isoDe_(d);
       if ((leccionesPorFecha[iso] || []).length) continue;
       if (cuentaSemana(d) >= 4) continue;
-      var pp = _posCalendarioFecha_(iso); if (pp) faltan.push(pp);
+      var pp = _posCalendarioFecha_(iso); if (pp && pp <= 64) faltan.push(pp);
     }
     return faltan;
   }
@@ -826,6 +833,7 @@ var _linksVideo = {1:{},2:{}};
     if (fecha > _hoyISO_()) { r.error = 'No puedes evaluar una fecha futura.'; return r; }
     r.pos = _posCalendarioFecha_(fecha);
     if (!r.pos) { r.error = 'Esta fecha es anterior al inicio del grupo.'; return r; }
+    if (r.pos > 64) { r.error = 'Tu grupo ya terminó las 64 lecciones de su nivel. Pide a Coordinación Académica que haga el cambio de nivel para poder evaluar.'; r.pos = 0; return r; }
     if ((leccionesPorFecha[fecha] || []).length) { r.error = 'Este día ya tiene evaluación registrada.'; return r; }
     r.pendientes = _leccionesPendientes_(r.pos, fecha);
     if (r.pendientes.length) r.error = 'Antes de evaluar la ' + _etqLeccion_(r.pos) + ' debes registrar las lecciones pendientes.';
@@ -846,6 +854,7 @@ var _linksVideo = {1:{},2:{}};
     if (esSab) { fila.style.display = 'none'; return; }
     fila.style.display = 'block';
     var cal = _posCalendarioFecha_(_fechaRegistroSel_());
+    if (cal > 64) cal = 0;
     sel.innerHTML = cal
       ? '<option value="' + cal + '" selected>' + ((leccionesPorFecha[_fechaRegistroSel_()] || []).length ? '✅ ' : '👉 ') + _etqLeccion_(cal) + '</option>'
       : '<option value="">Elige la fecha de la clase</option>';
@@ -861,7 +870,7 @@ var _linksVideo = {1:{},2:{}};
   var _MESES_CE_ = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   function _estadoDiaEval_(iso, pendSet) {
     var pos = _posCalendarioFecha_(iso);
-    if (!pos) return { cls: 'fuera', pos: 0 };
+    if (!pos || pos > 64) return { cls: 'fuera', pos: 0 };
     var reg = leccionesPorFecha[iso] || [];
     if (reg.length) return { cls: reg.indexOf(pos) !== -1 ? 'ok' : 'mal', pos: pos, reg: reg };
     if (pendSet[iso]) return { cls: 'debe', pos: pos, reg: [] };
