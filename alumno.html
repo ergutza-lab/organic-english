@@ -1557,11 +1557,15 @@
     var antes = Promise.resolve();
     if (protegida && !_OE_SES.token) {
       // Consulta que salió al mismo tiempo que el login: espera el token (máx. 15 s)
-      antes = Promise.race([_OE_SES_LISTA, new Promise(function (r) { setTimeout(r, 15000); })]);
+      antes = Promise.race([_OE_SES_LISTA, new Promise(function (r) { setTimeout(r, 60000); })]);
     } else if (_OE_SES.token && _OE_SES.exp - Date.now() < 10 * 60 * 1000) {
       antes = _oeRenovarSesion();
     }
     return antes.then(function () {
+      // Sin sesión válida (login fallido o muy lento): no se consulta al servidor.
+      if (protegida && !_OE_SES.token) {
+        return new Response(JSON.stringify({ status: 'error', mensaje: 'SIN_SESION' }), { headers: { 'Content-Type': 'application/json' } });
+      }
       var u = url;
       if (_OE_SES.token) u += (u.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(_OE_SES.token);
       return _oeFetchOriginal(u, opts);
@@ -2449,7 +2453,7 @@
   //   entra una vez con ?vistaprevia=juegos al final de la dirección y ese navegador los verá;
   //   con ?vistaprevia=no se vuelven a ocultar en ese navegador.
   // El día del lanzamiento: cambiar a true.
-  var JUEGOS_PRACTICA_LANZADOS = true;
+  var JUEGOS_PRACTICA_LANZADOS = false;
   function juegosPracticaVisibles_() {
     if (JUEGOS_PRACTICA_LANZADOS) return true;
     try {
