@@ -771,6 +771,72 @@ var _linksVideo = {1:{},2:{}};
     var el = document.getElementById('fechaClase');
     return el ? el.value : '';
   }
+  // ── LECCIÓN AMARRADA A LA FECHA (nov-2026) ──
+  // La lección ya no se elige: es la que marca el programa para la fecha.
+  // No se puede evaluar una lección si falta alguna anterior (desde el 2-nov
+  // o desde el inicio del grupo): cada semana deben quedar 4 evaluaciones.
+  var LECCION_REVISAR_DESDE = '2026-11-02';
+  function _fechaDePosLeccion_(p) {
+    if (!grupoActual || !grupoActual.fechaInicio) return '';
+    var ini = _parseFechaLocal_(grupoActual.fechaInicio);
+    if (!ini || isNaN(ini.getTime())) return '';
+    ini = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
+    var d = new Date(ini); d.setDate(ini.getDate() - ((ini.getDay() + 6) % 7));
+    d.setDate(d.getDate() + Math.floor((p - 1) / 4) * 7 + ((p - 1) % 4));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function _isoDe_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  // Días de clase (lun-jue) anteriores a "fecha", desde el 2-nov, sin evaluación
+  // y cuya semana tiene menos de 4 evaluaciones. Se revisa por FECHA, no por
+  // número de lección. Devuelve las posiciones del programa de esos días.
+  function _leccionesPendientes_(pos, fecha) {
+    if (!grupoActual || !grupoActual.fechaInicio || !fecha) return [];
+    var ini = _parseFechaLocal_(grupoActual.fechaInicio);
+    if (!ini || isNaN(ini.getTime())) return [];
+    var lun0 = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate()); lun0.setDate(lun0.getDate() - ((lun0.getDay() + 6) % 7));
+    var p = LECCION_REVISAR_DESDE.split('-'), desde = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (lun0 > desde) desde = lun0;
+    var q = fecha.split('-'), hasta = new Date(+q[0], +q[1] - 1, +q[2]);
+    function cuentaSemana(d) {
+      var l = new Date(d); l.setDate(l.getDate() - ((l.getDay() + 6) % 7)); var n = 0;
+      for (var k = 0; k < 7; k++) { var x = new Date(l); x.setDate(l.getDate() + k); n += (leccionesPorFecha[_isoDe_(x)] || []).length; }
+      return n;
+    }
+    var faltan = [];
+    for (var d = new Date(desde); d < hasta; d.setDate(d.getDate() + 1)) {
+      var w = d.getDay(); if (w < 1 || w > 4) continue;
+      var iso = _isoDe_(d);
+      if ((leccionesPorFecha[iso] || []).length) continue;
+      if (cuentaSemana(d) >= 4) continue;
+      var pp = _posCalendarioFecha_(iso); if (pp) faltan.push(pp);
+    }
+    return faltan;
+  }
+  function _hoyISO_() {
+    var h = new Date();
+    return h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+  }
+  // Revisa si en la fecha elegida se puede evaluar. Devuelve { pos, error, pendientes }
+  function _revisarLeccionFecha_(fecha) {
+    var r = { pos: 0, error: '', pendientes: [] };
+    if (!fecha) { r.error = 'Selecciona la fecha de la clase.'; return r; }
+    var p = fecha.split('-'), f = new Date(+p[0], +p[1] - 1, +p[2]), w = f.getDay();
+    if (w < 1 || w > 4) { r.error = 'Las clases son de lunes a jueves. Si diste la clase el viernes, registra la fecha del programa (el día que le tocaba).'; return r; }
+    if (fecha > _hoyISO_()) { r.error = 'No puedes evaluar una fecha futura.'; return r; }
+    r.pos = _posCalendarioFecha_(fecha);
+    if (!r.pos) { r.error = 'Esta fecha es anterior al inicio del grupo.'; return r; }
+    if ((leccionesPorFecha[fecha] || []).length) { r.error = 'Este día ya tiene evaluación registrada.'; return r; }
+    r.pendientes = _leccionesPendientes_(r.pos, fecha);
+    if (r.pendientes.length) r.error = 'Antes de evaluar la ' + _etqLeccion_(r.pos) + ' debes registrar las lecciones pendientes.';
+    return r;
+  }
+  function irALeccionPendiente(p) {
+    var iso = _fechaDePosLeccion_(p);
+    var inp = document.getElementById('fechaClase');
+    if (!iso || !inp) return;
+    inp.value = iso;
+    actualizarEstadoFecha(iso);
+  }
   function poblarSelectorLeccion() {
     var fila = document.getElementById('filaLeccion');
     var sel  = document.getElementById('leccionClase');
@@ -778,46 +844,35 @@ var _linksVideo = {1:{},2:{}};
     var esSab = grupoActual && grupoActual.tipoHorario === 'sabado';
     if (esSab) { fila.style.display = 'none'; return; }
     fila.style.display = 'block';
-    var max = _maxLeccionEvaluada_();
     var cal = _posCalendarioFecha_(_fechaRegistroSel_());
-    var sugerida = 0;
-    if (cal > 0) {
-      // La lección más antigua sin evaluar de la semana, sin pasar la que marca el calendario
-      for (var q = Math.max(1, cal - 4); q <= cal; q++) { if (!leccionesEvaluadas[q]) { sugerida = q; break; } }
-    }
-    if (!sugerida) sugerida = Math.min(64, max + 1);
-    var html = '';
-    for (var p = 1; p <= 64; p++) {
-      var ev = leccionesEvaluadas[p];
-      html += '<option value="' + p + '"' + (ev ? ' disabled' : '') + (p === sugerida ? ' selected' : '') + '>' +
-              (ev ? '✅ ' : (p === sugerida ? '👉 ' : '')) + _etqLeccion_(p) +
-              (ev ? ' — evaluada ' + _fechaCorta_(ev) : '') + '</option>';
-    }
-    sel.innerHTML = html;
+    sel.innerHTML = cal
+      ? '<option value="' + cal + '" selected>' + ((leccionesPorFecha[_fechaRegistroSel_()] || []).length ? '✅ ' : '👉 ') + _etqLeccion_(cal) + '</option>'
+      : '<option value="">Elige la fecha de la clase</option>';
+    sel.disabled = true;
+    sel.style.opacity = '1';
     actualizarAvisoLeccion();
   }
   function actualizarAvisoLeccion() {
-    var sel = document.getElementById('leccionClase');
-    var av  = document.getElementById('avisoLeccion');
-    if (!sel || !av) return;
-    var pos = parseInt(sel.value, 10) || 0;
-    var fechaSel = _fechaRegistroSel_();
-    var cal = _posCalendarioFecha_(fechaSel);
-    var base = cal ? '📅 Según el inicio del grupo, el <b>' + _fechaCorta_(fechaSel) + '</b> corresponde la <b>' + _etqLeccion_(cal) + '</b>.<br>' : '';
-    var faltan = [];
-    for (var p = Math.max(1, pos - 4); p < pos; p++) if (!leccionesEvaluadas[p]) faltan.push(p);
-    if (cal && pos > cal) {
+    var av = document.getElementById('avisoLeccion');
+    if (!av) return;
+    var fecha = _fechaRegistroSel_();
+    var r = _revisarLeccionFecha_(fecha);
+    var btnG = document.getElementById('btnGuardar');
+    if (btnG) { btnG.disabled = !!r.error; btnG.style.opacity = r.error ? '0.45' : '1'; }
+    if (!fecha) { av.innerHTML = ''; return; }
+    if (r.pendientes.length) {
+      av.style.color = '#fecaca';
+      av.innerHTML = '<div style="background:rgba(239,68,68,0.14);border:1.5px solid rgba(248,113,113,0.6);border-radius:10px;padding:10px 12px;">' +
+        '⛔ <b>' + r.error + '</b><div style="margin:6px 0 8px;color:#fca5a5;">Cada semana deben quedar 4 evaluaciones. Toca una para registrarla con su fecha del programa:</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + r.pendientes.map(function (p) {
+          return '<button type="button" onclick="irALeccionPendiente(' + p + ')" style="background:#ef4444;color:#fff;border:none;border-radius:100px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">L' + (p > 32 ? p - 32 : p) + ' · ' + _fechaCorta_(_fechaDePosLeccion_(p)) + '</button>';
+        }).join('') + '</div></div>';
+    } else if (r.error) {
       av.style.color = '#fca5a5';
-      av.innerHTML = base + '⛔ La lección elegida va <b>adelantada</b> al calendario del grupo. Revisa antes de guardar.';
-    } else if (cal && pos < cal - 4) {
-      av.style.color = '#fde047';
-      av.innerHTML = base + '⚠️ La lección elegida está <b>atrasada</b> respecto al calendario del grupo. Revisa antes de guardar.';
-    } else if (faltan.length) {
-      av.style.color = '#fde047';
-      av.innerHTML = base + '⚠️ Antes de esta lección falta evaluar: <b>' + faltan.map(function(x){ return 'L' + (x > 32 ? x - 32 : x); }).join(', ') + '</b>.';
+      av.innerHTML = '⛔ ' + r.error;
     } else {
       av.style.color = '#bfdbfe';
-            av.innerHTML = base + 'En semanas con día festivo registra cada lección con la fecha del programa (lunes a jueves), aunque la hayas dado otro día.';
+      av.innerHTML = '📅 El <b>' + _fechaCorta_(fecha) + '</b> corresponde la <b>' + _etqLeccion_(r.pos) + '</b>. Si diste la clase otro día (festivo o reposición), regístrala con esta fecha del programa.';
     }
   }
 
@@ -2473,19 +2528,15 @@ function guardarRegistroSabatinoMasivo() {
       claseNum = siguienteClaseDisponible(fecha);
       if (claseNum === null) { mostrarToast('Ya se registraron las 4 clases de este sábado','error'); return; }
     } else {
-      var _sel = document.getElementById('leccionClase');
-      var leccionSel = _sel ? (parseInt(_sel.value, 10) || 0) : 0;
-      if (!leccionSel) { mostrarToast('Selecciona la lección que vas a evaluar','error'); return; }
-      if (leccionesEvaluadas[leccionSel]) { mostrarToast(_etqLeccion_(leccionSel) + ' ya fue evaluada. Elige otra.','error'); return; }
-      var lecsMismoDia = leccionesPorFecha[fecha] || [];
-      if (lecsMismoDia.length >= 2) { mostrarToast('Este día ya tiene 2 lecciones registradas','error'); return; }
-      var _max = _maxLeccionEvaluada_();
-      var msgConf = '¿Confirmas que vas a evaluar la ' + _etqLeccion_(leccionSel) + ' el ' + _fechaCorta_(fecha) + '?';
-      if (lecsMismoDia.length) msgConf += '\n\nEste día ya tiene la ' + _etqLeccion_(lecsMismoDia[0]) + '. Solo registra 2 lecciones el mismo día en semanas con día festivo.';
-      var _cal = _posCalendarioFecha_(fecha);
-      if (_cal && leccionSel > _cal) msgConf += '\n\n⛔ OJO: según el inicio del grupo, este día corresponde la ' + _etqLeccion_(_cal) + '. La lección elegida va ADELANTADA.';
-      else if (leccionSel > _max + 1) msgConf += '\n\n⚠️ Te estás saltando lecciones: la última evaluada es la ' + (_max ? _etqLeccion_(_max) : 'ninguna') + '.';
-      if (!confirm(msgConf)) return;
+      var _rev = _revisarLeccionFecha_(fecha);
+      if (_rev.error) {
+        mostrarToast(_rev.pendientes.length
+          ? 'Antes registra: ' + _rev.pendientes.map(function (p) { return 'L' + (p > 32 ? p - 32 : p) + ' (' + _fechaCorta_(_fechaDePosLeccion_(p)) + ')'; }).join(', ')
+          : _rev.error, 'error');
+        return;
+      }
+      var leccionSel = _rev.pos;
+      if (!confirm('¿Confirmas que vas a evaluar la ' + _etqLeccion_(leccionSel) + ' del ' + _fechaCorta_(fecha) + '?')) return;
     }
 
     var alumnos=grupoActual.alumnos||[];
