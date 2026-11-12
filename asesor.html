@@ -535,22 +535,42 @@
       <div id="ni-referido-info" style="display:none;font-size:12px;font-weight:600;margin-top:8px;line-height:1.4;"></div>
     </div>
 
-    <span class="monto-label">Tipo de inscripción</span>
-    <select id="ni-tipo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;" onchange="niToggleBecado()">
-      <option value="Promo">Promoción ($100/semana)</option>
-      <option value="Promo_Mensual">Promoción por 4 semanas ($400)</option>
-      <option value="Normal">Normal ($140/semana)</option>
-      <option value="Normal_Mensual">Normal por 4 semanas ($500)</option>
-      <option value="Beca_Parcial">Beca parcial ($100 + 3 semanas gratis)</option>
-      <option value="Kids">Kids ($150/semana)</option>
-      <option value="Kids_Mensual">Kids por 4 semanas ($550)</option>
+    <span class="monto-label">Opción de pago</span>
+    <style>
+.ni-op-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ni-op{background:#0f172a;border:1.5px solid rgba(255,255,255,0.12);border-radius:14px;padding:10px 12px;cursor:pointer;text-align:left;color:#e2e8f0;font-family:inherit;transition:all .15s}
+.ni-op:hover{border-color:rgba(249,115,22,0.6)}
+.ni-op .t{font-size:13.5px;font-weight:800;display:block}
+.ni-op .d{font-size:11.5px;color:#94a3b8;display:block;margin-top:3px;line-height:1.35}
+.ni-op.sel{border-color:#f97316;background:rgba(249,115,22,0.14);box-shadow:0 0 0 3px rgba(249,115,22,0.15)}
+.ni-op.promo{border-color:rgba(234,179,8,0.55);background:linear-gradient(135deg,rgba(234,179,8,0.14),rgba(249,115,22,0.10))}
+.ni-op.promo.sel{border-color:#facc15;box-shadow:0 0 0 3px rgba(250,204,21,0.2)}
+.ni-op .tag{display:inline-block;font-size:10px;font-weight:800;background:#dc2626;color:#fff;border-radius:100px;padding:2px 7px;margin-top:5px}
+.ni-op.promo,.ni-op.full{grid-column:1/-1}
+.ni-op-sec{grid-column:1/-1;font-size:11px;font-weight:800;color:#facc15;text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+.ni-op-otros{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.ni-op-otros button{background:transparent;border:1px solid rgba(255,255,255,0.14);color:#94a3b8;border-radius:100px;padding:5px 11px;font-size:11.5px;cursor:pointer;font-family:inherit}
+.ni-op-otros button.sel{border-color:#f97316;color:#fdba74;background:rgba(249,115,22,0.12)}
+</style>
+    <div id="ni-opciones-pago" class="ni-op-grid"></div>
+    <select id="ni-tipo" style="display:none;" onchange="niToggleBecado()">
+      <option value="Colegiatura">Pago semanal</option>
+      <option value="Promo_4">Promoción 4 semanas</option>
+      <option value="Buen_Fin">Buen Fin</option>
+      <option value="Pago_Especial">Pago especial</option>
+      <option value="Beca_Parcial">Beca parcial (1 semana pagada + 3 semanas gratis)</option>
       <option value="Becado">Becado 100%</option>
       <option value="Personalizado">Personalizado (costo por clase, sin vigencia semanal)</option>
     </select>
 
     <div id="ni-bloque-pago">
+      <div id="ni-coleg-info" style="display:none;background:rgba(59,130,246,0.10);border:1.5px solid rgba(96,165,250,0.45);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.55;color:#cbd5e1;"></div>
+      <div id="ni-bloque-especial" style="display:none;margin-bottom:12px;">
+        <span class="monto-label">Observaciones del pago especial <b style="color:#f87171;">(obligatorio)</b></span>
+        <textarea id="ni-obs-especial" maxlength="300" oninput="niActualizarColegiatura()" placeholder="Explica por qué es un pago especial (ej. paga 2 semanas y media, descuento autorizado por Dirección...)" style="width:100%;min-height:64px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit;resize:vertical;"></textarea>
+      </div>
       <span class="monto-label">Monto del pago</span>
-      <input type="number" id="ni-monto" placeholder="Ej. 100" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
+      <input type="number" id="ni-monto" oninput="niMontoManual = true; niActualizarColegiatura();" placeholder="Ej. 100" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
 
       <span class="upload-label">Comprobante de pago</span>
       <div class="upload-zone" id="niUploadZone">
@@ -669,7 +689,11 @@
     <input type="text" id="ea-residencia" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;" />
     <span class="monto-label">Tipo de inscripción</span>
     <select id="ea-tipo" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;outline:none;">
-      <option value="Promo">Promoción ($100/semana)</option>
+      <option value="Colegiatura">Colegiatura semanal (precio según el grupo)</option>
+      <option value="Promo_4">Promoción 4 semanas</option>
+      <option value="Buen_Fin">Buen Fin (paga 4, cubre 5)</option>
+      <option value="Pago_Especial">Pago especial</option>
+      <option value="Promo">Promoción ($100/semana) · anterior</option>
       <option value="Promo_Mensual">Promoción por 4 semanas ($400)</option>
       <option value="Normal">Normal ($140/semana)</option>
       <option value="Normal_Mensual">Normal por 4 semanas ($500)</option>
@@ -1662,11 +1686,17 @@ function _calMontoDe_(containerId){
   var id = CAL_MONTO_INPUT[containerId]; var el = id ? document.getElementById(id) : null;
   return el ? (Number(el.value) || 0) : 0;
 }
-function _calMaxSabados_(monto){ return monto > 0 ? Math.max(1, Math.ceil(monto / PRECIO_SABADO - 0.001)) : 0; }
+function _calPrecioSabado_(){
+  var g = (typeof niGrupoSeleccionado === 'function') ? niGrupoSeleccionado() : null;
+  var c = g ? niColegiaturaGrupo(g, null) : null;
+  return (c && c.aplica) ? c.precio : PRECIO_SABADO;
+}
+function _calMaxSabados_(monto){ return monto > 0 ? Math.max(1, Math.ceil(monto / _calPrecioSabado_() - 0.001)) : 0; }
 function calValidarSabatino(containerId){
   var st = calendarios[containerId];
   if (!_calEsSab_(st) || !st.inicio || !st.fin) return '';
   var monto = _calMontoDe_(containerId), max = _calMaxSabados_(monto), sab = _calSabados_(st);
+  if (containerId === 'cal-ni' && typeof niOpcionSinTopeSabados === 'function' && niOpcionSinTopeSabados()) return '';   // promociones y pago especial: los sábados los valida la opción de pago
   if (max && sab > max) {
     return 'Con $' + monto + ' se cubre' + (max > 1 ? 'n ' + max + ' sábados' : ' 1 sábado') + ' y marcaste ' + sab +
            '. Marca SOLO el/los sábado(s) que cubre el pago: el sistema agrega los días de gracia.';
@@ -1798,6 +1828,7 @@ function calRender(containerId){
   html += '<div class="cal-resumen">'+resumen+'</div>';
 
   cont.innerHTML = html;
+  if (containerId === 'cal-ni' && typeof niActualizarColegiatura === 'function') niActualizarColegiatura();
 }
 
 var niTipoSeleccionado = null; // 'DIRECTO' o 'COLOCACION'
@@ -1856,7 +1887,11 @@ function abrirModalNuevaInscripcion() {
   ['ni-nombre','ni-whatsapp','ni-edad','ni-email','ni-residencia','ni-fecha-nac','ni-tutor-nombre','ni-tutor-whatsapp','ni-monto'].forEach(function(id){
     document.getElementById(id).value = '';
   });
-  document.getElementById('ni-tipo').value = 'Promo';
+  document.getElementById('ni-tipo').value = 'Colegiatura';
+  niMontoManual = false;
+  document.getElementById('ni-obs-especial').value = '';
+  document.getElementById('ni-bloque-especial').style.display = 'none';
+  niRenderOpciones();
   niReiniciarReferido();
   document.getElementById('ni-bloque-menor').style.display = 'none';
   document.getElementById('ni-bloque-pago').style.display = '';
@@ -1955,6 +1990,8 @@ function niToggleMenor() {
 function niToggleBecado() {
   var esBecado = document.getElementById('ni-tipo').value === 'Becado';
   document.getElementById('ni-bloque-pago').style.display = esBecado ? 'none' : '';
+  var bEsp = document.getElementById('ni-bloque-especial');
+  if (bEsp) bEsp.style.display = document.getElementById('ni-tipo').value === 'Pago_Especial' ? '' : 'none';
   niActualizarBloqueCobertura();
 }
 
@@ -1997,6 +2034,7 @@ function niActualizarBloqueCobertura() {
   }
   calSetTipoHorario('cal-ni', tipoHorarioEfectivo);
   niAvisoSemanaInicio(grupoSel);
+  niActualizarColegiatura();
 }
 
 function niAvisoSemanaInicio(grupoSel) {
@@ -2027,7 +2065,7 @@ function niToggleCoberturaPorGrupo() {
   var grupoSel = gruposCacheInsc.find(function (g) { return g.id === idGrupoSel; });
   var grupoEsPersonalizado = grupoSel && grupoSel.tipoHorario === 'personalizado';
   if (!grupoEsPersonalizado && document.getElementById('ni-tipo').value === 'Personalizado') {
-    document.getElementById('ni-tipo').value = 'Promo';
+    document.getElementById('ni-tipo').value = 'Colegiatura';
   }
   niActualizarBloqueCobertura();
 }
@@ -2054,7 +2092,291 @@ function niQuitarArchivo() {
   document.getElementById('niUploadPreview').style.display = 'none';
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+//  COLEGIATURAS POR NIVEL Y BLOQUE (nov-2026) -- MISMA tabla que Core.gs
+//  (TABLA_COLEG_AZ / TABLA_COLEG_AA / COLEG_KIDS_AA_EXTRA). Si cambia allá,
+//  cambia aquí.
+//   · Grupos de una letra (A-Z): tabla A-Z, igual para niños, jóvenes y adultos.
+//   · Grupos de dos letras (AA en adelante): tabla AA; KIDS paga +$20.
+//   · Bloque: 8 semanas por bloque desde el lunes de inicio del grupo.
+//   · Fuera de tabla: PER (personalizado), CLUB-, KIDS JR y PRE A-1.
+// ══════════════════════════════════════════════════════════════════════════
+var NI_COLEG_AZ = { A1:[100,100], A2:[125,140], B1:[160,180], B2:[200,220], C1:[240,260] };
+var NI_COLEG_AA = { A1:[100,120], A2:[140,160], B1:[180,200], B2:[220,240], C1:[260,280] };
+var NI_COLEG_KIDS_AA_EXTRA = 20;
+var niMontoManual = false;
+
+function niGrupoSeleccionado() {
+  var sel = document.getElementById('ni-grupo');
+  if (!sel || !sel.value) return null;
+  return gruposCacheInsc.find(function (g) { return g.id === sel.value; }) || null;
+}
+
+// Precio por semana de un grupo para la semana que empieza en "fechaSemana"
+// (si no se da, se toma la primera semana de clase del alumno: hoy o el inicio del grupo).
+function niColegiaturaGrupo(g, fechaSemana) {
+  var res = { aplica: false };
+  if (!g) return res;
+  var id = String(g.id || '').trim().toUpperCase(), nombre = String(g.nombre || '').trim().toUpperCase();
+  if (/^PER/.test(id) || /^CLUB-/.test(id) || String(g.tipoHorario || '').toLowerCase() === 'personalizado') return res;
+  if (nombre.indexOf('JR') !== -1 || nombre.indexOf('PRE') !== -1) return res;
+  var m = String(g.nivel || '').toUpperCase().match(/(A1|A2|B1|B2|C1)/);
+  if (!m) return res;
+  var nivel = m[1];
+  var letras = (id.match(/^([A-Z]+)\d/) || [, ''])[1];
+  var esAA = letras.length >= 2, esKids = nombre.indexOf('KIDS') !== -1;
+  var bloque = 1;
+  if (g.fechaObj) {
+    var lunesIni = calLunesDe(g.fechaObj);
+    var ref = fechaSemana ? new Date(fechaSemana) : _hoy0_();
+    if (ref < lunesIni) ref = lunesIni;
+    var semana = Math.floor((calLunesDe(ref) - lunesIni) / (7 * 24 * 60 * 60 * 1000)) + 1;
+    bloque = semana > 8 ? 2 : 1;
+  }
+  var t = (esAA ? NI_COLEG_AA : NI_COLEG_AZ)[nivel];
+  res.aplica = true;
+  res.nivel = nivel; res.bloque = bloque; res.esAA = esAA; res.esKids = esKids;
+  res.precio = t[bloque - 1] + (esAA && esKids ? NI_COLEG_KIDS_AA_EXTRA : 0);
+  res.tabla = esAA ? (esKids ? 'Kids · grupos AA en adelante' : 'Jóvenes y adultos · grupos AA en adelante') : 'Grupos A-Z';
+  res.etiqueta = nivel + '-Bloque ' + bloque;
+  return res;
+}
+
+// Suma el precio de cada semana marcada en el calendario (por si el pago cruza
+// el cambio de bloque).
+function niTotalSegunTabla(g, st) {
+  if (!g || !st || !st.inicio || !st.fin) return null;
+  var esSab = st.tipoHorario === 'sabado';
+  var total = 0, n = 0, d = new Date(st.inicio);
+  while (d <= st.fin && n < 60) {
+    var c = niColegiaturaGrupo(g, d);
+    if (!c.aplica) return null;
+    total += c.precio; n++;
+    d = new Date(d); d.setDate(d.getDate() + 7);
+  }
+  return { total: total, semanas: n, esSab: esSab };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  OPCIONES DE PAGO (nov-2026)
+//  · Pago semanal: paga las semanas marcadas con el precio semanal del grupo.
+//  · Promoción 4 semanas: 4 semanas seguidas con el precio "PROM 4 SEM".
+//  · Promociones vigentes (NI_PROMOS): solo aparecen entre su inicio y su fin.
+//  · Pago especial: monto libre con observaciones obligatorias.
+//  Precios "PROM 4 SEM" de las 3 tablas oficiales ([bloque 1, bloque 2]).
+// ══════════════════════════════════════════════════════════════════════════
+var NI_PROMO4_AZ   = { A1:[400,400], A2:[460,520], B1:[600,680], B2:[760,840], C1:[920,1000] };
+var NI_PROMO4_AA   = { A1:[400,440], A2:[520,600], B1:[680,760], B2:[840,920], C1:[1000,1080] };
+var NI_PROMO4_KIDS = { A1:[480,520], A2:[600,680], B1:[760,840], B2:[920,1000], C1:[1080,1160] };
+
+// Promociones vigentes. Solo se ven del "inicio" al "fin" (fechas de México).
+var NI_PROMOS = [
+  { tipo: 'Buen_Fin', nombre: 'Buen Fin', inicio: '2026-11-13', fin: '2026-11-17', paga: 4, cubre: 5,
+    desc: 'Paga 4 semanas y recibe 5',
+    reglas: 'Solo inscripciones nuevas. Paga el precio de promoción 4 semanas y se registran 5 semanas seguidas. No se acumula con otras promociones.' }
+];
+
+var NI_OPCIONES = {
+  'Colegiatura':   { nombre: 'Pago semanal',        precio: 'semanal' },
+  'Promo_4':       { nombre: 'Promoción 4 semanas', precio: 'promo4', paga: 4, cubre: 4 },
+  'Pago_Especial': { nombre: 'Pago especial',       precio: 'libre' },
+  'Beca_Parcial':  { nombre: 'Beca parcial',        precio: 'beca' },
+  'Becado':        { nombre: 'Becado 100%',         precio: 'ninguno' },
+  'Personalizado': { nombre: 'Personalizado',       precio: 'libre' }
+};
+
+var _NI_MESES_CORTOS_ = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function _niHoyMX_() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }
+function _niFechaCortaISO_(iso) { var p = String(iso).split('-'); return Number(p[2]) + ' ' + _NI_MESES_CORTOS_[Number(p[1]) - 1]; }
+
+function niPromosActivas() {
+  var h = _niHoyMX_();
+  return NI_PROMOS.filter(function (p) { return h >= p.inicio && h <= p.fin; });
+}
+
+function niOpcion(tipo) {
+  var p = NI_PROMOS.filter(function (x) { return x.tipo === tipo; })[0];
+  if (p) return { nombre: p.nombre, precio: 'promo4', paga: p.paga, cubre: p.cubre, promo: p };
+  return NI_OPCIONES[tipo] || NI_OPCIONES['Colegiatura'];
+}
+
+function niOpcionSinTopeSabados() {
+  var o = niOpcion(document.getElementById('ni-tipo').value);
+  return o.precio === 'promo4' || o.precio === 'libre';
+}
+
+function niRenderOpciones() {
+  var box = document.getElementById('ni-opciones-pago');
+  if (!box) return;
+  var sel = document.getElementById('ni-tipo');
+  var tipo = sel.value;
+  var activas = niPromosActivas();
+  var esPromo = NI_PROMOS.some(function (p) { return p.tipo === tipo; });
+  if (esPromo && !activas.some(function (p) { return p.tipo === tipo; })) { tipo = 'Colegiatura'; sel.value = tipo; }
+
+  function tarjeta(t, titulo, desc, cls, tag) {
+    return '<button type="button" class="ni-op' + (cls || '') + (tipo === t ? ' sel' : '') + '" onclick="niSeleccionarOpcion(\'' + t + '\')">' +
+           '<span class="t">' + titulo + '</span><span class="d">' + desc + '</span>' + (tag ? '<span class="tag">' + tag + '</span>' : '') + '</button>';
+  }
+  var h = tarjeta('Colegiatura', '📅 Pago semanal', 'Paga las semanas que marques, con el precio del grupo') +
+          tarjeta('Promo_4', '🎁 Promoción 4 semanas', 'Paga 4 semanas seguidas con precio especial');
+  if (activas.length) {
+    h += '<div class="ni-op-sec">🔥 Promociones vigentes</div>';
+    activas.forEach(function (p) {
+      h += tarjeta(p.tipo, '🔥 ' + p.nombre, p.desc + '. ' + p.reglas, ' promo', 'Hasta el ' + _niFechaCortaISO_(p.fin));
+    });
+  }
+  h += tarjeta('Pago_Especial', '📝 Pago especial', 'Monto distinto a la tabla. Observaciones obligatorias', ' full');
+  h += '<div class="ni-op-otros">' + ['Beca_Parcial', 'Becado', 'Personalizado'].map(function (t) {
+    return '<button type="button" class="' + (tipo === t ? 'sel' : '') + '" onclick="niSeleccionarOpcion(\'' + t + '\')">' + NI_OPCIONES[t].nombre + '</button>';
+  }).join('') + '</div>';
+  box.innerHTML = h;
+}
+
+function niSeleccionarOpcion(tipo) {
+  document.getElementById('ni-tipo').value = tipo;
+  niMontoManual = false;
+  niToggleBecado();
+  niRenderOpciones();
+  niActualizarColegiatura();
+  if (calendarios['cal-ni']) calRender('cal-ni');
+}
+
+// Semanas (o sábados) marcadas en el calendario
+function niSemanasMarcadas(st) {
+  if (!st || !st.inicio || !st.fin) return 0;
+  return Math.round((calLunesDe(st.fin) - calLunesDe(st.inicio)) / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
+
+// Precio de promoción de las primeras "paga" semanas marcadas (si cruza de
+// bloque, cada semana se cobra con el precio de promoción de su bloque).
+function niTotalPromo(g, st, paga) {
+  if (!g || !st || !st.inicio) return null;
+  var total = 0, d = new Date(st.inicio);
+  for (var k = 0; k < paga; k++) {
+    var c = niColegiaturaGrupo(g, d);
+    if (!c.aplica) return null;
+    var t = (c.esAA ? (c.esKids ? NI_PROMO4_KIDS : NI_PROMO4_AA) : NI_PROMO4_AZ)[c.nivel];
+    total += t[c.bloque - 1] / 4;
+    d = new Date(d); d.setDate(d.getDate() + 7);
+  }
+  return Math.round(total);
+}
+
+// Calcula todo lo de la opción elegida: monto sugerido, aviso y error.
+function niCalculoPago() {
+  var r = { error: '', html: '', sugerido: null, bloquearMonto: false };
+  var tipo = document.getElementById('ni-tipo').value;
+  var op = niOpcion(tipo);
+  var g = niGrupoSeleccionado();
+  var obs = (document.getElementById('ni-obs-especial').value || '').trim();
+  if (tipo === 'Becado') return r;
+  if (op.precio === 'libre') {
+    if (tipo === 'Pago_Especial' && !obs) r.error = 'Escribe las observaciones del pago especial.';
+    if (tipo === 'Pago_Especial') r.html = '📝 <b style="color:#fdba74;">Pago especial:</b> captura el monto que pagó el alumno y explica el motivo en observaciones.';
+    return r;
+  }
+  if (!g || niTipoSeleccionado === 'COLOCACION') return r;
+  var c = niColegiaturaGrupo(g, null);
+  if (!c.aplica) {
+    r.error = 'Este grupo no tiene precio en la tabla. Usa "Pago especial".';
+    r.html = '⚠️ Este grupo no tiene precio en la tabla de colegiaturas. Elige <b>Pago especial</b> y captura el monto.';
+    return r;
+  }
+  var st = calendarios['cal-ni'];
+  var esSab = st && st.tipoHorario === 'sabado';
+  var unidad = esSab ? 'sábado' : 'semana', unidades = esSab ? 'sábados' : 'semanas';
+  var n = niSemanasMarcadas(st);
+  r.bloquearMonto = true;
+  var cab = '💰 <b style="color:#93c5fd;">Precio del grupo: $' + c.precio + ' por ' + unidad + '</b><br>' +
+            '<span style="color:#94a3b8;">' + c.etiqueta + ' · ' + c.tabla + '</span>';
+
+  if (op.precio === 'semanal') {
+    var tot = niTotalSegunTabla(g, st);
+    if (tot) { r.sugerido = tot.total; r.html = cab + '<br>' + tot.semanas + ' ' + (tot.semanas === 1 ? unidad : unidades) + ' marcada' + (tot.semanas === 1 ? '' : 's') + ' · <b>total: $' + tot.total + '</b>'; }
+    else r.html = cab + '<br><span style="color:#94a3b8;">Marca en el calendario la(s) ' + unidades + ' que cubre el pago y el monto se calcula solo.</span>';
+    return r;
+  }
+  if (op.precio === 'beca') {
+    r.sugerido = c.precio;
+    r.html = cab + '<br>Beca parcial: paga 1 ' + unidad + ' ($' + c.precio + ') y recibe 3 sin costo.';
+    return r;
+  }
+  // Promoción 4 semanas y promociones vigentes
+  var titulo = op.promo ? '🔥 ' + op.nombre : '🎁 Promoción 4 semanas';
+  var regla = op.paga === op.cubre
+    ? 'Paga ' + op.paga + ' ' + unidades + ' seguidas con precio de promoción.'
+    : 'Paga ' + op.paga + ' ' + unidades + ' y recibe ' + op.cubre + ' (' + (op.cubre - op.paga) + ' sin costo).';
+  var html = cab + '<br><b style="color:#facc15;">' + titulo + '</b> · ' + regla;
+  if (n > 0) {
+    var precio = niTotalPromo(g, st, op.paga);
+    if (precio) { r.sugerido = precio; html += '<br><b>Paga: $' + precio + '</b> · cubre ' + op.cubre + ' ' + unidades; }
+  }
+  if (n !== op.cubre) {
+    r.error = (n ? 'Marcaste ' + n + ' ' + (n === 1 ? unidad : unidades) + ' y esta opción cubre ' + op.cubre + '. ' : '') +
+              'Marca ' + op.cubre + ' ' + unidades + ' seguid' + (esSab ? 'o' : 'a') + 's para continuar.';
+    html += '<div style="margin-top:8px;background:rgba(239,68,68,0.14);border:1.5px solid rgba(248,113,113,0.6);border-radius:10px;padding:8px 10px;color:#fecaca;">' + r.error + '</div>';
+  } else {
+    html += '<br><span style="color:#4ade80;font-weight:700;">✅ ' + op.cubre + ' ' + unidades + ' marcad' + (esSab ? 'o' : 'a') + 's</span>';
+  }
+  r.html = html;
+  return r;
+}
+
+function niActualizarColegiatura() {
+  var box = document.getElementById('ni-coleg-info');
+  if (!box) return;
+  niRenderOpciones();
+  var montoEl = document.getElementById('ni-monto');
+  var r = niCalculoPago();
+  if (r.sugerido != null) montoEl.value = r.sugerido;
+  montoEl.readOnly = !!(r.bloquearMonto && r.sugerido != null);
+  montoEl.style.opacity = montoEl.readOnly ? '0.75' : '1';
+  box.style.display = r.html ? 'block' : 'none';
+  box.innerHTML = r.html;
+}
+
+function niValidarOpcion() {
+  return niCalculoPago().error;
+}
+
+// Comentario que se guarda en el pago (PAGOS_ALUMNO, columna H)
+function niComentarioPago() {
+  var tipo = document.getElementById('ni-tipo').value;
+  var op = niOpcion(tipo);
+  if (op.promo) return op.nombre + ': paga ' + op.paga + ' semanas, cubre ' + op.cubre;
+  if (tipo === 'Promo_4') return 'Promoción 4 semanas';
+  if (tipo === 'Pago_Especial') return 'Pago especial: ' + (document.getElementById('ni-obs-especial').value || '').trim();
+  return '';
+}
+
+// Texto del pago para los mensajes de WhatsApp
+function niDescPagoActual() {
+  var tipo = document.getElementById('ni-tipo').value;
+  var op = niOpcion(tipo);
+  var monto = Number(document.getElementById('ni-monto').value) || 0;
+  var st = calendarios['cal-ni'];
+  var esSab = st && st.tipoHorario === 'sabado';
+  var unidades = esSab ? 'sábados' : 'semanas';
+  if (op.precio === 'promo4') return '$' + monto + '.00 MXN por ' + op.cubre + ' ' + unidades + ' (' + op.nombre + ')';
+  if (tipo === 'Pago_Especial') return '$' + monto + '.00 MXN (pago especial)';
+  return '$' + monto + '.00 MXN';
+}
+
+// Texto del plan para los mensajes de WhatsApp (tipo Colegiatura)
+function niDescripcionColegiatura(idGrupo) {
+  var g = gruposCacheInsc.find(function (x) { return x.id === idGrupo; });
+  var c = niColegiaturaGrupo(g, null);
+  if (!c.aplica) return '';
+  var unidad = (g && (g.tipoHorario === 'sabado' || /-SAT$/i.test(String(g.nombre || '')))) ? 'sábado' : 'semana';
+  return '$' + c.precio + '.00 MXN por ' + unidad + ' (' + c.etiqueta + ')';
+}
+
 var NI_TIPO_ETIQUETAS = {
+  'Colegiatura':    'Colegiatura semanal (segun tabla del grupo)',
+  'Promo_4':        'Promocion 4 semanas (segun tabla del grupo)',
+  'Buen_Fin':       'Buen Fin (paga 4 semanas, cubre 5)',
+  'Pago_Especial':  'Pago especial',
   'Promo':          'Promocion ($100/semana)',
   'Promo_Mensual':  'Promocion por 4 semanas ($400)',
   'Normal':         'Normal ($140/semana)',
@@ -2144,7 +2466,12 @@ function formatoFechaLargaNI(fecha) {
 }
 
 function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horario, tipo, esColocacion, datosExtra) {
+  var descColeg = tipo === 'Colegiatura' ? niDescripcionColegiatura(idGrupo) : '';
   var opciones = {
+    'Colegiatura': descColeg ? '· ' + descColeg + ' — Colegiatura.' : '',
+    'Promo_4': '· ' + niDescPagoActual() + '.',
+    'Buen_Fin': '· ' + niDescPagoActual() + '.',
+    'Pago_Especial': '· ' + niDescPagoActual() + '.',
     'Promo': '· $100 MXN — Pago semanal (Promoción).',
     'Promo_Mensual': '· $400 MXN — Pago por 4 semanas (Promoción).',
     'Normal': '· $140 MXN — Pago semanal.',
@@ -2160,6 +2487,10 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
 
   // Mapeos y helpers compartidos por el mensaje detallado (con y sin tutor).
   var tipoEtiquetasNI = {
+    'Colegiatura': 'Colegiatura',
+    'Promo_4': 'Promoción 4 semanas',
+    'Buen_Fin': 'Promoción Buen Fin',
+    'Pago_Especial': 'Pago especial',
     'Promo': 'Promoción',
     'Promo_Mensual': 'Promoción Mensual',
     'Normal': 'Normal',
@@ -2170,6 +2501,10 @@ function niMensajePago(destinoNombre, nombreAlumno, esParaTutor, idGrupo, horari
     'Becado': 'Becado'
   };
   var tipoDescripcionNI = {
+    'Colegiatura': descColeg,
+    'Promo_4': niDescPagoActual(),
+    'Buen_Fin': niDescPagoActual(),
+    'Pago_Especial': niDescPagoActual(),
     'Promo': '$100.00 MXN por semana',
     'Promo_Mensual': '$400.00 MXN por 4 semanas',
     'Normal': '$140.00 MXN por semana',
@@ -2383,6 +2718,7 @@ function confirmarNuevaInscripcion() {
   var calNI = calendarios['cal-ni'];
   if (!esBecado && !esColocacionSinGrupo && (!calNI || !calNI.inicio || !calNI.fin)) return mostrarError('Selecciona la semana (o semanas) que cubre este pago.');
   if (!esBecado && !esColocacionSinGrupo) { var errSabNI = calValidarSabatino('cal-ni'); if (errSabNI) return mostrarError(errSabNI); }
+  if (!esBecado) { var errOpNI = niValidarOpcion(); if (errOpNI) return mostrarError(errOpNI); }
   if (!esBecado && !esColocacionSinGrupo && calNI && calNI.inicio) {
     var gSI = gruposCacheInsc.find(function (g) { return g.id === idGrupo; });
     if (gSI && esGrupoSemanaInicio(gSI) && calNI.inicio < lunesSiguienteIngreso()) {
@@ -2416,6 +2752,7 @@ function confirmarNuevaInscripcion() {
       edad: edad, fechaNacimiento: fechaNac, lugarResidencia: residencia,
       tutorNombre: tutorNombre, tutorWhatsapp: tutorWhatsappWA,
       monto: monto,
+      opcionPago: tipo, comentarioPago: niComentarioPago(),
       coberturaInicio: calNI && calNI.inicio ? calNI.inicio.toISOString() : '',
       coberturaFin:    calNI && calNI.fin    ? calNI.fin.toISOString()    : '',
       base64: niArchivoBase64, mimeType: niArchivoMime, nombreArchivo: niArchivoNombre,
