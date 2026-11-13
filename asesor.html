@@ -4467,7 +4467,7 @@ function cvContarReembolsos() {
 //  Facebook, WhatsApp, Instagram y TikTok con el WhatsApp del asesor.
 // ════════════════════════════════════════════════════════════════════════
 var ktData = null, ktCargado = false, ktTipo = 'Reel', ktUso = 'todo', ktPub = 'Todos';
-var ktSel = null, ktRed = 'fb', ktCopiado = false, ktBlobs = {};
+var ktSel = null, ktRed = 'fb', ktCopiado = false, ktCopiadoCom = false, ktBlobs = {};
 var KT_REDES = { fb: 'Facebook', wa: 'WhatsApp', ig: 'Instagram', tt: 'TikTok' };
 var KT_CONSEJOS = {
   fb: 'En grupos de compra-venta: calienta el grupo antes de publicar (5 likes y 3 comentarios) y pon tu liga de WhatsApp en el primer comentario.',
@@ -4564,7 +4564,7 @@ function ktItem(id) { return (ktData.items || []).filter(function (x) { return x
 
 function ktAbrir(id) {
   ktSel = ktItem(id); if (!ktSel) return;
-  ktRed = 'fb'; ktCopiado = false;
+  ktRed = 'fb'; ktCopiado = false; ktCopiadoCom = false;
   ktPintarHoja();
   ktObtener(ktSel).catch(function () {});   // se baja en segundo plano para poder compartir
   document.getElementById('ktModal').classList.add('open');
@@ -4588,10 +4588,13 @@ function ktPintarHoja() {
     media +
     '<div class="kt-lbl">¿Dónde lo vas a publicar?</div>' +
     '<div class="kt-redes">' + Object.keys(KT_REDES).map(function (k) {
-      return '<button type="button" class="kt-red' + (ktRed === k ? ' sel' : '') + '" onclick="ktRed=\'' + k + '\';ktCopiado=false;ktPintarHoja()">' + KT_REDES[k] + '</button>';
+      return '<button type="button" class="kt-red' + (ktRed === k ? ' sel' : '') + '" onclick="ktRed=\'' + k + '\';ktCopiado=false;ktCopiadoCom=false;ktPintarHoja()">' + KT_REDES[k] + '</button>';
     }).join('') + '</div>' +
     '<div class="kt-lbl">Texto sugerido</div>' +
     '<div class="kt-texto">' + (ktEsc(x.textos[ktRed]) || '<span style="color:#94a3b8;">Este material no trae texto. Publícalo con tus palabras.</span>') + '</div>' +
+    (ktRed === 'fb' && x.comentario ? '<div class="kt-lbl">Primer comentario (ahí va tu WhatsApp)</div>' +
+      '<div class="kt-texto" style="display:flex;gap:10px;align-items:center;justify-content:space-between;"><span>' + ktEsc(x.comentario) + '</span>' +
+      '<button type="button" class="kt-btn' + (ktCopiadoCom ? ' ok' : '') + '" style="min-height:40px;padding:0 12px;flex-shrink:0;font-size:12.5px;" onclick="ktCopiarComentario()">' + (ktCopiadoCom ? '✅ Copiado' : '📋 Copiar') + '</button></div>' : '') +
     '<div class="kt-btns"><button type="button" class="kt-btn" id="ktBtnDesc" onclick="ktDescargar()">⬇️ Descargar</button>' +
     '<button type="button" class="kt-btn' + (ktCopiado ? ' ok' : '') + '" onclick="ktCopiar()">' + (ktCopiado ? '✅ Copiado' : '📋 Copiar texto') + '</button></div>' +
     '<button type="button" class="kt-btn-main" id="ktBtnComp" onclick="ktCompartir()">📤 Compartir en ' + KT_REDES[ktRed] + '</button>' +
@@ -4636,6 +4639,9 @@ function ktCopiarTexto(t) {
 function ktCopiarViejo(t) {
   var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
   document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); return ok;
+}
+function ktCopiarComentario() {
+  ktCopiarTexto(ktSel.comentario).then(function (ok) { if (ok) { ktCopiadoCom = true; ktPintarHoja(); } });
 }
 function ktCopiar() {
   ktCopiarTexto(ktSel.textos[ktRed]).then(function (ok) { if (ok) { ktCopiado = true; ktPintarHoja(); } else prToast('No se pudo copiar. Mantén presionado el texto para copiarlo.', '#dc2626'); });
