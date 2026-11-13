@@ -245,6 +245,7 @@
       <button id="cvTabBtn-alumnos" class="cv-tab" onclick="cvTab('alumnos')"><span class="cv-ico">🎓</span>Alumnos</button>
       <button id="cvTabBtn-comisiones" class="cv-tab" onclick="cvTab('comisiones')"><span class="cv-ico">💰</span>Comisiones<span class="cv-badge" id="cvBadgeReemb"></span></button>
       <button id="cvTabBtn-publicar" class="cv-tab" onclick="cvTab('publicar')"><span class="cv-ico">📣</span>Publicar</button>
+      <button id="cvTabBtn-lugares" class="cv-tab" onclick="cvTab('lugares')"><span class="cv-ico">📍</span>Lugares</button>
     </div>
 
     <!-- HOY -->
@@ -295,14 +296,7 @@
     <div class="pr-filtros" id="prFiltros"></div>
     <div id="prLista"></div>
     <div style="font-size:11px;color:#64748b;text-align:center;margin-top:12px;line-height:1.5;">🛡️ Cada prospecto es tuyo por <span id="prDiasEscudo">15</span> días desde tu último seguimiento. Cada mensaje que mandas desde aquí cuenta como seguimiento.</div>
-    <div id="bloque-compartir-grupos" style="margin-top:20px;padding:18px 20px;background:#1e2a4a;border-radius:14px;border:1px solid rgba(255,255,255,0.06);text-align:center;">
-      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Compartir con candidatos</div>
-      <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Selecciona un nivel y comparte los grupos disponibles por WhatsApp</div>
-      <select id="selNivelWA" style="width:100%;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,0.1);border-radius:100px;padding:10px 16px;font-size:13px;margin-bottom:10px;outline:none;">
-        <option value="">Cargando niveles...</option>
-      </select>
-      <button class="btn-compartir-wa" onclick="compartirGruposWA(this)">Compartir grupos</button>
-    </div>
+    <button type="button" onclick="cvTab('lugares'); lgVer('compartir');" style="margin-top:20px;width:100%;min-height:52px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);background:#1e2a4a;color:#f1f5f9;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer;">📍 Compartir grupos con prospectos (imagen)</button>
     </div>
 
     <!-- MIS ALUMNOS -->
@@ -350,6 +344,16 @@
       </div>
       <div id="ktGrid" class="kt-grid"><div class="loading">Cargando...</div></div>
       <div id="ktStickers" style="display:none;"></div>
+    </div>
+
+    <!-- LUGARES DISPONIBLES -->
+    <div class="cv-panel" id="cvPanel-lugares" style="display:none;">
+      <div class="lg-seg" role="tablist" aria-label="Vista de lugares">
+        <button type="button" id="lgSeg-iniciar" class="sel" onclick="lgVer('iniciar')">Por iniciar</button>
+        <button type="button" id="lgSeg-curso" onclick="lgVer('curso')">En curso</button>
+        <button type="button" id="lgSeg-compartir" onclick="lgVer('compartir')">Para compartir</button>
+      </div>
+      <div id="lgContenido"><div class="loading">Cargando grupos...</div></div>
     </div>
 
   </div>
@@ -1573,8 +1577,8 @@ function gvizJSONP(sheet, callback) {
 }
 
 function cargarNivelesDropdown() {
-  var sel = document.getElementById('selNivelWA');
-  sel.innerHTML = '<option value="">Cargando...</option>';
+  var sel = document.getElementById('selNivelWA');   // ya no existe en el panel: solo se llena gruposCache
+  if (sel) sel.innerHTML = '<option value="">Cargando...</option>';
   gvizJSONP('GRUPOS', function(grupos) {
     var hoy = new Date();
     gruposCache = grupos.filter(function(g) {
@@ -1588,6 +1592,7 @@ function cargarNivelesDropdown() {
     var nivelesLista = NIVELES_ORDEN.filter(function(n) { return nivelesVistos[n]; });
     var otros = Object.keys(nivelesVistos).filter(function(n) { return NIVELES_ORDEN.indexOf(n) === -1; }).sort();
     nivelesLista = nivelesLista.concat(otros);
+    if (!sel) return;
     if (!nivelesLista.length) {
       sel.innerHTML = '<option value="">Sin niveles disponibles</option>';
       return;
@@ -4243,8 +4248,8 @@ function prInscribir(id) {
   .cv-sub { font-size: 11px; font-weight: 600; opacity: .92; line-height: 1.35; }
   .cv-barra { height: 7px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; margin-top: 7px; }
   .cv-barra > div { height: 100%; width: 0; background: #fde047; border-radius: 999px; transition: width .6s; }
-  .cv-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-bottom: 12px; }
-  .cv-tab { position: relative; background: #1e2a4a; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 2px 7px; font-size: 10.5px; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center; }
+  .cv-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+  .cv-tab { position: relative; background: #1e2a4a; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 4px 7px; font-size: 11.5px; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center; }
   .cv-tab .cv-ico { display: block; font-size: 18px; margin-bottom: 2px; }
   .cv-tab .cv-badge { position: absolute; top: -6px; right: -4px; margin: 0; }
   .cv-tab.sel { background: #f97316; border-color: #f97316; color: #fff; box-shadow: 0 4px 14px rgba(249,115,22,0.35); }
@@ -4279,13 +4284,14 @@ function cvIniciar() {
 
 function cvTab(t) {
   cvTabActual = t;
-  ['hoy', 'prospectos', 'alumnos', 'comisiones', 'publicar'].forEach(function (k) {
+  ['hoy', 'prospectos', 'alumnos', 'comisiones', 'publicar', 'lugares'].forEach(function (k) {
     document.getElementById('cvPanel-' + k).style.display = k === t ? '' : 'none';
     document.getElementById('cvTabBtn-' + k).classList.toggle('sel', k === t);
   });
   if (t === 'alumnos' && !cvAlumnosCargados) cvCargarAlumnos();
   if (t === 'comisiones' && !cvComisionesCargadas) cvCargarComisiones();
   if (t === 'publicar' && !ktCargado) ktCargar();
+  if (t === 'lugares') lgCargar();   // siempre fresco al abrir
 }
 
 // ── Ganado esta semana + avance al bono ────────────────────────────────────
@@ -4743,6 +4749,353 @@ function ktMarcar() {
       if (b) { b.classList.add('ok'); b.innerHTML = '✅ Publicado en ' + red + ' · llevas ' + d.hoy + ' hoy'; }
     })
     .catch(function () { fin(); prToast('Sin conexión. Intenta de nuevo.', '#dc2626'); });
+}
+</script>
+
+
+
+<!-- ══ LUGARES DISPONIBLES (nov-2026) ═════════════════════════════════════ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  .lg-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: #1e2a4a; border-radius: 14px; padding: 4px; margin-bottom: 12px; }
+  .lg-seg button { min-height: 42px; border: none; border-radius: 11px; background: transparent; color: #cbd5e1; font-size: 12.5px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .lg-seg button.sel { background: #c2410c; color: #fff; }
+  .lg-hoja { border-radius: 18px; padding: 16px 12px 14px; color: #1B2A5B; font-family: 'Nunito', sans-serif; position: relative; overflow: hidden; }
+  .lg-hoja.crema { background: #FFF6E6; }
+  .lg-hoja.amarilla { background: #FFE07A; }
+  .lg-sup { font-size: 12px; font-weight: 800; color: #F2793A; }
+  .lg-hoja.amarilla .lg-sup { color: #1B2A5B; }
+  .lg-tit { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.15; margin: 2px 0 2px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .lg-interno { background: #E8467C; color: #fff; font-size: 12px; padding: 3px 10px; border-radius: 999px; letter-spacing: .5px; }
+  .lg-sub { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .lg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -12px; padding: 0 12px 4px; }
+  .lg-tabla { display: grid; grid-template-columns: 92px repeat(3, minmax(168px, 1fr)); gap: 6px; min-width: 620px; }
+  .lg-th { border-radius: 12px; color: #fff; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 15px; text-align: center; padding: 8px 4px; }
+  .lg-th-izq { background: #1B2A5B; }
+  .lg-fecha { background: #1B2A5B; color: #fff; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 8px 4px; }
+  .lg-fecha b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 15px; }
+  .lg-fecha span { color: #FFC53D; font-size: 11px; font-weight: 800; margin-top: 2px; }
+  .lg-fecha span.blanco { color: #e2e8f0; }
+  .lg-celda { background: #fff; border-radius: 12px; padding: 7px 6px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 0 rgba(27,42,91,0.06); }
+  .lg-celda.vacia { background: rgba(255,255,255,0.45); box-shadow: none; }
+  .lg-linea { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-size: 12.5px; padding: 2px 4px; border-radius: 8px; }
+  .lg-linea.sab { background: #7B5CD6; color: #fff; }
+  .lg-dot { width: 9px; height: 9px; border-radius: 999px; flex-shrink: 0; }
+  .lg-id { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 13px; }
+  .lg-hora { font-weight: 700; }
+  .lg-lug { font-weight: 600; opacity: .85; }
+  .lg-tag { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
+  .lg-tag.niv { background: #FFE9A8; color: #1B2A5B; }
+  .lg-tag.ini { background: #dbeafe; color: #1e3a8a; }
+  .lg-total { background: #1B2A5B; color: #fff; border-radius: 12px; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 15px; text-align: center; padding: 9px 4px; }
+  .lg-pie { font-size: 12px; font-weight: 600; margin-top: 12px; color: #334155; line-height: 1.45; }
+  .lg-comp-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .lg-comp-b { min-height: 64px; border: none; border-radius: 16px; color: #fff; font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 600; font-size: 17px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .lg-comp-b small { font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700; opacity: .9; }
+  .lg-comp-b[disabled] { opacity: .4; cursor: default; }
+  .lg-comp-nota { font-size: 12px; color: #94a3b8; margin: 10px 2px; line-height: 1.45; }
+  .lg-previa-img { width: 100%; border-radius: 14px; display: block; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+  #lgLienzo { position: fixed; left: -12000px; top: 0; width: 1080px; height: 3000px; border: 0; }
+</style>
+
+<iframe id="lgLienzo" aria-hidden="true" tabindex="-1"></iframe>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+//  LUGARES DISPONIBLES (nov-2026)
+//  Vista 1: grupos por iniciar (con lugares) · Vista 2: grupos en curso
+//  (uso interno) · Vista 3: imagen por categoría para prospectos (sin lugares).
+//  Lee la hoja GRUPOS directo (misma conexión gviz que el resto del panel).
+// ════════════════════════════════════════════════════════════════════════
+var LG_CATS = ['ADULTS', 'TEENS', 'KIDS'];
+var LG_COLOR = { ADULTS: '#4A68D8', TEENS: '#F2793A', KIDS: '#12A594' };
+var LG_EDADES = { ADULTS: '17 años en adelante', TEENS: '11 a 16 años', KIDS: '' };   // KIDS: escribe aquí el rango, ej. '6 a 10 años'
+var LG_FESTIVOS = ['01-01', '05-01', '09-16', '11-02', '11-16', '12-25'];
+var LG_DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+var LG_MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+var LG_CARD_CSS = ".lgc { width: 1080px; box-sizing: border-box; background: #FFF6E6; padding: 72px 64px 64px; font-family: 'Nunito', sans-serif; color: #1B2A5B; position: relative; overflow: hidden; } .lgc-sol { position: absolute; right: -90px; top: -110px; width: 300px; height: 300px; border-radius: 50%; background: #FFC53D; } .lgc-bola { position: absolute; right: 150px; top: 70px; width: 64px; height: 64px; border-radius: 50%; background: #E8467C; } .lgc-cat { display: inline-block; color: #fff; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 38px; padding: 6px 30px 8px; border-radius: 999px; } .lgc-edad { font-size: 24px; font-weight: 800; margin-top: 10px; color: #475569; } .lgc-tit { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 70px; line-height: 1.05; margin-top: 18px; } .lgc-sub { font-size: 28px; font-weight: 600; margin-top: 10px; } .lgc-tabla { display: grid; grid-template-columns: 290px 1fr; gap: 14px; margin-top: 40px; } .lgc-th { color: #fff; border-radius: 22px; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 34px; text-align: center; padding: 14px 10px; } .lgc-th.izq, .lgc-fecha { background: #1B2A5B; } .lgc-fecha { color: #fff; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 10px; } .lgc-fecha b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 36px; } .lgc-fecha span { color: #FFC53D; font-size: 22px; font-weight: 800; margin-top: 4px; } .lgc-celda { background: #fff; border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: center; gap: 10px; border-bottom: 4px solid #F1E3C8; } .lgc-linea { display: flex; align-items: center; gap: 18px; font-size: 32px; padding: 4px 10px; border-radius: 14px; } .lgc-linea.sab { background: #7B5CD6; color: #fff; padding: 10px 14px; } .lgc-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; } .lgc-id { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 34px; min-width: 104px; } .lgc-hora { font-weight: 700; } .lgc-ult { background: #E8467C; color: #fff; font-size: 20px; font-weight: 800; padding: 5px 14px; border-radius: 999px; } .lgc-niv { background: #FFE9A8; color: #1B2A5B; font-size: 20px; font-weight: 800; padding: 5px 14px; border-radius: 999px; } .lgc-chips { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; } .lgc-chips span { background: #1B2A5B; color: #fff; font-size: 22px; font-weight: 700; padding: 10px 22px; border-radius: 999px; } .lgc-pie { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 34px; gap: 20px; } .lgc-wa { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 34px; } .lgc-num { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 44px; color: #12A594; line-height: 1.1; } .lgc-act { font-size: 20px; font-weight: 700; color: #475569; margin-top: 4px; } .lgc-logo { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 40px; white-space: nowrap; } .lgc-logo span { color: #F2793A; }";
+var lgDatos = null, lgVista = 'iniciar', lgCargando = false, lgWA = null, lgImg = null;
+
+function lgEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function lgHoy0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function lgLunes(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); var w = x.getDay(); x.setDate(x.getDate() - (w === 0 ? 6 : w - 1)); return x; }
+function lgMMDD(d) { return ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function lgFechaTxt(d) { return LG_DIAS[d.getDay()] + ' ' + d.getDate() + ' ' + LG_MESES[d.getMonth()]; }
+function lgHoyTxt() { var d = new Date(); return d.getDate() + ' ' + LG_MESES[d.getMonth()] + ' ' + d.getFullYear(); }
+function lgMinutos(h) {
+  var m = String(h || '').match(/(\d{1,2}):(\d{2})\s*([AP])/i);
+  if (!m) return 9999;
+  var hh = (+m[1]) % 12 + (/p/i.test(m[3]) ? 12 : 0);
+  return hh * 60 + (+m[2]);
+}
+function lgTipoSemana(fecha, sab) {
+  if (sab) return 'Solo sábados';
+  return LG_FESTIVOS.indexOf(lgMMDD(lgLunes(fecha))) !== -1 ? '1a semana mar a vie' : 'Lun a jue';
+}
+function lgNivel(n) {   // 'NIVEL A1-Bloque 2' -> {key:'A1|2', base:'A1', bloque:2}
+  var m = String(n || '').match(/NIVEL\s+([A-Z0-9.]+)\s*-\s*Bloque\s*(\d)/i);
+  if (!m) { var b = String(n || '').replace(/^NIVEL\s+/i, '').trim(); return { key: b + '|0', base: b, bloque: 0 }; }
+  return { key: m[1].toUpperCase() + '|' + m[2], base: m[1].toUpperCase(), bloque: +m[2] };
+}
+
+// ── Carga de GRUPOS (gviz) ──
+function lgCargar() {
+  if (lgCargando) return;
+  lgCargando = true;
+  document.getElementById('lgContenido').innerHTML = '<div class="loading">Cargando grupos...</div>';
+  var cb = 'lgCb' + Date.now();
+  window[cb] = function (resp) {
+    delete window[cb]; lgCargando = false;
+    try { lgDatos = lgProcesar(resp); lgPintar(); }
+    catch (e) { document.getElementById('lgContenido').innerHTML = '<div class="pr-vacio">⚠️ No se pudieron leer los grupos.</div>'; }
+  };
+  var s = document.createElement('script');
+  s.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=responseHandler:' + cb + '&sheet=GRUPOS&t=' + Date.now();
+  s.onerror = function () { lgCargando = false; document.getElementById('lgContenido').innerHTML = '<div class="pr-vacio">⚠️ Sin conexión. Toca la pestaña otra vez.</div>'; };
+  document.head.appendChild(s);
+  // WhatsApp del asesor para la imagen (mismo dato que la pestaña Publicar)
+  if (lgWA === null && asesorData) {
+    lgWA = '';
+    fetch(APPS_SCRIPT + '?action=getKitVentas&idAsesor=' + encodeURIComponent(asesorData.id), { redirect: 'follow' })
+      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.whatsapp) lgWA = d.whatsapp; }).catch(function () {});
+  }
+}
+
+function lgProcesar(resp) {
+  var hoy = lgHoy0(), lunHoy = lgLunes(hoy), lista = [];
+  resp.table.rows.forEach(function (r) {
+    function c(i) { return r.c[i] ? r.c[i].v : ''; }
+    var id = String(c(0) || '').trim();
+    if (!id || /^PER/i.test(id)) return;
+    var nombre = String(c(1) || '').trim().toUpperCase();
+    var tipo = String(c(18) || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (tipo === 'personalizado' || /CLUB/.test(nombre)) return;
+    var sab = /-SAT$/.test(nombre) || tipo === 'sabado';          // solo dos tipos: lun-jue o sábado
+    var cat = nombre.replace(/-SAT$/, '').trim();
+    if (LG_CATS.indexOf(cat) === -1) return;
+    var estado = String(c(8) || '').trim().toUpperCase();
+    if (estado !== 'DISPONIBLE' && estado !== 'LLENO') return;
+    var fecha = (typeof parseFechaGVis === 'function') ? parseFechaGVis(r.c[3]) : null;
+    if (!fecha) return;
+    fecha = new Date(fecha); fecha.setHours(0, 0, 0, 0);
+    var cupo = Number(c(5)), insc = Number(c(6)) || 0;
+    var lugares = isFinite(cupo) && cupo > 0 ? Math.max(0, cupo - insc) : Math.max(0, Number(c(7)) || 0);
+    var hora = String(c(2) || '').trim();
+    var nv = lgNivel(c(4));
+    var yaInicio = !sab && fecha < hoy && fecha >= lunHoy;        // empezó esta semana: se sigue ofreciendo
+    var porIniciar = fecha >= hoy || yaInicio;
+    lista.push({
+      id: id, cat: cat, sab: sab, hora: hora, horaTxt: sab ? 'Sáb ' + hora : hora, min: lgMinutos(hora),
+      fecha: fecha, nivel: nv, esBase: nv.key === 'A1|1', lugares: lugares, estado: estado,
+      porIniciar: porIniciar && estado === 'DISPONIBLE' && lugares > 0,
+      enCurso: !porIniciar && lugares > 0,
+      yaInicio: yaInicio
+    });
+  });
+  return lista;
+}
+
+// ── Pintar ──
+function lgVer(v) { lgVista = v; lgPintar(); }
+function lgPintar() {
+  ['iniciar', 'curso', 'compartir'].forEach(function (k) {
+    var b = document.getElementById('lgSeg-' + k);
+    if (b) b.classList.toggle('sel', k === lgVista);
+  });
+  if (!lgDatos) return;
+  var box = document.getElementById('lgContenido');
+  if (lgVista === 'iniciar') box.innerHTML = lgHtmlIniciar();
+  else if (lgVista === 'curso') box.innerHTML = lgHtmlCurso();
+  else box.innerHTML = lgHtmlCompartir();
+}
+
+function lgPunto(cat, sab) { return '<span class="lg-dot" style="background:' + (sab ? '#fff' : LG_COLOR[cat]) + '"></span>'; }
+function lgLugares(n) { return n + (n === 1 ? ' lugar' : ' lugares'); }
+
+function lgCabecera(primera) {
+  return '<div class="lg-th lg-th-izq">' + primera + '</div>' + LG_CATS.map(function (c) {
+    return '<div class="lg-th" style="background:' + LG_COLOR[c] + '">' + c + '</div>';
+  }).join('');
+}
+
+// Vista 1
+function lgHtmlIniciar() {
+  var gs = lgDatos.filter(function (g) { return g.porIniciar; });
+  if (!gs.length) return '<div class="pr-vacio">No hay grupos por iniciar con lugares.</div>';
+  var fechas = {}, tot = { ADULTS: 0, TEENS: 0, KIDS: 0 };
+  gs.forEach(function (g) { var k = g.fecha.getTime(); (fechas[k] = fechas[k] || []).push(g); tot[g.cat] += g.lugares; });
+  var filas = Object.keys(fechas).sort(function (a, b) { return a - b; }).map(function (k) {
+    var lista = fechas[k], f = new Date(+k), sab = lista.every(function (g) { return g.sab; });
+    var izq = '<div class="lg-fecha"><b>' + lgFechaTxt(f) + '</b><span>' + lgTipoSemana(f, sab) + '</span></div>';
+    return izq + LG_CATS.map(function (c) {
+      var en = lista.filter(function (g) { return g.cat === c; }).sort(function (a, b) { return (a.sab - b.sab) || (a.min - b.min); });
+      if (!en.length) return '<div class="lg-celda vacia"></div>';
+      return '<div class="lg-celda">' + en.map(function (g) {
+        var tags = (g.esBase ? '' : '<span class="lg-tag niv">' + lgEsc(g.nivel.base) + '</span>') +
+                   (g.yaInicio ? '<span class="lg-tag ini">Ya inició esta semana</span>' : '');
+        return '<div class="lg-linea' + (g.sab ? ' sab' : '') + '">' + lgPunto(c, g.sab) +
+          '<b class="lg-id">' + lgEsc(g.id) + '</b><span class="lg-hora">' + lgEsc(g.horaTxt) + '</span>' +
+          '<span class="lg-lug">' + lgLugares(g.lugares) + '</span>' + tags + '</div>';
+      }).join('') + '</div>';
+    }).join('');
+  }).join('');
+  var total = '<div class="lg-total lg-th-izq">Total</div>' + LG_CATS.map(function (c) { return '<div class="lg-total">' + lgLugares(tot[c]) + '</div>'; }).join('');
+  return '<div class="lg-hoja crema"><div class="lg-sup">Grupos nuevos · actualizado al ' + lgHoyTxt() + '</div>' +
+    '<div class="lg-tit">Grupos por iniciar</div><div class="lg-sub">Todos son A1 · Bloque 1, salvo los marcados con otro nivel.</div>' +
+    '<div class="lg-scroll"><div class="lg-tabla">' + lgCabecera('Inicio') + filas + total + '</div></div>' +
+    '<div class="lg-pie">Uso interno. Clases de lunes a jueves; sabatinos solo sábado.</div></div>';
+}
+
+// Vista 2
+function lgHtmlCurso() {
+  var gs = lgDatos.filter(function (g) { return g.enCurso; });
+  if (!gs.length) return '<div class="pr-vacio">No hay grupos en curso con lugares.</div>';
+  var niveles = {}, tot = { ADULTS: 0, TEENS: 0, KIDS: 0 };
+  gs.forEach(function (g) {
+    var n = niveles[g.nivel.key] = niveles[g.nivel.key] || { nv: g.nivel, cats: {} };
+    var lista = n.cats[g.cat] = n.cats[g.cat] || {};
+    var k = (g.sab ? 'S' : 'L') + '|' + g.hora;
+    lista[k] = lista[k] || { hora: g.horaTxt, sab: g.sab, min: g.min, lugares: 0 };
+    lista[k].lugares += g.lugares;
+    tot[g.cat] += g.lugares;
+  });
+  var orden = Object.keys(niveles).sort(function (a, b) {
+    var x = niveles[a].nv, y = niveles[b].nv;
+    return x.base < y.base ? -1 : x.base > y.base ? 1 : x.bloque - y.bloque;
+  });
+  var filas = orden.map(function (k) {
+    var n = niveles[k];
+    var izq = '<div class="lg-fecha"><b>' + lgEsc(n.nv.base) + '</b><span class="blanco">' + (n.nv.bloque ? 'Bloque ' + n.nv.bloque : '') + '</span></div>';
+    return izq + LG_CATS.map(function (c) {
+      var mapa = n.cats[c];
+      if (!mapa) return '<div class="lg-celda vacia"></div>';
+      var lineas = Object.keys(mapa).map(function (x) { return mapa[x]; }).sort(function (a, b) { return (a.sab - b.sab) || (a.min - b.min); });
+      return '<div class="lg-celda">' + lineas.map(function (l) {
+        return '<div class="lg-linea' + (l.sab ? ' sab' : '') + '">' + lgPunto(c, l.sab) + '<b class="lg-id">' + lgEsc(l.hora) + '</b><span class="lg-lug">' + lgLugares(l.lugares) + '</span></div>';
+      }).join('') + '</div>';
+    }).join('');
+  }).join('');
+  var total = '<div class="lg-total lg-th-izq">Total</div>' + LG_CATS.map(function (c) { return '<div class="lg-total">' + lgLugares(tot[c]) + '</div>'; }).join('');
+  return '<div class="lg-hoja amarilla"><div class="lg-sup">Grupos en curso · actualizado al ' + lgHoyTxt() + '</div>' +
+    '<div class="lg-tit">Grupos en curso con lugares <span class="lg-interno">USO INTERNO</span></div>' +
+    '<div class="lg-sub">Lugares disponibles por horario, sin importar el avance del grupo.</div>' +
+    '<div class="lg-scroll"><div class="lg-tabla">' + lgCabecera('Nivel') + filas + total + '</div></div>' +
+    '<div class="lg-pie">Solo para el equipo: no compartir con prospectos. Para entrar a un grupo avanzado se requiere examen de colocación.</div></div>';
+}
+
+// Vista 3
+function lgHtmlCompartir() {
+  return '<div class="lg-comp-btns">' + LG_CATS.map(function (c) {
+    var n = lgDatos.filter(function (g) { return g.porIniciar && g.cat === c; }).length;
+    return '<button type="button" class="lg-comp-b" style="background:' + LG_COLOR[c] + '" ' + (n ? '' : 'disabled') +
+      ' onclick="lgGenerar(\'' + c + '\', this)">' + c + '<small>' + (n ? n + (n === 1 ? ' grupo' : ' grupos') : 'sin grupos') + '</small></button>';
+  }).join('') + '</div>' +
+  '<div class="lg-comp-nota">Elige una categoría para crear la imagen. No muestra cuántos lugares quedan; solo "¡Últimos lugares!" cuando quedan 3 o menos.</div>' +
+  '<div id="lgPrevia"></div>';
+}
+
+function lgWAtexto() {
+  var d = String(lgWA || '').replace(/\D/g, '');
+  if (d.length === 12 && d.indexOf('52') === 0) d = d.substring(2);
+  return d.length === 10 ? d.substring(0, 2) + ' ' + d.substring(2, 6) + ' ' + d.substring(6) : '';
+}
+
+function lgCardHtml(cat) {
+  var col = LG_COLOR[cat];
+  var gs = lgDatos.filter(function (g) { return g.porIniciar && g.cat === cat; });
+  var fechas = {};
+  gs.forEach(function (g) { var k = g.fecha.getTime(); (fechas[k] = fechas[k] || []).push(g); });
+  var filas = Object.keys(fechas).sort(function (a, b) { return a - b; }).map(function (k) {
+    var lista = fechas[k].sort(function (a, b) { return (a.sab - b.sab) || (a.min - b.min); }), f = new Date(+k);
+    var sab = lista.every(function (g) { return g.sab; });
+    return '<div class="lgc-fecha"><b>' + lgFechaTxt(f) + '</b><span>' + lgTipoSemana(f, sab) + '</span></div>' +
+      '<div class="lgc-celda">' + lista.map(function (g) {
+        var tags = (g.lugares <= 3 ? '<span class="lgc-ult">¡Últimos lugares!</span>' : '') +
+                   (g.esBase ? '' : '<span class="lgc-niv">Nivel ' + lgEsc(g.nivel.base) + '</span>') +
+                   (g.yaInicio ? '<span class="lgc-niv">Ya inició esta semana</span>' : '');
+        return '<div class="lgc-linea' + (g.sab ? ' sab' : '') + '"><span class="lgc-dot" style="background:' + (g.sab ? '#fff' : col) + '"></span>' +
+          '<b class="lgc-id">' + lgEsc(g.id) + '</b><span class="lgc-hora">' + lgEsc(g.horaTxt) + '</span>' + tags + '</div>';
+      }).join('') + '</div>';
+  }).join('');
+  var wa = lgWAtexto();
+  return '<div class="lgc">' +
+    '<div class="lgc-sol"></div><div class="lgc-bola"></div>' +
+    '<div class="lgc-cat" style="background:' + col + '">' + cat + '</div>' +
+    (LG_EDADES[cat] ? '<div class="lgc-edad">' + LG_EDADES[cat] + '</div>' : '') +
+    '<div class="lgc-tit">Grupos que inician pronto</div>' +
+    '<div class="lgc-sub">Elige tu horario y aparta tu lugar.</div>' +
+    '<div class="lgc-tabla"><div class="lgc-th izq">Inicio</div><div class="lgc-th" style="background:' + col + '">' + cat + '</div>' + filas + '</div>' +
+    '<div class="lgc-chips"><span>Inscripción gratis</span><span>Clases en vivo por Zoom</span><span>Grupos de máximo 10</span></div>' +
+    '<div class="lgc-pie"><div><div class="lgc-wa">Escríbeme por WhatsApp</div>' + (wa ? '<div class="lgc-num">' + wa + '</div>' : '') +
+    '<div class="lgc-act">Actualizado al ' + lgHoyTxt() + '</div></div>' +
+    '<div class="lgc-logo">Organic <span>English</span></div></div></div>';
+}
+
+function lgCargarScript(src) {
+  return new Promise(function (ok, mal) {
+    if (window.html2canvas) return ok();
+    var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = mal; document.head.appendChild(s);
+  });
+}
+function lgFuentes() {
+  if (!document.getElementById('lgFuentesLink')) {
+    var l = document.createElement('link'); l.id = 'lgFuentesLink'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap';
+    document.head.appendChild(l);
+  }
+  if (!document.fonts || !document.fonts.load) return Promise.resolve();
+  var cargar = Promise.all([document.fonts.load('700 40px Fredoka'), document.fonts.load('600 40px Fredoka'), document.fonts.load('700 30px Nunito')]).catch(function () {});
+  return Promise.race([cargar, new Promise(function (ok) { setTimeout(ok, 4000); })]);   // no esperar más de 4 s
+}
+
+// La tarjeta se dibuja en un iframe aparte (solo la tarjeta y sus estilos): así html2canvas no copia todo el panel.
+function lgPrepararLienzo(cat) {
+  return new Promise(function (ok) {
+    var fr = document.getElementById('lgLienzo');
+    fr.onload = function () {
+      var doc = fr.contentDocument, listo = doc.fonts && doc.fonts.ready ? doc.fonts.ready : Promise.resolve();
+      Promise.race([listo, new Promise(function (r) { setTimeout(r, 4000); })]).then(function () { ok(doc.body.firstElementChild); });
+    };
+    fr.srcdoc = '<!doctype html><html><head><meta charset="utf-8">' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">' +
+      '<style>body{margin:0;background:#FFF6E6;} ' + LG_CARD_CSS + '</style></head><body>' + lgCardHtml(cat) + '</body></html>';
+  });
+}
+
+function lgGenerar(cat, btn) {
+  var previa = document.getElementById('lgPrevia');
+  previa.innerHTML = '<div class="loading">Creando imagen de ' + cat + '...</div>';
+  lgCargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+    .then(function () { return lgPrepararLienzo(cat); })
+    .then(function (el) { return window.html2canvas(el, { scale: 1, backgroundColor: '#FFF6E6', useCORS: true, logging: false }); })
+    .then(function (canvas) {
+      canvas.toBlob(function (blob) {
+        var nombre = 'grupos-' + cat.toLowerCase() + '-' + new Date().toISOString().slice(0, 10) + '.png';
+        lgImg = new File([blob], nombre, { type: 'image/png' });
+        var url = URL.createObjectURL(blob);
+        previa.innerHTML = '<img src="' + url + '" class="lg-previa-img" alt="Grupos ' + cat + '">' +
+          '<button type="button" class="kt-btn-main" style="width:100%;margin-top:10px;background:#16a34a;box-shadow:none;" onclick="lgCompartir()">📲 Compartir por WhatsApp</button>' +
+          '<button type="button" class="kt-btn" style="width:100%;margin-top:8px;" onclick="lgDescargar()">⬇️ Descargar imagen</button>';
+      }, 'image/png');
+    })
+    .catch(function () { previa.innerHTML = '<div class="pr-vacio">⚠️ No se pudo crear la imagen. Revisa tu conexión e intenta de nuevo.</div>'; });
+}
+
+function lgDescargar() {
+  if (!lgImg) return;
+  var u = URL.createObjectURL(lgImg), a = document.createElement('a');
+  a.href = u; a.download = lgImg.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+}
+function lgCompartir() {
+  if (!lgImg) return;
+  if (navigator.canShare && navigator.canShare({ files: [lgImg] })) {
+    navigator.share({ files: [lgImg] }).catch(function (e) { if (e && e.name !== 'AbortError') lgDescargar(); });
+    return;
+  }
+  lgDescargar();
+  if (typeof prToast === 'function') prToast('⬇️ Imagen descargada. Ábrela en WhatsApp para enviarla.', '#16a34a');
 }
 </script>
 
