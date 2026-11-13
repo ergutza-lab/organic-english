@@ -4517,7 +4517,11 @@ function ktPintar() {
   document.getElementById('ktFiltros').style.display = esSt ? 'none' : '';
   document.getElementById('ktGrid').style.display = esSt ? 'none' : '';
   document.getElementById('ktStickers').style.display = esSt ? '' : 'none';
-  if (esSt) { ktPintarStickers(); return; }
+  if (esSt) {
+    ktPintarStickers();
+    (ktData.items || []).filter(function (x) { return x.tipo === 'Sticker'; }).forEach(function (x) { ktObtener(x).catch(function () {}); });
+    return;
+  }
 
   document.getElementById('ktChipsUso').innerHTML = [['todo', 'Todo'], ['Publicidad', 'Publicidad'], ['Contenido de valor', 'Contenido de valor']].map(function (u) {
     return '<button type="button" class="kt-chip' + (ktUso === u[0] ? ' sel' : '') + '" onclick="ktUso=\'' + u[0] + '\';ktPintar()">' + u[1] + '</button>';
@@ -4552,10 +4556,11 @@ function ktPintarStickers() {
   var st = (ktData.items || []).filter(function (x) { return x.tipo === 'Sticker'; });
   var box = document.getElementById('ktStickers');
   if (!st.length) { box.innerHTML = '<div class="kt-vacio">Los stickers estarán aquí muy pronto.</div>'; return; }
-  box.innerHTML = '<button type="button" class="kt-btn-main" style="width:100%;margin-bottom:10px;background:#15803d;box-shadow:none;" id="ktStTodos" onclick="ktStickersTodos()">📲 Mandar los ' + st.length + ' a mi WhatsApp</button>' +
-    '<div class="kt-st-pasos"><b style="color:#fff;">Cómo agregarlos a tu WhatsApp</b><br>1. Mándatelos a ti mismo con el botón verde (o descárgalos uno por uno).<br>2. Ábrelos en tu chat.<br>3. Mantén presionado cada uno y elige “Agregar a favoritos”.</div>' +
+  box.innerHTML = '<button type="button" class="kt-btn-main" style="width:100%;margin-bottom:10px;background:#15803d;box-shadow:none;" id="ktStTodos" onclick="ktStickersTodos()">📲 Mandar los ' + st.length + ' a mi WhatsApp' + (st.length > 8 ? ' (en tandas de 8)' : '') + '</button>' +
+    '<div class="kt-st-pasos"><b style="color:#fff;">Cómo agregarlos a tu WhatsApp</b><br>1. Toca el botón verde, elige WhatsApp y mándatelos a ti mismo (a tu propio chat). Repite hasta terminar las tandas.<br>2. Ábrelos en tu chat.<br>3. Mantén presionado cada uno y elige “Agregar a favoritos”.</div>' +
     '<div class="kt-st-grid">' + st.map(function (x) {
       return '<div class="kt-st"><img src="' + ktEsc(x.url) + '" alt="' + ktEsc(x.titulo) + '" loading="lazy"><span class="kt-st-n">' + ktEsc(x.titulo) + '</span>' +
+        '<button type="button" onclick="ktMandarSticker(\'' + ktEsc(x.id) + '\', this)">📲 Mandar</button>' +
         '<button type="button" onclick="ktDescargarId(\'' + ktEsc(x.id) + '\', this)">Descargar</button></div>';
     }).join('') + '</div>';
 }
@@ -4673,20 +4678,52 @@ function ktCompartirRespaldo(f, t) {
   prToast('⬇️ Archivo descargado y 📋 texto copiado. Ábrelo en ' + KT_REDES[ktRed] + ' y pega el texto.', '#7c3aed');
 }
 
+// Android solo deja compartir hasta 10 archivos por vez: se mandan en tandas de 8.
+var KT_TANDA = 8, ktTandaSt = 0;
 function ktStickersTodos() {
   var st = (ktData.items || []).filter(function (x) { return x.tipo === 'Sticker'; });
-  var listos = st.every(function (x) { return ktBlobs[x.id]; });
   var btn = document.getElementById('ktStTodos');
+  var listos = st.every(function (x) { return ktBlobs[x.id]; });
   if (!listos) {
     var fin = ktOcupado(btn, '⏳ Preparando ' + st.length + ' stickers...');
-    Promise.all(st.map(ktObtener)).then(function () { fin(); if (btn) btn.innerHTML = '📲 Listos: toca para mandarlos'; })
+    Promise.all(st.map(ktObtener)).then(function () { fin(); ktTandaSt = 0; ktBotonTanda(st.length); })
       .catch(function () { fin(); prToast('No se pudieron preparar los stickers.', '#dc2626'); });
     return;
   }
-  var files = st.map(function (x) { return ktBlobs[x.id]; });
-  if (navigator.canShare && navigator.canShare({ files: files })) { navigator.share({ files: files }).catch(function () {}); return; }
+  var desde = ktTandaSt * KT_TANDA, hasta = Math.min(desde + KT_TANDA, st.length);
+  var files = st.slice(desde, hasta).map(function (x) { return ktBlobs[x.id]; });
+  if (navigator.canShare && navigator.canShare({ files: files })) {
+    navigator.share({ files: files }).then(function () {
+      ktTandaSt = hasta >= st.length ? 0 : ktTandaSt + 1;
+      if (ktTandaSt) ktBotonTanda(st.length);
+      else { if (btn) btn.innerHTML = '✅ Listo. Toca para mandarlos otra vez'; prToast('✅ Ya te mandaste los ' + st.length + ' stickers', '#16a34a'); }
+    }).catch(function (e) {
+      if (e && e.name === 'AbortError') return;
+      prToast('No se pudieron compartir (' + (e && e.name || 'error') + '). Usa "Mandar" en cada sticker.', '#dc2626');
+    });
+    return;
+  }
   files.forEach(function (f, i) { setTimeout(function () { ktGuardarArchivo(f); }, i * 400); });
   prToast('⬇️ Descargando ' + files.length + ' stickers', '#16a34a');
+}
+function ktBotonTanda(total) {
+  var btn = document.getElementById('ktStTodos'); if (!btn) return;
+  var desde = ktTandaSt * KT_TANDA + 1, hasta = Math.min(desde + KT_TANDA - 1, total);
+  btn.innerHTML = '📲 Mandar a mi WhatsApp: del ' + desde + ' al ' + hasta + ' de ' + total;
+}
+// Un solo sticker (archivo listo de antemano para no perder el toque)
+function ktMandarSticker(id, btn) {
+  var x = ktItem(id), f = ktBlobs[id];
+  if (!f) {
+    var fin = ktOcupado(btn, '⏳');
+    ktObtener(x).then(function () { fin(); btn.innerHTML = '📲 Listo'; }).catch(function () { fin(); prToast('No se pudo preparar.', '#dc2626'); });
+    return;
+  }
+  if (navigator.canShare && navigator.canShare({ files: [f] })) {
+    navigator.share({ files: [f] }).catch(function (e) { if (e && e.name !== 'AbortError') prToast('No se pudo compartir (' + e.name + ').', '#dc2626'); });
+    return;
+  }
+  ktGuardarArchivo(f);
 }
 
 function ktMarcar() {
