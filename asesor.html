@@ -242,8 +242,9 @@
     <div class="cv-tabs">
       <button id="cvTabBtn-hoy" class="cv-tab sel" onclick="cvTab('hoy')"><span class="cv-ico">🚦</span>Hoy<span class="cv-badge" id="cvBadgeHoy"></span></button>
       <button id="cvTabBtn-prospectos" class="cv-tab" onclick="cvTab('prospectos')"><span class="cv-ico">📇</span>Prospectos</button>
-      <button id="cvTabBtn-alumnos" class="cv-tab" onclick="cvTab('alumnos')"><span class="cv-ico">🎓</span>Mis alumnos</button>
+      <button id="cvTabBtn-alumnos" class="cv-tab" onclick="cvTab('alumnos')"><span class="cv-ico">🎓</span>Alumnos</button>
       <button id="cvTabBtn-comisiones" class="cv-tab" onclick="cvTab('comisiones')"><span class="cv-ico">💰</span>Comisiones<span class="cv-badge" id="cvBadgeReemb"></span></button>
+      <button id="cvTabBtn-publicar" class="cv-tab" onclick="cvTab('publicar')"><span class="cv-ico">📣</span>Publicar</button>
     </div>
 
     <!-- HOY -->
@@ -327,6 +328,30 @@
       <div style="font-size:11.5px;color:#94a3b8;margin:-2px 2px 8px;line-height:1.5;">Alumnos tuyos a los que no se les pudo ofrecer un grupo. Contáctalos para pedirles sus datos bancarios y reenvíalos a finanzas.</div>
       <div id="re-lista"><div class="loading">Cargando...</div></div>
     </div>
+    <!-- PUBLICAR (material oficial) -->
+    <div class="cv-panel" id="cvPanel-publicar" style="display:none;">
+      <div class="kt-meta">
+        <div class="kt-meta-ico">✅</div>
+        <div style="flex:1;min-width:0;">
+          <div class="kt-meta-t" id="ktMetaTxt">Hoy llevas 0 de 15 publicaciones</div>
+          <div class="kt-meta-s">5 en la mañana, 5 en la tarde y 5 en la noche</div>
+          <div class="kt-meta-barra"><div id="ktMetaBarra"></div></div>
+        </div>
+      </div>
+      <div class="kt-aviso" id="ktAvisoWA" style="display:none;">⚠️ No tenemos tu WhatsApp registrado, así que los textos van sin tu liga. Pide a Coordinación que lo registre.</div>
+      <div class="kt-seg" role="tablist" aria-label="Tipo de material">
+        <button type="button" class="kt-seg-b sel" id="ktSeg-Reel" onclick="ktVerTipo('Reel')">Reels</button>
+        <button type="button" class="kt-seg-b" id="ktSeg-Imagen" onclick="ktVerTipo('Imagen')">Imágenes</button>
+        <button type="button" class="kt-seg-b" id="ktSeg-Sticker" onclick="ktVerTipo('Sticker')">Stickers</button>
+      </div>
+      <div id="ktFiltros">
+        <div class="kt-chips" id="ktChipsUso"></div>
+        <div class="kt-chips" id="ktChipsPub"></div>
+      </div>
+      <div id="ktGrid" class="kt-grid"><div class="loading">Cargando...</div></div>
+      <div id="ktStickers" style="display:none;"></div>
+    </div>
+
   </div>
 </div>
 
@@ -4218,8 +4243,8 @@ function prInscribir(id) {
   .cv-sub { font-size: 11px; font-weight: 600; opacity: .92; line-height: 1.35; }
   .cv-barra { height: 7px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; margin-top: 7px; }
   .cv-barra > div { height: 100%; width: 0; background: #fde047; border-radius: 999px; transition: width .6s; }
-  .cv-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
-  .cv-tab { position: relative; background: #1e2a4a; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 4px 7px; font-size: 11.5px; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center; }
+  .cv-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-bottom: 12px; }
+  .cv-tab { position: relative; background: #1e2a4a; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 2px 7px; font-size: 10.5px; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center; }
   .cv-tab .cv-ico { display: block; font-size: 18px; margin-bottom: 2px; }
   .cv-tab .cv-badge { position: absolute; top: -6px; right: -4px; margin: 0; }
   .cv-tab.sel { background: #f97316; border-color: #f97316; color: #fff; box-shadow: 0 4px 14px rgba(249,115,22,0.35); }
@@ -4254,12 +4279,13 @@ function cvIniciar() {
 
 function cvTab(t) {
   cvTabActual = t;
-  ['hoy', 'prospectos', 'alumnos', 'comisiones'].forEach(function (k) {
+  ['hoy', 'prospectos', 'alumnos', 'comisiones', 'publicar'].forEach(function (k) {
     document.getElementById('cvPanel-' + k).style.display = k === t ? '' : 'none';
     document.getElementById('cvTabBtn-' + k).classList.toggle('sel', k === t);
   });
   if (t === 'alumnos' && !cvAlumnosCargados) cvCargarAlumnos();
   if (t === 'comisiones' && !cvComisionesCargadas) cvCargarComisiones();
+  if (t === 'publicar' && !ktCargado) ktCargar();
 }
 
 // ── Ganado esta semana + avance al bono ────────────────────────────────────
@@ -4368,6 +4394,308 @@ function cvContarReembolsos() {
       var b = document.getElementById('cvBadgeReemb');
       b.textContent = n; b.style.display = n ? 'inline-flex' : 'none';
     }).catch(function () {});
+}
+</script>
+
+
+<!-- ══ PESTAÑA PUBLICAR (material oficial, nov-2026) ═══════════════════════ -->
+<style>
+  .kt-meta { background: #3b1d6e; border: 1px solid #6d28d9; border-radius: 16px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+  .kt-meta-ico { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; background: #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .kt-meta-t { font-size: 14px; font-weight: 900; color: #fff; }
+  .kt-meta-s { font-size: 12px; font-weight: 700; color: #ddd6fe; margin-top: 1px; }
+  .kt-meta-barra { height: 7px; background: rgba(255,255,255,0.18); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .kt-meta-barra > div { height: 100%; width: 0; background: #fde047; border-radius: 999px; transition: width .5s; }
+  .kt-aviso { background: rgba(234,179,8,0.14); border: 1px solid rgba(234,179,8,0.45); color: #fde68a; border-radius: 12px; padding: 9px 12px; font-size: 12px; font-weight: 700; margin-bottom: 10px; line-height: 1.45; }
+  .kt-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: #1e2a4a; border-radius: 14px; padding: 4px; margin-bottom: 10px; }
+  .kt-seg-b { min-height: 42px; border: none; border-radius: 11px; background: transparent; color: #cbd5e1; font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .kt-seg-b.sel { background: #c2410c; color: #fff; }
+  .kt-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .kt-chip { min-height: 34px; padding: 0 13px; border-radius: 999px; background: transparent; color: #cbd5e1; border: 1px solid #475569; font-size: 12.5px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .kt-chip.sel { background: #f1f5f9; color: #0f172a; border-color: #f1f5f9; }
+  .kt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; }
+  .kt-card { background: #1e2a4a; border-radius: 14px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; border: none; padding: 0; text-align: left; font-family: inherit; color: inherit; }
+  .kt-thumb { position: relative; background: #334155 center/cover no-repeat; display: flex; align-items: center; justify-content: center; }
+  .kt-thumb.reel { aspect-ratio: 9 / 14; }
+  .kt-thumb.img { aspect-ratio: 1 / 1; }
+  .kt-thumb video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .kt-play { position: relative; width: 40px; height: 40px; border-radius: 999px; background: rgba(15,23,42,0.6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .kt-nuevo { position: absolute; top: 8px; left: 8px; background: #fde047; color: #422006; font-size: 10.5px; font-weight: 900; padding: 2px 8px; border-radius: 999px; z-index: 1; }
+  .kt-dur { position: absolute; bottom: 8px; right: 8px; background: rgba(15,23,42,0.78); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; z-index: 1; }
+  .kt-info { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; }
+  .kt-tit { font-size: 13px; font-weight: 800; color: #f1f5f9; line-height: 1.25; }
+  .kt-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .kt-tag { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: #334155; color: #e2e8f0; }
+  .kt-tag.pub { background: #7c2d12; color: #fed7aa; }
+  .kt-tag.val { background: #1e3a8a; color: #bfdbfe; }
+  .kt-usado { font-size: 11px; font-weight: 700; color: #94a3b8; }
+  .kt-vacio { grid-column: 1 / -1; text-align: center; color: #94a3b8; font-size: 13px; padding: 24px 10px; }
+  .kt-modal { display: none; position: fixed; inset: 0; background: rgba(2,6,23,0.75); z-index: 9000; align-items: flex-end; justify-content: center; }
+  .kt-modal.open { display: flex; }
+  .kt-hoja { background: #0f172a; color: #e2e8f0; width: 100%; max-width: 480px; max-height: 94vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 14px 14px 22px; display: flex; flex-direction: column; gap: 12px; animation: prEntra .2s ease both; }
+  .kt-cab { display: flex; align-items: center; gap: 10px; }
+  .kt-x { width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #1e2a4a; border: none; color: #e2e8f0; font-size: 18px; font-weight: 900; cursor: pointer; }
+  .kt-media { width: 100%; border-radius: 16px; background: #000; display: block; max-height: 52vh; object-fit: contain; }
+  .kt-lbl { font-size: 11.5px; font-weight: 900; letter-spacing: .7px; text-transform: uppercase; color: #94a3b8; }
+  .kt-redes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .kt-red { min-height: 42px; border-radius: 12px; background: #1e2a4a; color: #cbd5e1; border: 1px solid #334155; font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .kt-red.sel { background: #f1f5f9; color: #0f172a; border-color: #f1f5f9; }
+  .kt-texto { background: #1e2a4a; border-radius: 14px; padding: 12px 14px; font-size: 13.5px; font-weight: 600; line-height: 1.45; white-space: pre-line; word-break: break-word; }
+  .kt-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kt-btn { min-height: 48px; border-radius: 14px; border: 1px solid #475569; background: #1e2a4a; color: #f1f5f9; font-size: 14px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .kt-btn.ok { background: #14532d; border-color: #16a34a; color: #dcfce7; }
+  .kt-btn-main { min-height: 54px; border-radius: 16px; border: none; background: #c2410c; color: #fff; font-size: 16px; font-weight: 900; font-family: inherit; cursor: pointer; box-shadow: 0 6px 18px rgba(234,88,12,0.35); }
+  .kt-btn-main[disabled], .kt-btn[disabled] { opacity: .6; cursor: wait; }
+  .kt-marcar { min-height: 48px; border-radius: 14px; background: transparent; color: #e2e8f0; border: 1px dashed #64748b; font-size: 14px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .kt-marcar.ok { background: #14532d; border: 1px solid #16a34a; color: #dcfce7; }
+  .kt-consejo { display: flex; gap: 8px; background: #172554; border-radius: 14px; padding: 10px 12px; font-size: 12.5px; font-weight: 700; line-height: 1.4; color: #dbeafe; }
+  .kt-st-pasos { background: #1e2a4a; border-radius: 14px; padding: 12px 14px; font-size: 12.5px; font-weight: 700; line-height: 1.55; color: #e2e8f0; margin-bottom: 10px; }
+  .kt-st-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .kt-st { background: #1e2a4a; border-radius: 14px; padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .kt-st img { width: 82px; height: 82px; object-fit: contain; }
+  .kt-st-n { font-size: 11px; font-weight: 700; color: #cbd5e1; text-align: center; line-height: 1.2; min-height: 26px; }
+  .kt-st button { min-height: 32px; width: 100%; border-radius: 10px; border: 1px solid #475569; background: transparent; color: #e2e8f0; font-size: 11.5px; font-weight: 800; font-family: inherit; cursor: pointer; }
+</style>
+    <!-- Detalle de un material -->
+    <div class="kt-modal" id="ktModal" onclick="if(event.target===this)ktCerrar()">
+      <div class="kt-hoja" id="ktHoja"></div>
+    </div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+//  PESTAÑA PUBLICAR (nov-2026): material oficial para publicar en
+//  Facebook, WhatsApp, Instagram y TikTok con el WhatsApp del asesor.
+// ════════════════════════════════════════════════════════════════════════
+var ktData = null, ktCargado = false, ktTipo = 'Reel', ktUso = 'todo', ktPub = 'Todos';
+var ktSel = null, ktRed = 'fb', ktCopiado = false, ktBlobs = {};
+var KT_REDES = { fb: 'Facebook', wa: 'WhatsApp', ig: 'Instagram', tt: 'TikTok' };
+var KT_CONSEJOS = {
+  fb: 'En grupos de compra-venta: calienta el grupo antes de publicar (5 likes y 3 comentarios) y pon tu liga de WhatsApp en el primer comentario.',
+  wa: 'En tu estado de WhatsApp: sube el video o la imagen y pega el texto como pie del estado.',
+  ig: 'En Instagram: súbelo como Reel o publicación. La liga del texto no se puede tocar ahí, así que pon tu WhatsApp también en tu perfil.',
+  tt: 'En TikTok: súbelo desde la app y agrega la música ahí mismo. Pon tu WhatsApp en tu perfil.'
+};
+
+function ktEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+function ktCargar() {
+  if (!asesorData) return;
+  ktCargado = true;
+  document.getElementById('ktGrid').innerHTML = '<div class="loading" style="grid-column:1/-1;">Cargando...</div>';
+  fetch(APPS_SCRIPT + '?action=getKitVentas&idAsesor=' + encodeURIComponent(asesorData.id), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.success) { ktCargado = false; document.getElementById('ktGrid').innerHTML = '<div class="kt-vacio">' + ktEsc(d.error || 'No se pudo cargar el material.') + '</div>'; return; }
+      ktData = d;
+      document.getElementById('ktAvisoWA').style.display = d.whatsapp ? 'none' : 'block';
+      ktPintarMeta();
+      ktPintar();
+    })
+    .catch(function () { ktCargado = false; document.getElementById('ktGrid').innerHTML = '<div class="kt-vacio">Sin conexión. Toca la pestaña otra vez para reintentar.</div>'; });
+}
+
+function ktPintarMeta() {
+  if (!ktData) return;
+  var h = ktData.hoy || 0, m = ktData.meta || 15;
+  document.getElementById('ktMetaTxt').textContent = h >= m ? '¡Meta del día cumplida! Llevas ' + h + ' publicaciones' : 'Hoy llevas ' + h + ' de ' + m + ' publicaciones';
+  document.getElementById('ktMetaBarra').style.width = Math.min(100, Math.round(h * 100 / m)) + '%';
+}
+
+function ktVerTipo(t) { ktTipo = t; ktPintar(); }
+
+function ktPintar() {
+  if (!ktData) return;
+  var items = ktData.items || [];
+  ['Reel', 'Imagen', 'Sticker'].forEach(function (t) {
+    var n = items.filter(function (x) { return x.tipo === t; }).length;
+    var b = document.getElementById('ktSeg-' + t);
+    b.textContent = (t === 'Reel' ? 'Reels' : t === 'Imagen' ? 'Imágenes' : 'Stickers') + ' · ' + n;
+    b.classList.toggle('sel', t === ktTipo);
+    b.setAttribute('aria-selected', t === ktTipo ? 'true' : 'false');
+  });
+  var esSt = ktTipo === 'Sticker';
+  document.getElementById('ktFiltros').style.display = esSt ? 'none' : '';
+  document.getElementById('ktGrid').style.display = esSt ? 'none' : '';
+  document.getElementById('ktStickers').style.display = esSt ? '' : 'none';
+  if (esSt) { ktPintarStickers(); return; }
+
+  document.getElementById('ktChipsUso').innerHTML = [['todo', 'Todo'], ['Publicidad', 'Publicidad'], ['Contenido de valor', 'Contenido de valor']].map(function (u) {
+    return '<button type="button" class="kt-chip' + (ktUso === u[0] ? ' sel' : '') + '" onclick="ktUso=\'' + u[0] + '\';ktPintar()">' + u[1] + '</button>';
+  }).join('');
+  document.getElementById('ktChipsPub').innerHTML = ['Todos', 'Adultos', 'Kids', 'Teens', 'Sabatino'].map(function (p) {
+    return '<button type="button" class="kt-chip' + (ktPub === p ? ' sel' : '') + '" onclick="ktPub=\'' + p + '\';ktPintar()">' + p + '</button>';
+  }).join('');
+
+  var lista = items.filter(function (x) {
+    if (x.tipo !== ktTipo) return false;
+    if (ktUso !== 'todo' && x.uso !== ktUso) return false;
+    if (ktPub !== 'Todos' && x.publico !== ktPub && x.publico !== 'Todos') return false;
+    return true;
+  });
+  var g = document.getElementById('ktGrid');
+  if (!lista.length) { g.innerHTML = '<div class="kt-vacio">No hay material con estos filtros todavía.</div>'; return; }
+  g.innerHTML = lista.map(function (x) {
+    var esReel = x.tipo === 'Reel';
+    var fondo = x.portada ? ' style="background-image:url(\'' + ktEsc(x.portada) + '\')"' : (!esReel ? ' style="background-image:url(\'' + ktEsc(x.url) + '\')"' : '');
+    var vid = (esReel && !x.portada) ? '<video src="' + ktEsc(x.url) + '#t=0.5" muted playsinline preload="metadata"></video>' : '';
+    return '<button type="button" class="kt-card" onclick="ktAbrir(\'' + ktEsc(x.id) + '\')">' +
+      '<div class="kt-thumb ' + (esReel ? 'reel' : 'img') + '"' + fondo + '>' + vid +
+      (x.nuevo ? '<span class="kt-nuevo">NUEVO</span>' : '') +
+      (esReel ? '<span class="kt-play">▶</span>' + (x.duracion ? '<span class="kt-dur">' + ktEsc(x.duracion) + '</span>' : '') : '') +
+      '</div><div class="kt-info"><span class="kt-tit">' + ktEsc(x.titulo) + '</span>' +
+      '<div class="kt-tags"><span class="kt-tag ' + (x.uso === 'Publicidad' ? 'pub' : 'val') + '">' + ktEsc(x.uso) + '</span><span class="kt-tag">' + ktEsc(x.publico) + '</span></div>' +
+      '<span class="kt-usado">' + (x.usos ? 'Lo publicaste ' + x.usos + (x.usos === 1 ? ' vez' : ' veces') : 'Aún no lo publicas') + '</span></div></button>';
+  }).join('');
+}
+
+function ktPintarStickers() {
+  var st = (ktData.items || []).filter(function (x) { return x.tipo === 'Sticker'; });
+  var box = document.getElementById('ktStickers');
+  if (!st.length) { box.innerHTML = '<div class="kt-vacio">Los stickers estarán aquí muy pronto.</div>'; return; }
+  box.innerHTML = '<button type="button" class="kt-btn-main" style="width:100%;margin-bottom:10px;background:#15803d;box-shadow:none;" id="ktStTodos" onclick="ktStickersTodos()">📲 Mandar los ' + st.length + ' a mi WhatsApp</button>' +
+    '<div class="kt-st-pasos"><b style="color:#fff;">Cómo agregarlos a tu WhatsApp</b><br>1. Mándatelos a ti mismo con el botón verde (o descárgalos uno por uno).<br>2. Ábrelos en tu chat.<br>3. Mantén presionado cada uno y elige “Agregar a favoritos”.</div>' +
+    '<div class="kt-st-grid">' + st.map(function (x) {
+      return '<div class="kt-st"><img src="' + ktEsc(x.url) + '" alt="' + ktEsc(x.titulo) + '" loading="lazy"><span class="kt-st-n">' + ktEsc(x.titulo) + '</span>' +
+        '<button type="button" onclick="ktDescargarId(\'' + ktEsc(x.id) + '\', this)">Descargar</button></div>';
+    }).join('') + '</div>';
+}
+
+function ktItem(id) { return (ktData.items || []).filter(function (x) { return x.id === id; })[0]; }
+
+function ktAbrir(id) {
+  ktSel = ktItem(id); if (!ktSel) return;
+  ktRed = 'fb'; ktCopiado = false;
+  ktPintarHoja();
+  ktObtener(ktSel).catch(function () {});   // se baja en segundo plano para poder compartir
+  document.getElementById('ktModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function ktCerrar() {
+  var v = document.querySelector('#ktHoja video'); if (v) v.pause();
+  document.getElementById('ktModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function ktPintarHoja() {
+  var x = ktSel, esReel = x.tipo === 'Reel';
+  var media = esReel
+    ? '<video class="kt-media" src="' + ktEsc(x.url) + '" controls playsinline preload="metadata"' + (x.portada ? ' poster="' + ktEsc(x.portada) + '"' : '') + '></video>'
+    : '<img class="kt-media" src="' + ktEsc(x.url) + '" alt="' + ktEsc(x.titulo) + '">';
+  document.getElementById('ktHoja').innerHTML =
+    '<div class="kt-cab"><button type="button" class="kt-x" aria-label="Cerrar" onclick="ktCerrar()">✕</button>' +
+    '<div style="min-width:0;"><div style="font-size:16px;font-weight:900;color:#fff;">' + ktEsc(x.titulo) + '</div>' +
+    '<div style="font-size:12px;font-weight:700;color:#94a3b8;">' + (esReel ? 'Reel' + (x.duracion ? ' · ' + ktEsc(x.duracion) : '') : 'Imagen') + ' · ' + ktEsc(x.publico) + ' · ' + ktEsc(x.uso) + '</div></div></div>' +
+    media +
+    '<div class="kt-lbl">¿Dónde lo vas a publicar?</div>' +
+    '<div class="kt-redes">' + Object.keys(KT_REDES).map(function (k) {
+      return '<button type="button" class="kt-red' + (ktRed === k ? ' sel' : '') + '" onclick="ktRed=\'' + k + '\';ktCopiado=false;ktPintarHoja()">' + KT_REDES[k] + '</button>';
+    }).join('') + '</div>' +
+    '<div class="kt-lbl">Texto sugerido</div>' +
+    '<div class="kt-texto">' + (ktEsc(x.textos[ktRed]) || '<span style="color:#94a3b8;">Este material no trae texto. Publícalo con tus palabras.</span>') + '</div>' +
+    '<div class="kt-btns"><button type="button" class="kt-btn" id="ktBtnDesc" onclick="ktDescargar()">⬇️ Descargar</button>' +
+    '<button type="button" class="kt-btn' + (ktCopiado ? ' ok' : '') + '" onclick="ktCopiar()">' + (ktCopiado ? '✅ Copiado' : '📋 Copiar texto') + '</button></div>' +
+    '<button type="button" class="kt-btn-main" id="ktBtnComp" onclick="ktCompartir()">📤 Compartir en ' + KT_REDES[ktRed] + '</button>' +
+    '<button type="button" class="kt-marcar" id="ktBtnMarcar" onclick="ktMarcar()">✔️ Ya lo publiqué en ' + KT_REDES[ktRed] + '</button>' +
+    '<div class="kt-consejo"><span>💡</span><span>' + KT_CONSEJOS[ktRed] + '</span></div>';
+}
+
+function ktNombreArchivo(x, blob) {
+  var ext = (String(x.url).split('?')[0].match(/\.([a-z0-9]+)$/i) || [])[1] || (blob && blob.type.split('/')[1]) || 'bin';
+  return String(x.titulo || x.id).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() + '.' + ext;
+}
+
+function ktObtener(x) {
+  if (ktBlobs[x.id]) return Promise.resolve(ktBlobs[x.id]);
+  return fetch(x.url).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+    .then(function (b) { var f = new File([b], ktNombreArchivo(x, b), { type: b.type || 'application/octet-stream' }); ktBlobs[x.id] = f; return f; });
+}
+
+function ktGuardarArchivo(f) {
+  var u = URL.createObjectURL(f), a = document.createElement('a');
+  a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+}
+
+function ktOcupado(btn, txt) { if (!btn) return function () {}; var t = btn.innerHTML; btn.disabled = true; btn.innerHTML = txt; return function () { btn.disabled = false; btn.innerHTML = t; }; }
+
+function ktDescargar() {
+  var fin = ktOcupado(document.getElementById('ktBtnDesc'), '⏳ Bajando...');
+  ktObtener(ktSel).then(function (f) { ktGuardarArchivo(f); fin(); prToast('⬇️ Guardado en tu celular', '#16a34a'); })
+    .catch(function () { fin(); prToast('No se pudo descargar. Revisa tu conexión.', '#dc2626'); });
+}
+function ktDescargarId(id, btn) {
+  var x = ktItem(id), fin = ktOcupado(btn, '⏳');
+  ktObtener(x).then(function (f) { ktGuardarArchivo(f); fin(); }).catch(function () { fin(); prToast('No se pudo descargar.', '#dc2626'); });
+}
+
+function ktCopiarTexto(t) {
+  if (!t) return Promise.resolve(false);
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(function () { return true; }, function () { return ktCopiarViejo(t); });
+  return Promise.resolve(ktCopiarViejo(t));
+}
+function ktCopiarViejo(t) {
+  var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); return ok;
+}
+function ktCopiar() {
+  ktCopiarTexto(ktSel.textos[ktRed]).then(function (ok) { if (ok) { ktCopiado = true; ktPintarHoja(); } else prToast('No se pudo copiar. Mantén presionado el texto para copiarlo.', '#dc2626'); });
+}
+
+// "Compartir" necesita llamarse en el mismo toque: el archivo se baja al abrir
+// el detalle; si aún no está listo, el botón pide un segundo toque.
+function ktCompartir() {
+  var x = ktSel, t = x.textos[ktRed] || '', f = ktBlobs[x.id];
+  if (!f) {
+    var btn = document.getElementById('ktBtnComp'), fin = ktOcupado(btn, '⏳ Preparando...');
+    ktObtener(x).then(function () { fin(); if (btn) btn.innerHTML = '📤 Listo: toca para compartir'; })
+      .catch(function () { fin(); prToast('No se pudo preparar el archivo. Revisa tu conexión.', '#dc2626'); });
+    return;
+  }
+  ktCopiarTexto(t);
+  if (navigator.canShare && navigator.canShare({ files: [f] })) {
+    navigator.share({ files: [f], text: t }).then(function () {
+      prToast('📋 El texto ya está copiado: pégalo al publicar', '#7c3aed');
+    }).catch(function (e) { if (e && e.name !== 'AbortError') ktCompartirRespaldo(f, t); });
+    return;
+  }
+  ktCompartirRespaldo(f, t);
+}
+// Computadora o navegador sin "Compartir": se descarga y se abre la red.
+function ktCompartirRespaldo(f, t) {
+  ktGuardarArchivo(f);
+  if (ktRed === 'wa') { window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank'); }
+  prToast('⬇️ Archivo descargado y 📋 texto copiado. Ábrelo en ' + KT_REDES[ktRed] + ' y pega el texto.', '#7c3aed');
+}
+
+function ktStickersTodos() {
+  var st = (ktData.items || []).filter(function (x) { return x.tipo === 'Sticker'; });
+  var listos = st.every(function (x) { return ktBlobs[x.id]; });
+  var btn = document.getElementById('ktStTodos');
+  if (!listos) {
+    var fin = ktOcupado(btn, '⏳ Preparando ' + st.length + ' stickers...');
+    Promise.all(st.map(ktObtener)).then(function () { fin(); if (btn) btn.innerHTML = '📲 Listos: toca para mandarlos'; })
+      .catch(function () { fin(); prToast('No se pudieron preparar los stickers.', '#dc2626'); });
+    return;
+  }
+  var files = st.map(function (x) { return ktBlobs[x.id]; });
+  if (navigator.canShare && navigator.canShare({ files: files })) { navigator.share({ files: files }).catch(function () {}); return; }
+  files.forEach(function (f, i) { setTimeout(function () { ktGuardarArchivo(f); }, i * 400); });
+  prToast('⬇️ Descargando ' + files.length + ' stickers', '#16a34a');
+}
+
+function ktMarcar() {
+  var x = ktSel, red = KT_REDES[ktRed];
+  var fin = ktOcupado(document.getElementById('ktBtnMarcar'), '⏳ Guardando...');
+  fetch(APPS_SCRIPT + '?action=registrarUsoKit&idAsesor=' + encodeURIComponent(asesorData.id) + '&idMaterial=' + encodeURIComponent(x.id) + '&red=' + encodeURIComponent(red), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      fin();
+      if (!d.success) { prToast(d.error || 'No se pudo guardar.', '#dc2626'); return; }
+      x.usos = d.usos; ktData.hoy = d.hoy; ktPintarMeta(); ktPintar();
+      var b = document.getElementById('ktBtnMarcar');
+      if (b) { b.classList.add('ok'); b.innerHTML = '✅ Publicado en ' + red + ' · llevas ' + d.hoy + ' hoy'; }
+    })
+    .catch(function () { fin(); prToast('Sin conexión. Intenta de nuevo.', '#dc2626'); });
 }
 </script>
 
