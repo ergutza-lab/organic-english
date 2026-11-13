@@ -4595,13 +4595,13 @@ function ktPintarHoja() {
     '<div class="kt-redes">' + Object.keys(KT_REDES).map(function (k) {
       return '<button type="button" class="kt-red' + (ktRed === k ? ' sel' : '') + '" onclick="ktRed=\'' + k + '\';ktCopiado=false;ktCopiadoCom=false;ktPintarHoja()">' + KT_REDES[k] + '</button>';
     }).join('') + '</div>' +
-    '<div class="kt-lbl">Texto sugerido</div>' +
-    '<div class="kt-texto">' + (ktEsc(x.textos[ktRed]) || '<span style="color:#94a3b8;">Este material no trae texto. Publícalo con tus palabras.</span>') + '</div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span class="kt-lbl">Texto sugerido</span>' +
+      (x.textos[ktRed] ? '<button type="button" class="kt-btn' + (ktCopiado ? ' ok' : '') + '" style="min-height:40px;padding:0 14px;font-size:13px;" onclick="ktCopiar()">' + (ktCopiado ? '✅ Copiado' : '📋 Copiar texto') + '</button>' : '') + '</div>' +
+    '<div class="kt-texto" onclick="ktCopiar()" style="cursor:pointer;">' + (ktEsc(x.textos[ktRed]) || '<span style="color:#94a3b8;">Este material no trae texto. Publícalo con tus palabras.</span>') + '</div>' +
     (ktRed === 'fb' && x.comentario ? '<div class="kt-lbl">Primer comentario (ahí va tu WhatsApp)</div>' +
       '<div class="kt-texto" style="display:flex;gap:10px;align-items:center;justify-content:space-between;"><span>' + ktEsc(x.comentario) + '</span>' +
       '<button type="button" class="kt-btn' + (ktCopiadoCom ? ' ok' : '') + '" style="min-height:40px;padding:0 12px;flex-shrink:0;font-size:12.5px;" onclick="ktCopiarComentario()">' + (ktCopiadoCom ? '✅ Copiado' : '📋 Copiar') + '</button></div>' : '') +
-    '<div class="kt-btns"><button type="button" class="kt-btn" id="ktBtnDesc" onclick="ktDescargar()">⬇️ Descargar</button>' +
-    '<button type="button" class="kt-btn' + (ktCopiado ? ' ok' : '') + '" onclick="ktCopiar()">' + (ktCopiado ? '✅ Copiado' : '📋 Copiar texto') + '</button></div>' +
+    '<button type="button" class="kt-btn" id="ktBtnDesc" onclick="ktDescargar()">⬇️ Descargar ' + (x.tipo === 'Reel' ? 'video' : 'imagen') + '</button>' +
     '<button type="button" class="kt-btn-main" id="ktBtnComp" onclick="ktCompartir()">📤 Compartir en ' + KT_REDES[ktRed] + '</button>' +
     '<button type="button" class="kt-marcar" id="ktBtnMarcar" onclick="ktMarcar()">✔️ Ya lo publiqué en ' + KT_REDES[ktRed] + '</button>' +
     '<div class="kt-consejo"><span>💡</span><span>' + KT_CONSEJOS[ktRed] + '</span></div>';
@@ -4646,10 +4646,14 @@ function ktCopiarViejo(t) {
   document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); return ok;
 }
 function ktCopiarComentario() {
-  ktCopiarTexto(ktSel.comentario).then(function (ok) { if (ok) { ktCopiadoCom = true; ktPintarHoja(); } });
+  ktCopiarTexto(ktSel.comentario).then(function (ok) { if (ok) { var y = document.getElementById('ktHoja').scrollTop; ktCopiadoCom = true; ktPintarHoja(); document.getElementById('ktHoja').scrollTop = y; prToast('📋 Comentario copiado', '#7c3aed'); } });
 }
 function ktCopiar() {
-  ktCopiarTexto(ktSel.textos[ktRed]).then(function (ok) { if (ok) { ktCopiado = true; ktPintarHoja(); } else prToast('No se pudo copiar. Mantén presionado el texto para copiarlo.', '#dc2626'); });
+  if (!ktSel.textos[ktRed]) return;
+  ktCopiarTexto(ktSel.textos[ktRed]).then(function (ok) {
+    if (ok) { var y = document.getElementById('ktHoja').scrollTop; ktCopiado = true; ktPintarHoja(); document.getElementById('ktHoja').scrollTop = y; prToast('📋 Texto copiado: pégalo en ' + KT_REDES[ktRed], '#7c3aed'); }
+    else prToast('No se pudo copiar. Mantén presionado el texto para copiarlo.', '#dc2626');
+  });
 }
 
 // "Compartir" necesita llamarse en el mismo toque: el archivo se baja al abrir
