@@ -2404,7 +2404,19 @@ function niDescripcionColegiatura(idGrupo) {
   var c = niColegiaturaGrupo(g, null);
   if (!c.aplica) return '';
   var unidad = (g && (g.tipoHorario === 'sabado' || /-SAT$/i.test(String(g.nombre || '')))) ? 'sábado' : 'semana';
-  return '$' + c.precio + '.00 MXN por ' + unidad + ' (' + c.etiqueta + ')';
+  // Precio de cada bloque del nivel, con la misma tabla del grupo
+  var t = (c.esAA ? NI_COLEG_AA : NI_COLEG_AZ)[c.nivel];
+  var extra = (c.esAA && c.esKids) ? NI_COLEG_KIDS_AA_EXTRA : 0;
+  var precioB1 = t[0] + extra, precioB2 = t[1] + extra;
+  var detalle;
+  if (precioB1 === precioB2) {
+    // Mismo precio en los 2 bloques: aplica para todo el nivel
+    detalle = 'todo el nivel ' + c.nivel;
+  } else {
+    // El precio cambia en el Bloque 2 (grupos AA en adelante): solo se menciona el bloque actual
+    detalle = 'solo Bloque ' + c.bloque + ' del nivel ' + c.nivel;
+  }
+  return '$' + c.precio + '.00 MXN por ' + unidad + ' (' + detalle + ')';
 }
 
 var NI_TIPO_ETIQUETAS = {
