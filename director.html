@@ -285,6 +285,7 @@
       <button class="tab" onclick="switchTab('coordit',this)">Coord. IT</button>
       <button class="tab" onclick="switchTab('asesores',this)">Asesores</button>
       <button class="tab" onclick="switchTab('alumnosbaja',this)" style="border:1px solid rgba(239,68,68,0.4);color:#f87171;">Alumnos de Baja</button>
+      <button class="tab" onclick="switchTab('pagospersonal',this)" style="border:1px solid rgba(34,197,94,0.4);color:#4ade80;">💰 Historial de pagos</button>
       <button class="tab" onclick="switchTab('usuarios',this)" style="border:1px solid rgba(249,115,22,0.4);color:#fb923c;">Usuarios y claves</button>
     </div>
 
@@ -297,6 +298,7 @@
     <div id="tab-coordit" class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
     <div id="tab-asesores"   class="tab-content"><div class="tabla-wrap"><div class="loading">Selecciona una pestana.</div></div></div>
     <div id="tab-alumnosbaja" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando alumnos dados de baja...</div></div></div>
+    <div id="tab-pagospersonal" class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando personal...</div></div></div>
     <div id="tab-usuarios"   class="tab-content"><div class="tabla-wrap"><div class="loading">Cargando usuarios...</div></div></div>
 
     <div class="sec-label">Grupos</div>
@@ -2329,6 +2331,277 @@
       generarReportePDF(d, 'Reporte Global — Organic English');
     }).catch(function(e){ alert('Error: '+e.message); });
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  💰 HISTORIAL DE PAGOS DEL PERSONAL
+  //  Todo el personal (activo y de baja), semana por semana (viernes a
+  //  jueves), con lo generado, lo pagado y lo pendiente. Direccion marca
+  //  las semanas que ya pago y puede copiar el reporte para WhatsApp.
+  // ═══════════════════════════════════════════════════════════════════
+  var _hpLista = null;
+  var _hpFiltro = 'todos';
+  var _hpBusqueda = '';
+  var _hpDetalle = null;   // respuesta de getHistorialPersonal de la persona abierta
+  var _hpMeses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  function _hpEsc(t) { return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _hpMoney(n) { return '$' + Number(n || 0).toLocaleString('es-MX'); }
+  function _hpFecha(iso) { if (!iso) return ''; var d = new Date(iso); if (isNaN(d)) return ''; return d.getDate() + ' ' + _hpMeses[d.getMonth()] + ' ' + d.getFullYear(); }
+
+  function cargarHistorialPagos(forzar) {
+    var el = document.getElementById('tab-pagospersonal');
+    if (_hpLista && !forzar) { renderHistorialPagosLista(); return; }
+    el.innerHTML = '<div class="tabla-wrap"><div class="loading">Cargando personal...</div></div>';
+    fetch(APPS_SCRIPT + '?action=getHistorialPersonalLista', { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) { el.innerHTML = '<div class="tabla-wrap"><div class="loading">Error al cargar: ' + _hpEsc(data.error || '') + '</div></div>'; return; }
+        _hpLista = data;
+        renderHistorialPagosLista();
+      })
+      .catch(function () { el.innerHTML = '<div class="tabla-wrap"><div class="loading">Error de conexión.</div></div>'; });
+  }
+
+  function hpSetFiltro(f) { _hpFiltro = f; renderHistorialPagosLista(); }
+  function hpBuscar(v) {
+    _hpBusqueda = v;
+    renderHistorialPagosLista();
+    var inp = document.getElementById('hpBuscador');
+    if (inp) { inp.focus(); inp.setSelectionRange(v.length, v.length); }
+  }
+
+  function renderHistorialPagosLista() {
+    var el = document.getElementById('tab-pagospersonal');
+    var lista = (_hpLista && _hpLista.personal) || [];
+    var q = _hpBusqueda.trim().toLowerCase();
+    var nAct = lista.filter(function (p) { return p.activo; }).length;
+    var nBaja = lista.length - nAct;
+
+    function btnF(f, txt, n) {
+      var on = _hpFiltro === f;
+      return '<button onclick="hpSetFiltro(\'' + f + '\')" style="padding:7px 14px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'var(--orange-dim)' : 'transparent') + ';color:' + (on ? 'var(--orange-lt)' : 'var(--gray)') + ';">' + txt + ' (' + n + ')</button>';
+    }
+
+    var html = '<div style="background:var(--green-dim);border:1px solid rgba(34,197,94,0.3);border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#86efac;line-height:1.5;">' +
+      '💰 Historial de pagos de <b>todo el personal</b>, también de quien ya se dio de baja. Toca a una persona para ver sus semanas (viernes a jueves), marcar las que ya se pagaron y copiar el reporte para WhatsApp.</div>';
+
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;">' +
+      btnF('todos', 'Todos', lista.length) + btnF('activos', 'Activos', nAct) + btnF('bajas', 'Bajas', nBaja) +
+      '<input id="hpBuscador" type="text" placeholder="Buscar por nombre o ID..." value="' + _hpEsc(_hpBusqueda) + '" oninput="hpBuscar(this.value)" style="flex:1;min-width:180px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--off-white);font-family:inherit;font-size:13px;">' +
+      '<button onclick="cargarHistorialPagos(true)" title="Actualizar" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:7px 12px;color:var(--gray);cursor:pointer;font-family:inherit;">↻</button>' +
+      '</div>';
+
+    var areas = (_hpLista && _hpLista.areas) || [];
+    var alguno = false;
+    areas.forEach(function (a) {
+      var gente = lista.filter(function (p) {
+        if (p.area !== a.area) return false;
+        if (_hpFiltro === 'activos' && !p.activo) return false;
+        if (_hpFiltro === 'bajas' && p.activo) return false;
+        if (q && (String(p.nombre).toLowerCase().indexOf(q) === -1 && String(p.id).toLowerCase().indexOf(q) === -1)) return false;
+        return true;
+      });
+      if (!gente.length) return;
+      alguno = true;
+      gente.sort(function (x, y) { return (y.activo - x.activo) || String(x.nombre).localeCompare(String(y.nombre)); });
+      html += '<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange-lt);margin:16px 0 8px;">' + _hpEsc(a.etiqueta) + ' · ' + gente.length + '</div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;">';
+      gente.forEach(function (p) {
+        var ini = String(p.nombre || '?').trim().charAt(0).toUpperCase();
+        var avatar = '<div style="width:36px;height:36px;border-radius:50%;background:' + (p.activo ? 'var(--orange-dim)' : 'rgba(255,255,255,0.06)') + ';display:flex;align-items:center;justify-content:center;font-weight:800;color:' + (p.activo ? 'var(--orange-lt)' : 'var(--gray-dk)') + ';flex-shrink:0;overflow:hidden;position:relative;">' + _hpEsc(ini) +
+          (p.foto ? '<img src="' + _hpEsc(p.foto) + '" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">' : '') + '</div>';
+        var estado = p.activo
+          ? '<span class="chip chip-green">Activo</span>'
+          : '<span class="chip chip-red">Baja' + (p.fechaBaja ? ' · ' + _hpFecha(p.fechaBaja) : '') + '</span>';
+        html += '<div onclick="hpAbrirPersona(\'' + _hpEsc(p.area) + '\',\'' + _hpEsc(p.id) + '\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:10px 12px;' + (p.activo ? '' : 'opacity:0.85;') + '" onmouseover="this.style.borderColor=\'var(--orange-brd)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+          avatar +
+          '<div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _hpEsc(p.nombre) + '</div>' +
+          '<div style="font-size:11px;color:var(--gray-dk);margin-top:2px;">' + _hpEsc(p.id) + '</div></div>' + estado + '</div>';
+      });
+      html += '</div>';
+    });
+    if (!alguno) html += '<div class="tabla-wrap"><div class="loading">No hay personas con ese filtro.</div></div>';
+    el.innerHTML = html;
+  }
+
+  function hpAbrirPersona(area, id) {
+    var el = document.getElementById('tab-pagospersonal');
+    el.innerHTML = '<div class="tabla-wrap"><div class="loading">Cargando historial de ' + _hpEsc(id) + '...</div></div>';
+    fetch(APPS_SCRIPT + '?action=getHistorialPersonal&area=' + encodeURIComponent(area) + '&id=' + encodeURIComponent(id), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          el.innerHTML = '<button onclick="renderHistorialPagosLista()" style="margin-bottom:12px;background:transparent;border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--gray);cursor:pointer;font-family:inherit;">← Volver</button>' +
+            '<div class="tabla-wrap"><div class="loading">Error: ' + _hpEsc(data.error || '') + '</div></div>';
+          return;
+        }
+        _hpDetalle = data;
+        renderHistorialPagosDetalle();
+      })
+      .catch(function () { el.innerHTML = '<div class="tabla-wrap"><div class="loading">Error de conexión.</div></div>'; });
+  }
+
+  function _hpDetalleSemana(h, tipo) {
+    if (tipo === 'maestro') {
+      if (!h.desglose || !h.desglose.length) return '<span style="color:var(--gray-dk);">Sin clases</span>';
+      return h.desglose.map(function (d) {
+        return '<span class="chip ' + (d.cobertura ? 'chip-yellow' : 'chip-blue') + '" style="margin:2px 4px 2px 0;">' + _hpEsc(d.grupo) + (d.cobertura ? ' cobertura' : '') + ': ' + d.clases + (d.clases === 1 ? ' clase' : ' clases') + '</span>';
+      }).join('');
+    }
+    if (tipo === 'asesor') {
+      var t = h.inscritos + (h.inscritos === 1 ? ' inscripción' : ' inscripciones');
+      if (h.reembolsos) t += ' · <span style="color:var(--red);">' + h.reembolsos + ' reembolso(s)</span>';
+      return t;
+    }
+    return '<span style="color:var(--gray);">Sueldo fijo semanal</span>';
+  }
+
+  function renderHistorialPagosDetalle() {
+    var el = document.getElementById('tab-pagospersonal');
+    var D = _hpDetalle;
+    var P = D.persona, T = D.totales, H = D.historial || [];
+    var tarifaTxt = P.tipo === 'maestro' ? _hpMoney(P.tarifa) + ' por clase'
+                  : P.tipo === 'asesor'  ? _hpMoney(P.tarifa) + ' por inscripción'
+                  : (P.tarifa ? _hpMoney(P.tarifa) + ' por semana (sueldo fijo)' : 'Sueldo fijo sin monto registrado');
+    var estado = P.activo
+      ? '<span class="chip chip-green">Activo</span>'
+      : '<span class="chip chip-red">Baja' + (P.fechaBaja ? ' · ' + _hpFecha(P.fechaBaja) : '') + '</span>';
+
+    function tile(lbl, val, color, sub) {
+      return '<div style="flex:1;min-width:140px;background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">' +
+        '<div style="font-size:11px;color:var(--gray);font-weight:600;">' + lbl + '</div>' +
+        '<div style="font-size:22px;font-weight:800;color:' + color + ';margin-top:4px;">' + val + '</div>' +
+        (sub ? '<div style="font-size:10px;color:var(--gray-dk);margin-top:2px;">' + sub + '</div>' : '') + '</div>';
+    }
+
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">' +
+      '<button onclick="renderHistorialPagosLista()" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--gray);cursor:pointer;font-family:inherit;font-size:13px;">← Volver a la lista</button>' +
+      '<button onclick="hpCopiarWhatsApp()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">📋 Copiar para WhatsApp</button>' +
+      '</div>';
+
+    html += '<div style="background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div style="font-size:19px;font-weight:800;">' + _hpEsc(P.nombre) + '</div>' + estado + '</div>' +
+      '<div style="font-size:12px;color:var(--gray);margin-top:4px;">' + _hpEsc(P.id) + ' · ' + _hpEsc(P.areaEtiqueta) + ' · ' + tarifaTxt + '</div>' +
+      (P.motivo ? '<div style="font-size:12px;color:var(--gray-dk);margin-top:4px;">Motivo de baja: ' + _hpEsc(P.motivo) + '</div>' : '') +
+      (P.sinDatos ? '<div style="font-size:12px;color:var(--yellow);margin-top:6px;">⚠️ Esta persona ya no está en su hoja de personal; los montos se calculan con lo que quedó registrado.</div>' : '') +
+      '</div>';
+
+    html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
+      tile('Total generado', _hpMoney(T.generado), 'var(--off-white)') +
+      tile('Pagado', _hpMoney(T.pagado), 'var(--green)') +
+      tile('Pendiente de pago', _hpMoney(T.pendiente), T.pendiente > 0 ? 'var(--red)' : 'var(--gray)', T.pendiente > 0 ? 'Semanas cerradas sin marcar como pagadas' : '') +
+      (P.activo ? tile('Semana en curso', _hpMoney(T.enCurso), 'var(--blue)', 'Todavía no cierra') : '') +
+      '</div>';
+
+    if (P.tipo === 'fijo') {
+      html += '<div style="font-size:12px;color:var(--gray);background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:12px;">El sistema no guarda la fecha de alta de los sueldos fijos: aquí aparecen las últimas semanas y todas las que ya marcaste como pagadas.</div>';
+    }
+
+    html += '<div class="tabla-wrap" style="overflow-x:auto;"><table><thead><tr><th>Semana</th><th>Detalle</th><th style="text-align:right;">Monto</th><th style="text-align:center;">Pago</th></tr></thead><tbody>';
+    H.forEach(function (h, idx) {
+      var acciones;
+      if (h.pagada) {
+        acciones = '<span class="chip chip-green">✓ Pagada</span>' +
+          '<div style="font-size:10px;color:var(--gray-dk);margin-top:3px;">' + (h.fechaPago ? _hpFecha(h.fechaPago) : '') + (h.pagadoPor ? ' · ' + _hpEsc(h.pagadoPor) : '') +
+          ' · <a href="#" onclick="hpMarcar([' + idx + '],\'quitar\');return false;" style="color:var(--gray);">quitar</a></div>';
+      } else if (h.monto > 0) {
+        var anteriores = [];
+        for (var k = idx; k < H.length; k++) if (!H[k].pagada && H[k].monto > 0) anteriores.push(k);
+        acciones = '<button onclick="hpMarcar([' + idx + '],\'pagar\')" style="background:var(--orange-dim);border:1px solid var(--orange-brd);color:var(--orange-lt);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Marcar pagada</button>' +
+          (anteriores.length > 1 ? '<div style="margin-top:4px;"><a href="#" onclick="hpMarcar([' + anteriores.join(',') + '],\'pagar\');return false;" style="font-size:10px;color:var(--gray);">y las ' + (anteriores.length - 1) + ' anteriores</a></div>' : '') +
+          (h.actual ? '<div style="font-size:10px;color:var(--blue);margin-top:3px;">en curso</div>' : '');
+      } else {
+        acciones = '<span style="color:var(--gray-dk);font-size:11px;">—</span>';
+      }
+      html += '<tr style="' + (h.actual ? 'background:rgba(96,165,250,0.06);' : '') + (h.monto > 0 || h.pagada ? '' : 'opacity:0.55;') + '">' +
+        '<td style="white-space:nowrap;"><b>' + _hpEsc(h.semanaEs) + '</b>' + (h.actual ? ' <span style="color:var(--blue);font-size:10px;">(actual)</span>' : '') + '</td>' +
+        '<td>' + _hpDetalleSemana(h, P.tipo) + '</td>' +
+        '<td style="text-align:right;font-weight:800;color:' + (h.pagada ? 'var(--green)' : h.monto > 0 ? 'var(--orange-lt)' : 'var(--gray-dk)') + ';white-space:nowrap;">' + _hpMoney(h.monto) +
+          (h.pagada && h.montoPagado !== h.monto ? '<div style="font-size:10px;color:var(--yellow);font-weight:600;">pagado ' + _hpMoney(h.montoPagado) + '</div>' : '') + '</td>' +
+        '<td style="text-align:center;">' + acciones + '</td></tr>';
+    });
+    if (!H.length) html += '<tr><td colspan="4" style="text-align:center;color:var(--gray-dk);">Sin semanas registradas.</td></tr>';
+    html += '</tbody></table></div>';
+    html += '<div id="hpMsg" style="display:none;margin-top:10px;font-size:12px;border-radius:10px;padding:10px 14px;"></div>';
+    el.innerHTML = html;
+  }
+
+  function hpMarcar(indices, accion) {
+    if (!_hpDetalle || !directorData) return;
+    var H = _hpDetalle.historial;
+    var semanas = indices.map(function (i) { return { clave: H[i].clave, semana: H[i].semanaEs, monto: H[i].monto }; });
+    var total = semanas.reduce(function (t, s) { return t + (Number(s.monto) || 0); }, 0);
+    var txt = accion === 'quitar'
+      ? '¿Quitar la marca de pagada a la semana ' + semanas[0].semana + '?'
+      : (semanas.length === 1
+          ? '¿Marcar como pagada la semana ' + semanas[0].semana + ' por ' + _hpMoney(total) + '?'
+          : '¿Marcar como pagadas ' + semanas.length + ' semanas por un total de ' + _hpMoney(total) + '?');
+    if (!confirm(txt)) return;
+    var P = _hpDetalle.persona;
+    var url = APPS_SCRIPT + '?action=marcarPagoPersonal&area=' + encodeURIComponent(P.area) + '&id=' + encodeURIComponent(P.id) +
+      '&accion=' + accion + '&por=' + encodeURIComponent(directorData.id) + '&semanas=' + encodeURIComponent(JSON.stringify(semanas));
+    var msg = document.getElementById('hpMsg');
+    if (msg) { msg.style.display = 'block'; msg.style.background = 'var(--blue-dim)'; msg.style.color = 'var(--blue)'; msg.textContent = 'Guardando...'; }
+    fetch(url, { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.success) {
+          if (msg) { msg.style.background = 'var(--red-dim)'; msg.style.color = 'var(--red)'; msg.textContent = 'Error: ' + (res.error || ''); }
+          return;
+        }
+        hpAbrirPersona(P.area, P.id);
+      })
+      .catch(function () { if (msg) { msg.style.background = 'var(--red-dim)'; msg.style.color = 'var(--red)'; msg.textContent = 'Error de conexión.'; } });
+  }
+
+  function hpTextoWhatsApp() {
+    var D = _hpDetalle, P = D.persona, T = D.totales;
+    var semanas = (D.historial || []).slice().reverse().filter(function (h) { return h.monto > 0 || h.pagada; });
+    var L = [];
+    L.push('*HISTORIAL DE PAGOS – ' + String(P.nombre).toUpperCase() + ' (' + P.id + ')*');
+    L.push(P.areaEtiqueta + (P.activo ? ' · Activo' : ' · Baja' + (P.fechaBaja ? ' el ' + _hpFecha(P.fechaBaja) : '')));
+    if (P.tipo === 'maestro') L.push('Costo por clase: ' + _hpMoney(P.tarifa));
+    else if (P.tipo === 'asesor') L.push('Comisión por inscripción: ' + _hpMoney(P.tarifa));
+    else if (P.tarifa) L.push('Sueldo semanal: ' + _hpMoney(P.tarifa));
+    L.push('Semanas de viernes a jueves');
+    semanas.forEach(function (h, i) {
+      L.push('');
+      L.push('*Semana ' + (i + 1) + '* | ' + h.semanaEs);
+      if (P.tipo === 'maestro') {
+        (h.desglose || []).forEach(function (d) {
+          L.push(d.grupo + (d.cobertura ? ' (cobertura)' : '') + ': ' + d.clases + (d.clases === 1 ? ' clase' : ' clases') + (d.cobertura ? ' · ' + _hpMoney(d.monto) : ''));
+        });
+      } else if (P.tipo === 'asesor') {
+        L.push(h.inscritos + (h.inscritos === 1 ? ' inscripción' : ' inscripciones') + (h.reembolsos ? ' · ' + h.reembolsos + ' reembolso(s)' : ''));
+      }
+      L.push('Total: *' + _hpMoney(h.monto) + '* · ' + (h.pagada ? 'PAGADA' : h.actual ? 'EN CURSO' : 'PENDIENTE'));
+    });
+    L.push('');
+    L.push('*Total generado: ' + _hpMoney(T.generado) + '*');
+    L.push('*Pagado: ' + _hpMoney(T.pagado) + '*');
+    L.push('*Pendiente de pago: ' + _hpMoney(T.pendiente) + '*');
+    if (P.activo && T.enCurso) L.push('Semana en curso: ' + _hpMoney(T.enCurso));
+    return L.join('\n');
+  }
+
+  function hpCopiarWhatsApp() {
+    var texto = hpTextoWhatsApp();
+    function ok() {
+      var msg = document.getElementById('hpMsg');
+      if (msg) { msg.style.display = 'block'; msg.style.background = 'var(--green-dim)'; msg.style.color = 'var(--green)'; msg.textContent = '✓ Reporte copiado. Pégalo en WhatsApp.'; }
+    }
+    function respaldo() {
+      var ta = document.createElement('textarea');
+      ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { prompt('Copia el texto:', texto); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok).catch(respaldo);
+    else respaldo();
+  }
+
+
   function switchTab(tab, btn) {
     document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
     document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
@@ -2343,6 +2616,7 @@
     else if (tab === 'coordit')     renderCoordIT(directorCache.coordIT);
     else if (tab === 'asesores')    renderAsesores(directorCache.asesores);
     else if (tab === 'alumnosbaja') cargarYRenderAlumnosBaja();
+    else if (tab === 'pagospersonal') cargarHistorialPagos();
     else if (tab === 'usuarios')    renderUsuarios();
   }
 
