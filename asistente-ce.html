@@ -1123,7 +1123,7 @@ function renderGruposPorNivel(nivelFiltro){
         };
         const colorNombre=colorNombreGrupo(g.nombre);
         return `
-        <div class="grupo-row" onclick="abrirModalGrupoPorNombre('${g.id}')" style="margin-bottom:6px">
+        <div class="grupo-row" onclick="abrirModalGrupo(${grupos.indexOf(g)})" style="margin-bottom:6px">
           <div class="grupo-row-inner">
             <span class="grupo-chip">${g.id}</span>
             <div class="grupo-info">
@@ -1161,7 +1161,9 @@ function renderGruposPorNivel(nivelFiltro){
 }
 
 function abrirModalGrupoPorNombre(idGrupo){
-  const idx=(datosPanel?.grupos||[]).findIndex(g=>g.id===idGrupo);
+  const lista=(datosPanel?.grupos||[]);
+  let idx=lista.findIndex(g=>g.id===idGrupo && (g.alumnos||[]).length>0);
+  if(idx<0) idx=lista.findIndex(g=>g.id===idGrupo);
   if(idx>=0)abrirModalGrupo(idx);
 }
 
@@ -1205,6 +1207,7 @@ function abrirModalGrupo(idx){
     document.getElementById('modal-grupo-alumnos').innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><h3>Sin alumnos</h3></div>`;
   }else{
     document.getElementById('modal-grupo-alumnos').innerHTML=alumnos.map(a=>{
+     try{
       const esSinPago=sinPagoIds.has(a.id);
       const esNuevo=nuevosIds.has(a.id);
       const esBec=esBecado(a);
@@ -1247,6 +1250,10 @@ function abrirModalGrupo(idx){
         ? `<span style="font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
         : '';
             return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-correo="${a.correo||a.email||''}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}" data-id-pago="${a.ultimo_pago_id_pago||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
+     }catch(err){
+      console.error('Error al pintar alumno',a,err);
+      return `<div class="alumno-row"><span class="alumno-id-chip">${(a&&a.id)||'?'}</span><span class="alumno-nombre-row">${(a&&a.nombre)||'(datos incompletos)'}</span></div>`;
+     }
     }).join('');
   }
   document.getElementById('modal-grupo').classList.add('open');
