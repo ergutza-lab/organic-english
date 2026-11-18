@@ -311,6 +311,29 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
 .cupo-msg{font-size:.78rem;font-weight:600;margin-right:auto}
 .cupo-msg.error{color:var(--rojo)}
 .cupo-msg.ok{color:var(--verde)}
+
+/* ── Calendario de aperturas (nov-2026) ── */
+.ap-tabla { width:100%; border-collapse:separate; border-spacing:3px; font-size:12px; }
+.ap-tabla th { background:var(--azul); color:#fff; padding:7px 4px; border-radius:6px; font-size:11.5px; position:sticky; top:0; }
+.ap-tabla th.ap-ref { background:#475569; }
+.ap-tabla td { border-radius:6px; padding:5px 4px; text-align:center; vertical-align:middle; min-width:78px; height:38px; }
+.ap-tabla td.ap-hor { text-align:left; background:#f1f5f9; font-weight:700; white-space:nowrap; min-width:110px; }
+.ap-tabla td.ap-hor i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+.ap-tabla td.ap-refc { background:#e2e8f0; font-size:11px; min-width:96px; }
+.ap-tabla td.ap-vacio { background:#fafafa; border:1px dashed #e2e8f0; }
+.ap-g { display:block; background:#dbeafe; border:1px solid #93c5fd; border-radius:5px; padding:3px 2px; margin:1px 0; }
+.ap-g.lleno { background:#e9d5ff; border-color:#a855f7; }
+.ap-g.empujar { background:#fef9c3; border-color:#eab308; }
+.ap-g small, .ap-tabla td small { display:block; font-size:9.5px; color:#475569; font-weight:500; }
+.ap-abrir { background:#fecaca !important; border:1.5px solid #ef4444; color:#991b1b; font-weight:800; }
+.ap-nuevo { background:#fef3c7 !important; border:1px solid #fcd34d; font-weight:700; color:#92400e; }
+.ap-sep td { border-top:8px solid transparent; }
+.ap-leyenda { display:flex; flex-wrap:wrap; gap:14px; font-size:11px; color:#475569; margin:10px 0; }
+.ap-leyenda span { display:inline-flex; align-items:center; gap:5px; }
+.ap-leyenda b { width:14px; height:10px; border-radius:3px; display:inline-block; }
+.ap-resumen { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; margin-bottom:12px; }
+.ap-caja { border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.55; }
+.ap-caja h4 { margin:0 0 4px; font-size:12.5px; }
 </style>
 </head>
 <body>
@@ -378,6 +401,7 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
     <button class="tab" onclick="cambiarTab('colocacion-pendiente',this); cargarColocacionPendiente();" id="tab-colocacion-pendiente">🎓 Colocación Pendiente</button>
     <button class="tab" onclick="cambiarTab('pagos-alumnos',this); cargarPagosAlumnos();">Pagos Alumnos</button>
     <button class="tab" onclick="cambiarTab('fusiones',this); cargarFusiones();" id="tab-fusiones">🔀 Fusiones</button>
+    <button class="tab" onclick="cambiarTab('aperturas',this); cargarAperturas();" id="tab-aperturas">📅 Aperturas</button>
   </div>
 
   <div class="contenido">
@@ -716,6 +740,20 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
           <span class="pa-fila-editar-header"></span>
         </div>
         <div class="pa-lista-scroll"><div class="pa-lista-compacta" id="lista-pagos-alumnos"><div class="cargando">Cargando...</div></div></div>
+      </div>
+    </div>
+
+    <!-- TAB: APERTURAS (calendario de apertura de grupos, nov-2026) -->
+    <div id="sec-aperturas" class="seccion">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-titulo">📅 Calendario de aperturas · grupos A1-Bloque 1</div>
+            <div class="card-sub">Cada horario fijo debe tener un grupo para ofrecer: uno nuevo cada 2 semanas (inicio en lunes). Los grupos con inscritos no se mueven de fecha. Si un grupo se llena, los interesados pasan al siguiente grupo de su horario.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="cargarAperturas()">↻ Actualizar</button>
+        </div>
+        <div id="ap-contenido"><div class="cargando">Cargando...</div></div>
       </div>
     </div>
 
@@ -2400,7 +2438,7 @@ function cambiarTab(seccion, boton) {
   document.getElementById('sec-'+seccion).classList.add('activa');
 }
 function irATab(seccion) {
-  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'colocacion-pendiente':7,'pagos-alumnos':8,fusiones:9};
+  var mapa={resumen:0,grupos:1,'nuevo-grupo':2,'nuevo-asistente':3,asistentes:4,seguimiento:5,alertas:6,'colocacion-pendiente':7,'pagos-alumnos':8,fusiones:9,aperturas:10};
   var tabs=document.querySelectorAll('.tab'); var idx=mapa[seccion]; if(idx===undefined) return;
   tabs.forEach(function(t){t.classList.remove('activo');}); document.querySelectorAll('.seccion').forEach(function(s){s.classList.remove('activa');});
   if (tabs[idx]) tabs[idx].classList.add('activo');
@@ -3046,6 +3084,68 @@ function cerrarModalFusion() {
   if (modal) modal.classList.remove('abierto');
 }
   
+
+// ═══════════════════════════════════════════════════════════════════
+//  📅 CALENDARIO DE APERTURAS (nov-2026) · ?action=getCalendarioAperturas
+// ═══════════════════════════════════════════════════════════════════
+function cargarAperturas() {
+  var box = document.getElementById('ap-contenido');
+  box.innerHTML = '<div class="cargando">Calculando calendario...</div>';
+  fetch(APPS_SCRIPT_URL + '?action=getCalendarioAperturas&_=' + Date.now(), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.success) { box.innerHTML = '<div class="vacio">Error: ' + (d.error || 'desconocido') + '</div>'; return; }
+      renderAperturas(d);
+    })
+    .catch(function (e) { box.innerHTML = '<div class="vacio">Error de conexión: ' + e + '</div>'; });
+}
+
+function renderAperturas(d) {
+  var color = { ADULTS: '#2563eb', TEENS: '#ea580c', KIDS: '#16a34a' };
+  var R = d.resumen || {};
+  function lista(arr, vacio) { return arr && arr.length ? '<ul style="margin:0;padding-left:16px;">' + arr.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '<span style="color:#64748b;">' + vacio + '</span>'; }
+  var html = '<div class="ap-resumen">' +
+    '<div class="ap-caja" style="background:#fef2f2;border:1px solid #fecaca;"><h4 style="color:#b91c1c;">🔴 Abrir ya</h4>' + lista(R.abrirYa, 'Todos los horarios tienen su grupo.') + '</div>' +
+    '<div class="ap-caja" style="background:#fefce8;border:1px solid #fde68a;"><h4 style="color:#a16207;">🟡 Empujar ventas (inician en 7 días o menos con menos de ' + d.reglas.minimo + ')</h4>' + lista(R.empujar, 'Ninguno.') + '</div>' +
+    '<div class="ap-caja" style="background:#faf5ff;border:1px solid #e9d5ff;"><h4 style="color:#7e22ce;">🟣 Llenos (ofrecer el siguiente grupo de su horario)</h4>' + lista(R.llenos, 'Ninguno.') + '</div>' +
+    '</div>';
+
+  html += '<div style="overflow-x:auto;"><table class="ap-tabla"><thead><tr><th>Horario</th><th class="ap-ref">Último grupo<br>iniciado</th>' +
+    d.semanas.map(function (s) { return '<th>' + s.etiqueta + '</th>'; }).join('') + '</tr></thead><tbody>';
+  var prev = null;
+  d.filas.forEach(function (f) {
+    var sep = prev && prev !== f.publico ? ' class="ap-sep"' : '';
+    prev = f.publico;
+    var ref = f.referencia ? '<b>' + f.referencia.id + '</b> · ' + f.referencia.inicioTxt + '<small>' + f.referencia.inscritos + '/' + f.referencia.cupo + (f.referencia.inscritos >= f.referencia.cupo ? ' lleno' : '') + '</small>' : '<small>—</small>';
+    html += '<tr' + sep + '><td class="ap-hor"><i style="background:' + (color[f.publico] || '#64748b') + '"></i>' + f.publico + '<br><span style="font-weight:500;">' + f.horario + '</span></td><td class="ap-refc">' + ref + '</td>';
+    f.celdas.forEach(function (c) {
+      if (c.grupos.length) {
+        html += '<td>' + c.grupos.map(function (g) {
+          var nota = g.estado === 'lleno' ? ' · lleno' : g.estado === 'empujar' ? ' · empujar' : '';
+          return '<span class="ap-g ' + (g.estado !== 'ok' ? g.estado : '') + '"><b>' + g.id + '</b><small>' + g.inscritos + '/' + g.cupo + nota + '</small></span>';
+        }).join('') + '</td>';
+      } else if (c.propuesta === 'abrir') {
+        html += '<td class="ap-abrir">Abrir ya<small style="color:#991b1b;">crear hoy</small></td>';
+      } else if (c.propuesta === 'nuevo') {
+        html += '<td class="ap-nuevo">Nuevo<small>crear ~3 sem. antes</small></td>';
+      } else {
+        html += '<td class="ap-vacio"></td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="ap-leyenda">' +
+    '<span><b style="background:#dbeafe;border:1px solid #93c5fd;"></b>Grupo existente (inscritos/cupo)</span>' +
+    '<span><b style="background:#fef9c3;border:1px solid #eab308;"></b>Empujar ventas</span>' +
+    '<span><b style="background:#e9d5ff;border:1px solid #a855f7;"></b>Lleno</span>' +
+    '<span><b style="background:#fecaca;border:1px solid #ef4444;"></b>Abrir ya (le toca grupo y no existe)</span>' +
+    '<span><b style="background:#fef3c7;border:1px solid #fcd34d;"></b>Grupo nuevo que toca (crear ~3 semanas antes)</span></div>' +
+    '<div style="font-size:11px;color:#64748b;">Actualizado: ' + d.corte + '. Solo grupos A1-Bloque 1 entre semana; sabatinos y otros niveles no entran en este calendario.</div>';
+  document.getElementById('ap-contenido').innerHTML = html;
+  var tab = document.getElementById('tab-aperturas');
+  if (tab) tab.textContent = '📅 Aperturas' + ((R.abrirYa || []).length ? ' (' + R.abrirYa.length + ')' : '');
+}
 </script>
 
 <!-- MODAL: ALUMNOS DEL GRUPO -->
