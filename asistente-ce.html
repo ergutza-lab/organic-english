@@ -1249,7 +1249,10 @@ function abrirModalGrupo(idx){
       const tipoChip = a.tipoInscripcion
         ? `<span style="font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;margin-left:4px;">${tipoEtiquetas[a.tipoInscripcion]||a.tipoInscripcion}</span>`
         : '';
-            return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-correo="${a.correo||a.email||''}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${String(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}" data-id-pago="${a.ultimo_pago_id_pago||''}">${a.nombre}</span>${tipoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
+            const saldoN=Number(a.saldo)||0;
+            const saldoChip=saldoN>0?`<span title="Saldo a favor acumulado" style="font-size:10.5px;font-weight:800;color:#16a34a;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.45);border-radius:100px;padding:2px 8px;margin-left:6px;white-space:nowrap;">💚 $${saldoN} a favor</span>`
+              :saldoN<0?`<span title="Pendiente de pagos anteriores" style="font-size:10.5px;font-weight:800;color:#d97706;background:rgba(217,119,6,0.12);border:1px solid rgba(217,119,6,0.5);border-radius:100px;padding:2px 8px;margin-left:6px;white-space:nowrap;">⏳ debe $${-saldoN}</span>`:'';
+            return `<div class="alumno-row"><div class="status-pip ${pip}"></div><span class="alumno-id-chip">${a.id}</span><span class="alumno-nombre-row" style="cursor:pointer;" onclick="toggleInfoAlumno(this, event)" data-id="${a.id}" data-correo="${a.correo||a.email||''}" data-fecha="${a.ultimo_pago_fecha||''}" data-monto="${a.ultimo_pago_monto||''}" data-url="${a.comprobante_url||''}" data-comentario="${String(a.comentario||'').replace(/"/g,'&quot;')}" data-vencimiento="${a.fecha_vencimiento||''}" data-id-pago="${a.ultimo_pago_id_pago||''}">${a.nombre}</span>${tipoChip}${saldoChip}${nuevoBadge}<span class="alumno-pago-label ${lclass}">${lbl}</span>${waBtn}${validarBtn}${colocacionBtn}${darBajaBtn}</div>`;
      }catch(err){
       console.error('Error al pintar alumno',a,err);
       return `<div class="alumno-row"><span class="alumno-id-chip">${(a&&a.id)||'?'}</span><span class="alumno-nombre-row">${(a&&a.nombre)||'(datos incompletos)'}</span></div>`;
@@ -2524,12 +2527,12 @@ function _grupoPorId_(id){
 
 // Grupo y tipo de inscripción del alumno, buscando en todo lo que trae el panel
 function _infoAlumnoTabla_(idAlumno, grupoParam){
-  var info = { grupo: grupoParam ? _normId_(grupoParam) : '', tipo: '' };
+  var info = { grupo: grupoParam ? _normId_(grupoParam) : '', tipo: '', saldo: null };
   if (!datosPanel) return info;
   var idA = _normId_(idAlumno);
   (datosPanel.grupos || []).forEach(function(g){
     (g.alumnos || []).forEach(function(a){
-      if (_normId_(a.id) === idA) { if (!info.grupo) info.grupo = _normId_(g.id); if (!info.tipo) info.tipo = a.tipoInscripcion || a.estatus || ''; }
+      if (_normId_(a.id) === idA) { if (!info.grupo) info.grupo = _normId_(g.id); if (!info.tipo) info.tipo = a.tipoInscripcion || a.estatus || ''; if (info.saldo == null) info.saldo = Number(a.saldo) || 0; }
     });
   });
   ['sin_pago','alumnos_nuevos','alumnos_baja','pagos_pendientes'].forEach(function(k){
@@ -2597,10 +2600,12 @@ var PROMO4_AZ   = { A1:[400,400], A2:[460,520], B1:[600,680], B2:[760,840], C1:[
 var PROMO4_AA   = { A1:[400,440], A2:[520,600], B1:[680,760], B2:[840,920], C1:[1000,1080] };
 var PROMO4_KIDS = { A1:[480,520], A2:[600,680], B1:[760,840], B2:[920,1000], C1:[1080,1160] };
 var AS_OP = {};                    // containerId -> 'Colegiatura' | 'Promo_4' | 'Pago_Especial'
+var AS_SALDO_USO = {};             // containerId -> true si el alumno decidió usar su saldo / cubrir su pendiente
 var asComentarioPendiente = '';
 
 function asReiniciar(cid) {
   AS_OP[cid] = 'Colegiatura';
+  AS_SALDO_USO[cid] = false;
   asComentarioPendiente = '';
   var o = document.getElementById('obs-' + cid); if (o) o.value = '';
   var w = document.getElementById('obs-wrap-' + cid); if (w) w.style.display = 'none';
@@ -2650,9 +2655,46 @@ function asSeleccionar(cid, tipo) {
 }
 function asCambio(cid) { if (calendarios[cid]) calRender(cid); }
 
-// Cálculo de la opción elegida: { html, error, sugerido }
+// ── SALDO DEL ALUMNO (nov-2026) ──
+// Saldo acumulado (> 0 a favor, < 0 pendiente) que manda el servidor por alumno.
+function asSaldoDe_(cid) { var ref = CAL_GRUPO[cid]; return ref ? (Number(ref.saldo) || 0) : 0; }
+function asUsarSaldo(cid, si) { AS_SALDO_USO[cid] = !!si; if (calendarios[cid]) calRender(cid); }
+// Aplica el saldo (si el alumno decidió usarlo) sobre lo que toca pagar
+function asAjusteSaldo_(cid, base) {
+  var S = asSaldoDe_(cid);
+  if (!AS_SALDO_USO[cid] || !S || base == null) return { ap: 0, liq: 0, neto: base };
+  if (S > 0) { var ap = Math.min(S, base); return { ap: ap, liq: 0, neto: base - ap }; }
+  return { ap: 0, liq: -S, neto: base - S };
+}
+function asSaldoAvisoHtml_(cid) {
+  var S = asSaldoDe_(cid);
+  if (!S || !asGrupoTabla_(cid)) return '';
+  var on = AS_SALDO_USO[cid] ? ' checked' : '';
+  var chk = 'margin-top:8px;display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;';
+  if (S > 0) {
+    return '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.55;text-align:left;background:rgba(34,197,94,0.10);border:1.5px solid rgba(34,197,94,0.5);">' +
+      '💚 <b style="font-size:13px;">Este alumno tiene $' + S + ' de saldo a favor.</b><br>Coméntaselo y pregúntale si quiere usarlo en este pago o dejarlo para después.' +
+      '<label style="' + chk + '"><input type="checkbox"' + on + ' onchange="asUsarSaldo(\'' + cid + '\', this.checked)"> Usar el saldo a favor en este pago</label></div>';
+  }
+  return '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.55;text-align:left;background:rgba(217,119,6,0.10);border:1.5px solid rgba(217,119,6,0.55);">' +
+    '⏳ <b style="font-size:13px;">Este alumno tiene $' + (-S) + ' pendiente de pagos anteriores.</b><br>Coméntaselo y pregúntale si lo cubre en este pago.' +
+    '<label style="' + chk + '"><input type="checkbox"' + on + ' onchange="asUsarSaldo(\'' + cid + '\', this.checked)"> Cobrar el pendiente en este pago</label></div>';
+}
+function asSaldoLinea_(a) {
+  if (a.ap) return '<br><span style="color:#16a34a;font-weight:700;">💚 Se usa saldo a favor: −$' + a.ap + ' → cobrar <b>$' + a.neto + '</b></span>';
+  if (a.liq) return '<br><span style="color:#d97706;font-weight:700;">⏳ Se cobra el pendiente: +$' + a.liq + ' → cobrar <b>$' + a.neto + '</b></span>';
+  return '';
+}
+
+// Cálculo de la opción elegida + aviso de saldo: { html, error, sugerido, total, aplicado, liquida }
 function asCalculo(cid, st) {
-  var r = { html: '', error: '', sugerido: null, total: null };
+  var r = _asCalculoBase_(cid, st);
+  r.html = asSaldoAvisoHtml_(cid) + r.html;
+  return r;
+}
+
+function _asCalculoBase_(cid, st) {
+  var r = { html: '', error: '', sugerido: null, total: null, aplicado: 0, liquida: 0 };
   var g = asGrupoTabla_(cid);
   if (!g) return r;
   var tipo = AS_OP[cid] || 'Colegiatura';
@@ -2684,13 +2726,15 @@ function asCalculo(cid, st) {
   if (tipo === 'Colegiatura') {
     var grupos = [], ult = null;
     det.semanas.forEach(function (s) { if (ult && ult.etiqueta === s.etiqueta) ult.n++; else { ult = { etiqueta: s.etiqueta, precio: s.precio, n: 1 }; grupos.push(ult); } });
+    var ajC = asAjusteSaldo_(cid, det.total);
     html = cab + '📅 Pago semanal: ' + grupos.map(function (x) { return x.n + ' ' + (x.n === 1 ? unidad : unidades) + ' × $' + x.precio + (grupos.length > 1 ? ' (' + x.etiqueta + ')' : ''); }).join(' + ') +
-           ' = <b>$' + det.total + '</b><br><span style="color:#16a34a;font-weight:700;">✅ Monto calculado con la tabla</span>';
-    r.sugerido = det.total; r.total = det.total;
+           ' = <b>$' + det.total + '</b>' + asSaldoLinea_(ajC) + '<br><span style="color:#16a34a;font-weight:700;">✅ Monto calculado con la tabla</span>';
+    r.sugerido = ajC.neto; r.total = ajC.neto; r.aplicado = ajC.ap; r.liquida = ajC.liq;
+    if (ajC.neto <= 0) { r.error = 'El saldo a favor cubre todo lo marcado. Marca más ' + unidades + ' o no uses el saldo en este pago.'; html += '<div style="' + rojo + '">⛔ ' + r.error + '</div>'; }
   } else if (tipo === 'Promo_4') {
     var tp = Math.round(det.totalPromo);
     html = cab + '🎁 Promoción 4 semanas: paga 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's con precio especial.';
-    if (n === 4) { html += '<br><b>Paga: $' + tp + '</b> · cubre 4 ' + unidades + '<br><span style="color:#16a34a;font-weight:700;">✅ 4 ' + unidades + ' marcad' + (st.sabatino ? 'o' : 'a') + 's</span>'; r.sugerido = tp; r.total = tp; }
+    if (n === 4) { var ajP = asAjusteSaldo_(cid, tp); html += '<br><b>Paga: $' + tp + '</b> · cubre 4 ' + unidades + asSaldoLinea_(ajP) + '<br><span style="color:#16a34a;font-weight:700;">✅ 4 ' + unidades + ' marcad' + (st.sabatino ? 'o' : 'a') + 's</span>'; r.sugerido = ajP.neto; r.total = ajP.neto; r.aplicado = ajP.ap; r.liquida = ajP.liq; }
     else {
       var lun0 = calLunesDe(new Date(st.inicio)), fin4 = new Date(lun0); fin4.setDate(fin4.getDate() + 21);
       var d4 = _detalleTabla_({ inicio: st.sabatino ? new Date(st.inicio) : lun0, fin: st.sabatino ? new Date(new Date(st.inicio).getTime() + 21 * 86400000) : fin4, sabatino: st.sabatino }, g);
@@ -2699,10 +2743,11 @@ function asCalculo(cid, st) {
   } else {
     var obs = (document.getElementById('obs-' + cid).value || '').trim();
     var monto = _calMontoDe_(cid);
-    html = cab + '📝 Pago especial · según tabla le tocarían <b>$' + det.total + '</b> por ' + n + ' ' + (n === 1 ? unidad : unidades) + '.';
-    if (monto > det.total) html += '<br><span style="color:#16a34a;font-weight:700;">💚 Saldo a favor: $' + (monto - det.total) + ' (queda anotado en el pago)</span>';
-    else if (monto && monto < det.total) html += '<br><span style="color:#d97706;font-weight:700;">⏳ Pago pendiente: $' + (det.total - monto) + ' (queda anotado en el pago)</span>';
-    r.total = det.total;
+    var ajE = asAjusteSaldo_(cid, det.total), esperado = ajE.neto;
+    html = cab + '📝 Pago especial · según tabla le tocarían <b>$' + det.total + '</b> por ' + n + ' ' + (n === 1 ? unidad : unidades) + '.' + asSaldoLinea_(ajE);
+    if (monto > esperado) html += '<br><span style="color:#16a34a;font-weight:700;">💚 Saldo a favor: $' + (monto - esperado) + ' (queda anotado en el pago)</span>';
+    else if (monto && monto < esperado) html += '<br><span style="color:#d97706;font-weight:700;">⏳ Pago pendiente: $' + (esperado - monto) + ' (queda anotado en el pago)</span>';
+    r.total = esperado; r.aplicado = ajE.ap; r.liquida = ajE.liq;
     if (!monto) r.error = 'Escribe el monto del pago especial.';
     else if (!obs) { r.error = 'Escribe las observaciones del pago especial.'; html += '<div style="' + rojo + '">⛔ ' + r.error + '</div>'; }
   }
@@ -2730,13 +2775,16 @@ function asValidar(cid) {
 function asComentario(cid) {
   if (!asGrupoTabla_(cid)) return '';
   var tipo = AS_OP[cid] || 'Colegiatura';
-  if (tipo === 'Promo_4') return 'Promoción 4 semanas';
-  if (tipo !== 'Pago_Especial') return '';
-  var st = calendarios[cid], r = asCalculo(cid, st), monto = _calMontoDe_(cid);
+  var st = calendarios[cid], r = asCalculo(cid, st);
+  // Movimientos de saldo que el alumno decidió hacer en este pago
+  var mov = (r.aplicado ? ' · Aplica saldo $' + r.aplicado : '') + (r.liquida ? ' · Liquida pendiente $' + r.liquida : '');
+  if (tipo === 'Promo_4') return 'Promoción 4 semanas' + mov;
+  if (tipo !== 'Pago_Especial') return mov.replace(/^ · /, '');
+  var monto = _calMontoDe_(cid);
   var extra = '';
   if (r.total != null && monto > r.total) extra = ' · Saldo a favor $' + (monto - r.total);
   else if (r.total != null && monto < r.total) extra = ' · Pago pendiente $' + (r.total - monto);
-  return 'Pago especial: ' + (document.getElementById('obs-' + cid).value || '').trim() + extra;
+  return 'Pago especial: ' + (document.getElementById('obs-' + cid).value || '').trim() + mov + extra;
 }
 
 document.addEventListener('input', function(e){
