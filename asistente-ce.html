@@ -2601,11 +2601,13 @@ var PROMO4_AA   = { A1:[400,440], A2:[520,600], B1:[680,760], B2:[840,920], C1:[
 var PROMO4_KIDS = { A1:[480,520], A2:[600,680], B1:[760,840], B2:[920,1000], C1:[1080,1160] };
 var AS_OP = {};                    // containerId -> 'Colegiatura' | 'Promo_4' | 'Pago_Especial'
 var AS_SALDO_USO = {};             // containerId -> true si el alumno decidió usar su saldo / cubrir su pendiente
+var AS_SOLO_PEND = {};             // containerId -> true si el pago especial es SOLO para liquidar el pendiente
 var asComentarioPendiente = '';
 
 function asReiniciar(cid) {
   AS_OP[cid] = 'Colegiatura';
   AS_SALDO_USO[cid] = false;
+  AS_SOLO_PEND[cid] = false;
   asComentarioPendiente = '';
   var o = document.getElementById('obs-' + cid); if (o) o.value = '';
   var w = document.getElementById('obs-wrap-' + cid); if (w) w.style.display = 'none';
@@ -2658,7 +2660,8 @@ function asCambio(cid) { if (calendarios[cid]) calRender(cid); }
 // ── SALDO DEL ALUMNO (nov-2026) ──
 // Saldo acumulado (> 0 a favor, < 0 pendiente) que manda el servidor por alumno.
 function asSaldoDe_(cid) { var ref = CAL_GRUPO[cid]; return ref ? (Number(ref.saldo) || 0) : 0; }
-function asUsarSaldo(cid, si) { AS_SALDO_USO[cid] = !!si; if (calendarios[cid]) calRender(cid); }
+function asUsarSaldo(cid, si) { AS_SALDO_USO[cid] = !!si; if (!si) AS_SOLO_PEND[cid] = false; if (calendarios[cid]) calRender(cid); }
+function asSoloPendiente(cid, si) { AS_SOLO_PEND[cid] = !!si; if (calendarios[cid]) calRender(cid); }
 // Aplica el saldo (si el alumno decidió usarlo) sobre lo que toca pagar
 function asAjusteSaldo_(cid, base) {
   var S = asSaldoDe_(cid);
@@ -2678,7 +2681,11 @@ function asSaldoAvisoHtml_(cid) {
   }
   return '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.55;text-align:left;background:rgba(217,119,6,0.10);border:1.5px solid rgba(217,119,6,0.55);">' +
     '⏳ <b style="font-size:13px;">Este alumno tiene $' + (-S) + ' pendiente de pagos anteriores.</b><br>Coméntaselo y pregúntale si lo cubre en este pago.' +
-    '<label style="' + chk + '"><input type="checkbox"' + on + ' onchange="asUsarSaldo(\'' + cid + '\', this.checked)"> Cobrar el pendiente en este pago</label></div>';
+    '<label style="' + chk + '"><input type="checkbox"' + on + ' onchange="asUsarSaldo(\'' + cid + '\', this.checked)"> Cobrar el pendiente en este pago</label>' +
+    ((AS_SALDO_USO[cid] && (AS_OP[cid] || 'Colegiatura') === 'Pago_Especial')
+      ? '<label style="' + chk + 'font-weight:600;"><input type="checkbox"' + (AS_SOLO_PEND[cid] ? ' checked' : '') + ' onchange="asSoloPendiente(\'' + cid + '\', this.checked)"> Este pago es SOLO para el pendiente (no paga semanas nuevas; marca en el calendario la semana que ya tenía pagada)</label>'
+      : '') +
+    '</div>';
 }
 function asSaldoLinea_(a) {
   if (a.ap) return '<br><span style="color:#16a34a;font-weight:700;">💚 Se usa saldo a favor: −$' + a.ap + ' → cobrar <b>$' + a.neto + '</b></span>';
@@ -2744,6 +2751,11 @@ function _asCalculoBase_(cid, st) {
     var obs = (document.getElementById('obs-' + cid).value || '').trim();
     var monto = _calMontoDe_(cid);
     var ajE = asAjusteSaldo_(cid, det.total), esperado = ajE.neto;
+    var soloPend = !!(AS_SOLO_PEND[cid] && ajE.liq);
+    if (soloPend) {
+      esperado = ajE.liq;
+      html = cab + '📝 Pago especial · <b>solo para liquidar el pendiente de $' + ajE.liq + '</b> (no paga semanas nuevas).';
+    } else
     html = cab + '📝 Pago especial · según tabla le tocarían <b>$' + det.total + '</b> por ' + n + ' ' + (n === 1 ? unidad : unidades) + '.' + asSaldoLinea_(ajE);
     if (monto > esperado) html += '<br><span style="color:#16a34a;font-weight:700;">💚 Saldo a favor: $' + (monto - esperado) + ' (queda anotado en el pago)</span>';
     else if (monto && monto < esperado) html += '<br><span style="color:#d97706;font-weight:700;">⏳ Pago pendiente: $' + (esperado - monto) + ' (queda anotado en el pago)</span>';
