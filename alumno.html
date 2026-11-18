@@ -1292,6 +1292,7 @@
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;color:#94a3b8;font-size:12px;font-weight:700;"><span style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></span>¿Ya pagaste? Sube aquí tu comprobante<span style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></span></div>
     </div>
     <div class="modal-pago-subtitulo" id="modalPagoSubtitulo">Para seguir disfrutando tus clases, <strong>sube tu comprobante de pago</strong> directamente aqui.</div>
+    <div id="modalPagoSaldo" style="display:none;"></div>
     <div class="upload-zone" id="uploadZone">
       <input type="file" id="uploadInput" accept="image/*,application/pdf" onchange="archivoSeleccionado(this)" />
       <div class="upload-icon">📎</div>
@@ -1589,6 +1590,26 @@
   // El servidor manda alumnoData.colegiatura calculada con el grupo ACTUAL del
   // alumno: si cambia de grupo, en su siguiente entrada ya ve el calendario nuevo.
   // Bloque actual: precio + hasta cuándo. Bloque siguiente: precio + desde cuándo.
+  // ═══ SALDO DEL ALUMNO (nov-2026) ═══
+  // alumnoData.saldo = { saldo, movimientos } (saldo > 0 a favor, < 0 pendiente).
+  // Se muestra en la ventana para subir el comprobante.
+  function pintarSaldoAlumno_() {
+    var box = document.getElementById('modalPagoSaldo');
+    if (!box) return;
+    var s = alumnoData && alumnoData.saldo ? Number(alumnoData.saldo.saldo) || 0 : 0;
+    if (!s) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    var aFavor = s > 0;
+    box.innerHTML =
+      '<div style="background:' + (aFavor ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)') + ';border:1.5px solid ' + (aFavor ? 'rgba(34,197,94,0.5)' : 'rgba(245,158,11,0.55)') + ';border-radius:14px;padding:12px 14px;margin-bottom:14px;text-align:center;">' +
+        '<div style="font-size:15px;font-weight:800;color:' + (aFavor ? '#4ade80' : '#fbbf24') + ';margin-bottom:4px;">' +
+          (aFavor ? '💚 Tienes $' + s + ' de saldo a favor' : '⏳ Tienes $' + (-s) + ' pendiente de pagos anteriores') + '</div>' +
+        '<div style="font-size:12.5px;color:#cbd5e1;line-height:1.5;">' +
+          (aFavor ? 'Puedes usarlo en tu próximo pago o dejarlo para después. Coméntaselo a tu asistente cuando envíes tu comprobante.'
+                  : 'Puedes cubrirlo junto con tu próximo pago. Tu asistente te confirmará el monto.') +
+        '</div></div>';
+    box.style.display = 'block';
+  }
+
   function prepararColegiaturas_() {
     var btn = document.getElementById('btnMisColegiaturas');
     if (!btn) return;
@@ -1873,6 +1894,7 @@
     renderPagos(p);
     renderHistorial(alumnoData.historialPagos);
     prepararColegiaturas_();
+    pintarSaldoAlumno_();
     renderCalificaciones(g);
     renderStudentBoard(g, p);
     cargarMapaAlumno(a.id, g ? g.id : '');
@@ -2112,10 +2134,9 @@
     document.getElementById('modalPagoRecordatorio').style.display = 'block';
     document.getElementById('btnCerrarPago').textContent = 'Lo subo después';
  
-    var tarifaSemanal = tarifaSemanalPorTipo(alumnoData && alumnoData.alumno && alumnoData.alumno.tipoInscripcion);
-    var monto = Number(p.monto) || 0;
-    var saldo = monto % tarifaSemanal;
-    var falta = saldo > 0 ? (tarifaSemanal - saldo) : 0;
+    // nov-2026: el saldo ya no se adivina con el último pago (tarifas viejas);
+    // el saldo real lo calcula el servidor y lo pinta pintarSaldoAlumno_().
+    var saldo = 0, falta = 0;
  
     var saldoHtml = '';
     if (saldo > 0) {
@@ -2145,6 +2166,7 @@
       uploadZone.parentNode.insertBefore(div, uploadZone);
     }
  
+        pintarSaldoAlumno_();
         document.getElementById('modalPago').classList.add('visible');
     // Verificación asíncrona: consulta al backend y luego decide
     // si hay que bloquear la zona de subida o no.
