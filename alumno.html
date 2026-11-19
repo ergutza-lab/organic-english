@@ -20165,6 +20165,98 @@ var MISIONES_KIDS_A12_LISTA = [
       '</div></div>';
   }
 
+  // ─── Calendario de cobertura del pago (nov-2026) ───
+  // Muestra con "bolitas" las clases que cubre su ultimo pago, los dias para
+  // pagar y el sabado limite. Explica que 4 semanas no es un mes.
+  function _diaLocalPago_(f) {
+    var d = _fechaSegura(f);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+  function calendarioCoberturaHtml_(p) {
+    if (!p || !p.periodoFin) return '';
+    var ini = _diaLocalPago_(p.periodoInicio || p.fecha);
+    var fin = _diaLocalPago_(p.periodoFin);
+    var lim = p.limiteSiguiente ? _diaLocalPago_(p.limiteSiguiente) : fin;
+    if (isNaN(ini.getTime()) || isNaN(fin.getTime())) return '';
+    if (ini > fin) ini = new Date(fin.getTime());
+    if (isNaN(lim.getTime()) || lim < fin) lim = new Date(fin.getTime());
+
+    var g = (alumnoData && alumnoData.grupo) || {};
+    var tipo = String(g.tipoHorario || '').toLowerCase();
+    var esSab = (tipo === 'sabado' || tipo === 'sábado') || /-SAT$/i.test(String(g.nombre || '').trim());
+    function esDiaClase(d) { var w = d.getDay(); return esSab ? (w === 6) : (w >= 1 && w <= 4); }
+
+    var hoy = new Date(); hoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    var MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    var DIA = ['dom','lun','mar','mié','jue','vie','sáb'];
+    function txt(d) { return DIA[d.getDay()] + ' ' + d.getDate() + ' ' + MES[d.getMonth()]; }
+
+    // Semanas (lunes a domingo) desde la semana del inicio hasta la del limite
+    var lunes = new Date(ini.getTime());
+    lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
+    var clasesCubiertas = 0, filas = '', numSem = 0;
+    for (var s = 0; s < 12; s++) {
+      var l0 = new Date(lunes.getTime()); l0.setDate(l0.getDate() + s * 7);
+      if (l0 > lim) break;
+      var celdas = '', semCubierta = false;
+      for (var k = 0; k < 7; k++) {
+        var d = new Date(l0.getTime()); d.setDate(d.getDate() + k);
+        // Lleno de lunes a domingo: clases + dias con acceso a plataforma y
+        // grabaciones. En la ultima semana se llena hasta el viernes; el
+        // sabado limite va en rojo.
+        var cubierto = d >= ini && (lim > fin ? d < lim : d <= fin);
+        var clase = esDiaClase(d);
+        var esLim = d.getTime() === lim.getTime() && lim > fin;
+        var esLimMismoDia = d.getTime() === lim.getTime() && lim.getTime() === fin.getTime();
+        var esHoy = d.getTime() === hoy.getTime();
+        var mesTxt = (d.getDate() === 1 || (s === 0 && k === 0)) ? '<span style="display:block;font-size:7px;line-height:1;opacity:.85;text-transform:uppercase;">' + MES[d.getMonth()] + '</span>' : '';
+        var bg = 'transparent', bord = '1px dashed rgba(255,255,255,0.10)', col = 'rgba(255,255,255,0.35)', marca = '', tip = txt(d);
+        if (cubierto && clase) {
+          bg = 'linear-gradient(135deg,#22c55e,#16a34a)'; bord = '1px solid rgba(255,255,255,0.35)'; col = '#fff';
+          marca = '<span style="position:absolute;top:-5px;right:-4px;font-size:10px;background:#fff;color:#16a34a;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;font-weight:900;box-shadow:0 1px 3px rgba(0,0,0,.35);">✓</span>';
+          tip += ' · clase pagada'; clasesCubiertas++; semCubierta = true;
+        } else if (cubierto) {
+          bg = 'linear-gradient(135deg,#22c55e,#16a34a)'; bord = '1px solid rgba(255,255,255,0.35)'; col = '#fff';
+          tip += ' · cubierto (acceso a plataforma y grabaciones)'; semCubierta = true;
+        }
+        if (esLim || esLimMismoDia) {
+          bg = 'linear-gradient(135deg,#f97316,#dc2626)'; bord = '2px solid #fff'; col = '#fff';
+          marca = '<span style="position:absolute;top:-7px;right:-6px;font-size:12px;">⏰</span>' +
+                  (esLimMismoDia && cubierto && clase ? '<span style="position:absolute;bottom:-5px;right:-4px;font-size:10px;background:#fff;color:#16a34a;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;font-weight:900;">✓</span>' : '');
+          tip += esLimMismoDia ? ' · tu clase está pagada; paga tu siguiente periodo antes de la 1:00 PM' : ' · ÚLTIMO DÍA PARA PAGAR';
+        }
+        var anillo = esHoy ? 'box-shadow:0 0 0 2px #0f172a,0 0 0 4px #fff;' : '';
+        celdas += '<div title="' + tip + '" style="position:relative;flex:1;height:34px;border-radius:50%;max-width:34px;margin:0 auto;background:' + bg + ';border:' + bord + ';color:' + col + ';display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:800;' + anillo + '">' + mesTxt + d.getDate() + marca + '</div>';
+      }
+      var etq;
+      if (semCubierta) { numSem++; etq = '<span style="color:#dcfce7;">Sem ' + numSem + '</span>'; }
+      else etq = '<span style="color:#fde68a;">Pagar</span>';
+      filas += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><div style="width:44px;flex-shrink:0;font-size:10px;font-weight:800;">' + etq + '</div>' + celdas + '</div>';
+    }
+
+    var cab = '<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><div style="width:44px;flex-shrink:0;"></div>';
+    ['L','M','M','J','V','S','D'].forEach(function (x) { cab += '<div style="flex:1;text-align:center;font-size:10px;font-weight:800;color:rgba(255,255,255,0.6);">' + x + '</div>'; });
+    cab += '</div>';
+
+    var ley = function (bg, bord, t) { return '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 10px 4px 0;"><span style="width:12px;height:12px;border-radius:50%;background:' + bg + ';border:' + bord + ';display:inline-block;"></span>' + t + '</span>'; };
+    var leyenda = '<div style="font-size:11px;color:rgba(255,255,255,0.85);margin-top:6px;">' +
+      ley('#22c55e', '1px solid #fff', 'Cubierto por tu pago (✓ = día de clase)') +
+      ley('#ef4444', '1px solid #fff', 'Último día para pagar') +
+      ley('transparent', '2px solid #fff', 'Hoy') + '</div>';
+
+    var semanas = numSem;
+    var explica = '<div style="font-size:12.5px;line-height:1.55;color:#fff;margin-bottom:10px;">' +
+      'Tu pago cubre <b>' + semanas + (semanas === 1 ? ' semana' : ' semanas') + '</b> (' + clasesCubiertas + (clasesCubiertas === 1 ? ' clase' : ' clases') + '): del <b>' + txt(ini) + '</b> al <b>' + txt(fin) + '</b>.' +
+      '<br>Tu siguiente pago es a más tardar el <b style="color:#fde68a;">' + txt(lim) + '</b>.</div>';
+    var nota = semanas >= 4
+      ? '<div style="font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.08);border-radius:10px;padding:8px 10px;margin-top:8px;">💡 <b>4 semanas no son un mes.</b> Tu colegiatura se paga por semana: 4 semanas son 28 días y un mes tiene 30 o 31. Por eso tu siguiente pago llega unos días antes de que se cumpla el mes.</div>'
+      : '';
+
+    return '<div style="background:rgba(0,0,0,0.25);border-radius:14px;padding:12px 12px 10px;margin-top:4px;">' +
+      '<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:6px;">📅 ¿Qué cubre mi pago?</div>' +
+      explica + cab + filas + leyenda + nota + '</div>';
+  }
+
   function renderPagos(p) {
     var div=document.getElementById('pagosContenido');
     if (alumnoData && alumnoData._esBecado) {
@@ -20184,8 +20276,7 @@ var MISIONES_KIDS_A12_LISTA = [
     div.innerHTML=
       '<div class="pago-highlight"><div class="pago-monto">$'+p.monto+' MXN</div><div class="pago-tipo">'+tipoTexto+' · '+formatFechaCorta(p.fecha)+'</div></div>'+
       '<div class="field-row"><span class="field-label">Vigente hasta</span><span class="field-val">'+formatFechaCorta(p.periodoFin)+'</span></div>'+
-      '<div class="progreso-bar"><div class="progreso-fill" style="width:'+pct+'%"></div></div>'+
-      '<div class="progreso-labels"><span>'+formatFechaMini(p.fecha)+'</span><span>'+formatFechaMini(p.periodoFin)+'</span></div>'+
+      calendarioCoberturaHtml_(p)+
       (function(){
         var hoyTS = Date.now();
         var limTS = p.limiteSiguiente ? new Date(p.limiteSiguiente).getTime() : null;
