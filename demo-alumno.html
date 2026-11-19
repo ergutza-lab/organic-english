@@ -23757,7 +23757,9 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   var RAW = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/';
   var F = window.OE_DEMO_FECHAS;
   var qs = new URLSearchParams(location.search);
-  var ASESOR_WA = (qs.get('a') || '').replace(/\D/g, '');
+  // Si el link no trae ?a=número, se usa este (déjalo vacío para no mostrar los botones de WhatsApp)
+  var ASESOR_WA_DEFAULT = '';
+  var ASESOR_WA = (qs.get('a') || ASESOR_WA_DEFAULT).replace(/\D/g, '');
   var ASESOR_NOM = (qs.get('n') || '').trim();
 
   // ─── Alumno ficticio ───
@@ -23786,7 +23788,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   var T = {
     datosAlumno: { modo: 'tip', tip: 'Tus datos de alumno: nombre, ID, correo y WhatsApp.' },
     nivelBadge: { modo: 'tip', tip: 'Tu nivel y bloque actual. Avanzas de bloque cada 8 semanas.' },
-    salir: { modo: 'modal', e: '🚪', t: 'Salir', tip: 'Salir del demo y platicar con tu asesor.', d: 'Tu panel es personal: entras con tu ID de alumno y tu correo, desde la computadora o el celular. ¿Listo para tener el tuyo? Escríbele a tu asesor.' },
+    salir: { modo: 'tip', tip: 'Salir del demo y platicar con tu asesor.' },
     zoom: { modo: 'modal', e: '🎥', t: 'Mi clase por Zoom', tip: 'Entra a tu clase en vivo con un clic.', img: ['zoom.webp'],
       d: 'Con un solo clic entras a tu clase en vivo por Zoom, con tu maestro y tu grupo. Los grupos son pequeños: tu maestro te conoce, te escucha y te corrige, y hablas inglés desde la primera clase. Las clases son dinámicas, con presentaciones, juegos y práctica en parejas.' },
     grabadas: { modo: 'modal', e: '📼', t: 'Clases grabadas', tip: 'Vuelve a ver tus clases cuando quieras.', img: ['grabadas.webp'],
@@ -24047,7 +24049,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   function mostrarTip(el) {
     var c = T[el.getAttribute('data-demo')]; if (!c) return;
     if (hlEl && hlEl !== el) hlEl.classList.remove('demo-hl');
-    hlEl = el; el.classList.add('demo-hl');
+    hlEl = el; if (c.modo === 'modal') el.classList.add('demo-hl');
     tip.innerHTML = c.tip + (c.modo === 'modal' ? '<small>👆 Dale clic para ver más</small>' : '');
     var r = el.getBoundingClientRect();
     tip.classList.add('on');
@@ -24088,6 +24090,11 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
       if (!el) return;
       var c = T[el.getAttribute('data-demo')];
       if (!c || c.modo === 'pasar') return;
+      if (el.getAttribute('data-demo') === 'salir') {
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        if (waLink()) window.open(waLink(), '_blank'); else mostrarTip(el);
+        return;
+      }
       if (c.modo === 'tip') {
         // Solo letrero: no abre nada (el reglamento sí se puede descargar)
         if (el.getAttribute('data-demo') === 'reglamento' && e.target.closest('a')) return;
@@ -24096,7 +24103,6 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
         return;
       }
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-      if (el.getAttribute('data-demo') === 'salir' && waLink()) { window.open(waLink(), '_blank'); return; }
       abrir(el.getAttribute('data-demo'), el);
     }, true);
     document.addEventListener('mouseover', function (e) {
@@ -24117,7 +24123,8 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     var b = document.createElement(w ? 'a' : 'button');
     b.id = 'demoSalir';
     if (w) { b.href = w; b.target = '_blank'; }
-    else b.onclick = function () { abrir('salir'); };
+    else b.onclick = function () { mostrarTip(b); };
+    b.setAttribute('data-demo', 'salir');
     b.innerHTML = '<span style="font-size:24px;">🚪</span><span>SALIR' + (w ? '<small>y platicar con ' + (ASESOR_NOM ? ASESOR_NOM : 'mi asesor') + ' para inscribirme</small>' : '') + '</span>';
     board.parentNode.insertBefore(b, board.nextSibling);
   }
