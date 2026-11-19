@@ -1000,6 +1000,17 @@
 @keyframes splashBarra { from { width: 0%; } to { width: 100%; } }
 </style>
 <script>
+// ── Link de Zoom limpio (nov-2026) ─────────────────────────────────────
+// Si alguien pega la invitación completa de Zoom o dos links juntos, se
+// saca solo el link de la reunión (con su contraseña si la trae).
+function limpiarLinkZoom(t){
+  t=String(t||'').trim(); if(!t) return '';
+  if(/^JITSI:/i.test(t)) return t;
+  var m=t.match(/https?:\/\/((?:[a-z0-9-]+\.)*zoom\.us)\/j\/(\d{9,11})(?!\d)(\?[^\s"'<>]*)?/i);
+  if(m){var q=(m[3]||'').match(/[?&]pwd=([A-Za-z0-9._-]+)/);return 'https://'+m[1]+'/j/'+m[2]+(q?'?pwd='+q[1]:'');}
+  var u=t.match(/https?:\/\/[^\s"'<>]+/i); return u?u[0]:'';
+}
+
   setTimeout(function () {
     var splash = document.getElementById('screenSplash');
     var login  = document.getElementById('screenLogin');
@@ -1893,7 +1904,7 @@
       if (esKids) prepararPracticaKids();
       prepararBannerJuegoPractica_(a, g, esKids, esGrupoPersonalizado);
 
-      document.getElementById('btnZoom').href             = g.linkZoom || '#';
+      document.getElementById('btnZoom').href             = limpiarLinkZoom(g.linkZoom) || '#';
       cargarGrabacionesAlumno(g.id, g.grabacion || '');
       var fi = new Date(g.fechaInicio);
       document.getElementById('grupoFecha').textContent = fi.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][fi.getMonth()]+' '+fi.getFullYear();
@@ -21038,7 +21049,7 @@ var MISIONES_KIDS_A12_LISTA = [
     if(esElegible&&estaVigente&&g.linkClub){document.getElementById('modalClubAvisoOverlay').classList.add('visible');}
     else{document.getElementById('modalClubOverlay').classList.add('visible');}
   }
-  function entrarAlClub(){var g=alumnoData.grupo;document.getElementById('modalClubAvisoOverlay').classList.remove('visible');window.open(g.linkClub,'_blank');}
+  function entrarAlClub(){var g=alumnoData.grupo;document.getElementById('modalClubAvisoOverlay').classList.remove('visible');window.open(limpiarLinkZoom(g.linkClub)||g.linkClub,'_blank');}
   function cerrarModalClub(){document.getElementById('modalClubOverlay').classList.remove('visible');}
   function cerrarModalClubAviso(){document.getElementById('modalClubAvisoOverlay').classList.remove('visible');}
 
