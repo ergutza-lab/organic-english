@@ -1147,9 +1147,9 @@ function renderGruposPorNivel(nivelFiltro){
               ${nBecados?`<span class="gstat becado">⭐ ${nBecados} becado${nBecados>1?'s':''}</span>`:''}
               ${nSinPago?`<span class="gstat sinpago">${nSinPago} sin pago</span>`:''}
             </div>
-            <button onclick="event.stopPropagation();subirLinkWhats('${g.id}')" style="background:${g.linkWhats?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)'};color:#fff;border:none;border-radius:100px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-              ${g.linkWhats?'✅ WhatsApp':'📵 Sin WhatsApp'}
-            </button>
+            ${(()=>{const rep=whatsRepetidoCon(g);return `<button onclick="event.stopPropagation();subirLinkWhats('${g.id}')" title="${rep.length?'Este link también está en '+rep.join(', '):''}" style="background:${rep.length?'linear-gradient(135deg,#f59e0b,#d97706)':(g.linkWhats?'linear-gradient(135deg,#16a34a,#15803d)':'linear-gradient(135deg,#dc2626,#b91c1c)')};color:#fff;border:none;border-radius:100px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+              ${rep.length?'⚠️ Repetido con '+rep.join(', '):(g.linkWhats?'✅ WhatsApp':'📵 Sin WhatsApp')}
+            </button>`;})()}
             <span class="grupo-chevron">›</span>
           </div>
           <div class="grupo-progress-bar"><div class="grupo-progress-fill${lleno?' lleno':''}" style="width:${pct}%"></div></div>
@@ -3600,26 +3600,108 @@ function mostrarAvisosColocacion(idAlumno, nombre, whatsapp, motivo) {
     });
 }
 
-function subirLinkWhats(idGrupo) {
-  const link = prompt('Pega el link del grupo de WhatsApp para ' + idGrupo + ':');
-  if (!link || !link.trim()) return;
-  if (!link.includes('chat.whatsapp.com') && !link.includes('wa.me')) {
-    mostrarToast('El link no parece ser de WhatsApp','error');
-    return;
+// ── Link del grupo de WhatsApp ──────────────────────────────────────
+// Para evitar links cruzados: se muestra el grupo en grande, el nombre que
+// debe tener en WhatsApp, se prueba el link y se confirma antes de guardar.
+// El servidor además rechaza un link que ya tenga otro grupo activo.
+function codigoWhats(link){
+  const m=String(link||'').match(/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,})/i);
+  return m?m[1]:'';
+}
+function whatsRepetidoCon(g){
+  const c=codigoWhats(g.linkWhats); if(!c) return [];
+  return (datosPanel?.grupos||[]).filter(o=>o.id!==g.id && codigoWhats(o.linkWhats)===c).map(o=>o.id);
+}
+function nombreWhatsSugerido(g){
+  const nv=String(g.nivel||'').match(/([A-C][12])\s*-\s*Bloque\s*(\d)/i);
+  const hr=String(g.horario||'').match(/(\d{1,2})(?::(\d{2}))?\s*([AP]M)/i);
+  return [g.id, String(g.nombre||'').toUpperCase(), nv?(nv[1].toUpperCase()+'.'+nv[2]):'', hr?(hr[1]+(hr[2]&&hr[2]!=='00'?':'+hr[2]:'')+hr[3].toUpperCase()):''].filter(Boolean).join(' ');
+}
+function subirLinkWhats(idGrupo){
+  const g=(datosPanel?.grupos||[]).find(x=>x.id===idGrupo)||{id:idGrupo};
+  const sug=nombreWhatsSugerido(g);
+  const rep=whatsRepetidoCon(g);
+  let m=document.getElementById('modalWhatsGrupo');
+  if(!m){m=document.createElement('div');m.id='modalWhatsGrupo';document.body.appendChild(m);}
+  m.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:440px;width:100%;max-height:92vh;overflow:auto;padding:20px;font-family:inherit;box-shadow:0 20px 50px rgba(0,0,0,.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:16px;font-weight:800;color:#0f172a;">💬 Grupo de WhatsApp</div>
+      <button onclick="cerrarModalWhats()" style="background:none;border:none;font-size:22px;color:#64748b;cursor:pointer;">✕</button>
+    </div>
+    <div style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-size:30px;font-weight:900;letter-spacing:1px;line-height:1;">${g.id}</div>
+      <div style="font-size:14px;font-weight:700;margin-top:4px;">${g.nombre||''} · ${g.horario||''}</div>
+      <div style="font-size:12px;opacity:.9;margin-top:2px;">${g.nivel||''}${g.fecha_inicio?' · Inicia '+g.fecha_inicio:''}</div>
+    </div>
+    ${rep.length?`<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:12px;">⚠️ El link que tiene ahora también está guardado en <b>${rep.join(', ')}</b>. Uno de los dos está mal: ábrelo, revisa el nombre y corrige.</div>`:''}
+    ${g.linkWhats?`<div style="font-size:12px;color:#475569;margin-bottom:12px;">Link actual: <a href="${g.linkWhats}" target="_blank" style="color:#16a34a;font-weight:700;">abrir y revisar</a></div>`:''}
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px;">1. El grupo de WhatsApp debe llamarse:</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+      <div style="flex:1;background:#f1f5f9;border:2px dashed #94a3b8;border-radius:10px;padding:9px 12px;font-weight:800;color:#0f172a;font-size:14px;">${sug}</div>
+      <button onclick="navigator.clipboard.writeText('${sug}').then(()=>mostrarToast('Nombre copiado','success'))" style="background:#e2e8f0;border:none;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer;font-size:12px;">Copiar</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px;">2. Pega aquí el link de invitación de ESE grupo:</div>
+    <input id="mwLink" placeholder="https://chat.whatsapp.com/..." oninput="validarModalWhats()" style="width:100%;box-sizing:border-box;border:2px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:6px;">
+    <div id="mwAviso" style="font-size:12px;font-weight:600;min-height:16px;margin-bottom:8px;"></div>
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">3. Ábrelo y revisa que el nombre del grupo sea <b>${g.id}</b>:</div>
+    <button id="mwProbar" onclick="probarModalWhats()" disabled style="width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800;cursor:pointer;margin-bottom:10px;opacity:.5;">🔎 Abrir link para revisar</button>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#0f172a;margin-bottom:14px;cursor:pointer;">
+      <input type="checkbox" id="mwOk" onchange="validarModalWhats()" disabled style="margin-top:2px;width:18px;height:18px;">
+      <span>Abrí el link y el grupo de WhatsApp se llama <b>${g.id}</b> (${g.nombre||''} ${g.horario||''}).</span>
+    </label>
+    <button id="mwGuardar" onclick="guardarModalWhats('${g.id}')" disabled style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:100px;padding:12px;font-weight:800;font-size:14px;cursor:pointer;opacity:.5;">Guardar link para ${g.id}</button>
+  </div>`;
+  m.onclick=e=>{if(e.target===m)cerrarModalWhats();};
+  setTimeout(()=>document.getElementById('mwLink').focus(),50);
+}
+function cerrarModalWhats(){const m=document.getElementById('modalWhatsGrupo');if(m)m.remove();}
+let _mwProbado='';
+function validarModalWhats(){
+  const link=document.getElementById('mwLink').value.trim();
+  const c=codigoWhats(link);
+  const av=document.getElementById('mwAviso');
+  const probar=document.getElementById('mwProbar'),ok=document.getElementById('mwOk'),guardar=document.getElementById('mwGuardar');
+  let valido=false;
+  if(!link){av.textContent='';}
+  else if(!c){av.style.color='#dc2626';av.textContent='Ese no es un link de invitación de grupo (debe ser chat.whatsapp.com/...).';}
+  else{
+    const idG=guardar.getAttribute('onclick').match(/'([^']+)'/)[1];
+    const otros=(datosPanel?.grupos||[]).filter(o=>o.id!==idG && codigoWhats(o.linkWhats)===c).map(o=>o.id);
+    if(otros.length){av.style.color='#dc2626';av.textContent='⛔ Este link ya está guardado en '+otros.join(', ')+'. No puede ser de este grupo.';}
+    else{av.style.color='#16a34a';av.textContent='Link válido. Ahora ábrelo para revisar el nombre.';valido=true;}
   }
-  fetch(`${APPS_SCRIPT}?action=actualizarLinkWhatsGrupo&idGrupo=${encodeURIComponent(idGrupo)}&linkWhats=${encodeURIComponent(link.trim())}`, {redirect:'follow'})
+  if(c!==_mwProbado){ok.checked=false;}
+  probar.disabled=!valido;probar.style.opacity=valido?'1':'.5';
+  ok.disabled=!(valido&&c===_mwProbado);
+  const listo=valido&&ok.checked&&c===_mwProbado;
+  guardar.disabled=!listo;guardar.style.opacity=listo?'1':'.5';
+}
+function probarModalWhats(){
+  const link=document.getElementById('mwLink').value.trim();
+  _mwProbado=codigoWhats(link);
+  window.open(link,'_blank');
+  validarModalWhats();
+}
+function guardarModalWhats(idGrupo){
+  const link=document.getElementById('mwLink').value.trim();
+  const btn=document.getElementById('mwGuardar');
+  btn.disabled=true;btn.textContent='Guardando...';
+  fetch(`${APPS_SCRIPT}?action=actualizarLinkWhatsGrupo&idGrupo=${encodeURIComponent(idGrupo)}&linkWhats=${encodeURIComponent(link)}&idAsistente=${encodeURIComponent(asistente?asistente.id:'')}`, {redirect:'follow'})
     .then(r=>r.json())
     .then(data=>{
       if(data.success){
-        mostrarToast('✅ Link de WhatsApp guardado','success');
-        const g = (datosPanel?.grupos||[]).find(g=>g.id===idGrupo);
-        if(g) g.linkWhats = link.trim();
+        mostrarToast('✅ Link de WhatsApp guardado para '+idGrupo,'success');
+        const g=(datosPanel?.grupos||[]).find(g=>g.id===idGrupo);
+        if(g) g.linkWhats=data.link||link;
+        cerrarModalWhats();
         renderGrupos();
       } else {
-        mostrarToast('Error: '+(data.error||'Intenta de nuevo'),'error');
+        const av=document.getElementById('mwAviso');av.style.color='#dc2626';av.textContent='⛔ '+(data.error||'Intenta de nuevo');
+        btn.disabled=false;btn.textContent='Guardar link para '+idGrupo;
       }
     })
-    .catch(()=>mostrarToast('Error de conexión','error'));
+    .catch(()=>{mostrarToast('Error de conexión','error');btn.disabled=false;btn.textContent='Guardar link para '+idGrupo;});
 }
 
 var _toastTimer=null;
