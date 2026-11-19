@@ -23862,6 +23862,20 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   function marca(el, k) { if (el && !el.getAttribute('data-demo')) el.setAttribute('data-demo', k); }
   function $(s) { return document.querySelector(s); }
   function cardDe(el) { return el ? el.closest('.card') : null; }
+  // En celular no hay mouse: dejamos marcas visibles en todo lo que se puede tocar
+  function senalarTocables() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-demo]'), function (el) {
+      if (el.getAttribute('data-demo-s')) return;
+      var c = T[el.getAttribute('data-demo')]; if (!c) return;
+      var cls = c.modo === 'modal' ? 'demo-m' : (c.modo === 'pasar' ? 'demo-p' : 'demo-t');
+      if (el.getAttribute('data-demo') === 'salir') cls = 'demo-t';
+      if (!el.offsetHeight) return;
+      el.classList.add(cls);
+      if (el.offsetHeight < 60) el.classList.add('demo-chico');
+      el.setAttribute('data-demo-s', '1');
+      try { if (getComputedStyle(el).position === 'static') el.style.position = 'relative'; } catch (e) {}
+    });
+  }
   function marcarTodo() {
     marca($('#infoNombre') && $('#infoNombre').closest('.info-alumno') || ($('#infoNombre') ? $('#infoNombre').parentElement : null), 'datosAlumno');
     marca($('#nivelBloqueBadge'), 'nivelBadge');
@@ -23922,6 +23936,16 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   var css = document.createElement('style');
   css.textContent =
     '[data-demo]{transition:box-shadow .15s, outline-color .15s;}' +
+    '@media (hover:none),(pointer:coarse){' +
+      '.demo-m{outline:2px dashed rgba(250,204,21,.85) !important;outline-offset:2px;border-radius:14px;}' +
+      '.demo-p{outline:2px dashed rgba(250,204,21,.85) !important;outline-offset:2px;}' +
+      '.demo-m::after,.demo-t::after{position:absolute;top:5px;right:5px;z-index:5;pointer-events:none;display:flex;align-items:center;justify-content:center;border-radius:50%;font-family:system-ui,sans-serif;line-height:1;}' +
+      '.demo-m::after{content:"👆";width:26px;height:26px;font-size:15px;background:#facc15;box-shadow:0 0 0 0 rgba(250,204,21,.7);animation:demoLatido 1.8s infinite;}' +
+      '.demo-t::after{content:"i";width:19px;height:19px;font-size:12px;font-weight:900;font-style:italic;font-family:Georgia,serif;color:#0f172a;background:rgba(255,255,255,.85);}' +
+      '.demo-chico.demo-m::after{top:-9px;right:-9px;width:21px;height:21px;font-size:12px;}' +
+      '.demo-chico.demo-t::after{top:-7px;right:-7px;width:16px;height:16px;font-size:10px;}' +
+      '@keyframes demoLatido{0%{box-shadow:0 0 0 0 rgba(250,204,21,.7);}70%{box-shadow:0 0 0 9px rgba(250,204,21,0);}100%{box-shadow:0 0 0 0 rgba(250,204,21,0);}}' +
+    '}' +
     '.demo-hl{outline:3px dashed #facc15 !important;outline-offset:3px;box-shadow:0 0 0 6px rgba(250,204,21,.18),0 0 26px rgba(250,204,21,.45) !important;cursor:help !important;border-radius:14px;}' +
     '#demoTip{position:fixed;z-index:99998;max-width:280px;background:#facc15;color:#1c1917;font:700 13px/1.35 "Segoe UI",Arial,sans-serif;padding:9px 13px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s, transform .12s;}' +
     '#demoTip.on{opacity:1;transform:none;}#demoTip small{display:block;font-weight:600;opacity:.75;margin-top:2px;}' +
@@ -23950,10 +23974,16 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     '#demoModal .dm-dots span{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;}' +
     '#demoModal .dm-dots span.on{background:#f97316;width:22px;border-radius:5px;}' +
     '#demoModal .dm-txt{padding:16px 24px 6px;font-size:19px;font-weight:700;line-height:1.55;color:#fde047;text-shadow:0 1px 2px rgba(0,0,0,.35);}' +
-    '#demoModal .dm-foot{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:12px 20px 20px;}' +
+    '#demoModal .dm-foot{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:12px 20px 20px;position:sticky;bottom:0;background:linear-gradient(transparent,#13213f 30%);}' +
     '#demoModal .dm-btn{border:none;border-radius:100px;padding:11px 20px;font-weight:800;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}' +
     '.demo-bar-corta{display:none;}' +
-    '@media (max-width:640px){#demoBar{font-size:12px;padding:9px 10px;}#demoBar .demo-bar-btn,.demo-bar-larga{display:none;}.demo-bar-corta{display:inline;}body.oe-demo{padding-top:38px;padding-bottom:84px;}#demoCta{left:12px;right:12px;bottom:12px;justify-content:center;}#demoModal .dm-tit{font-size:17px;}#demoModal .dm-txt{font-size:16.5px;padding:14px 18px 4px;}}';
+    '@media (max-width:640px){#demoBar{font-size:12px;padding:7px 10px;flex-wrap:nowrap;justify-content:space-between;gap:8px;}.demo-bar-larga{display:none;}.demo-bar-corta{display:inline;}' +
+    '#demoBar .demo-bar-btn{padding:6px 11px;font-size:12px;white-space:nowrap;flex-shrink:0;}body.oe-demo{padding-top:44px;}#demoCta{display:none !important;}' +
+    '#demoModal{padding:0;align-items:flex-end;}#demoModal .dm-box{max-height:92vh;border-radius:22px 22px 0 0;}' +
+    '#demoModal .dm-head{padding:14px 16px 8px;position:sticky;top:0;background:#13213f;z-index:2;}#demoModal .dm-emoji{width:40px;height:40px;font-size:21px;}' +
+    '#demoModal .dm-img{margin:4px 12px 0;}#demoModal .dm-vp{height:min(46vh,420px);}' +
+    '#demoModal .dm-foot{padding:10px 14px calc(14px + env(safe-area-inset-bottom));}#demoModal .dm-btn{flex:1;justify-content:center;padding:13px 12px;}' +
+    '#demoModal .dm-vp.dm-largo::after{content:"⇅ Se recorre sola";}#demoTip{max-width:calc(100vw - 24px);font-size:14px;}#demoCta{left:12px;right:12px;bottom:12px;justify-content:center;}#demoModal .dm-tit{font-size:17px;}#demoModal .dm-txt{font-size:16.5px;padding:14px 18px 4px;}}';
   document.head.appendChild(css);
 
   function waLink() {
@@ -23979,9 +24009,11 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   function prepararRecorrido(img) {
     var vp = modal.querySelector('.dm-vp');
     if (panAnim) { try { panAnim.cancel(); } catch (e) {} panAnim = null; }
+    vp.style.height = '';
+    var maxH = vp.clientHeight;
+    if (img.offsetHeight < maxH) vp.style.height = img.offsetHeight + 'px';
     var extra = img.offsetHeight - vp.clientHeight;
     vp.classList.toggle('dm-largo', extra > 8);
-    img.style.marginTop = extra > 8 ? '0' : Math.max(0, -extra / 2) + 'px';
     if (extra > 8 && img.animate) {
       var ms = Math.max(4000, extra * 16);
       panAnim = img.animate([
@@ -24028,8 +24060,12 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     else if (zoomEl) zoomSeccion(zoomEl);
     else box.style.display = 'none';
   }
+  var enHistorial = false;
   function abrir(k, el) {
     var c = T[k]; if (!c) return;
+    if (!modal.classList.contains('on')) {
+      try { history.pushState({ demoModal: 1 }, ''); enHistorial = true; } catch (e) {}
+    }
     zoomEl = el || null;
     imgs = c.img || []; slide = 0;
     modal.querySelector('.dm-emoji').textContent = c.e || '✨';
@@ -24043,7 +24079,18 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     modal.classList.add('on');
     ocultarTip();
   }
-  function cerrar() { modal.classList.remove('on'); if (panAnim) { try { panAnim.cancel(); } catch (e) {} panAnim = null; } }
+  function cerrar(desdeRegresar) {
+    if (!modal.classList.contains('on')) return;
+    modal.classList.remove('on');
+    if (panAnim) { try { panAnim.cancel(); } catch (e) {} panAnim = null; }
+    if (enHistorial) { enHistorial = false; if (!desdeRegresar) { try { history.back(); } catch (e) {} } }
+  }
+  window.addEventListener('popstate', function (e) {
+    ocultarTip();
+    if (modal && modal.classList.contains('on')) { cerrar(true); return; }
+    var t = (e.state && e.state.demoTab) || 'datos';
+    if (window._demoTabOriginal && t !== window._demoTabActual) window._demoTabOriginal(t);
+  });
 
   // ─── Letrero (tooltip) ───
   var tip, hlEl = null;
@@ -24058,7 +24105,11 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     var x = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), window.innerWidth - tw - 8);
     var y = r.top - th - 10; if (y < 50) y = Math.min(r.bottom + 10, window.innerHeight - th - 8);
     tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    tipDesde = Date.now();
+    clearTimeout(tipTimer);
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) tipTimer = setTimeout(ocultarTip, 3500);
   }
+  var tipDesde = 0, tipTimer = null;
   function ocultarTip() { if (tip) tip.classList.remove('on'); if (hlEl) { hlEl.classList.remove('demo-hl'); hlEl = null; } }
 
   function montarUI() {
@@ -24066,8 +24117,8 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     var bar = document.createElement('div'); bar.id = 'demoBar';
     var w = waLink();
     bar.innerHTML = '<span class="demo-bar-larga">👀 PANEL DE DEMOSTRACIÓN · Pasa el mouse o toca cualquier sección para descubrir qué es. Los datos son de ejemplo.</span>' +
-      '<span class="demo-bar-corta">👀 DEMO · Toca cualquier sección para saber qué es</span>' +
-      (w ? '<a class="demo-bar-btn" href="' + w + '" target="_blank">💬 Quiero inscribirme</a>' : '');
+      '<span class="demo-bar-corta">👀 DEMO · Toca <b style="background:#facc15;color:#0f172a;border-radius:50%;padding:1px 3px;">👆</b> o <b style="background:#fff;color:#0f172a;border-radius:50%;padding:0 6px;font-family:Georgia,serif;font-style:italic;">i</b></span>' +
+      (w ? '<a class="demo-bar-btn" href="' + w + '" target="_blank"><span class="demo-bar-larga">💬 Quiero inscribirme</span><span class="demo-bar-corta">💬 Inscribirme</span></a>' : '');
     document.body.appendChild(bar);
     if (w) { var cta = document.createElement('a'); cta.id = 'demoCta'; cta.href = w; cta.target = '_blank'; cta.innerHTML = '💬 Quiero inscribirme'; document.body.appendChild(cta); }
     tip = document.createElement('div'); tip.id = 'demoTip'; document.body.appendChild(tip);
@@ -24111,7 +24162,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
       var el = e.target.closest('[data-demo]');
       if (el) mostrarTip(el); else ocultarTip();
     }, true);
-    window.addEventListener('scroll', ocultarTip, true);
+    window.addEventListener('scroll', function () { if (Date.now() - tipDesde > 600) ocultarTip(); }, true);
     // Vuelve a marcar lo que se pinta después (evaluación, prácticas, workbooks)
     new MutationObserver(function () { clearTimeout(window._demoMk); window._demoMk = setTimeout(marcarTodo, 120); })
       .observe(document.getElementById('screenPanel') || document.body, { childList: true, subtree: true });
@@ -24132,10 +24183,25 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   function practicaDirecta() {
     var original = window.cambiarTabApp;
     if (typeof original !== 'function') return;
-    window.cambiarTabApp = function (tab) {
-      var r = original.apply(this, arguments);
+    window._demoTabActual = 'datos';
+    function irA(tab) {
+      window._demoTabActual = tab;
+      var r = original.call(window, tab);
+      [150, 700, 1600].forEach(function (ms) { setTimeout(function () { try { marcarTodo(); senalarTocables(); } catch (e) {} }, ms); });
       if (tab === 'practica') { try { mostrarDetalleNivel('A1'); } catch (e) {} }
+      try { window.scrollTo(0, 0); } catch (e) {}
       return r;
+    }
+    window._demoTabOriginal = irA;
+    // Cada pestaña queda en el historial: el botón regresar del celular vuelve a "Mi clase"
+    window.cambiarTabApp = function (tab) {
+      var st = history.state || {};
+      try {
+        if (tab === 'datos') { if (st.demoTab) { history.back(); return; } }
+        else if (st.demoTab) history.replaceState({ demoTab: tab }, '');
+        else history.pushState({ demoTab: tab }, '');
+      } catch (e) {}
+      return irA(tab);
     };
     var st = document.createElement('style');
     st.textContent = '#btnVolverNiveles{display:none !important;}';
@@ -24207,12 +24273,12 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
       });
       var ev = document.getElementById('postitEvaluarTexto'); if (ev) ev.textContent = 'No olvides calificar a tu asistente CE.';
       var pc = document.getElementById('postitChallengeTexto'); if (pc) pc.textContent = 'Recuerda que esta semana tendrás tu Mini Challenge. Mucho éxito!!';
-      marcarTodo();
+      marcarTodo(); senalarTocables();
     }, 700);
     montarUI();
     montarSalir();
     practicaDirecta();
-    marcarTodo();
+    marcarTodo(); senalarTocables();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', validarYArrancar); else validarYArrancar();
 })();
