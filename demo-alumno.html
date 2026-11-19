@@ -101,6 +101,7 @@ window.OE_DEMO = true;
   };
 
   var fetchReal = window.fetch.bind(window);
+  window.OE_DEMO_FETCH_REAL = fetchReal;
   window.fetch = function (url, opts) {
     if (typeof url === 'string' && url.indexOf('script.google.com/macros') !== -1) {
       var m = url.match(/[?&]action=([^&]+)/);
@@ -23757,10 +23758,10 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   var RAW = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/';
   var F = window.OE_DEMO_FECHAS;
   var qs = new URLSearchParams(location.search);
-  // Si el link no trae ?a=número, se usa este (déjalo vacío para no mostrar los botones de WhatsApp)
-  var ASESOR_WA_DEFAULT = '';
-  var ASESOR_WA = (qs.get('a') || ASESOR_WA_DEFAULT).replace(/\D/g, '');
-  var ASESOR_NOM = (qs.get('n') || '').trim();
+  // El asesor (nombre y WhatsApp) llega del servidor al validar el link ?t=
+  var TOKEN = (qs.get('t') || '').trim();
+  var ASESOR_WA = '';
+  var ASESOR_NOM = '';
 
   // ─── Alumno ficticio ───
   var pagoIni = F.mas(F.inicio, 14), pagoFin = F.mas(F.inicio, 14 + 24), pagoLim = F.mas(F.inicio, 14 + 26);
@@ -24049,7 +24050,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
   function mostrarTip(el) {
     var c = T[el.getAttribute('data-demo')]; if (!c) return;
     if (hlEl && hlEl !== el) hlEl.classList.remove('demo-hl');
-    hlEl = el; if (c.modo === 'modal') el.classList.add('demo-hl');
+    hlEl = el; if (c.modo === 'modal' || c.modo === 'pasar') el.classList.add('demo-hl');
     tip.innerHTML = c.tip + (c.modo === 'modal' ? '<small>👆 Dale clic para ver más</small>' : '');
     var r = el.getBoundingClientRect();
     tip.classList.add('on');
@@ -24140,6 +24141,58 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     st.textContent = '#btnVolverNiveles{display:none !important;}';
     document.head.appendChild(st);
   }
+  // ─── Link de un solo uso: se valida contra el Sheets ───
+  var GATE_CSS = '#demoGate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;' +
+    'background:#0f172a url(https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/hero4.webp) center/cover;font-family:"Segoe UI",Arial,sans-serif;}' +
+    '#demoGate .dg-box{background:rgba(19,33,63,.94);border:1px solid rgba(255,255,255,.12);border-radius:26px;max-width:460px;width:100%;padding:30px 26px;text-align:center;color:#f1f5f9;box-shadow:0 30px 80px rgba(0,0,0,.6);}' +
+    '#demoGate img{width:210px;margin-bottom:18px;}#demoGate .dg-emoji{font-size:54px;margin-bottom:6px;}' +
+    '#demoGate .dg-tit{font-size:22px;font-weight:900;margin-bottom:10px;}#demoGate .dg-txt{font-size:16px;line-height:1.55;color:#fde047;font-weight:700;}' +
+    '#demoGate .dg-btn{display:inline-flex;align-items:center;gap:8px;margin-top:20px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;text-decoration:none;font-weight:800;font-size:16px;padding:14px 24px;border-radius:100px;box-shadow:0 10px 26px rgba(22,163,74,.45);}' +
+    '#demoGate .dg-spin{width:42px;height:42px;border-radius:50%;border:4px solid rgba(255,255,255,.15);border-top-color:#f97316;margin:10px auto;animation:dgGira .8s linear infinite;}@keyframes dgGira{to{transform:rotate(360deg)}}';
+  function gate(html) {
+    var g = document.getElementById('demoGate');
+    if (!g) {
+      var st = document.createElement('style'); st.textContent = GATE_CSS; document.head.appendChild(st);
+      g = document.createElement('div'); g.id = 'demoGate'; document.body.appendChild(g);
+    }
+    g.innerHTML = '<div class="dg-box"><img src="https://raw.githubusercontent.com/ergutza-lab/organic-english/main/images/logoblanco.png" alt="Organic English">' + html + '</div>';
+    g.style.display = 'flex';
+  }
+  function gateBloqueo(titulo, texto) {
+    var w = waLink();
+    gate('<div class="dg-emoji">⏰</div><div class="dg-tit">' + titulo + '</div><div class="dg-txt">' + texto + '</div>' +
+      (w ? '<a class="dg-btn" href="' + w + '" target="_blank">💬 Escribirle a ' + (ASESOR_NOM || 'mi asesor') + '</a>' : ''));
+  }
+  function primerNombre(n) { return String(n || '').trim().split(/\s+/)[0] || ''; }
+  function validarYArrancar() {
+    if (!TOKEN) {
+      gateBloqueo('Necesitas un link personal', 'Este demo se abre con el link que te comparte tu asesor de Organic English. Pídele el tuyo.');
+      return;
+    }
+    gate('<div class="dg-spin"></div><div class="dg-txt" style="color:#e2e8f0;">Preparando tu recorrido…</div>');
+    var f = window.OE_DEMO_FETCH_REAL || window.fetch;
+    f(APPS_SCRIPT + '?action=validarLinkDemo&t=' + encodeURIComponent(TOKEN), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.asesor) { ASESOR_WA = String(d.asesor.whatsapp || '').replace(/\D/g, ''); ASESOR_NOM = primerNombre(d.asesor.nombre); }
+        if (d && d.success) {
+          document.getElementById('demoGate').style.display = 'none';
+          arrancar();
+          setTimeout(function () {
+            gateBloqueo('Terminó tu tiempo de demostración', '¿Te gustó lo que viste? Escríbele a tu asesor para inscribirte o para pedirle un nuevo link.');
+          }, Math.max(0, Math.min(Number(d.venceEn) || 0, 2147483000)));
+        } else if (d && d.motivo === 'EXPIRADO') {
+          gateBloqueo('Este link ya expiró', 'Tu link de demostración funcionaba ' + (DEMO_HORAS_TXT) + ' desde que lo abriste. Pídele uno nuevo a tu asesor.');
+        } else if (d && d.motivo === 'OCUPADO') {
+          gateBloqueo('Intenta de nuevo', 'El sistema está ocupado. Recarga la página en unos segundos.');
+        } else {
+          gateBloqueo('Link no válido', 'Este link de demostración no existe. Pídele a tu asesor que te comparta uno nuevo.');
+        }
+      })
+      .catch(function () { gateBloqueo('Sin conexión', 'No pudimos revisar tu link. Revisa tu internet y recarga la página.'); });
+  }
+  var DEMO_HORAS_TXT = '2 horas';
+
   function arrancar() {
     try { alumnoData = window.OE_DEMO_DATA; } catch (e) {}
     window.alumnoData = window.OE_DEMO_DATA;
@@ -24161,7 +24214,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     practicaDirecta();
     marcarTodo();
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar); else arrancar();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', validarYArrancar); else validarYArrancar();
 })();
 
 </script>
