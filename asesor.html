@@ -267,6 +267,7 @@
     </div>
 
     <button class="pr-btn pr-btn-nuevo" onclick="prToggleForm()">➕ Nuevo prospecto</button>
+    <button class="pr-btn" onclick="demoAbrir()" style="width:100%;margin-top:8px;padding:12px;font-size:14px;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;">🎬 Mandar demo del panel del alumno</button>
     <div class="pr-form" id="prForm">
       <label>Nombre</label>
       <input class="pr-input" id="prNombre" placeholder="Ej. Laura Méndez" autocomplete="off">
@@ -3819,6 +3820,7 @@ function prPintarLista() {
       '<div class="pr-card-acc">' +
         '<button class="pr-btn pr-btn-verde" onclick="prAbrirMensaje(\'' + p.id + '\')">💬 Mensaje</button>' +
         '<button class="pr-btn pr-btn-gris" onclick="prAbrirDetalle(\'' + p.id + '\')">✏️ Detalle</button>' +
+        (cerrado ? '' : '<button class="pr-btn" style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;" onclick="demoAbrir(\'' + p.id + '\')">🎬 Demo</button>') +
         (cerrado ? '' : '<button class="pr-btn pr-btn-morado" onclick="prInscribir(\'' + p.id + '\')">⚡ Inscribir</button>') +
       '</div></div>';
   }).join('');
@@ -5121,5 +5123,82 @@ function lgCompartir() {
 }
 </script>
 
+
+<script>
+// ═══ DEMO DEL PANEL DEL ALUMNO (nov-2026) ═══
+// El asesor genera un link personal de un solo uso (dura 2 horas desde que
+// el candidato lo abre) y se lo manda por WhatsApp.
+var demoLink = null;
+function demoEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function demoAbrir(idProspecto) {
+  var p = idProspecto && typeof prBuscarP === 'function' ? prBuscarP(idProspecto) : null;
+  demoLink = null;
+  var v = document.getElementById('demoModalAse');
+  if (!v) { v = document.createElement('div'); v.id = 'demoModalAse'; document.body.appendChild(v); }
+  v.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.75);display:flex;align-items:center;justify-content:center;padding:16px;';
+  v.innerHTML =
+    '<div style="background:#13213f;border:1px solid rgba(255,255,255,.1);border-radius:22px;width:100%;max-width:420px;padding:22px 20px;color:#f1f5f9;box-shadow:0 24px 60px rgba(0,0,0,.55);font-family:inherit;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+        '<div style="font-size:18px;font-weight:800;">🎬 Demo del panel del alumno</div>' +
+        '<button onclick="demoCerrar()" style="background:rgba(255,255,255,.08);border:none;color:#cbd5e1;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;">✕</button>' +
+      '</div>' +
+      '<div style="font-size:12.5px;color:#94a3b8;line-height:1.5;margin-bottom:14px;">El candidato recorre un panel de alumno de ejemplo. El link es personal: funciona <b style="color:#fde68a;">2 horas</b> desde que lo abre y después ya no entra.</div>' +
+      '<div id="demoPaso1">' +
+        '<label style="font-size:12px;color:#cbd5e1;font-weight:700;">Nombre del candidato</label>' +
+        '<input class="pr-input" id="demoNombre" placeholder="Ej. Laura Méndez" autocomplete="off" value="' + demoEsc(p ? p.nombre : '') + '" style="margin:4px 0 10px;">' +
+        '<label style="font-size:12px;color:#cbd5e1;font-weight:700;">WhatsApp (10 dígitos, opcional)</label>' +
+        '<input class="pr-input" id="demoWA" placeholder="Ej. 272 123 4567" inputmode="tel" autocomplete="off" value="' + demoEsc(p ? p.whatsapp : '') + '" style="margin-top:4px;">' +
+        '<button class="pr-btn" id="demoBtnGenerar" onclick="demoGenerar()" style="width:100%;margin-top:14px;padding:13px;font-size:14px;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;">✨ Generar link</button>' +
+      '</div>' +
+      '<div id="demoPaso2" style="display:none;"></div>' +
+      '<div id="demoMsg" style="font-size:12.5px;color:#f87171;margin-top:10px;min-height:16px;"></div>' +
+    '</div>';
+  setTimeout(function () { var n = document.getElementById('demoNombre'); if (n && !n.value) n.focus(); }, 50);
+}
+function demoCerrar() { var v = document.getElementById('demoModalAse'); if (v) v.style.display = 'none'; }
+function demoTexto() {
+  var nom = (typeof prPila === 'function' ? prPila(demoLink.candidato) : demoLink.candidato) || '';
+  return 'Hola ' + nom + ', te comparto un recorrido por el panel de alumno de Organic English para que veas cómo serán tus clases, tu práctica y tus pagos:\n\n' +
+    demoLink.url + '\n\nEl link es personal y funciona durante ' + demoLink.horas + ' horas desde que lo abras. Cualquier duda, aquí estoy.';
+}
+function demoGenerar() {
+  var nombre = document.getElementById('demoNombre').value.trim();
+  var wa = document.getElementById('demoWA').value.replace(/\D/g, '');
+  var msg = document.getElementById('demoMsg');
+  if (!nombre) { msg.textContent = 'Escribe el nombre del candidato.'; return; }
+  if (wa && wa.length !== 10) { msg.textContent = 'El WhatsApp debe tener 10 dígitos (o déjalo vacío).'; return; }
+  var btn = document.getElementById('demoBtnGenerar');
+  btn.disabled = true; btn.textContent = 'Generando...'; msg.textContent = '';
+  fetch(APPS_SCRIPT + '?action=crearLinkDemo&idAsesor=' + encodeURIComponent(asesorData.id) +
+        '&candidato=' + encodeURIComponent(nombre) + '&whatsapp=' + encodeURIComponent(wa), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      btn.disabled = false; btn.textContent = '✨ Generar link';
+      if (!d || !d.success) { msg.textContent = (d && d.error) || 'No se pudo generar el link.'; return; }
+      demoLink = d;
+      document.getElementById('demoPaso1').style.display = 'none';
+      var p2 = document.getElementById('demoPaso2');
+      p2.style.display = 'block';
+      p2.innerHTML =
+        '<div style="font-size:13px;color:#4ade80;font-weight:800;margin-bottom:8px;">✅ Link listo para ' + demoEsc(d.candidato) + '</div>' +
+        '<div style="background:#0f172a;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;font-size:12.5px;word-break:break-all;color:#e2e8f0;">' + demoEsc(d.url) + '</div>' +
+        (d.whatsapp ? '<button class="pr-btn pr-btn-verde" onclick="demoEnviarWA()" style="width:100%;margin-top:12px;padding:13px;font-size:14px;">💬 Enviar por WhatsApp a ' + demoEsc(d.candidato) + '</button>' : '') +
+        '<button class="pr-btn pr-btn-gris" onclick="demoCopiar()" style="width:100%;margin-top:8px;padding:12px;font-size:13px;">📋 Copiar mensaje con el link</button>' +
+        '<div style="font-size:11.5px;color:#94a3b8;margin-top:10px;line-height:1.5;">Cada candidato necesita su propio link. Si se le vence, genera uno nuevo.</div>';
+    })
+    .catch(function () { btn.disabled = false; btn.textContent = '✨ Generar link'; msg.textContent = 'Error de conexión. Intenta de nuevo.'; });
+}
+function demoEnviarWA() {
+  if (!demoLink || !demoLink.whatsapp) return;
+  window.open('https://wa.me/' + cleanWA(demoLink.whatsapp) + '?text=' + encodeURIComponent(demoTexto()), '_blank');
+}
+function demoCopiar() {
+  if (!demoLink) return;
+  var t = demoTexto(), msg = document.getElementById('demoMsg');
+  function ok() { msg.style.color = '#4ade80'; msg.textContent = '✅ Mensaje copiado. Pégalo en el chat del candidato.'; }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function () { prompt('Copia el mensaje:', t); });
+  else prompt('Copia el mensaje:', t);
+}
+</script>
 </body>
 </html>
