@@ -23810,11 +23810,11 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
       d: 'Cada cierto tiempo puedes calificar a tu maestro y a tu asistente de Control Escolar. Tu opinión es anónima y nos ayuda a darte un mejor servicio.' },
     miGrupo: { modo: 'modal', e: '👥', t: 'Mi grupo', tip: 'Tu grupo, horario, días y fecha de inicio.',
       d: 'Aquí ves los datos de tu grupo: tu horario (hora del centro de México), los días de clase y la fecha de inicio. Tenemos horarios entre semana (lunes a jueves) y sabatinos.' },
-    cambioGrupo: { modo: 'modal', e: '⇄', t: 'Cambio de grupo', tip: '¿Te cambió el horario? Solicita otro grupo.',
+    cambioGrupo: { modo: 'tip', e: '⇄', t: 'Cambio de grupo', tip: '¿Te cambió el horario? Solicita otro grupo.',
       d: 'Si tu horario cambia, puedes solicitar tu cambio a otro grupo del mismo nivel. Tu asistente de Control Escolar te ayuda con el trámite.' },
     maestro: { modo: 'modal', e: '🎓', t: 'Mi maestro', tip: 'Tu maestro asignado.',
       d: 'Aquí conoces a tu maestro. Te acompaña durante todo el bloque, registra tu avance en cada clase y te deja retroalimentación para que sepas qué mejorar.' },
-    maestroWa: { modo: 'modal', e: '💬', t: 'Mensaje a tu maestro', tip: 'Escríbele a tu maestro por WhatsApp.',
+    maestroWa: { modo: 'tip', e: '💬', t: 'Mensaje a tu maestro', tip: 'Escríbele a tu maestro por WhatsApp.',
       d: 'Si tienes una duda sobre la clase, puedes escribirle a tu maestro directamente por WhatsApp desde tu panel.' },
     evaluarMaestro: { modo: 'modal', e: '⭐', t: 'Evaluar a mi maestro', tip: 'Califica a tu maestro.', img: ['evaluar.webp'],
       d: 'Cada cierto tiempo puedes calificar a tu maestro. Tu opinión es anónima y nos ayuda a cuidar la calidad de las clases.' },
@@ -24139,7 +24139,7 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
     document.addEventListener('click', function (e) {
       if (modal.contains(e.target) || e.target.closest('#demoBar,#demoCta')) return;
       var el = e.target.closest('[data-demo]');
-      if (!el) return;
+      if (!el) { ocultarTip(); return; }
       var c = T[el.getAttribute('data-demo')];
       if (!c || c.modo === 'pasar') return;
       if (el.getAttribute('data-demo') === 'salir') {
@@ -24157,8 +24157,9 @@ function calcularSemanaDelBloque_(fecha, fechaInicioGrupo, bloque) {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       abrir(el.getAttribute('data-demo'), el);
     }, true);
+    var esTactil = window.matchMedia && window.matchMedia('(hover: none)').matches;
     document.addEventListener('mouseover', function (e) {
-      if (modal.classList.contains('on')) return;
+      if (esTactil || modal.classList.contains('on')) return;
       var el = e.target.closest('[data-demo]');
       if (el) mostrarTip(el); else ocultarTip();
     }, true);
