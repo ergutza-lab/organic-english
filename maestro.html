@@ -680,6 +680,17 @@
 </div><!-- cierre de #vistaDetalle -->
 
 <script>
+// ── Link de Zoom limpio (nov-2026) ─────────────────────────────────────
+// Si alguien pega la invitación completa de Zoom o dos links juntos, se
+// saca solo el link de la reunión (con su contraseña si la trae).
+function limpiarLinkZoom(t){
+  t=String(t||'').trim(); if(!t) return '';
+  if(/^JITSI:/i.test(t)) return t;
+  var m=t.match(/https?:\/\/((?:[a-z0-9-]+\.)*zoom\.us)\/j\/(\d{9,11})(?!\d)(\?[^\s"'<>]*)?/i);
+  if(m){var q=(m[3]||'').match(/[?&]pwd=([A-Za-z0-9._-]+)/);return 'https://'+m[1]+'/j/'+m[2]+(q?'?pwd='+q[1]:'');}
+  var u=t.match(/https?:\/\/[^\s"'<>]+/i); return u?u[0]:'';
+}
+
   const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwZm4Yl1u_Qm-FSyS6FGA84wV8cp6flpHggXnslzg-PxlUD7LVD-1Iftr3NHBJwHFYO/exec';
 
   var COLOR_POR_NIVEL_MAP = {
@@ -1266,7 +1277,7 @@ function abrirModalZoomClub() {
 
 function entrarZoomClub() {
   if (!grupoActual) return;
-  var link = grupoActual.linkClub || '';
+  var link = limpiarLinkZoom(grupoActual.linkClub);
   if (!link) {
     mostrarToast('No hay enlace de Zoom configurado todavía. Presiona "🔗 Enlace Zoom" para agregarlo.','error');
     return;
@@ -3688,6 +3699,11 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
     function guardarZoom() {
     if (!grupoZoomActual) return;
     var link = document.getElementById('zoomInput').value.trim();
+    if (link) {
+      var _lz = limpiarLinkZoom(link);
+      if (!_lz) { document.getElementById('zoomStatus').textContent = '❌ No encontramos un link. Pega solo el link de Zoom (https://...zoom.us/j/...)'; return; }
+      link = _lz; document.getElementById('zoomInput').value = link;
+    }
     document.getElementById('zoomStatus').textContent = 'Guardando...';
 
     // Si el modal se abrió desde la vista del Chat Club, llamar al endpoint
@@ -3721,7 +3737,8 @@ return {idAlumno:a.id, feedback:document.getElementById('fb-'+a.id).value, aprob
       .then(d=>{
         if (d.success) {
           var g = panelData.grupos.find(function(x){ return x.id===grupoZoomActual; });
-          if (g) g.linkZoom = link;
+          if (g) g.linkZoom = d.link || link;
+          if (grupoActual && grupoActual.id === grupoZoomActual) grupoActual.linkZoom = d.link || link;
           document.getElementById('zoomStatus').textContent = '✅ Guardado';
           setTimeout(cerrarModalZoom, 1500);
           mostrarToast('Enlace Zoom actualizado','success');
@@ -3902,7 +3919,7 @@ var OBS_OPCIONES = {
       mostrarToast('No hay enlace Zoom configurado para este grupo','error');
       return;
     }
-    window.open(grupoActual.linkZoom, '_blank');
+    window.open(limpiarLinkZoom(grupoActual.linkZoom) || grupoActual.linkZoom, '_blank');
   }
 
   function invitarClase() {
@@ -4946,7 +4963,7 @@ function entrarZoomMaestroPersonalizado() {
     mostrarToast('No hay enlace Zoom configurado para este grupo','error');
     return;
   }
-  window.open(grupoActual.linkZoom, '_blank');
+  window.open(limpiarLinkZoom(grupoActual.linkZoom) || grupoActual.linkZoom, '_blank');
 }
 
 function abrirModalGrabacionPersonalizado() {
