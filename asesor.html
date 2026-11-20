@@ -246,6 +246,7 @@
       <button id="cvTabBtn-comisiones" class="cv-tab" onclick="cvTab('comisiones')"><span class="cv-ico">💰</span>Comisiones<span class="cv-badge" id="cvBadgeReemb"></span></button>
       <button id="cvTabBtn-publicar" class="cv-tab" onclick="cvTab('publicar')"><span class="cv-ico">📣</span>Publicar</button>
       <button id="cvTabBtn-lugares" class="cv-tab" onclick="cvTab('lugares')"><span class="cv-ico">📍</span>Lugares</button>
+      <button id="cvTabBtn-precios" class="cv-tab" onclick="cvTab('precios')"><span class="cv-ico">🏷️</span>Precios</button>
     </div>
 
     <!-- HOY -->
@@ -355,6 +356,12 @@
         <button type="button" id="lgSeg-compartir" onclick="lgVer('compartir')">Para compartir</button>
       </div>
       <div id="lgContenido"><div class="loading">Cargando grupos...</div></div>
+    </div>
+
+    <!-- PRECIOS (material de consulta del asesor, no se publica en redes) -->
+    <div class="cv-panel" id="cvPanel-precios" style="display:none;">
+      <div class="pc-nota">💡 Usa la tabla según el grupo al que entra el alumno.</div>
+      <div id="pcLista"></div>
     </div>
 
   </div>
@@ -4263,7 +4270,7 @@ function prInscribir(id) {
   .cv-sub { font-size: 11px; font-weight: 600; opacity: .92; line-height: 1.35; }
   .cv-barra { height: 7px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; margin-top: 7px; }
   .cv-barra > div { height: 100%; width: 0; background: #fde047; border-radius: 999px; transition: width .6s; }
-  .cv-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+  .cv-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
   .cv-tab { position: relative; background: #1e2a4a; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 4px 7px; font-size: 11.5px; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center; }
   .cv-tab .cv-ico { display: block; font-size: 18px; margin-bottom: 2px; }
   .cv-tab .cv-badge { position: absolute; top: -6px; right: -4px; margin: 0; }
@@ -4299,7 +4306,7 @@ function cvIniciar() {
 
 function cvTab(t) {
   cvTabActual = t;
-  ['hoy', 'prospectos', 'alumnos', 'comisiones', 'publicar', 'lugares'].forEach(function (k) {
+  ['hoy', 'prospectos', 'alumnos', 'comisiones', 'publicar', 'lugares', 'precios'].forEach(function (k) {
     document.getElementById('cvPanel-' + k).style.display = k === t ? '' : 'none';
     document.getElementById('cvTabBtn-' + k).classList.toggle('sel', k === t);
   });
@@ -4307,6 +4314,7 @@ function cvTab(t) {
   if (t === 'comisiones' && !cvComisionesCargadas) cvCargarComisiones();
   if (t === 'publicar' && !ktCargado) ktCargar();
   if (t === 'lugares') lgCargar();   // siempre fresco al abrir
+  if (t === 'precios') pcPintar();
 }
 
 // ── Ganado esta semana + avance al bono ────────────────────────────────────
@@ -5199,6 +5207,112 @@ function demoCopiar() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function () { prompt('Copia el mensaje:', t); });
   else prompt('Copia el mensaje:', t);
 }
+</script>
+
+<!-- ══ PRECIOS · tablas de colegiatura para consulta del asesor ══ -->
+<style>
+  .pc-nota { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.45); color: #fed7aa; border-radius: 14px; padding: 12px 14px; font-size: 14px; font-weight: 800; margin-bottom: 12px; line-height: 1.4; }
+  .pc-card { background: #1e2a4a; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 12px; margin-bottom: 12px; }
+  .pc-tit { font-size: 14px; font-weight: 900; color: #f1f5f9; margin-bottom: 10px; line-height: 1.35; }
+  .pc-img { display: block; width: 100%; border-radius: 12px; background: #0f172a; cursor: zoom-in; min-height: 120px; }
+  .pc-btns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 10px; }
+  .pc-btn { min-height: 46px; border-radius: 14px; border: 1px solid #475569; background: #0f172a; color: #f1f5f9; font-size: 13.5px; font-weight: 800; font-family: inherit; cursor: pointer; }
+  .pc-btn-wa { border: none; background: #16a34a; color: #fff; box-shadow: 0 5px 14px rgba(22,163,74,0.3); }
+  .pc-btn[disabled] { opacity: .6; cursor: wait; }
+  #pcVisor { position: fixed; inset: 0; z-index: 10050; background: rgba(2,6,23,0.94); display: none; flex-direction: column; }
+  #pcVisor.open { display: flex; }
+  #pcVisor .pc-vcab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; color: #f1f5f9; font-weight: 800; font-size: 14px; }
+  #pcVisor .pc-vx { width: 42px; height: 42px; border-radius: 50%; border: none; background: #1e2a4a; color: #fff; font-size: 20px; cursor: pointer; flex-shrink: 0; }
+  #pcVisor .pc-vcuerpo { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 0 10px 16px; display: flex; align-items: flex-start; justify-content: center; }
+  #pcVisor img { width: 100%; max-width: 900px; height: auto; border-radius: 10px; touch-action: pinch-zoom; }
+</style>
+<div id="pcVisor" onclick="if(event.target===this)pcCerrar()">
+  <div class="pc-vcab"><span id="pcVisorTit"></span><button type="button" class="pc-vx" aria-label="Cerrar" onclick="pcCerrar()">✕</button></div>
+  <div class="pc-vcuerpo" onclick="if(event.target===this)pcCerrar()"><img id="pcVisorImg" alt=""></div>
+</div>
+<script>
+var PC_BASE = 'https://raw.githubusercontent.com/ergutza-lab/organic-english/main/PUBLICIDAD/IMAGENES/';
+var PC_TABLAS = [
+  { id: 'az',   archivo: 'GRUPOS%20A-Z.jpg',               titulo: 'Grupos A–Z (grupos de una letra, incluidos los de recién inicio)' },
+  { id: 'aa',   archivo: 'GRUPOS%20AA%20EN%20ADELANTE.jpg', titulo: 'Grupos AA en adelante · Jóvenes y adultos' },
+  { id: 'kids', archivo: 'GRUPOS%20AA%20-%20KIDS.jpg',      titulo: 'Grupos AA en adelante · Kids' }
+];
+var pcArchivos = {};
+
+function pcPintar() {
+  var cont = document.getElementById('pcLista');
+  if (cont.getAttribute('data-listo')) return;
+  cont.innerHTML = PC_TABLAS.map(function (x) {
+    return '<div class="pc-card">' +
+      '<div class="pc-tit">' + x.titulo + '</div>' +
+      '<img class="pc-img" src="' + PC_BASE + x.archivo + '" alt="' + x.titulo + '" loading="lazy" onclick="pcVer(\'' + x.id + '\')">' +
+      '<div class="pc-btns">' +
+        '<button type="button" class="pc-btn" onclick="pcVer(\'' + x.id + '\')">🔍 Ver en grande</button>' +
+        '<button type="button" class="pc-btn pc-btn-wa" id="pcWa-' + x.id + '" onclick="pcCompartir(\'' + x.id + '\', this)">📲 Compartir por WhatsApp</button>' +
+      '</div></div>';
+  }).join('');
+  cont.setAttribute('data-listo', '1');
+  // Se dejan listos los archivos para que "Compartir" funcione al primer toque
+  PC_TABLAS.forEach(function (x) { pcObtener(x).catch(function () {}); });
+}
+
+function pcTabla(id) { for (var i = 0; i < PC_TABLAS.length; i++) if (PC_TABLAS[i].id === id) return PC_TABLAS[i]; return null; }
+
+function pcObtener(x) {
+  if (pcArchivos[x.id]) return Promise.resolve(pcArchivos[x.id]);
+  return fetch(PC_BASE + x.archivo).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+    .then(function (b) {
+      var nombre = decodeURIComponent(x.archivo).replace(/\s+/g, '-').toLowerCase();
+      var f = new File([b], 'precios-' + nombre, { type: 'image/jpeg' });
+      pcArchivos[x.id] = f; return f;
+    });
+}
+
+function pcVer(id) {
+  var x = pcTabla(id); if (!x) return;
+  document.getElementById('pcVisorTit').textContent = x.titulo;
+  document.getElementById('pcVisorImg').src = PC_BASE + x.archivo;
+  document.getElementById('pcVisor').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function pcCerrar() {
+  document.getElementById('pcVisor').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Comparte solo la imagen (sin texto). En celular abre el menú de compartir
+// para elegir WhatsApp; en computadora copia la imagen para pegarla en el chat.
+function pcCompartir(id, btn) {
+  var x = pcTabla(id), f = pcArchivos[id];
+  if (!f) {
+    var fin = ktOcupado(btn, '⏳ Preparando...');
+    pcObtener(x).then(function () { fin(); btn.innerHTML = '📲 Listo: toca para compartir'; })
+      .catch(function () { fin(); prToast('No se pudo preparar la imagen. Revisa tu conexión.', '#dc2626'); });
+    return;
+  }
+  var esCel = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (esCel && navigator.canShare && navigator.canShare({ files: [f] })) {
+    navigator.share({ files: [f] }).catch(function (e) { if (e && e.name !== 'AbortError') pcRespaldo(f); });
+    return;
+  }
+  pcRespaldo(f);
+}
+function pcRespaldo(f) {
+  if (navigator.clipboard && window.ClipboardItem) {
+    createImageBitmap(f).then(function (bmp) {
+      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; c.getContext('2d').drawImage(bmp, 0, 0);
+      return new Promise(function (res) { c.toBlob(res, 'image/png'); });
+    }).then(function (png) {
+      return navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    }).then(function () {
+      prToast('📋 Imagen copiada: en el chat de WhatsApp presiona Ctrl+V para pegarla', '#16a34a');
+    }).catch(function () { ktGuardarArchivo(f); prToast('⬇️ Imagen descargada: adjúntala en WhatsApp', '#16a34a'); });
+    return;
+  }
+  ktGuardarArchivo(f);
+  prToast('⬇️ Imagen descargada: adjúntala en WhatsApp', '#16a34a');
+}
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') pcCerrar(); });
 </script>
 </body>
 </html>
