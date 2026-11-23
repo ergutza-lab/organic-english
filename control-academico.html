@@ -4362,6 +4362,7 @@ function abrirHistorialAlumno(idAlumno, idGrupo, nombreAlumno) {
   cont.innerHTML = '<div class="empty-state">Cargando...</div>';
   modal.style.display = 'flex';
   historialAlumnoActual = null;
+  _corrCtx = { idAlumno: idAlumno, idGrupo: idGrupo, nombre: nombreAlumno };
 
   fetch(APPS_SCRIPT+'?action=getHistorialAlumnoCA&idAlumno='+encodeURIComponent(idAlumno)+'&idGrupo='+encodeURIComponent(idGrupo), {redirect:'follow'})
     .then(function(r){ return r.json(); })
@@ -4394,10 +4395,11 @@ function abrirHistorialAlumno(idAlumno, idGrupo, nombreAlumno) {
 
       var challengesHtml = (data.challenges||[]).length
         ? '<div style="margin-top:16px;"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Challenges</div>' +
-          data.challenges.map(function(c){
-            return '<div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;">' +
-              '<span style="color:#f1f5f9;">'+c.tipo+' Challenge — '+(c.fecha||'—')+'</span>' +
+          data.challenges.map(function(c, i){
+            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;">' +
+              '<span style="color:#f1f5f9;flex:1;">'+c.tipo+' Challenge — '+(c.fecha||'—')+'</span>' +
               '<span style="color:'+(c.aprobado?'#4ade80':'#f87171')+';">'+(c.aprobado?'Aprobado':'No aprobado')+'</span>' +
+              '<button onclick="abrirCorregirChallenge('+i+')" style="background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.5);color:#fdba74;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">✏️ Corregir</button>' +
             '</div>';
           }).join('') + '</div>'
         : '';
@@ -4408,6 +4410,257 @@ function abrirHistorialAlumno(idAlumno, idGrupo, nombreAlumno) {
         '<div style="text-align:center;margin-top:18px;"><button onclick="descargarHistorialAlumnoPDF()" style="background:#f97316;color:#fff;border:none;border-radius:10px;padding:11px 30px;font-size:13px;font-weight:700;cursor:pointer;">📄 Descargar reporte en PDF</button></div>';
     })
     .catch(function(){ cont.innerHTML = '<div class="empty-state">Error de conexión.</div>'; });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CORREGIR CHALLENGE (solo CA) · nov-2026
+//  El maestro evalúa una sola vez. Si hay que corregir (ej. el alumno no
+//  pudo subir su video), el CA sube el video y cambia la evaluación.
+//  La anterior queda en el historial CORRECCIONES_CHALLENGE.
+// ═══════════════════════════════════════════════════════════════════════
+var _corrCtx = null, _corrCh = null, _corrArchivo = null, _corrSubiendo = false;
+var CARPETA_VIDEOS_CHALLENGE = '1rfB1_fUJiJ5IZv_neqdumhLapubTJCPr';
+
+function abrirCorregirChallenge(i) {
+  if (!historialAlumnoActual || !_corrCtx) return;
+  _corrCh = (historialAlumnoActual.challenges || [])[i];
+  if (!_corrCh) return;
+  _corrArchivo = null; _corrSubiendo = false;
+  var esMini = String(_corrCh.tipo).toLowerCase().indexOf('mini') === 0;
+  var m = document.getElementById('modalCorregirCh');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'modalCorregirCh';
+    m.style.cssText = 'position:fixed;inset:0;z-index:10050;background:rgba(2,6,23,0.8);display:flex;align-items:center;justify-content:center;padding:16px;';
+    m.addEventListener('click', function (e) { if (e.target === m && !_corrSubiendo) cerrarCorregirChallenge(); });
+    document.body.appendChild(m);
+  }
+  var lbl = 'font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin:14px 0 6px;display:block;';
+  var inp = 'width:100%;box-sizing:border-box;background:#0f172a;border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#f1f5f9;padding:10px 12px;font-size:13px;font-family:inherit;';
+  m.innerHTML =
+    '<div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:16px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;padding:20px;color:#f1f5f9;position:relative;">' +
+      '<button id="corrCerrarX" onclick="cerrarCorregirChallenge()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,0.08);color:#cbd5e1;cursor:pointer;">✕</button>' +
+      '<div style="font-size:17px;font-weight:800;padding-right:34px;">✏️ Corregir ' + (esMini ? 'Mini' : 'Grand') + ' Challenge</div>' +
+      '<div style="font-size:12.5px;color:#94a3b8;margin-top:4px;">' + escCorr_(_corrCtx.nombre) + ' · ' + escCorr_(_corrCtx.idAlumno) + ' · ' + escCorr_(_corrCtx.idGrupo) + ' · ' + escCorr_(_corrCh.claveBloque || '') + '</div>' +
+      '<div style="margin-top:12px;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5;">' +
+        '<b>Evaluación actual del maestro:</b> <span style="color:' + (_corrCh.aprobado ? '#4ade80' : '#f87171') + ';font-weight:700;">' + (_corrCh.aprobado ? 'Aprobado' : 'No aprobado') + '</span> · ' + escCorr_(_corrCh.fecha || '') +
+        (_corrCh.feedback ? '<br><span style="color:#cbd5e1;">“' + escCorr_(_corrCh.feedback) + '”</span>' : '') +
+        '<div id="corrVideoActual" style="margin-top:6px;color:#94a3b8;">Buscando video…</div>' +
+      '</div>' +
+      '<label style="' + lbl + '">📹 Video del alumno (opcional)</label>' +
+      '<input type="file" id="corrVideoInput" accept="video/*" onchange="corrElegirVideo(this)" style="' + inp + 'padding:8px;">' +
+      '<div id="corrVideoInfo" style="font-size:11.5px;color:#94a3b8;margin-top:4px;">Si el alumno no pudo subirlo, súbelo aquí. Se guarda en la misma carpeta de videos de challenges.</div>' +
+      '<div id="corrProgWrap" style="display:none;margin-top:8px;height:8px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;"><div id="corrProg" style="height:100%;width:0;background:linear-gradient(90deg,#22c55e,#4ade80);transition:width .3s;"></div></div>' +
+      '<label style="' + lbl + '">Resultado</label>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button type="button" id="corrSi" onclick="corrResultado(true)" style="flex:1;padding:11px;border-radius:10px;border:2px solid rgba(74,222,128,0.4);background:transparent;color:#4ade80;font-weight:800;cursor:pointer;">✅ Aprobado</button>' +
+        '<button type="button" id="corrNo" onclick="corrResultado(false)" style="flex:1;padding:11px;border-radius:10px;border:2px solid rgba(248,113,113,0.4);background:transparent;color:#f87171;font-weight:800;cursor:pointer;">❌ No aprobado</button>' +
+      '</div>' +
+      '<label style="' + lbl + '">Retroalimentación para el alumno</label>' +
+      '<textarea id="corrFeedback" rows="3" maxlength="600" style="' + inp + 'resize:vertical;">' + escCorr_(_corrCh.feedback || '') + '</textarea>' +
+      '<label style="' + lbl + '">Motivo de la corrección (obligatorio)</label>' +
+      '<textarea id="corrMotivo" rows="2" maxlength="300" placeholder="Ej. No pudo subir su video, lo entregó por WhatsApp a la maestra." style="' + inp + 'resize:vertical;"></textarea>' +
+      '<div id="corrMsg" style="font-size:12.5px;margin-top:10px;min-height:16px;color:#f87171;"></div>' +
+      '<div style="display:flex;gap:8px;margin-top:8px;">' +
+        '<button type="button" id="corrCancelar" onclick="cerrarCorregirChallenge()" style="flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:#cbd5e1;font-weight:700;cursor:pointer;">Cancelar</button>' +
+        '<button type="button" id="corrGuardar" onclick="guardarCorreccionChallenge()" style="flex:2;padding:12px;border-radius:10px;border:none;background:#f97316;color:#fff;font-weight:800;cursor:pointer;">💾 Guardar corrección</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:#64748b;margin-top:10px;line-height:1.45;">La corrección sustituye la evaluación del maestro y actualiza el promedio del alumno. La evaluación anterior queda guardada en el historial de correcciones.</div>' +
+    '</div>';
+  m.style.display = 'flex';
+  m.dataset.res = '';
+  corrResultado(null);
+
+  // Video que ya tenga registrado (si lo hay)
+  fetch(APPS_SCRIPT + '?action=getLinksVideoChallenge&idGrupo=' + encodeURIComponent(_corrCtx.idGrupo) + '&bloque=' + encodeURIComponent(_corrCh.bloque || 1), { redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var box = document.getElementById('corrVideoActual'); if (!box) return;
+      var l = d && d.links && d.links[_corrCtx.idAlumno];
+      var url = l ? (esMini ? l.mini : l.grand) : '';
+      box.innerHTML = url ? '<a href="' + url + '" target="_blank" style="color:#60a5fa;font-weight:700;">▶ Ver el video que ya tiene registrado</a>' : 'Sin video registrado.';
+    })
+    .catch(function () { var box = document.getElementById('corrVideoActual'); if (box) box.textContent = ''; });
+}
+
+function escCorr_(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function corrResultado(v) {
+  var m = document.getElementById('modalCorregirCh'); if (!m) return;
+  m.dataset.res = v === null ? '' : (v ? 'si' : 'no');
+  var si = document.getElementById('corrSi'), no = document.getElementById('corrNo');
+  si.style.background = v === true ? 'rgba(74,222,128,0.18)' : 'transparent';
+  si.style.borderColor = v === true ? '#4ade80' : 'rgba(74,222,128,0.4)';
+  no.style.background = v === false ? 'rgba(248,113,113,0.18)' : 'transparent';
+  no.style.borderColor = v === false ? '#f87171' : 'rgba(248,113,113,0.4)';
+}
+
+function corrElegirVideo(input) {
+  _corrArchivo = input.files && input.files[0] ? input.files[0] : null;
+  var info = document.getElementById('corrVideoInfo');
+  if (_corrArchivo) info.textContent = '📎 ' + _corrArchivo.name + ' · ' + (_corrArchivo.size / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function cerrarCorregirChallenge() {
+  if (_corrSubiendo) return;
+  var m = document.getElementById('modalCorregirCh'); if (m) m.style.display = 'none';
+}
+
+function _corrBloquear_(si, texto) {
+  _corrSubiendo = si;
+  ['corrGuardar', 'corrCancelar', 'corrCerrarX', 'corrVideoInput', 'corrSi', 'corrNo'].forEach(function (id) { var el = document.getElementById(id); if (el) el.disabled = si; });
+  var g = document.getElementById('corrGuardar'); if (g) g.textContent = si ? (texto || 'Guardando…') : '💾 Guardar corrección';
+}
+
+function guardarCorreccionChallenge() {
+  var m = document.getElementById('modalCorregirCh');
+  var msg = document.getElementById('corrMsg'); msg.style.color = '#f87171';
+  var res = m.dataset.res;
+  var motivo = document.getElementById('corrMotivo').value.trim();
+  var feedback = document.getElementById('corrFeedback').value.trim();
+  if (!res) { msg.textContent = 'Elige si queda Aprobado o No aprobado.'; return; }
+  if (!motivo) { msg.textContent = 'Escribe el motivo de la corrección.'; return; }
+  if (!caData || !caData.id) { msg.textContent = 'Tu sesión expiró. Vuelve a entrar.'; return; }
+  msg.textContent = '';
+  var esMini = String(_corrCh.tipo).toLowerCase().indexOf('mini') === 0;
+
+  var subir = Promise.resolve('');
+  if (_corrArchivo) {
+    _corrBloquear_(true, 'Subiendo video…');
+    document.getElementById('corrProgWrap').style.display = 'block';
+    msg.style.color = '#94a3b8'; msg.textContent = 'Subiendo video… no cierres esta ventana.';
+    var nombre = _corrCtx.idAlumno + '_' + _corrCtx.idGrupo + '_' + (esMini ? 'Mini' : 'Grand') + '_CA_' + _corrArchivo.name;
+    subir = fetch(APPS_SCRIPT + '?action=getUploadToken', { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (t) {
+        if (!t.token) throw new Error('No se obtuvo permiso para subir el video.');
+        return _subirDriveResumable(_corrArchivo, t.token, { name: nombre, parents: [CARPETA_VIDEOS_CHALLENGE] }, function (frac, mb, totalMb) {
+          document.getElementById('corrProg').style.width = Math.round(frac * 100) + '%';
+          msg.textContent = 'Subiendo video… ' + Math.round(frac * 100) + '% (' + mb + ' de ' + totalMb + ' MB)';
+        });
+      })
+      .then(function (drive) {
+        if (!drive || !drive.id) throw new Error('Drive no regresó el video.');
+        return drive.webViewLink;
+      });
+  }
+
+  _corrBloquear_(true, _corrArchivo ? 'Subiendo video…' : 'Guardando…');
+  subir.then(function (urlVideo) {
+    _corrBloquear_(true, 'Guardando…');
+    msg.style.color = '#94a3b8'; msg.textContent = 'Guardando corrección…';
+    return fetch(APPS_SCRIPT + '?action=corregirChallengeCA' +
+      '&idCA=' + encodeURIComponent(caData.id) +
+      '&idAlumno=' + encodeURIComponent(_corrCtx.idAlumno) +
+      '&tipo=' + encodeURIComponent(esMini ? 'Mini' : 'Grand') +
+      '&claveBloque=' + encodeURIComponent(_corrCh.claveBloque || '') +
+      '&aprobado=' + (res === 'si' ? 'true' : 'false') +
+      '&feedback=' + encodeURIComponent(feedback) +
+      '&motivo=' + encodeURIComponent(motivo) +
+      '&urlVideo=' + encodeURIComponent(urlVideo || ''), { redirect: 'follow' })
+      .then(function (r) { return r.json(); });
+  })
+  .then(function (d) {
+    _corrBloquear_(false);
+    if (!d || !d.success) { msg.style.color = '#f87171'; msg.textContent = '❌ ' + ((d && d.error) || 'No se pudo guardar.'); return; }
+    msg.style.color = '#4ade80'; msg.textContent = '✅ Corrección guardada.';
+    setTimeout(function () {
+      cerrarCorregirChallenge();
+      abrirHistorialAlumno(_corrCtx.idAlumno, _corrCtx.idGrupo, _corrCtx.nombre);
+    }, 900);
+  })
+  .catch(function (e) {
+    _corrBloquear_(false);
+    msg.style.color = '#f87171'; msg.textContent = '❌ ' + (e && e.message ? e.message : 'Error de conexión.');
+  });
+}
+
+function _subirDriveResumable(file, token, metadata, onProgress) {
+  var CHUNK = 8 * 1024 * 1024; // múltiplo de 256 KB
+  var total = file.size;
+  var tipo  = file.type || 'video/mp4';
+  var totalMb = (total/1024/1024).toFixed(1);
+
+  function esperar(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  function putXHR(url, headers, body, onUp) {
+    return new Promise(function(resolve, reject) {
+      var x = new XMLHttpRequest();
+      x.open('PUT', url, true);
+      Object.keys(headers).forEach(function(k){ x.setRequestHeader(k, headers[k]); });
+      x.timeout = 120000;
+      if (onUp) x.upload.onprogress = function(e){ if (e.lengthComputable) onUp(e.loaded); };
+      x.onload    = function(){ resolve(x); };
+      x.onerror   = function(){ reject(new Error('Load failed (red)')); };
+      x.ontimeout = function(){ reject(new Error('Tiempo de espera agotado (red)')); };
+      x.send(body);
+    });
+  }
+
+  // Pregunta a Drive cuántos bytes ya recibió (para reanudar tras un corte)
+  function consultarOffset(sessionUrl) {
+    return putXHR(sessionUrl, { 'Content-Range': 'bytes */' + total }, null).then(function(x) {
+      if (x.status === 200 || x.status === 201) return { listo: true, resp: x.responseText };
+      if (x.status === 308) {
+        var rg = x.getResponseHeader('Range'); // "bytes=0-N"
+        var m = rg && rg.match(/-(\d+)$/);
+        return { listo: false, offset: m ? parseInt(m[1], 10) + 1 : 0 };
+      }
+      throw new Error('Drive respondió ' + x.status);
+    });
+  }
+
+  return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,webViewLink', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': tipo,
+      'X-Upload-Content-Length': String(total)
+    },
+    body: JSON.stringify(metadata)
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.text().then(function(t){ throw new Error('Drive error ' + r.status + ': ' + t.substring(0, 200)); });
+    }
+    var sessionUrl = r.headers.get('Location');
+    if (!sessionUrl) throw new Error('Drive no devolvió la sesión de subida');
+
+    var offset = 0, fallos = 0;
+    function siguiente() {
+      var fin = Math.min(offset + CHUNK, total);
+      var base = offset;
+      return putXHR(sessionUrl, {
+        'Content-Range': 'bytes ' + offset + '-' + (fin - 1) + '/' + total
+      }, file.slice(offset, fin), function(loaded) {
+        var hecho = base + loaded;
+        onProgress(hecho / total, (hecho/1024/1024).toFixed(1), totalMb);
+      }).then(function(x) {
+        if (x.status === 200 || x.status === 201) {
+          onProgress(1, totalMb, totalMb);
+          return JSON.parse(x.responseText);
+        }
+        if (x.status === 308) {
+          fallos = 0;
+          var rg = x.getResponseHeader('Range');
+          var m = rg && rg.match(/-(\d+)$/);
+          offset = m ? parseInt(m[1], 10) + 1 : fin;
+          return siguiente();
+        }
+        throw new Error('Drive respondió ' + x.status);
+      }).catch(function(err) {
+        fallos++;
+        if (fallos > 6) throw err;
+        return esperar(1500 * fallos).then(function(){ return consultarOffset(sessionUrl); }).then(function(st) {
+          if (st.listo) return JSON.parse(st.resp);
+          offset = st.offset;
+          return siguiente();
+        });
+      });
+    }
+    return siguiente();
+  });
 }
 
 function descargarHistorialAlumnoPDF() {
