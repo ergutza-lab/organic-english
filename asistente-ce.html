@@ -646,9 +646,10 @@
 </div>
 
 <!-- MODAL NOTIFICACIÓN PAGO VALIDADO -->
-<div class="modal-confirm-overlay" id="modal-notif-pago">
-  <div class="modal-confirm-box">
-    <div class="modal-confirm-titulo">✓ Pago validado</div>
+<div class="modal-confirm-overlay" id="modal-notif-pago" onclick="if(event.target===this)cerrarModalNotifPago()">
+  <div class="modal-confirm-box" style="position:relative;">
+    <button type="button" onclick="cerrarModalNotifPago()" aria-label="Cerrar" style="position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(15,23,42,0.08);color:#475569;font-size:15px;font-weight:700;cursor:pointer;line-height:1;">✕</button>
+    <div class="modal-confirm-titulo" style="padding-right:34px;">✓ Pago validado</div>
     <div class="modal-confirm-sub" id="notif-pago-mensaje">El pago quedó registrado. Revisa el resumen:</div>
     <div class="modal-confirm-data">
       <div class="row"><span>Alumno</span><span id="notif-pago-alumno" style="text-align:right;padding-left:16px;">—</span></div>
@@ -2611,7 +2612,7 @@ function asReiniciar(cid) {
   asComentarioPendiente = '';
   var o = document.getElementById('obs-' + cid); if (o) o.value = '';
   var w = document.getElementById('obs-wrap-' + cid); if (w) w.style.display = 'none';
-  var m = document.getElementById(CAL_MONTO_INPUT[cid]); if (m) { m.readOnly = false; m.style.opacity = '1'; }
+  var m = document.getElementById(CAL_MONTO_INPUT[cid]); if (m) { m.readOnly = false; m.style.opacity = '1'; m.dataset.auto = ''; }
   asRenderOpciones(cid);
 }
 
@@ -2652,6 +2653,7 @@ function asSeleccionar(cid, tipo) {
   var w = document.getElementById('obs-wrap-' + cid); if (w) w.style.display = tipo === 'Pago_Especial' ? 'block' : 'none';
   var m = document.getElementById(CAL_MONTO_INPUT[cid]);
   if (m && tipo === 'Pago_Especial') { m.readOnly = false; m.style.opacity = '1'; m.value = ''; }
+  if (m && tipo === 'Promo_4') { m.value = ''; m.dataset.auto = ''; }
   asRenderOpciones(cid);
   if (calendarios[cid]) calRender(cid);
 }
@@ -2741,7 +2743,12 @@ function _asCalculoBase_(cid, st) {
   } else if (tipo === 'Promo_4') {
     var tp = Math.round(det.totalPromo);
     html = cab + '🎁 Promoción 4 semanas: paga 4 ' + unidades + ' seguid' + (st.sabatino ? 'o' : 'a') + 's con precio especial.';
-    if (n === 4) { var ajP = asAjusteSaldo_(cid, tp); html += '<br><b>Paga: $' + tp + '</b> · cubre 4 ' + unidades + asSaldoLinea_(ajP) + '<br><span style="color:#16a34a;font-weight:700;">✅ 4 ' + unidades + ' marcad' + (st.sabatino ? 'o' : 'a') + 's</span>'; r.sugerido = ajP.neto; r.total = ajP.neto; r.aplicado = ajP.ap; r.liquida = ajP.liq; }
+    if (n === 4) { var ajP = asAjusteSaldo_(cid, tp); html += '<br><b>Paga: $' + tp + '</b> · cubre 4 ' + unidades + asSaldoLinea_(ajP) + '<br><span style="color:#16a34a;font-weight:700;">✅ 4 ' + unidades + ' marcad' + (st.sabatino ? 'o' : 'a') + 's</span>'; r.sugerido = ajP.neto; r.total = ajP.neto; r.aplicado = ajP.ap; r.liquida = ajP.liq;
+      // (nov-2026) El monto se puede cambiar: si depositaron otra cantidad queda anotada la diferencia
+      var montoP = _calMontoDe_(cid);
+      if (montoP > ajP.neto) html += '<br><span style="color:#16a34a;font-weight:700;">💚 Saldo a favor: $' + (montoP - ajP.neto) + ' (queda anotado en el pago)</span>';
+      else if (montoP && montoP < ajP.neto) html += '<br><span style="color:#d97706;font-weight:700;">⏳ Pago pendiente: $' + (ajP.neto - montoP) + ' (queda anotado en el pago)</span>';
+    }
     else {
       var lun0 = calLunesDe(new Date(st.inicio)), fin4 = new Date(lun0); fin4.setDate(fin4.getDate() + 21);
       var d4 = _detalleTabla_({ inicio: st.sabatino ? new Date(st.inicio) : lun0, fin: st.sabatino ? new Date(new Date(st.inicio).getTime() + 21 * 86400000) : fin4, sabatino: st.sabatino }, g);
@@ -2750,13 +2757,20 @@ function _asCalculoBase_(cid, st) {
   } else {
     var obs = (document.getElementById('obs-' + cid).value || '').trim();
     var monto = _calMontoDe_(cid);
-    var ajE = asAjusteSaldo_(cid, det.total), esperado = ajE.neto;
+    // (nov-2026) Si cubre 4 semanas o más, cada bloque de 4 seguidas va con precio de Promoción 4 semanas;
+    // las sueltas que sobren, a precio semanal. Ej. A2-B1 (A-Z): 4 semanas = $460, no 4 x $125 = $500.
+    var nPromo = Math.floor(n / 4) * 4, totalTabla = 0;
+    det.semanas.forEach(function (s, i) { totalTabla += (i < nPromo && s.promo) ? s.promo : s.precio; });
+    totalTabla = Math.round(totalTabla);
+    var conPromo = nPromo > 0 && totalTabla < det.total;
+    var ajE = asAjusteSaldo_(cid, totalTabla), esperado = ajE.neto;
     var soloPend = !!(AS_SOLO_PEND[cid] && ajE.liq);
     if (soloPend) {
       esperado = ajE.liq;
       html = cab + '📝 Pago especial · <b>solo para liquidar el pendiente de $' + ajE.liq + '</b> (no paga semanas nuevas).';
     } else
-    html = cab + '📝 Pago especial · según tabla le tocarían <b>$' + det.total + '</b> por ' + n + ' ' + (n === 1 ? unidad : unidades) + '.' + asSaldoLinea_(ajE);
+    html = cab + '📝 Pago especial · según tabla le tocarían <b>$' + totalTabla + '</b> por ' + n + ' ' + (n === 1 ? unidad : unidades) +
+           (conPromo ? ' (con precio de Promoción 4 ' + unidades + '; a precio semanal serían $' + det.total + ')' : '') + '.' + asSaldoLinea_(ajE);
     if (monto > esperado) html += '<br><span style="color:#16a34a;font-weight:700;">💚 Saldo a favor: $' + (monto - esperado) + ' (queda anotado en el pago)</span>';
     else if (monto && monto < esperado) html += '<br><span style="color:#d97706;font-weight:700;">⏳ Pago pendiente: $' + (esperado - monto) + ' (queda anotado en el pago)</span>';
     r.total = esperado; r.aplicado = ajE.ap; r.liquida = ajE.liq;
@@ -2771,8 +2785,15 @@ function _notaTablaHtml_(containerId, st) {
   var r = asCalculo(containerId, st);
   var m = document.getElementById(CAL_MONTO_INPUT[containerId]);
   if (m && asGrupoTabla_(containerId) && AS_OP[containerId] !== 'Pago_Especial') {
-    if (r.sugerido != null) { m.value = r.sugerido; m.readOnly = true; m.style.opacity = '0.75'; }
-    else { m.readOnly = false; m.style.opacity = '1'; if (AS_OP[containerId] === 'Promo_4') m.value = ''; }
+    if (AS_OP[containerId] === 'Promo_4') {
+      // Promoción: el monto se propone con el precio de tabla, pero se puede cambiar (ej. depositaron $500 y la promo es $460)
+      m.readOnly = false; m.style.opacity = '1';
+      if (r.sugerido != null) {
+        if (!m.value || m.dataset.auto === m.value) { m.value = r.sugerido; m.dataset.auto = String(r.sugerido); }
+      } else { m.value = ''; m.dataset.auto = ''; }
+    }
+    else if (r.sugerido != null) { m.value = r.sugerido; m.readOnly = true; m.style.opacity = '0.75'; }
+    else { m.readOnly = false; m.style.opacity = '1'; }
   }
   return r.html;
 }
@@ -2790,7 +2811,12 @@ function asComentario(cid) {
   var st = calendarios[cid], r = asCalculo(cid, st);
   // Movimientos de saldo que el alumno decidió hacer en este pago
   var mov = (r.aplicado ? ' · Aplica saldo $' + r.aplicado : '') + (r.liquida ? ' · Liquida pendiente $' + r.liquida : '');
-  if (tipo === 'Promo_4') return 'Promoción 4 semanas' + mov;
+  if (tipo === 'Promo_4') {
+    var montoP = _calMontoDe_(cid), extraP = '';
+    if (r.total != null && montoP > r.total) extraP = ' · Saldo a favor $' + (montoP - r.total);
+    else if (r.total != null && montoP && montoP < r.total) extraP = ' · Pago pendiente $' + (r.total - montoP);
+    return 'Promoción 4 semanas' + mov + extraP;
+  }
   if (tipo !== 'Pago_Especial') return mov.replace(/^ · /, '');
   var monto = _calMontoDe_(cid);
   var extra = '';
@@ -3221,6 +3247,12 @@ async function validarPago(idAlumno,fechaPago,monto,coberturaInicio,coberturaFin
     }
     else mostrarToast(data.mensaje||'Error al validar','error');
   }catch(e){mostrarToast('Error de conexión','error');}
+}
+
+function cerrarModalNotifPago(){
+  document.getElementById('modal-notif-pago').classList.remove('open');
+  pagoActivoNombre=null; pagoActivoWA=null;
+  pagoActivoCoberturaInicio=null; pagoActivoCoberturaFin=null;
 }
 
 function notificarAlumnoPago(){
