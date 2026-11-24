@@ -2498,7 +2498,10 @@ function limpiarLinkZoom(t){
     if (isNaN(fi.getTime())) return 1;
     var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     var lun0 = new Date(fi.getFullYear(), fi.getMonth(), fi.getDate());
-    lun0.setDate(lun0.getDate() - ((lun0.getDay() + 6) % 7));
+    var wIni = lun0.getDay();
+    // Entre semana: si el inicio cae en vie/sáb/dom (ej. cambio de nivel), arranca el lunes siguiente
+    if (g.tipoHorario !== 'sabado' && (wIni === 5 || wIni === 6 || wIni === 0)) lun0.setDate(lun0.getDate() + ((8 - wIni) % 7));
+    else lun0.setDate(lun0.getDate() - ((wIni + 6) % 7));
     if (hoy < lun0) return 1;
     var dias = Math.round((hoy - lun0) / 86400000), semanas = Math.floor(dias / 7);
     var l = (g.tipoHorario === 'sabado')
