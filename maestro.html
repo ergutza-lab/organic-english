@@ -794,6 +794,13 @@ var _linksVideo = {1:{},2:{}};
   // al 12-nov quedaron cerradas por Coordinación. Desde el 12-nov se registran en
   // orden: no se puede registrar un día si falta uno anterior.
   var LECCION_REVISAR_DESDE = '2026-11-12';
+  // Último sábado igual o anterior a la fecha dada (yyyy-MM-dd). Sábado → el mismo; domingo → el de ayer.
+  function _ultimoSabado_(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() - ((d.getDay() + 1) % 7));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
   function _fechaDePosLeccion_(p) {
     if (!grupoActual || !grupoActual.fechaInicio) return '';
     var ini = _parseFechaLocal_(grupoActual.fechaInicio);
@@ -1918,7 +1925,9 @@ function renderPatronMaestro(patron) {
     document.querySelector('#vistaDetalle .grupo-info-card').style.background = colorNivelGrupo;
     var hoy=new Date();
     var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
-    document.getElementById('fechaClase').value=hoyStr;
+    var esSabAbierto = grupoActual.tipoHorario === 'sabado';
+    document.getElementById('fechaClase').max = hoyStr;
+    document.getElementById('fechaClase').value = esSabAbierto ? _ultimoSabado_(hoyStr) : hoyStr;
     fechasRegistradas=[];
     leccionesEvaluadas={}; leccionesPorFecha={};
     var _filaLec = document.getElementById('filaLeccion'); if (_filaLec) _filaLec.style.display='none';
@@ -1947,6 +1956,9 @@ function renderPatronMaestro(patron) {
           if (!(grupoActual && grupoActual.tipoHorario === 'sabado')) {
             var pIni = _leccionesPendientes_(0, hoyStr);
             if (pIni.length) fIni = _fechaDePosLeccion_(pIni[0]) || hoyStr;
+          } else {
+            // Sabatino: siempre el último sábado (el mismo sábado, o el anterior si registra domingo o después)
+            fIni = _ultimoSabado_(hoyStr);
           }
           document.getElementById('fechaClase').value = fIni;
           poblarSelectorLeccion();
@@ -2495,6 +2507,11 @@ function guardarRegistroSabatinoMasivo() {
 
   var esSabatino = grupoActual && grupoActual.tipoHorario === 'sabado';
   if (!esSabatino) { mostrarToast('Este grupo no es sabatino', 'error'); return; }
+  var _hoyV = new Date();
+  var _hoyIso = _hoyV.getFullYear()+'-'+String(_hoyV.getMonth()+1).padStart(2,'0')+'-'+String(_hoyV.getDate()).padStart(2,'0');
+  if (new Date(fecha + 'T12:00:00').getDay() !== 6) { mostrarToast('Selecciona el sábado en que se dio la clase', 'error'); return; }
+  if (fecha > _hoyIso) { mostrarToast('No puedes evaluar una fecha que todavía no llega', 'error'); return; }
+  if ((clasesPorFechaActual[fecha] || []).length) { mostrarToast('Este sábado ya tiene clases registradas', 'error'); return; }
 
   var alumnos = grupoActual.alumnos || [];
   var leccionActualGrupo = parseInt(grupoActual.leccionActual, 10) || 0;
@@ -2749,6 +2766,7 @@ function guardarRegistroSabatinoMasivo() {
     });
     var hoy=new Date();
     var nuevaFecha=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    if (grupoActual && grupoActual.tipoHorario === 'sabado') nuevaFecha = _ultimoSabado_(nuevaFecha);
     document.getElementById('fechaClase').value=nuevaFecha;
     actualizarEstadoFecha(nuevaFecha);
   }
