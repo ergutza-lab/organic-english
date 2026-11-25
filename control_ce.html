@@ -865,6 +865,26 @@ tbody td { padding: .7rem 1rem; vertical-align: middle; }
   </div>
 </div>
 
+<!-- MODAL: LINK DE ZOOM DE LA CLASE (CE lo sube cuando el maestro solo lo compartió por WhatsApp) -->
+<div class="modal-overlay" id="modal-zoom-ce">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-titulo">🎥 Link de Zoom de hoy</div>
+    <div id="zce-cab" style="background:linear-gradient(135deg,#2D8CFF,#1a6fd4);color:#fff;border-radius:12px;padding:12px 14px;margin:.6rem 0 .8rem;"></div>
+    <div id="zce-actual" style="font-size:.82rem;color:#475569;margin-bottom:.7rem;"></div>
+    <div class="modal-campo">
+      <label>Pega aquí el link que el maestro compartió en WhatsApp</label>
+      <textarea id="zce-input" rows="3" oninput="validarZoomCE()" placeholder="https://us06web.zoom.us/j/..." style="width:100%;box-sizing:border-box;border:2px solid #cbd5e1;border-radius:10px;padding:.6rem .75rem;font-size:.9rem;font-family:inherit;resize:vertical;"></textarea>
+      <div style="font-size:.74rem;color:#64748b;margin-top:.25rem;">Puedes pegar el mensaje completo de la invitación: el sistema toma solo el link de la reunión.</div>
+    </div>
+    <div id="zce-aviso" style="font-size:.82rem;font-weight:600;min-height:1.1rem;margin:.3rem 0 .2rem;"></div>
+    <div class="modal-acciones">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-zoom-ce')">Cancelar</button>
+      <button class="btn btn-primario" id="zce-guardar" onclick="guardarZoomCE()" disabled style="opacity:.5">Reemplazar link</button>
+    </div>
+    <div class="modal-msg" id="zce-msg"></div>
+  </div>
+</div>
+
 <!-- MODAL: CAMBIAR GRUPO -->
 <div class="modal-overlay" id="modal-cambio-grupo">
   <div class="modal">
@@ -1237,6 +1257,7 @@ function renderGrupos(filtro) {
       ? ' <button class="btn btn-rojo btn-sm" onclick="event.stopPropagation();abrirCancelarGrupoDesdeTabla(\''+escJs(g.id)+'\')">🚫 Cancelar grupo</button>'
       : '';
     var btnMover = ' <button class="btn btn-naranja btn-sm" onclick="event.stopPropagation();abrirModalMoverGrupoDesdeTabla(\''+escJs(g.id)+'\')">📅 Mover fecha</button>';
+    var btnZoom = ' <button class="btn btn-sm" style="background:#2D8CFF;color:#fff" title="Poner el link de Zoom de hoy (el que el maestro compartió en WhatsApp)" onclick="event.stopPropagation();abrirModalZoomCE(\''+escJs(g.id)+'\')">🎥 Link Zoom</button>';
     var colorNombre = nombreColor(g.nombre);
     var colorFila = colorFilaPorTipoGrupo(g.nombre);
     return '<tr style="cursor:pointer;'+colorFila+'" onclick="abrirModalAlumnosGrupo(\''+escJs(g.id)+'\')" title="Ver alumnos del grupo">'+
@@ -1248,7 +1269,7 @@ function renderGrupos(filtro) {
       '<td><strong>'+esc(g.inscritos)+'</strong> / '+esc(g.cupoMax)+'</td>'+
       '<td>'+chipEstado+'</td>'+
       '<td>'+chipAsi+'</td>'+
-      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnMover+btnCancelar+'</td>'+
+      '<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirModalAsignar(\''+escJs(g.id)+'\')">Asignar CE</button>'+btnZoom+btnMover+btnCancelar+'</td>'+
     '</tr>';
   }).join('');
 }
@@ -2035,6 +2056,74 @@ function confirmarAsignacion() {
     if (res.ok) { msgEl.textContent='Asistente asignado correctamente.'; msgEl.className='modal-msg ok'; setTimeout(function(){cerrarModal('modal-asignar');cargarDatos();},1200); }
     else { msgEl.textContent=res.error||'Error al asignar.'; msgEl.className='modal-msg error'; }
   });
+}
+
+// ── MODAL LINK DE ZOOM (24-nov-2026) ──
+// Cuando el maestro comparte el link solo por WhatsApp, CE lo sube aquí y
+// el alumno lo ve en su panel (botón "Mi clase por Zoom"). Se guarda con el
+// mismo endpoint que usa el maestro (GRUPOS col J).
+function _zceLimpiar(t) {
+  t = String(t || '').trim();
+  if (!t) return '';
+  var m = t.match(/https?:\/\/((?:[a-z0-9-]+\.)*zoom\.us)\/j\/(\d{9,11})(?!\d)(\?[^\s"'<>]*)?/i);
+  if (!m) return '';
+  var q = (m[3] || '').match(/[?&]pwd=([A-Za-z0-9._-]+)/);
+  return 'https://' + m[1] + '/j/' + m[2] + (q ? '?pwd=' + q[1] : '');
+}
+function _zceIdReunion(l) { var m = String(l || '').match(/\/j\/(\d{9,11})/); return m ? m[1] : ''; }
+function abrirModalZoomCE(idGrupo) {
+  var g = estado.grupos.find(function(x){ return x.id === idGrupo; }) || { id: idGrupo };
+  estado.grupoEnModal = idGrupo;
+  document.getElementById('zce-cab').innerHTML =
+    '<div style="font-size:1.6rem;font-weight:900;line-height:1">' + esc(g.id) + '</div>' +
+    '<div style="font-size:.85rem;font-weight:700;margin-top:.2rem">' + esc(g.nombre || '') + ' · ' + esc(g.horario || '') + '</div>' +
+    '<div style="font-size:.75rem;opacity:.9;margin-top:.1rem">' + esc(g.nivel || '') + (g.idMaestro ? ' · ' + esc(g.idMaestro) : '') + '</div>';
+  document.getElementById('zce-actual').innerHTML = g.linkZoom
+    ? 'Link que ven hoy los alumnos: <a href="' + esc(g.linkZoom) + '" target="_blank" style="color:#1a6fd4;font-weight:700;word-break:break-all">' + esc(g.linkZoom) + '</a>' +
+      '<div style="font-size:.76rem;color:#64748b;margin-top:.2rem">Si no es el mismo que el maestro mandó hoy por WhatsApp, pega abajo el nuevo para reemplazarlo.</div>'
+    : 'Este grupo todavía no tiene link de Zoom en la plataforma.';
+  document.getElementById('zce-input').value = '';
+  document.getElementById('zce-aviso').textContent = '';
+  var msg = document.getElementById('zce-msg'); msg.className = 'modal-msg'; msg.textContent = '';
+  var b = document.getElementById('zce-guardar'); b.disabled = true; b.style.opacity = '.5'; b.textContent = 'Reemplazar link';
+  document.getElementById('modal-zoom-ce').classList.add('abierto');
+  setTimeout(function(){ document.getElementById('zce-input').focus(); }, 60);
+}
+function validarZoomCE() {
+  var g = estado.grupos.find(function(x){ return x.id === estado.grupoEnModal; }) || {};
+  var bruto = document.getElementById('zce-input').value;
+  var link = _zceLimpiar(bruto);
+  var av = document.getElementById('zce-aviso'), b = document.getElementById('zce-guardar');
+  var ok = false;
+  if (!bruto.trim()) { av.textContent = ''; }
+  else if (!link) { av.style.color = '#dc2626'; av.textContent = 'No encontramos un link de Zoom (debe ser https://...zoom.us/j/...).'; }
+  else {
+    var id = _zceIdReunion(link);
+    var otros = estado.grupos.filter(function(o){ return o.id !== g.id && o.estado !== 'Cancelado' && o.linkZoom && _zceIdReunion(o.linkZoom) === id; }).map(function(o){ return o.id; });
+    if (g.linkZoom && _zceIdReunion(g.linkZoom) === id) { av.style.color = '#b45309'; av.textContent = 'Es el mismo link que ya ven los alumnos: no hay nada que cambiar.'; }
+    else if (otros.length) { av.style.color = '#b45309'; av.textContent = '⚠️ Este link también está en ' + otros.join(', ') + '. Revisa que sea del maestro de ' + g.id + ' antes de guardar.'; ok = true; }
+    else { av.style.color = '#15803d'; av.textContent = '✅ Se guardará: ' + link; ok = true; }
+  }
+  b.disabled = !ok; b.style.opacity = ok ? '1' : '.5';
+}
+function guardarZoomCE() {
+  var idGrupo = estado.grupoEnModal;
+  var link = _zceLimpiar(document.getElementById('zce-input').value);
+  var msg = document.getElementById('zce-msg'), b = document.getElementById('zce-guardar');
+  if (!link) return;
+  b.disabled = true; b.textContent = 'Guardando...';
+  api({ action:'actualizarLinkGrupo', idGrupo:idGrupo, linkZoom:link, quien:'CE ' + (estado.idCE || '') }).then(function(res) {
+    if (res.success) {
+      var g = estado.grupos.find(function(x){ return x.id === idGrupo; });
+      if (g) g.linkZoom = res.link || link;
+      msg.textContent = '✅ Listo. Los alumnos de ' + idGrupo + ' ya ven este link en su panel.'; msg.className = 'modal-msg ok';
+      renderGrupos(ultimoFiltroGrupos);
+      setTimeout(function(){ cerrarModal('modal-zoom-ce'); }, 1600);
+    } else {
+      msg.textContent = res.error || 'No se pudo guardar.'; msg.className = 'modal-msg error';
+      b.disabled = false; b.textContent = 'Reemplazar link';
+    }
+  }).catch(function(){ msg.textContent = 'Error de conexión.'; msg.className = 'modal-msg error'; b.disabled = false; b.textContent = 'Reemplazar link'; });
 }
 
 // ── MODAL CAMBIO GRUPO ──
